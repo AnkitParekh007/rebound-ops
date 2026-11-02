@@ -40,12 +40,13 @@ For a production-local build, run `npm run build` followed by `npm run start -w 
 ### What you can do
 
 1. Enter experience, practical constraints and 1–15 achievement claims with self-reported provenance.
-2. Confirm, reject or leave each claim unverified.
-3. Compare **Return**, **Shift** and **Bridge** as hypotheses, with their unknowns stated explicitly.
-4. Paste up to three real job targets and review their requirements against participant-confirmed achievements.
-5. Choose a direction and get a seven-day plan bounded by your available hours.
-6. Mark actions complete, record feedback and export a Markdown summary.
-7. Download or restore a private JSON session backup, or delete the memory-only API session.
+2. Paste up to three private résumé/project-note excerpts and correct individual claims with exact, uniquely matched source quotations (or leave them manually sourced).
+3. Confirm, reject or leave each claim unverified. Corrections reset confirmation and revoke dependent job-requirement links.
+4. Compare **Return**, **Shift** and **Bridge** as hypotheses, with their unknowns stated explicitly.
+5. Paste up to three real job targets and review their requirements against participant-confirmed achievements.
+6. Choose a direction and get a seven-day plan bounded by your available hours.
+7. Mark actions complete, record feedback and export a Markdown summary with evidence quotations and correction history.
+8. Download or restore a private JSON session backup, or delete the memory-only API session.
 
 Sessions live **only in API memory** and disappear when the process restarts unless you explicitly download a private JSON backup and restore it later. The browser does not send telemetry or data to an AI provider automatically. External AI calls are possible only when specifically enabled and approved via a payload preview. **Do not enter credentials, private employer information, sensitive résumés or anything you need to recover later.** The initial API has no login or encryption and is intended only for personal localhost testing.
 
@@ -81,6 +82,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 ## Architecture and roadmap
 
 - [Phase 2 implementation notes](docs/phase-2.md)
+- [Evidence provenance and correction guide](docs/evidence-provenance.md)
 - [Job requirement comparison guide](docs/job-requirements.md)
 - [AI provider setup, privacy and safety](docs/ai-provider.md)
 - [Fictional recovery journeys](examples/fictional-journeys.md)

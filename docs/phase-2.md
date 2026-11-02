@@ -16,7 +16,9 @@ The original Phase 1 pilot remains in `src/`, `tests/`, `index.html` and `styles
 
 ## Data contracts
 
-- **Evidence:** mandatory source kind/label, claim ID, editable status (unverified, confirmed, rejected).
+- **Evidence:** mandatory source kind/label, claim ID, editable status (unverified, confirmed, rejected), and optional exact document-span citation.
+- **Source documents:** at most three user-pasted résumé/project-note excerpts, immutable within a session, each capped at 10,000 characters. Evidence citations store a document ID and exact UTF-16 start/end offsets.
+- **Corrections:** reasoned, timestamped edits to a claim/source preserving the evidence ID but resetting it to unverified and revoking linked requirement support. At most 50 corrections per session.
 - **Intake:** work preference, 1–20 available hours per week, urgency, target routes and 0–15 evidence items.
 - **Routes:** Return / Shift / Bridge; candidate evidence IDs only, explicit unknowns and next tests. No fit scores.
 - **Plan:** up to seven actions within budget; user-selected route, explicit checkbox progress.
@@ -35,6 +37,9 @@ The original Phase 1 pilot remains in `src/`, `tests/`, `index.html` and `styles
 | GET | `/api/sessions/:id` | Read current session |
 | PUT | `/api/sessions/:id/intake` | Replace intake; **resets** route/plan/review |
 | PUT | `/api/sessions/:id/evidence/:evidenceId` | Confirm/unverify/reject evidence |
+| POST | `/api/sessions/:id/documents` | Paste one local-only source document |
+| DELETE | `/api/sessions/:id/documents/:documentId` | Delete an unreferenced source document |
+| PUT | `/api/sessions/:id/evidence/:evidenceId/correction` | Correct a claim, attach exact quotation and record reason |
 | PUT | `/api/sessions/:id/route` | Choose route; creates a fresh plan |
 | PUT | `/api/sessions/:id/actions/:actionId` | Set action completion |
 | POST | `/api/sessions/:id/targets` | Add manually entered job requirements |

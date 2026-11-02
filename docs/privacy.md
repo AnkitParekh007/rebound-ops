@@ -4,7 +4,7 @@
 
 - UI: Angular in the browser, normally `127.0.0.1:4200`.
 - API: Fastify bound to `127.0.0.1:4174`. The UI sends form data to this local process only.
-- Session data: in API memory, **not persisted to disk automatically**.
+- Session data: in API memory, **not persisted to disk automatically**. This now includes any pasted résumé/project-note source text and correction history.
 - No **automatic** AI provider calls, telemetry, hosted account, tracking pixel, résumé upload or job scraper. Optional external provider calls require local configuration, payload inspection and explicit consent.
 - The API limits request bodies to 128 KB and accepts only defined localhost browser origins.
 - API has no user authentication. **Do not expose or reverse-proxy its port to the internet.**
@@ -17,7 +17,7 @@
 4. The local API validates structure, time budgets and evidence-link consistency; it assigns a new session ID.
 5. Deleting a local session does **not** delete any files you previously downloaded.
 
-Backups may contain career history, location preferences and private notes. The app does **not encrypt** downloaded files. Use operating-system disk protection.
+Backups also contain all retained pasted source document texts, original and revised claims and correction reasons. Backups may contain career history, location preferences and private notes. The app does **not encrypt** downloaded files. Use operating-system disk protection.
 
 ## Delete and recover
 
