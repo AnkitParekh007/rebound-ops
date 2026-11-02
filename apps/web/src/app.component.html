@@ -1,0 +1,237 @@
+<header class="topbar">
+  <a href="/" class="brand" aria-label="ReboundOps home"><span class="brand-mark" aria-hidden="true">↗</span> ReboundOps</a>
+  <span class="tag">Phase 2 · Local preview</span>
+</header>
+
+<main class="shell">
+  <section class="hero" aria-labelledby="hero-title">
+    <p class="eyebrow">A better way forward</p>
+    <h1 id="hero-title">Your experience matters.<br><em>So does your next step.</em></h1>
+    <p class="lede">Compare career directions using user-controlled evidence. Choose one path to test and get a seven-day plan that respects your time.</p>
+    <div class="disclosure"><strong>What this version does:</strong> Structured intake, manual evidence confirmation, route hypotheses, time-budgeted plans, local progress tracking and export.
+      <strong> What it does not do automatically:</strong> AI analysis, job matching, salary predictions, external provider calls or disk storage. Optional AI requests require your explicit payload preview and consent. The API listens on your machine and forgets sessions on restart.</div>
+  </section>
+
+  <nav class="steps" aria-label="Recovery workflow">
+    <span><b>01</b> Experience</span>
+    <span><b>02</b> Evidence</span>
+    <span><b>03</b> Direction</span>
+    <span><b>04</b> Progress</span>
+  </nav>
+
+  @if (error()) {
+    <div class="message error" role="alert">{{ error() }}</div>
+  }
+  @if (notice()) {
+    <div class="message success" role="status">{{ notice() }}</div>
+  }
+
+  <section class="panel" aria-labelledby="intake-heading">
+    <div class="panel-top">
+      <div><p class="eyebrow">01 / Starting point</p><h2 id="intake-heading">What can you build on?</h2></div>
+      <span class="note">{{ apiAvailable() ? 'Local API ready' : 'API offline' }}</span>
+    </div>
+
+    <form (ngSubmit)="submit()">
+      <div class="fields">
+        <label>Recent role <input type="text" name="role" [(ngModel)]="draft.role" required maxlength="120" placeholder="e.g. Senior Frontend Engineer"></label>
+        <label>Location or work preference <input type="text" name="location" [(ngModel)]="draft.location" maxlength="160"></label>
+        <label>Available hours per week <input type="number" name="weeklyHours" [(ngModel)]="draft.weeklyHours" min="1" max="20" required></label>
+        <label>Income urgency
+          <select name="urgency" [(ngModel)]="draft.urgency">
+            <option value="soon">As soon as practical</option>
+            <option value="quarter">Within three months</option>
+            <option value="flexible">Flexible</option>
+          </select>
+        </label>
+      </div>
+      <label>Priorities and constraints <textarea name="priorities" [(ngModel)]="draft.priorities" rows="2" maxlength="1200"></textarea></label>
+      <label>Demonstrated achievements — one per line <textarea name="evidenceText" [(ngModel)]="evidenceText" rows="4" maxlength="7500" placeholder="Describe work you can support with evidence, without confidential details."></textarea></label>
+      <p class="hint">These are user-entered claims, not independently verified facts. You can mark each line as confirmed or rejected below.</p>
+      <div class="fields">
+        <label>Adjacent direction <input name="shiftTarget" [(ngModel)]="draft.shiftTarget" maxlength="140" placeholder="AI application engineering"></label>
+        <label>Contract / bridge direction <input name="bridgeTarget" [(ngModel)]="draft.bridgeTarget" maxlength="140" placeholder="Frontend consulting"></label>
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit" [disabled]="busy() || !apiAvailable()">{{ session() ? 'Update intake' : 'Create recovery session' }} <span aria-hidden="true">→</span></button>
+        <button class="secondary" type="button" (click)="demo()">Use fictional example</button>
+        <button class="minimal" type="button" (click)="clear()">Clear form</button>
+      </div>
+    </form>
+    <div class="restore-control">
+      <label>Resume a previous local backup
+        <input type="file" accept=".json,application/json" (change)="restoreFile($event)" [disabled]="busy() || !apiAvailable()">
+      </label>
+      <p class="hint">Only files you deliberately select are read. The JSON is sent to your localhost API, not to an AI service or cloud account.</p>
+    </div>
+  </section>
+
+  @if (session(); as current) {
+    <section class="panel" aria-labelledby="evidence-heading">
+      <div class="panel-top"><div><p class="eyebrow">02 / Provenance</p><h2 id="evidence-heading">Evidence you control</h2></div><span class="note">Revision {{ current.revision }}</span></div>
+      <p class="muted">Confirmation means <strong>you</strong> stand behind the claim. It does not mean ReboundOps or an employer has verified it.</p>
+      @if (current.intake.evidence.length === 0) {
+        <p class="empty">No evidence yet. Consider recovering a concrete achievement before making a career claim.</p>
+      }
+      <div class="evidence-list">
+        @for (item of current.intake.evidence; track item.id) {
+          <article class="evidence-item">
+            <div><p>{{ item.claim }}</p><small>{{ item.source.label }} · {{ item.status }}</small></div>
+            <div class="evidence-actions">
+              <button class="tiny" type="button" [disabled]="busy() || item.status === 'confirmed'" (click)="evidenceDecision(item.id,'confirmed')">Confirm</button>
+              <button class="tiny" type="button" [disabled]="busy() || item.status === 'rejected'" (click)="evidenceDecision(item.id,'rejected')">Reject</button>
+              <button class="tiny" type="button" [disabled]="busy() || item.status === 'unverified'" (click)="evidenceDecision(item.id,'unverified')">Unverify</button>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="job-target-heading">
+      <div class="panel-top">
+        <div><p class="eyebrow">02b / Current requirements</p><h2 id="job-target-heading">Compare against real requirements</h2></div>
+        <span class="note">{{ current.jobTargets.length }} / 3 targets</span>
+      </div>
+      <p class="muted">Paste specific requirements from a job description, one per line. Nothing is fetched from a URL. Match them manually to achievements you've confirmed; unsupported requirements remain gaps or unreviewed.</p>
+      @if (current.jobTargets.length < 3) {
+        <form class="target-form" (ngSubmit)="addTarget()">
+          <div class="fields">
+            <label>Job title / opportunity <input name="targetTitle" [(ngModel)]="targetTitle" required maxlength="140" placeholder="e.g. Frontend Platform Engineer"></label>
+            <label>Source URL (optional, HTTPS only) <input name="targetUrl" [(ngModel)]="targetUrl" maxlength="600" placeholder="https://example.org/jobs/123"></label>
+          </div>
+          <label>Requirements from this opportunity — one per line
+            <textarea name="targetRequirements" [(ngModel)]="targetRequirements" rows="4" required maxlength="6500" placeholder="Design accessible component systems&#10;Improve CI and test reliability"></textarea>
+          </label>
+          <button class="secondary" type="submit" [disabled]="busy()">Add requirements for review</button>
+        </form>
+      }
+      @for (target of current.jobTargets; track target.id) {
+        <article class="job-target">
+          <div class="job-head">
+            <div>
+              <h3>{{ target.title }}</h3>
+              @if (target.sourceUrl) {
+                <a [href]="target.sourceUrl" target="_blank" rel="noopener noreferrer">View source description</a>
+              }
+            </div>
+            <button class="minimal" type="button" [disabled]="busy()" (click)="removeTarget(target.id)">Remove target</button>
+          </div>
+          <ol class="requirement-list">
+            @for (requirement of target.requirements; track requirement.id) {
+              <li>
+                <p>{{ requirement.text }}</p>
+                <span class="requirement-state">{{ requirement.status }}</span>
+                <label>Evidence to link (only user-confirmed claims)
+                  <select [name]="'evidence-' + requirement.id"
+                    [ngModel]="evidenceSelection[requirement.id] || requirement.evidenceIds[0] || ''"
+                    (ngModelChange)="evidenceSelection[requirement.id] = $event">
+                    <option value="">No evidence selected</option>
+                    @for (item of current.intake.evidence; track item.id) {
+                      @if (item.status === 'confirmed') { <option [value]="item.id">{{ item.claim }}</option> }
+                    }
+                  </select>
+                </label>
+                <div class="review-actions">
+                  <button class="tiny" type="button" [disabled]="busy()" (click)="reviewRequirement(target.id, requirement.id, 'supported')">Supported by my evidence</button>
+                  <button class="tiny" type="button" [disabled]="busy()" (click)="reviewRequirement(target.id, requirement.id, 'gap')">Evidence gap</button>
+                  <button class="tiny" type="button" [disabled]="busy()" (click)="reviewRequirement(target.id, requirement.id, 'unreviewed')">Unreviewed</button>
+                </div>
+                @if (requirement.evidenceIds.length) {
+                  <small>Linked to {{ requirement.evidenceIds.length }} user-confirmed achievement(s). This is not independent verification.</small>
+                }
+              </li>
+            }
+          </ol>
+          <button class="secondary" type="button" [disabled]="busy()" (click)="previewAI(target.id)">Preview optional AI review payload</button>
+        </article>
+      }
+      @if (current.jobTargets.length) {
+        <div class="ai-panel" aria-labelledby="ai-review-title">
+          <p class="eyebrow">Optional / AI review with explicit consent</p>
+          <h3 id="ai-review-title">Only send what you approve</h3>
+          <p class="muted">The AI feature is {{ aiStatus()?.enabled ? 'configured locally, but inactive until you explicitly send a previewed payload' : 'disabled until configured with a local API key' }}. AI suggestions are not facts or hiring scores and are never applied automatically.</p>
+          @if (aiPreview(); as preview) {
+            <p><strong>Proposed provider:</strong> {{ preview.provider }} · <strong>Model:</strong> {{ preview.model || 'none configured' }}</p>
+            <p class="muted">This is the <strong>exact JSON</strong> that would be sent. It contains the selected job title, requirements, and only user-confirmed achievement claims. It excludes location, income urgency, preferences, and review notes. Data may be processed by the external provider if you consent.</p>
+            <pre class="preview-json" tabindex="0">{{ preview.payload | json }}</pre>
+            <div class="actions">
+              <button class="primary" type="button" [disabled]="busy() || !preview.enabled" (click)="analyzeAI()">I consent: send this exact payload</button>
+              @if (!preview.enabled) { <span class="muted">Configure AI locally to enable this action.</span> }
+            </div>
+          }
+          @if (aiAnalysis(); as analysis) {
+            <div class="ai-findings">
+              <h4>Suggested requirement reviews (not applied)</h4>
+              <p class="muted">{{ analysis.caution }}</p>
+              @for (finding of analysis.findings; track finding.requirementId) {
+                <article class="ai-finding">
+                  <strong>{{ finding.assessment.replace('_', ' ') }}</strong>
+                  <p>{{ finding.explanation }}</p>
+                  <p><strong>Next test:</strong> {{ finding.nextTest }}</p>
+                  <small>Requirement ID: {{ finding.requirementId }} · Suggested evidence links: {{ finding.evidenceIds.length }}</small>
+                </article>
+              }
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="routes-heading">
+      <div class="panel-top"><div><p class="eyebrow">03 / Realistic alternatives</p><h2 id="routes-heading">Choose a hypothesis to test</h2></div></div>
+      <p class="muted">These alternatives do not assess your fitness for actual vacancies. Candidate evidence is displayed for manual review, never counted as proof of suitability.</p>
+      <div class="routes">
+        @for (route of current.routes; track route.id) {
+          <article class="route">
+            <div class="route-type">{{ route.label }}</div>
+            <h3>{{ route.target }}</h3>
+            <p><strong>Uncertainty</strong><br>{{ route.uncertainty }}</p>
+            <p><strong>Missing proof</strong><br>{{ route.missingProof[0] }}</p>
+            <p><strong>Next test</strong><br>{{ route.nextTest }}</p>
+            <small>{{ route.candidateEvidenceIds.length }} user-entered evidence lines to review</small>
+            <button class="primary full" type="button" [disabled]="busy()" (click)="chooseRoute(route.id)">Test {{ route.label }}</button>
+          </article>
+        }
+      </div>
+    </section>
+
+    @if (current.plan; as plan) {
+      <section class="panel" aria-labelledby="plan-heading">
+        <div class="panel-top">
+          <div><p class="eyebrow">04 / Next seven days</p><h2 id="plan-heading">Make progress manageable</h2></div>
+          <span class="time-pill">{{ plan.plannedMinutes }} / {{ plan.budgetMinutes }} min budgeted</span>
+        </div>
+        <p class="muted">Complete one useful action rather than chasing an artificial employability score.</p>
+        <ol class="plan-list">
+          @for (action of plan.actions; track action.id) {
+            <li>
+              <label class="task">
+                <input type="checkbox" [checked]="action.completed" [disabled]="busy()" (change)="toggleAction(action.id, !action.completed)">
+                <span><small>Day {{ action.day }} · {{ action.minutes }} minutes</small><strong>{{ action.title }}</strong></span>
+              </label>
+            </li>
+          }
+        </ol>
+        <p class="progress" aria-live="polite">{{ completedCount() }} of {{ plan.actions.length }} actions completed</p>
+        <label>Check-in notes and real-world outcomes <textarea name="notesDraft" [(ngModel)]="notesDraft" rows="3" maxlength="2000" placeholder="What happened? What would you change?"></textarea></label>
+        <div class="actions">
+          <button class="primary" type="button" [disabled]="busy()" (click)="saveReview()">Save check-in</button>
+          <button class="secondary" type="button" [disabled]="busy()" (click)="download()">Export Markdown</button>
+        </div>
+        @if (current.reviewNotes) {
+          <p class="saved-review"><strong>Last saved check-in:</strong> {{ current.reviewNotes }}</p>
+        }
+      </section>
+    }
+    <section class="panel" aria-labelledby="privacy-heading">
+      <div class="panel-top"><div><p class="eyebrow">Your data / Portable by default</p><h2 id="privacy-heading">Back up or delete this session</h2></div></div>
+      <p class="muted">Sessions stay in local API memory. Export a private JSON snapshot to resume after a restart, or delete the current server session. Backups are not automatically deleted from your device.</p>
+      <div class="actions">
+        <button class="secondary" type="button" [disabled]="busy()" (click)="backup()">Download session JSON</button>
+        <button class="minimal" type="button" [disabled]="busy()" (click)="deleteSession()">Delete local session</button>
+      </div>
+    </section>
+  }
+</main>
+
+<footer><span>ReboundOps · Open-source Phase 2</span><span>Evidence over scores. Progress over promises.</span></footer>

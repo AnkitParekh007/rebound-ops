@@ -1,9 +1,15 @@
 node_modules/
 dist/
 coverage/
+.angular/
+apps/web/.angular/
+*.tsbuildinfo
 .env
 .env.*
 !.env.example
 .DS_Store
 data/
 *.local.json
+
+playwright-report/
+test-results/
