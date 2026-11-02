@@ -6,7 +6,7 @@ An open-source career recovery assistant for experienced software professionals 
 
 ## Phase 2 — Angular + local API preview
 
-The validated **Phase 1 manual pilot** remains available at the repository root. Phase 2 adds a typed Angular frontend and a Fastify API, with shared Zod contracts and explicit state transitions. It **does not use an AI provider** yet. There are no résumé uploads, hosted accounts, salary predictions, scraped job offers or automated applications.
+The validated **Phase 1 manual pilot** remains available at the repository root. Phase 2 adds a typed Angular frontend and a Fastify API, with shared Zod contracts and explicit state transitions. AI remains **disabled by default**; a separate optional Anthropic adapter requires local configuration and explicit per-request consent. There are no résumé uploads, hosted accounts, salary predictions, scraped job offers or automated applications.
 
 ### Requirements
 
@@ -47,7 +47,7 @@ For a production-local build, run `npm run build` followed by `npm run start -w 
 6. Mark actions complete, record feedback and export a Markdown summary.
 7. Download or restore a private JSON session backup, or delete the memory-only API session.
 
-Sessions live **only in API memory** and disappear when the process restarts unless you explicitly download a private JSON backup and restore it later. The browser does not send data to an external AI provider or telemetry service. **Do not enter credentials, private employer information, sensitive résumés or anything you need to recover later.** The initial API has no login or encryption and is intended only for personal localhost testing.
+Sessions live **only in API memory** and disappear when the process restarts unless you explicitly download a private JSON backup and restore it later. The browser does not send telemetry or data to an AI provider automatically. External AI calls are possible only when specifically enabled and approved via a payload preview. **Do not enter credentials, private employer information, sensitive résumés or anything you need to recover later.** The initial API has no login or encryption and is intended only for personal localhost testing.
 
 ### Tests
 
@@ -89,7 +89,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Pilot procedure](docs/manual-pilot.md)
 - [Evaluation rubric](docs/evaluation-rubric.md)
 
-**Next gates:** usability and browser-level verification, explicit proof-source linking to supplied job descriptions, local persistence with consent, provider-bound data previews, then a strictly scoped AI adapter.
+**Next gates:** strengthen source-span verification, cross-browser usability, optional local durable storage and live provider compatibility testing with consenting fictional inputs.
 
 ## Principles
 

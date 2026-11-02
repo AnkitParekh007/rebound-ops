@@ -28,14 +28,14 @@ In development, Angular proxies `/api` requests to the Fastify service. The API 
 - Export Markdown with evidence status, job requirements and review details.
 - User-initiated JSON backup/restore and deletion from API memory.
 
-No AI calls, automated job-description analysis, hiring scores, automatic applications or automatic disk persistence are implemented. The former static pilot remains available at the root.
+No **automatic** AI calls, automated job-description extraction, hiring scores, automatic applications or disk persistence are implemented. The optional AI adapter is disabled without explicit configuration and per-request user consent. The former static pilot remains available at the root.
 
 ## Next design steps
 
 1. Add job-description sources and source spans using the same provenance-first contracts.
 2. Build evidence-to-requirement review with explicit user validation.
 3. Add resumable, versioned local JSON with consent and safe migrations.
-4. Add a single provider adapter and output validators only after the above.
+4. Live-test the optional provider adapter with fictional data and evaluate output relevance; it already has mock tests and strict validation.
 5. Extend tests to cover errors, interruption, injection-like document content and browser accessibility.
 
 See [Phase 2 details](phase-2.md) and [roadmap](roadmap.md).

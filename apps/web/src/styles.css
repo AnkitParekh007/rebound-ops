@@ -27,3 +27,6 @@
 .ai-findings{border-top:1px solid #d0e3d7;padding-top:16px;margin-top:20px}
 .ai-finding{background:#fff;border:1px solid #d9e8df;border-radius:10px;padding:14px;margin:13px 0}
 .ai-finding p{margin:7px 0}.ai-finding small{color:#4e6c5b}
+
+/* Accessibility: footer text stays above 4.5:1 on the page background. */
+footer{color:#52695c}

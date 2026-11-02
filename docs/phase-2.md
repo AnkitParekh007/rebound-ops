@@ -52,7 +52,7 @@ All state-changing operations except create require `expectedRevision`. Requests
 - API is intentionally bound to loopback (`127.0.0.1`) and limits JSON body size.
 - Calls with browser Origin outside a local allowlist are refused.
 - Angular templates interpolate text rather than inserting unsanitized HTML.
-- No telemetry, providers, disk persistence, browser local storage or accounts.
+- No telemetry, automatic provider calls, disk persistence, browser local storage or accounts; the optional AI adapter is disabled by default.
 - No verified résumé ingestion, automatic job-description parsing or AI analysis. Users paste requirements manually.
 - Explicit user backups may contain personal information; they are not automatically encrypted.
 - A local computer isn't a security boundary against other local processes. Do not paste secrets.
@@ -65,7 +65,7 @@ All state-changing operations except create require `expectedRevision`. Requests
 2. Improve source references with exact résumé/project-note spans and refine manual requirement review.
 3. Add Angular browser tests and accessibility checks.
 4. Evaluate opt-in server-side persistence beyond manual backup/restore.
-5. Add one optional AI provider only after consent, payload preview, privacy checks and safe structured outputs.
+5. Verify the already scaffolded optional AI provider against live fictional data before enabling participant usage.
 
 ## Dependency policy
 

@@ -71,7 +71,7 @@ export function buildApp(options: { aiProvider?: AiProvider } = {}) {
   }));
 
   app.get('/api/health', async () => ({
-    status: 'ok', mode: 'local-only', persistence: 'memory', aiEnabled: false, schemaVersion: 1
+    status: 'ok', mode: 'local-only', persistence: 'memory', aiEnabled: Boolean(aiProvider), schemaVersion: 1
   }));
 
   app.post('/api/sessions', async (request, reply) => {
