@@ -142,7 +142,38 @@
               </li>
             }
           </ol>
+          <button class="secondary" type="button" [disabled]="busy()" (click)="previewAI(target.id)">Preview optional AI review payload</button>
         </article>
+      }
+      @if (current.jobTargets.length) {
+        <div class="ai-panel" aria-labelledby="ai-review-title">
+          <p class="eyebrow">Optional / AI review with explicit consent</p>
+          <h3 id="ai-review-title">Only send what you approve</h3>
+          <p class="muted">The AI feature is {{ aiStatus()?.enabled ? 'configured locally, but inactive until you explicitly send a previewed payload' : 'disabled until configured with a local API key' }}. AI suggestions are not facts or hiring scores and are never applied automatically.</p>
+          @if (aiPreview(); as preview) {
+            <p><strong>Proposed provider:</strong> {{ preview.provider }} · <strong>Model:</strong> {{ preview.model || 'none configured' }}</p>
+            <p class="muted">This is the <strong>exact JSON</strong> that would be sent. It contains the selected job title, requirements, and only user-confirmed achievement claims. It excludes location, income urgency, preferences, and review notes. Data may be processed by the external provider if you consent.</p>
+            <pre class="preview-json" tabindex="0">{{ preview.payload | json }}</pre>
+            <div class="actions">
+              <button class="primary" type="button" [disabled]="busy() || !preview.enabled" (click)="analyzeAI()">I consent: send this exact payload</button>
+              @if (!preview.enabled) { <span class="muted">Configure AI locally to enable this action.</span> }
+            </div>
+          }
+          @if (aiAnalysis(); as analysis) {
+            <div class="ai-findings">
+              <h4>Suggested requirement reviews (not applied)</h4>
+              <p class="muted">{{ analysis.caution }}</p>
+              @for (finding of analysis.findings; track finding.requirementId) {
+                <article class="ai-finding">
+                  <strong>{{ finding.assessment.replace('_', ' ') }}</strong>
+                  <p>{{ finding.explanation }}</p>
+                  <p><strong>Next test:</strong> {{ finding.nextTest }}</p>
+                  <small>Requirement ID: {{ finding.requirementId }} · Suggested evidence links: {{ finding.evidenceIds.length }}</small>
+                </article>
+              }
+            </div>
+          }
+        </div>
       }
     </section>
 

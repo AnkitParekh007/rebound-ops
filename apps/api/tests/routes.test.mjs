@@ -164,3 +164,89 @@ test('explicit snapshot restore preserves actions without using disk; deletion i
   assert.equal(r.statusCode, 404);
   await app.close();
 });
+
+
+test('opt-in AI preview shares only confirmed claims and mock analysis never mutates the session', async () => {
+  let calls = 0;
+  const app = buildApp({
+    aiProvider: {
+      name: 'mock-offline',
+      model: 'test-only',
+      async analyze(payload) {
+        calls++;
+        return {
+          findings: payload.target.requirements.map(r => ({
+            requirementId: r.id, assessment: 'uncertain', evidenceIds: [],
+            explanation: 'A user claim cannot establish independent evidence of this requirement.',
+            nextTest: 'Review one demonstrable work sample.'
+          })),
+          caution: 'No independent credentials or job-market information were checked.'
+        };
+      }
+    }
+  });
+  let r = await app.inject({ method: 'POST', url: '/api/sessions', payload: { intake } });
+  let s = r.json();
+  const base = '/api/sessions/' + s.id;
+  r = await app.inject({ method: 'POST', url: base + '/targets',
+    payload: { expectedRevision: s.revision, title: 'Frontend platform',
+      sourceUrl: '', requirements: ['Deliver accessible UI libraries'] } });
+  s = r.json();
+  const targetId = s.jobTargets[0].id;
+  r = await app.inject({ method: 'POST', url: base + '/ai/preview', payload: { targetId } });
+  assert.equal(r.statusCode, 200);
+  let preview = r.json();
+  assert.equal(preview.enabled, true);
+  assert.equal(calls, 0, 'preview must not invoke the provider');
+  assert.deepEqual(preview.payload.evidence, []);
+  assert.ok(!JSON.stringify(preview.payload).includes(intake.location));
+  assert.ok(!JSON.stringify(preview.payload).includes(intake.priorities));
+  r = await app.inject({ method: 'POST', url: base + '/ai/analyze',
+    payload: { targetId, expectedRevision: s.revision, previewHash: preview.previewHash, consent: false } });
+  assert.equal(r.statusCode, 400, 'explicit consent is required');
+  r = await app.inject({ method: 'POST', url: base + '/ai/analyze',
+    payload: { targetId, expectedRevision: s.revision, previewHash: 'a'.repeat(64), consent: true } });
+  assert.equal(r.statusCode, 409);
+  assert.equal(calls, 0);
+  r = await app.inject({ method: 'POST', url: base + '/ai/analyze',
+    payload: { targetId, expectedRevision: s.revision, previewHash: preview.previewHash, consent: true } });
+  assert.equal(r.statusCode, 200);
+  assert.equal(r.json().autoApplied, false);
+  assert.equal(calls, 1);
+  const saved = await app.inject({ method: 'GET', url: base });
+  assert.equal(saved.json().revision, s.revision, 'AI output must not modify the session');
+  await app.close();
+});
+
+test('invalid AI suggestions and disabled-by-default provider are handled safely', async () => {
+  const defaultApp = buildApp();
+  let response = await defaultApp.inject({ method: 'GET', url: '/api/ai/status' });
+  assert.equal(response.json().enabled, false);
+  await defaultApp.close();
+  const invalidProvider = {
+    name: 'mock-offline', model: 'test-only',
+    async analyze() {
+      return {
+        findings: [{ requirementId: '309c9b50-5586-4ae4-8377-cf2377eefac5',
+          assessment: 'possible_support', evidenceIds: ['309c9b50-5586-4ae4-8377-cf2377eefac5'],
+          explanation: 'A fabricated claim', nextTest: 'Do something' }],
+        caution: 'Not validated'
+      };
+    }
+  };
+  const app = buildApp({ aiProvider: invalidProvider });
+  let r = await app.inject({ method: 'POST', url: '/api/sessions', payload: { intake } });
+  let s = r.json();
+  const base = '/api/sessions/' + s.id;
+  r = await app.inject({ method: 'POST', url: base + '/targets',
+    payload: { expectedRevision: s.revision, title: 'Frontend platform',
+      sourceUrl: '', requirements: ['Deliver accessible UI libraries'] } });
+  s = r.json();
+  const targetId = s.jobTargets[0].id;
+  r = await app.inject({ method: 'POST', url: base + '/ai/preview', payload: { targetId } });
+  const preview = r.json();
+  r = await app.inject({ method: 'POST', url: base + '/ai/analyze',
+    payload: { targetId, expectedRevision: s.revision, previewHash: preview.previewHash, consent: true } });
+  assert.equal(r.statusCode, 502, 'invalid model output must be discarded');
+  await app.close();
+});

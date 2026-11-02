@@ -20,3 +20,10 @@
 .steps b{color:#105f4c}
 .evidence-item small{color:#486353}
 .route small{color:#486353}
+
+.ai-panel{margin-top:24px;padding:20px;border-radius:11px;background:#f0f7f3;border:1px solid #c8e1d4}
+.ai-panel h3{margin:0 0 11px}.ai-panel p{font-size:.87rem}
+.preview-json{max-height:300px;overflow:auto;border-radius:9px;background:#163028;color:#f0f8f5;padding:16px;font-size:.77rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.ai-findings{border-top:1px solid #d0e3d7;padding-top:16px;margin-top:20px}
+.ai-finding{background:#fff;border:1px solid #d9e8df;border-radius:10px;padding:14px;margin:13px 0}
+.ai-finding p{margin:7px 0}.ai-finding small{color:#4e6c5b}

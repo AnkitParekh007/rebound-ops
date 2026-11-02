@@ -59,6 +59,14 @@ npm run test:e2e  # install Chromium first: npx playwright install chromium
 
 GitHub Actions runs both tests and the Angular production build.
 
+## Optional AI evidence review (disabled by default)
+
+Phase 2 includes an **opt-in**, server-side Anthropic adapter. It is disabled unless both \`REBOUNDOPS_AI_ENABLED=true\` and \`ANTHROPIC_API_KEY\` are set in the **local API process environment**. The sample \`.env.example\` does not automatically load or enable AI.
+
+For each user-supplied job target, **Preview optional AI review payload** shows the exact JSON that would be transmitted: job title, requirement text, and *only participant-confirmed achievement claims*. The preview is a local operation and sends nothing externally. A separate **I consent: send this exact payload** click is required for each request. There are no automatic model calls, sessions are not changed by suggestions, and local API calls are limited to ten AI attempts per process. Provider billing, if enabled, is separate from ChatGPT/Claude consumer subscriptions.
+
+See [the AI integration and safety guide](docs/ai-provider.md) before enabling this feature. The provider integration has mocked tests but has not been verified against a live paid API account.
+
 ## Validated Phase 1 prototype
 
 The original static version is preserved:
@@ -74,6 +82,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 
 - [Phase 2 implementation notes](docs/phase-2.md)
 - [Job requirement comparison guide](docs/job-requirements.md)
+- [AI provider setup, privacy and safety](docs/ai-provider.md)
 - [Private data and backup guidance](docs/privacy.md)
 - [Architecture](docs/architecture.md)
 - [Original roadmap](docs/roadmap.md)

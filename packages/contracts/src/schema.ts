@@ -116,3 +116,37 @@ export type JobRequirement = z.infer<typeof JobRequirementSchema>;
 export type RequirementStatus = JobRequirement['status'];
 
 export const RestoreSessionSchema = z.strictObject({ session: SessionSchema });
+
+/** An explicit, minimal subset of session data that can be approved for provider transfer. */
+export const AiPayloadSchema = z.strictObject({
+  target: z.strictObject({
+    id: z.uuid(),
+    title: z.string(),
+    requirements: z.array(z.strictObject({ id: z.uuid(), text: z.string() })).min(1).max(12)
+  }),
+  evidence: z.array(z.strictObject({ id: z.uuid(), claim: z.string() })).max(15)
+});
+
+export const AiFindingSchema = z.strictObject({
+  requirementId: z.uuid(),
+  assessment: z.enum(['possible_support', 'gap', 'uncertain']),
+  evidenceIds: z.array(z.uuid()).max(3),
+  explanation: z.string().trim().min(1).max(600),
+  nextTest: z.string().trim().min(1).max(350)
+});
+
+export const AiAnalysisSchema = z.strictObject({
+  findings: z.array(AiFindingSchema).min(1).max(12),
+  caution: z.string().trim().min(1).max(400)
+});
+
+export const AiPreviewRequestSchema = z.strictObject({ targetId: z.uuid() });
+export const AiAnalyzeRequestSchema = z.strictObject({
+  targetId: z.uuid(),
+  expectedRevision: z.number().int().nonnegative(),
+  previewHash: z.string().regex(/^[a-f0-9]{64}$/),
+  consent: z.literal(true)
+});
+
+export type AiPayload = z.infer<typeof AiPayloadSchema>;
+export type AiAnalysis = z.infer<typeof AiAnalysisSchema>;

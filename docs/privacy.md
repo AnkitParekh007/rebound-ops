@@ -26,6 +26,16 @@ Backups may contain career history, location preferences and private notes. The 
 - JSON snapshot import/export is the supported way to continue across restarts.
 - The older static pilot's in-tab state is not compatible with these snapshots.
 
+## Optional external provider — only after explicit opt-in
+
+With the default environment, no AI provider calls can occur. If \`REBOUNDOPS_AI_ENABLED=true\` **and** a server-side Anthropic API key are configured, the user can:
+
+1. Select a job target and request a preview (local-only; no provider call).
+2. Inspect the exact JSON containing the selected target title/requirements and **only confirmed** achievement claims. Location, income urgency, preferences and notes are omitted.
+3. Explicitly click **I consent: send this exact payload**. Only this action may send the displayed information to Anthropic for processing.
+
+Provider billing and data policies apply. Do not enable it for confidential data or participants without explicit agreement. The model's output may be wrong; all suggestions remain unapplied and require user review. Invalid references are discarded. The API refuses stale previews and caps AI attempts per process.
+
 ## Known limitations
 
 - A local computer is not a security boundary against other processes running on it.

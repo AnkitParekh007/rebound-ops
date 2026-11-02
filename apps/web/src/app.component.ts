@@ -1,8 +1,9 @@
 import { Component, ChangeDetectionStrategy, inject, signal, type OnInit } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { JsonPipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
-import type { Intake, Session, RouteId, Evidence } from '@reboundops/contracts';
+import type { Intake, Session, RouteId, Evidence, AiPayload, AiAnalysis } from '@reboundops/contracts';
 
 type Draft = Omit<Intake, 'evidence'>;
 
@@ -24,7 +25,7 @@ const sampleEvidence = [
 @Component({
   selector: 'rb-root',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, JsonPipe],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -36,6 +37,12 @@ export class AppComponent implements OnInit {
   readonly error = signal('');
   readonly notice = signal('');
   readonly apiAvailable = signal(false);
+  readonly aiStatus = signal<{ enabled: boolean; provider: string | null; model: string | null } | null>(null);
+  readonly aiPreview = signal<{
+    enabled: boolean; provider: string; model: string | null; sessionRevision: number;
+    payload: AiPayload; previewHash: string;
+  } | null>(null);
+  readonly aiAnalysis = signal<AiAnalysis | null>(null);
 
   draft: Draft = { ...sample };
   evidenceText = sampleEvidence;
@@ -49,6 +56,7 @@ export class AppComponent implements OnInit {
     try {
       const status = await firstValueFrom(this.http.get<{ status: string }>('/api/health'));
       this.apiAvailable.set(status.status === 'ok');
+      this.aiStatus.set(await firstValueFrom(this.http.get<{ enabled: boolean; provider: string | null; model: string | null }>('/api/ai/status')));
     } catch {
       this.error.set('Local API is not running. Start it using npm run dev:api in a separate terminal.');
     }
@@ -56,6 +64,8 @@ export class AppComponent implements OnInit {
 
   demo(): void {
     this.session.set(null);
+    this.aiPreview.set(null);
+    this.aiAnalysis.set(null);
     this.draft = { ...sample };
     this.evidenceText = sampleEvidence;
     this.notesDraft = '';
@@ -65,6 +75,8 @@ export class AppComponent implements OnInit {
 
   clear(): void {
     this.session.set(null);
+    this.aiPreview.set(null);
+    this.aiAnalysis.set(null);
     this.draft = {
       role: '', location: '', weeklyHours: 6, urgency: 'quarter',
       priorities: '', shiftTarget: '', bridgeTarget: ''
@@ -102,6 +114,8 @@ export class AppComponent implements OnInit {
     try {
       const current = await action();
       this.session.set(current);
+      this.aiPreview.set(null);
+      this.aiAnalysis.set(null);
       this.notice.set(success);
     } catch (failure) {
       if (failure instanceof HttpErrorResponse && failure.status === 409 && failure.error?.session) {
@@ -196,6 +210,56 @@ export class AppComponent implements OnInit {
       this.notice.set('Markdown plan exported to your device.');
     } catch {
       this.error.set('Unable to export the selected plan.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async previewAI(targetId: string): Promise<void> {
+    const current = this.session();
+    if (!current || this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    this.aiPreview.set(null);
+    this.aiAnalysis.set(null);
+    try {
+      const preview = await firstValueFrom(this.http.post<{
+        enabled: boolean; provider: string; model: string | null; sessionRevision: number;
+        payload: AiPayload; previewHash: string;
+      }>('/api/sessions/' + current.id + '/ai/preview', { targetId }));
+      this.aiPreview.set(preview);
+      this.notice.set('Review the exact JSON below. No provider call has occurred.');
+    } catch {
+      this.error.set('Unable to prepare the local AI data preview.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async analyzeAI(): Promise<void> {
+    const current = this.session();
+    const preview = this.aiPreview();
+    if (!current || !preview || !preview.enabled || this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    this.notice.set('');
+    try {
+      const result = await firstValueFrom(this.http.post<{
+        analysis: AiAnalysis; autoApplied: boolean; provider: string; model: string;
+      }>('/api/sessions/' + current.id + '/ai/analyze', {
+        targetId: preview.payload.target.id, previewHash: preview.previewHash,
+        expectedRevision: preview.sessionRevision, consent: true
+      }));
+      this.aiAnalysis.set(result.analysis);
+      this.notice.set('AI suggestions returned. Nothing was applied to your evidence or plan.');
+    } catch (failure) {
+      if (failure instanceof HttpErrorResponse && failure.status === 409) {
+        this.aiPreview.set(null);
+        this.aiAnalysis.set(null);
+        this.error.set('The source data changed. Prepare a new preview before any provider call.');
+      } else {
+        this.error.set('AI suggestions are unavailable. No changes were made to your session.');
+      }
     } finally {
       this.busy.set(false);
     }

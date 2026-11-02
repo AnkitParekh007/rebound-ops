@@ -1,12 +1,13 @@
 import Fastify, { type FastifyReply } from 'fastify';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
+import { loadAiProvider, type AiProvider } from './provider.js';
 import {
-  ActionDecisionSchema, AddJobTargetSchema, CreateSessionSchema, DeleteTargetSchema,
+  ActionDecisionSchema, AddJobTargetSchema, AiPreviewRequestSchema, AiAnalyzeRequestSchema, CreateSessionSchema, DeleteTargetSchema,
   EvidenceDecisionSchema, ReviewRequirementSchema, RestoreSessionSchema,
   ReplaceIntakeSchema, ReviewSchema, SelectRouteSchema, SessionSchema,
   completeAction, createSession, decideEvidence, exportMarkdown, recordReview,
   replaceIntake, selectRoute, addJobTarget, removeJobTarget, reviewRequirement,
-  validateRestoredSession, type Session
+  validateRestoredSession, createAiPayload, validateAiAnalysis, type Session
 } from '@reboundops/contracts';
 
 const allowedOrigins = new Set([
@@ -20,9 +21,11 @@ type ActionParams = IdParams & { actionId: string };
 type TargetParams = IdParams & { targetId: string };
 type RequirementParams = TargetParams & { requirementId: string };
 
-export function buildApp() {
+export function buildApp(options: { aiProvider?: AiProvider } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 128 * 1024 });
   const sessions = new Map<string, Session>();
+  const aiProvider = options.aiProvider ?? loadAiProvider();
+  let aiRequests = 0;
   const now = () => new Date().toISOString();
 
   app.addHook('onRequest', async (request, reply) => {
@@ -59,6 +62,13 @@ export function buildApp() {
       return reply.code(400).send({ error: 'INVALID_TRANSITION', message: error instanceof Error ? error.message : 'Invalid change' });
     }
   }
+
+  app.get('/api/ai/status', async () => ({
+    enabled: Boolean(aiProvider),
+    provider: aiProvider?.name ?? null,
+    model: aiProvider?.model ?? null,
+    disclosure: 'Data is not transmitted unless a user explicitly previews and consents to the exact payload.'
+  }));
 
   app.get('/api/health', async () => ({
     status: 'ok', mode: 'local-only', persistence: 'memory', aiEnabled: false, schemaVersion: 1
@@ -148,6 +158,61 @@ export function buildApp() {
         reviewRequirement(session, request.params.targetId, request.params.requirementId,
           parsed.data.status, parsed.data.evidenceIds));
     });
+
+  app.post<{ Params: IdParams }>('/api/sessions/:id/ai/preview', async (request, reply) => {
+    const parsed = AiPreviewRequestSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    const session = sessions.get(request.params.id);
+    if (!session) return reply.code(404).send({ error: 'SESSION_NOT_FOUND' });
+    try {
+      const payload = createAiPayload(session, parsed.data.targetId);
+      const hash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+      return reply.send({
+        provider: aiProvider?.name ?? 'not-configured',
+        model: aiProvider?.model ?? null,
+        enabled: Boolean(aiProvider),
+        sessionRevision: session.revision,
+        payload,
+        previewHash: hash
+      });
+    } catch {
+      return reply.code(404).send({ error: 'JOB_TARGET_NOT_FOUND' });
+    }
+  });
+
+  app.post<{ Params: IdParams }>('/api/sessions/:id/ai/analyze', async (request, reply) => {
+    const parsed = AiAnalyzeRequestSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    if (!aiProvider) return reply.code(503).send({ error: 'AI_DISABLED' });
+    const session = sessions.get(request.params.id);
+    if (!session) return reply.code(404).send({ error: 'SESSION_NOT_FOUND' });
+    if (session.revision !== parsed.data.expectedRevision) {
+      return reply.code(409).send({ error: 'STALE_REVISION', session });
+    }
+    let payload;
+    try {
+      payload = createAiPayload(session, parsed.data.targetId);
+    } catch {
+      return reply.code(404).send({ error: 'JOB_TARGET_NOT_FOUND' });
+    }
+    const hash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+    if (hash !== parsed.data.previewHash) return reply.code(409).send({ error: 'STALE_PREVIEW' });
+    if (aiRequests >= 10) return reply.code(429).send({ error: 'AI_REQUEST_LIMIT' });
+    aiRequests += 1; // no automatic retry and bounded number of calls per API process
+    try {
+      const analysis = validateAiAnalysis(payload, await aiProvider.analyze(payload));
+      // Suggestions are NOT written into the session and never auto-confirm evidence.
+      return reply.send({
+        analysis,
+        provider: aiProvider.name,
+        model: aiProvider.model,
+        autoApplied: false
+      });
+    } catch {
+      // Never log the provider input, API key or raw model response.
+      return reply.code(502).send({ error: 'AI_RESULT_UNAVAILABLE' });
+    }
+  });
 
   app.put<{ Params: IdParams }>('/api/sessions/:id/route', async (request, reply) => {
     const parsed = SelectRouteSchema.safeParse(request.body);
