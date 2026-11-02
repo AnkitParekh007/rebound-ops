@@ -64,4 +64,5 @@ The validated manual pilot has led to a working typed Angular and local Fastify 
 - [ ] Confirm cross-platform manual testing and live provider compatibility with fictional data
 - [ ] Collect and summarize actual pilot outcomes before claiming success metrics
 - [x] Add user-correctable exact source spans, document IDs and an auditable correction history (Issue #6)
-- [ ] Determine whether opt-in durable storage is needed
+- [x] Implement consent-based durable local sessions and recovery (Issue #7)
+- [ ] Validate opt-in saving with users across supported operating systems

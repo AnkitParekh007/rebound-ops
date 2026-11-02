@@ -37,6 +37,12 @@ export class AppComponent implements OnInit {
   readonly error = signal('');
   readonly notice = signal('');
   readonly apiAvailable = signal(false);
+  readonly persistenceStatus = signal<{
+    available: boolean; savedCount: number; warnings: string[];
+  } | null>(null);
+  readonly savedSessions = signal<Array<{
+    id: string; role: string; updatedAt: string; revision: number;
+  }>>([]);
   readonly aiStatus = signal<{ enabled: boolean; provider: string | null; model: string | null } | null>(null);
   readonly aiPreview = signal<{
     enabled: boolean; provider: string; model: string | null; sessionRevision: number;
@@ -64,10 +70,49 @@ export class AppComponent implements OnInit {
     try {
       const status = await firstValueFrom(this.http.get<{ status: string }>('/api/health'));
       this.apiAvailable.set(status.status === 'ok');
+      await this.refreshSavedSessions();
       this.aiStatus.set(await firstValueFrom(this.http.get<{ enabled: boolean; provider: string | null; model: string | null }>('/api/ai/status')));
     } catch {
       this.error.set('Local API is not running. Start it using npm run dev:api in a separate terminal.');
     }
+  }
+
+  async refreshSavedSessions(): Promise<void> {
+    try {
+      const [status, saved] = await Promise.all([
+        firstValueFrom(this.http.get<{ available: boolean; savedCount: number; warnings: string[] }>('/api/persistence/status')),
+        firstValueFrom(this.http.get<Array<{ id: string; role: string; updatedAt: string; revision: number }>>('/api/sessions/saved'))
+      ]);
+      this.persistenceStatus.set(status);
+      this.savedSessions.set(saved);
+    } catch {
+      this.persistenceStatus.set(null);
+      this.savedSessions.set([]);
+    }
+  }
+
+  async resumeSaved(id: string): Promise<void> {
+    await this.execute(async () => {
+      const restored = await firstValueFrom(this.http.get<Session>('/api/sessions/' + id));
+      const { evidence, ...draft } = restored.intake;
+      this.draft = { ...draft };
+      this.evidenceText = evidence.map(item => item.claim).join('\n');
+      this.notesDraft = restored.reviewNotes;
+      this.evidenceSelection = {};
+      return restored;
+    }, 'Saved session reopened from this computer. It has not been sent to the cloud.');
+  }
+
+  async changePersistence(mode: 'memory' | 'disk'): Promise<void> {
+    const current = this.session();
+    if (!current) return;
+    await this.execute(() => firstValueFrom(this.http.put<Session>(
+      '/api/sessions/' + current.id + '/persistence',
+      { expectedRevision: current.revision, mode }
+    )), mode === 'disk'
+      ? 'Session now saves to your configured local folder after each change.'
+      : 'Disk saving is off. The local saved file was removed.');
+    await this.refreshSavedSessions();
   }
 
   demo(): void {
@@ -439,7 +484,8 @@ export class AppComponent implements OnInit {
       this.notesDraft = '';
       this.editingEvidenceId = '';
       this.evidenceSelection = {};
-      this.notice.set('Session deleted from the local API. Any downloaded backups remain on your device.');
+      this.notice.set('Session deleted from the local API and configured disk folder. Downloaded backups remain on your device.');
+      await this.refreshSavedSessions();
     } catch (error) {
       if (error instanceof HttpErrorResponse && error.status === 409 && error.error?.session) {
         this.session.set(error.error.session as Session);

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import { buildApp } from './app.js';
 
-const app = buildApp();
+const app = buildApp({ dataDir: process.env.REBOUNDOPS_DATA_DIR });
 const builds = [
   resolve(process.cwd(), 'dist/web/browser'),
   resolve(process.cwd(), '../../dist/web/browser')

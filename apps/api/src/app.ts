@@ -1,9 +1,10 @@
 import Fastify, { type FastifyReply } from 'fastify';
 import { randomUUID, createHash } from 'node:crypto';
 import { loadAiProvider, type AiProvider } from './provider.js';
+import { SessionStore } from './storage.js';
 import {
   ActionDecisionSchema, AddJobTargetSchema, AiPreviewRequestSchema, AiAnalyzeRequestSchema, CreateSessionSchema, DeleteTargetSchema,
-  EvidenceDecisionSchema, CorrectEvidenceSchema, AddSourceDocumentSchema,
+  EvidenceDecisionSchema, CorrectEvidenceSchema, AddSourceDocumentSchema, PersistenceChoiceSchema,
   ReviewRequirementSchema, RestoreSessionSchema,
   ReplaceIntakeSchema, ReviewSchema, SelectRouteSchema, SessionSchema,
   completeAction, createSession, decideEvidence, exportMarkdown, recordReview,
@@ -24,9 +25,9 @@ type TargetParams = IdParams & { targetId: string };
 type RequirementParams = TargetParams & { requirementId: string };
 type DocumentParams = IdParams & { documentId: string };
 
-export function buildApp(options: { aiProvider?: AiProvider } = {}) {
+export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 128 * 1024 });
-  const sessions = new Map<string, Session>();
+  const sessions = new SessionStore(options.dataDir);
   const aiProvider = options.aiProvider ?? loadAiProvider();
   let aiRequests = 0;
   const now = () => new Date().toISOString();
@@ -56,10 +57,10 @@ export function buildApp(options: { aiProvider?: AiProvider } = {}) {
       return reply.code(409).send({ error: 'STALE_REVISION', session: current });
     }
     try {
-      const next = SessionSchema.parse({
+      const next = validateRestoredSession({
         ...update(current), revision: current.revision + 1, updatedAt: now()
       });
-      sessions.set(id, next);
+      sessions.put(next);
       return reply.send(next);
     } catch (error) {
       return reply.code(400).send({ error: 'INVALID_TRANSITION', message: error instanceof Error ? error.message : 'Invalid change' });
@@ -74,15 +75,25 @@ export function buildApp(options: { aiProvider?: AiProvider } = {}) {
   }));
 
   app.get('/api/health', async () => ({
-    status: 'ok', mode: 'local-only', persistence: 'memory', aiEnabled: Boolean(aiProvider), schemaVersion: 1
+    status: 'ok', mode: 'local-only', persistence: sessions.available ? 'opt-in-disk' : 'memory',
+    aiEnabled: Boolean(aiProvider), schemaVersion: 1
   }));
+
+  app.get('/api/persistence/status', async () => ({
+    available: sessions.available,
+    savedCount: sessions.listSaved().length,
+    warnings: sessions.warnings,
+    disclosure: 'Disk storage is opt-in per session, after setting REBOUNDOPS_DATA_DIR on this computer.'
+  }));
+
+  app.get('/api/sessions/saved', async () => sessions.listSaved());
 
   app.post('/api/sessions', async (request, reply) => {
     const parsed = CreateSessionSchema.safeParse(request.body);
     if (!parsed.success) return invalid(reply, parsed.error);
     const session = createSession(parsed.data.intake, randomUUID(), now());
     if (sessions.size >= 100) return reply.code(503).send({ error: 'SESSION_CAPACITY_REACHED' });
-    sessions.set(session.id, session);
+    sessions.put(session);
     return reply.code(201).send(session);
   });
 
@@ -94,14 +105,15 @@ export function buildApp(options: { aiProvider?: AiProvider } = {}) {
       const snapshot = validateRestoredSession(parsed.data.session);
       // Restoration is a new local session, with a new ID and fresh revision, not a remote sync.
       const timestamp = now();
-      const session = SessionSchema.parse({
+      const session = validateRestoredSession({
         ...snapshot,
         id: randomUUID(),
         revision: 0,
+        persistence: 'memory', // Import never silently opts into saving on disk.
         createdAt: timestamp,
         updatedAt: timestamp
       });
-      sessions.set(session.id, session);
+      sessions.put(session);
       return reply.code(201).send(session);
     } catch {
       return reply.code(400).send({ error: 'INVALID_BACKUP' });
@@ -123,6 +135,16 @@ export function buildApp(options: { aiProvider?: AiProvider } = {}) {
     }
     sessions.delete(request.params.id);
     return reply.code(204).send();
+  });
+
+  app.put<{ Params: IdParams }>('/api/sessions/:id/persistence', async (request, reply) => {
+    const parsed = PersistenceChoiceSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    if (parsed.data.mode === 'disk' && !sessions.available) {
+      return reply.code(503).send({ error: 'PERSISTENCE_NOT_CONFIGURED' });
+    }
+    return mutate(request.params.id, parsed.data.expectedRevision, reply,
+      session => ({ ...session, persistence: parsed.data.mode }));
   });
 
   app.put<{ Params: IdParams }>('/api/sessions/:id/intake', async (request, reply) => {
