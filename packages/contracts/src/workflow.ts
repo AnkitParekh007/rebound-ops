@@ -1,4 +1,4 @@
-import type { Intake, Evidence, Route, RouteId, Session, Plan, JobTarget, RequirementStatus } from './schema.js';
+import type { Intake, Evidence, Route, RouteId, Session, Plan, JobTarget, RequirementStatus, SourceDocument, EvidenceCorrectionInput, EvidenceSource } from './schema.js';
 import { IntakeSchema, SessionSchema } from './schema.js';
 
 export const ROUTE_META: Record<RouteId, { label: string; uncertainty: string; nextTest: string; missingProof: string }> = {
@@ -83,16 +83,79 @@ export function buildPlan(routeId: RouteId, weeklyHours: number): Plan {
 
 export function createSession(input: Intake, id: string, now: string): Session {
   const intake = IntakeSchema.parse(input);
-  return SessionSchema.parse({
+  return validateRestoredSession(SessionSchema.parse({
     schemaVersion: 1, id, revision: 0, createdAt: now, updatedAt: now,
-    intake, routes: buildRoutes(intake), jobTargets: [], plan: null, reviewNotes: ''
-  });
+    intake, routes: buildRoutes(intake), jobTargets: [], sourceDocuments: [], corrections: [], plan: null, reviewNotes: ''
+  }));
 }
 
 export function replaceIntake(session: Session, input: Intake): Session {
   const intake = IntakeSchema.parse(input);
   // Explicitly invalidate prior route selection, progress and review after changing evidence/constraints.
-  return { ...session, intake, routes: buildRoutes(intake), jobTargets: [], plan: null, reviewNotes: '' };
+  return validateRestoredSession({ ...session, intake, routes: buildRoutes(intake), jobTargets: [], sourceDocuments: [], corrections: [], plan: null, reviewNotes: '' });
+}
+
+/** Exact excerpts are anchored using UTF-16 JS offsets into a stored, user-pasted document. */
+export function createCitationSource(session: Session, input: EvidenceCorrectionInput['source']): EvidenceSource {
+  if (input.mode === 'manual') return { kind: 'manual', label: input.label };
+  const doc = session.sourceDocuments.find(item => item.id === input.documentId);
+  if (!doc) throw new Error('Source document not found.');
+  const start = doc.body.indexOf(input.excerpt);
+  if (start < 0) throw new Error('The excerpt must appear exactly in the pasted document.');
+  if (doc.body.indexOf(input.excerpt, start + 1) >= 0) {
+    throw new Error('The excerpt occurs more than once; select a longer unique quotation.');
+  }
+  return {
+    kind: doc.kind, label: doc.label, excerpt: input.excerpt,
+    span: { documentId: doc.id, start, end: start + input.excerpt.length }
+  };
+}
+
+export function addSourceDocument(
+  session: Session, input: Pick<SourceDocument, 'kind' | 'label' | 'body'>, id: string
+): Session {
+  if (session.sourceDocuments.length >= 3) throw new Error('At most three source documents are supported.');
+  if (session.sourceDocuments.some(doc => doc.id === id)) throw new Error('Duplicate source document ID.');
+  const document = { id, ...input };
+  return validateRestoredSession({ ...session, sourceDocuments: [...session.sourceDocuments, document] });
+}
+
+export function removeSourceDocument(session: Session, documentId: string): Session {
+  if (!session.sourceDocuments.some(doc => doc.id === documentId)) throw new Error('Source document not found.');
+  if (session.intake.evidence.some(item => item.source.span?.documentId === documentId)) {
+    throw new Error('Remove or revise linked evidence citations before deleting this document.');
+  }
+  return { ...session, sourceDocuments: session.sourceDocuments.filter(doc => doc.id !== documentId) };
+}
+
+/** A claim edit always returns it to unverified and revokes linked requirement support. */
+export function correctEvidence(
+  session: Session, evidenceId: string, input: EvidenceCorrectionInput, changedAt: string
+): Session {
+  const previous = session.intake.evidence.find(item => item.id === evidenceId);
+  if (!previous) throw new Error('Evidence not found.');
+  if (session.corrections.length >= 50) throw new Error('Correction history is full; export a backup first.');
+  const source = createCitationSource(session, input.source);
+  const intake: Intake = {
+    ...session.intake,
+    evidence: session.intake.evidence.map(item => item.id === evidenceId
+      ? { ...item, claim: input.claim, source, status: 'unverified' as const } : item)
+  };
+  const jobTargets = session.jobTargets.map(target => ({
+    ...target,
+    requirements: target.requirements.map(req =>
+      req.evidenceIds.includes(evidenceId)
+        ? { ...req, status: 'unreviewed' as const, evidenceIds: [] }
+        : req)
+  }));
+  return validateRestoredSession({
+    ...session, intake, routes: buildRoutes(intake), jobTargets,
+    corrections: [...session.corrections, {
+      evidenceId, previousClaim: previous.claim, revisedClaim: input.claim,
+      previousSource: previous.source, revisedSource: source,
+      reason: input.reason, changedAt
+    }]
+  });
 }
 
 export function decideEvidence(session: Session, evidenceId: string, status: Evidence['status']): Session {
@@ -167,6 +230,25 @@ export function reviewRequirement(
 /** Only accepts portable snapshots with internally consistent references and budgets. */
 export function validateRestoredSession(session: Session): Session {
   const validated = SessionSchema.parse(session);
+  const documents = new Map(validated.sourceDocuments.map(doc => [doc.id, doc]));
+  if (documents.size !== validated.sourceDocuments.length) throw new Error('Duplicate source documents.');
+  for (const item of validated.intake.evidence) {
+    const span = item.source.span;
+    // Older backups allowed a source label without any exact span; preserve those
+    // as unanchored provenance instead of pretending they contain a verified citation.
+    if (!span) continue;
+    const document = documents.get(span.documentId);
+    if (!document || document.kind !== item.source.kind ||
+        item.source.label !== document.label || !item.source.excerpt ||
+        span.end <= span.start || span.end > document.body.length ||
+        document.body.slice(span.start, span.end) !== item.source.excerpt) {
+      throw new Error('Evidence span does not match its source document.');
+    }
+  }
+  const evidenceIds = new Set(validated.intake.evidence.map(item => item.id));
+  if (validated.corrections.some(event => !evidenceIds.has(event.evidenceId))) {
+    throw new Error('Correction history references missing evidence.');
+  }
   const confirmed = new Set(validated.intake.evidence.filter(e => e.status === 'confirmed').map(e => e.id));
   const ids = new Set(validated.intake.evidence.map(e => e.id));
   if (ids.size !== validated.intake.evidence.length) throw new Error('Duplicate evidence IDs.');
@@ -225,7 +307,19 @@ export function exportMarkdown(session: Session): string {
   ];
   if (intake.evidence.length === 0) lines.push('- No evidence entered.');
   for (const evidence of intake.evidence) {
-    lines.push('- [' + evidence.status + '] ' + safe(evidence.claim) + ' — ' + safe(evidence.source.label) + ' (' + evidence.source.kind + ')');
+    const cited = evidence.source.span;
+    const location = cited
+      ? ' [document ' + cited.documentId + ', offsets ' + cited.start + '–' + cited.end +
+        ', exact excerpt: "' + safe(evidence.source.excerpt ?? '') + '"]'
+      : ' [manual entry — no document citation]';
+    lines.push('- [' + evidence.status + '] ' + safe(evidence.claim) + ' — ' +
+      safe(evidence.source.label) + ' (' + evidence.source.kind + ')' + location);
+  }
+  lines.push('', '## Corrections (user-supplied)');
+  if (!session.corrections.length) lines.push('- None recorded.');
+  for (const correction of session.corrections) {
+    lines.push('- ' + correction.changedAt + ': ' + safe(correction.previousClaim) +
+      ' → ' + safe(correction.revisedClaim) + '. Reason: ' + safe(correction.reason));
   }
   lines.push('', '## Supplied job requirements (manual review)');
   if (session.jobTargets.length === 0) lines.push('- No job descriptions supplied.');

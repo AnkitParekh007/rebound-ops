@@ -30,3 +30,19 @@
 
 /* Accessibility: footer text stays above 4.5:1 on the page background. */
 footer{color:#52695c}
+
+/* Provenance explorer and participant correction history */
+.source-docs{margin:22px 0 25px;padding:20px;border-radius:12px;background:#f5f9f6;border:1px solid #d7e5da}
+.source-docs h3{margin:0 0 9px}
+.source-document{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #d8e5dd;padding:13px 0}
+.source-document small{display:block;color:#496456;font-size:.76rem}
+.citation-preview{margin-top:9px;padding:10px 12px;background:#eff7f1;border-radius:8px;color:#254e3d;font-size:.84rem;overflow-wrap:anywhere}
+.citation-preview small{display:block;color:#456657}
+.correction-editor{border:1px solid #b9d9c7;border-radius:12px;padding:22px;margin:25px 0;background:#f8fcf9}
+.correction-editor h3{margin:0 0 8px}
+.correction-history{margin-top:25px;border-top:1px solid #dce9df;padding-top:20px}
+.correction-history ol{padding-left:21px}
+.correction-history li{padding:10px 0;border-bottom:1px solid #e4ece6;overflow-wrap:anywhere}
+.correction-history small{color:#405f51}
+.correction-history p{margin:5px 0;font-size:.87rem}
+@media(max-width:650px){.source-document{flex-direction:column;align-items:flex-start}}

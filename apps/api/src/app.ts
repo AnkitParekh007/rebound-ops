@@ -3,10 +3,12 @@ import { randomUUID, createHash } from 'node:crypto';
 import { loadAiProvider, type AiProvider } from './provider.js';
 import {
   ActionDecisionSchema, AddJobTargetSchema, AiPreviewRequestSchema, AiAnalyzeRequestSchema, CreateSessionSchema, DeleteTargetSchema,
-  EvidenceDecisionSchema, ReviewRequirementSchema, RestoreSessionSchema,
+  EvidenceDecisionSchema, CorrectEvidenceSchema, AddSourceDocumentSchema,
+  ReviewRequirementSchema, RestoreSessionSchema,
   ReplaceIntakeSchema, ReviewSchema, SelectRouteSchema, SessionSchema,
   completeAction, createSession, decideEvidence, exportMarkdown, recordReview,
   replaceIntake, selectRoute, addJobTarget, removeJobTarget, reviewRequirement,
+  addSourceDocument, removeSourceDocument, correctEvidence,
   validateRestoredSession, createAiPayload, validateAiAnalysis, type Session
 } from '@reboundops/contracts';
 
@@ -20,6 +22,7 @@ type EvidenceParams = IdParams & { evidenceId: string };
 type ActionParams = IdParams & { actionId: string };
 type TargetParams = IdParams & { targetId: string };
 type RequirementParams = TargetParams & { requirementId: string };
+type DocumentParams = IdParams & { documentId: string };
 
 export function buildApp(options: { aiProvider?: AiProvider } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 128 * 1024 });
@@ -133,6 +136,28 @@ export function buildApp(options: { aiProvider?: AiProvider } = {}) {
     if (!parsed.success) return invalid(reply, parsed.error);
     return mutate(request.params.id, parsed.data.expectedRevision, reply, session =>
       decideEvidence(session, request.params.evidenceId, parsed.data.status));
+  });
+
+  app.post<{ Params: IdParams }>('/api/sessions/:id/documents', async (request, reply) => {
+    const parsed = AddSourceDocumentSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    const { expectedRevision, ...input } = parsed.data;
+    return mutate(request.params.id, expectedRevision, reply, session =>
+      addSourceDocument(session, input, randomUUID()));
+  });
+
+  app.delete<{ Params: DocumentParams }>('/api/sessions/:id/documents/:documentId', async (request, reply) => {
+    const parsed = DeleteTargetSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    return mutate(request.params.id, parsed.data.expectedRevision, reply, session =>
+      removeSourceDocument(session, request.params.documentId));
+  });
+
+  app.put<{ Params: EvidenceParams }>('/api/sessions/:id/evidence/:evidenceId/correction', async (request, reply) => {
+    const parsed = CorrectEvidenceSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    return mutate(request.params.id, parsed.data.expectedRevision, reply, session =>
+      correctEvidence(session, request.params.evidenceId, parsed.data, now()));
   });
 
   app.post<{ Params: IdParams }>('/api/sessions/:id/targets', async (request, reply) => {

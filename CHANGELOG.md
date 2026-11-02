@@ -6,6 +6,7 @@
 - Angular guided career-recovery application and Fastify localhost API.
 - Zod intake, evidence, route, requirement and plan contracts.
 - Provenance labels and explicit participant confirmation.
+- Exact source passages anchored to user-pasted document IDs and character ranges, with manual corrections and revocation of obsolete requirement links.
 - Manual requirement-to-evidence review with automatic invalidation if evidence is downgraded.
 - Time-budgeted seven-day plan, check-ins, Markdown export.
 - Memory-only session API with optimistic updates, explicit private JSON backups, restore and delete.

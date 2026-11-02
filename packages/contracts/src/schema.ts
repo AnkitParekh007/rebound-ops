@@ -1,9 +1,23 @@
 import { z } from 'zod';
 
+export const SourceSpanSchema = z.strictObject({
+  documentId: z.uuid(),
+  start: z.number().int().nonnegative(),
+  end: z.number().int().positive()
+});
+
+export const SourceDocumentSchema = z.strictObject({
+  id: z.uuid(),
+  kind: z.enum(['resume', 'project_note']),
+  label: z.string().trim().min(1).max(160),
+  body: z.string().min(1).max(10000)
+});
+
 export const EvidenceSourceSchema = z.strictObject({
   kind: z.enum(['manual', 'resume', 'project_note']),
   label: z.string().trim().min(1).max(160),
-  excerpt: z.string().trim().max(700).optional()
+  excerpt: z.string().max(700).optional(),
+  span: SourceSpanSchema.optional()
 });
 
 export const EvidenceSchema = z.strictObject({
@@ -84,6 +98,33 @@ export const DeleteTargetSchema = z.strictObject({
   expectedRevision: z.number().int().nonnegative()
 });
 
+export const CorrectionSchema = z.strictObject({
+  evidenceId: z.uuid(),
+  previousClaim: z.string().max(500),
+  revisedClaim: z.string().max(500),
+  previousSource: EvidenceSourceSchema,
+  revisedSource: EvidenceSourceSchema,
+  reason: z.string().trim().min(3).max(300),
+  changedAt: z.iso.datetime()
+});
+
+export const AddSourceDocumentSchema = z.strictObject({
+  expectedRevision: z.number().int().nonnegative(),
+  kind: SourceDocumentSchema.shape.kind,
+  label: SourceDocumentSchema.shape.label,
+  body: SourceDocumentSchema.shape.body
+});
+
+export const CorrectEvidenceSchema = z.strictObject({
+  expectedRevision: z.number().int().nonnegative(),
+  claim: EvidenceSchema.shape.claim,
+  reason: CorrectionSchema.shape.reason,
+  source: z.discriminatedUnion('mode', [
+    z.strictObject({ mode: z.literal('manual'), label: EvidenceSourceSchema.shape.label }),
+    z.strictObject({ mode: z.literal('document'), documentId: z.uuid(), excerpt: z.string().min(1).max(700) })
+  ])
+});
+
 export const SessionSchema = z.strictObject({
   schemaVersion: z.literal(1),
   id: z.uuid(),
@@ -93,6 +134,8 @@ export const SessionSchema = z.strictObject({
   intake: IntakeSchema,
   routes: z.array(RouteSchema).length(3),
   jobTargets: z.array(JobTargetSchema).max(3),
+  sourceDocuments: z.array(SourceDocumentSchema).max(3).default([]),
+  corrections: z.array(CorrectionSchema).max(50).default([]),
   plan: PlanSchema.nullable(),
   reviewNotes: z.string().max(2000)
 });
@@ -111,6 +154,10 @@ export type RouteId = z.infer<typeof RouteIdSchema>;
 export type Action = z.infer<typeof ActionSchema>;
 export type Plan = z.infer<typeof PlanSchema>;
 export type Session = z.infer<typeof SessionSchema>;
+export type SourceDocument = z.infer<typeof SourceDocumentSchema>;
+export type Correction = z.infer<typeof CorrectionSchema>;
+export type EvidenceSource = z.infer<typeof EvidenceSourceSchema>;
+export type EvidenceCorrectionInput = z.infer<typeof CorrectEvidenceSchema>;
 export type JobTarget = z.infer<typeof JobTargetSchema>;
 export type JobRequirement = z.infer<typeof JobRequirementSchema>;
 export type RequirementStatus = JobRequirement['status'];

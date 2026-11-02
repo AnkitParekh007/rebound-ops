@@ -51,6 +51,14 @@ export class AppComponent implements OnInit {
   targetUrl = '';
   targetRequirements = '';
   evidenceSelection: Record<string, string> = {};
+  sourceTitle = '';
+  sourceKind: 'resume' | 'project_note' = 'resume';
+  sourceBody = '';
+  editingEvidenceId = '';
+  editClaim = '';
+  editReason = '';
+  citationDocumentId = '';
+  citationExcerpt = '';
 
   async ngOnInit(): Promise<void> {
     try {
@@ -69,6 +77,7 @@ export class AppComponent implements OnInit {
     this.draft = { ...sample };
     this.evidenceText = sampleEvidence;
     this.notesDraft = '';
+    this.editingEvidenceId = '';
     this.notice.set('Fictional example loaded. Claims are unverified and editable.');
     this.error.set('');
   }
@@ -83,6 +92,7 @@ export class AppComponent implements OnInit {
     };
     this.evidenceText = '';
     this.notesDraft = '';
+    this.editingEvidenceId = '';
     this.notice.set('Draft cleared from the screen. Server sessions are temporary until the API restarts.');
     this.error.set('');
   }
@@ -155,6 +165,61 @@ export class AppComponent implements OnInit {
       })),
       'Evidence status changed. Confirmation is your decision; no external verification occurred.'
     );
+  }
+
+  startEvidenceEdit(item: Evidence): void {
+    this.editingEvidenceId = item.id;
+    this.editClaim = item.claim;
+    this.editReason = '';
+    this.citationDocumentId = item.source.span?.documentId ?? '';
+    this.citationExcerpt = item.source.excerpt ?? '';
+    this.error.set('');
+  }
+
+  cancelEvidenceEdit(): void {
+    this.editingEvidenceId = '';
+    this.editReason = '';
+    this.citationExcerpt = '';
+  }
+
+  async addSource(): Promise<void> {
+    const current = this.session();
+    if (!current) return;
+    await this.execute(() => firstValueFrom(this.http.post<Session>(
+      '/api/sessions/' + current.id + '/documents', {
+        expectedRevision: current.revision,
+        kind: this.sourceKind, label: this.sourceTitle.trim(), body: this.sourceBody
+      }
+    )), 'Source text saved in local API memory, not uploaded to any provider.');
+    if (!this.error()) {
+      this.sourceTitle = '';
+      this.sourceBody = '';
+    }
+  }
+
+  async removeSource(id: string): Promise<void> {
+    const current = this.session();
+    if (!current) return;
+    await this.execute(() => firstValueFrom(this.http.request<Session>(
+      'DELETE', '/api/sessions/' + current.id + '/documents/' + id, {
+        body: { expectedRevision: current.revision }
+      }
+    )), 'Source document removed from this local session.');
+  }
+
+  async saveEvidenceCorrection(): Promise<void> {
+    const current = this.session();
+    if (!current || !this.editingEvidenceId) return;
+    const source = this.citationDocumentId
+      ? { mode: 'document' as const, documentId: this.citationDocumentId, excerpt: this.citationExcerpt }
+      : { mode: 'manual' as const, label: 'Participant-edited manual evidence' };
+    await this.execute(() => firstValueFrom(this.http.put<Session>(
+      '/api/sessions/' + current.id + '/evidence/' + this.editingEvidenceId + '/correction', {
+        expectedRevision: current.revision, claim: this.editClaim.trim(),
+        reason: this.editReason.trim(), source
+      }
+    )), 'Correction saved. This achievement is unverified until you confirm it again.');
+    if (!this.error()) this.cancelEvidenceEdit();
   }
 
   async chooseRoute(routeId: RouteId): Promise<void> {
@@ -372,6 +437,7 @@ export class AppComponent implements OnInit {
       }));
       this.session.set(null);
       this.notesDraft = '';
+      this.editingEvidenceId = '';
       this.evidenceSelection = {};
       this.notice.set('Session deleted from the local API. Any downloaded backups remain on your device.');
     } catch (error) {
