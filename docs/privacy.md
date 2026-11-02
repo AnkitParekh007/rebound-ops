@@ -4,7 +4,7 @@
 
 - UI: Angular in the browser, normally `127.0.0.1:4200`.
 - API: Fastify bound to `127.0.0.1:4174`. The UI sends form data to this local process only.
-- Session data: in API memory, **not persisted to disk automatically**. This now includes any pasted résumé/project-note source text and correction history.
+- Session data: memory-only by default, including source text and correction history. Configuring a private REBOUNDOPS_DATA_DIR **and** enabling saving per session allows unencrypted local disk writes.
 - No **automatic** AI provider calls, telemetry, hosted account, tracking pixel, résumé upload or job scraper. Optional external provider calls require local configuration, payload inspection and explicit consent.
 - The API limits request bodies to 128 KB and accepts only defined localhost browser origins.
 - API has no user authentication. **Do not expose or reverse-proxy its port to the internet.**
@@ -21,9 +21,9 @@ Backups also contain all retained pasted source document texts, original and rev
 
 ## Delete and recover
 
-- **Delete local session** removes it from the running API process.
-- Restarting the API clears all remaining memory-only sessions. Unsaved work is lost.
-- JSON snapshot import/export is the supported way to continue across restarts.
+- **Delete local session** removes it from the running API process and deletes its opted-in local disk copy, if any.
+- Restarting the API clears memory-only sessions. Explicitly opted-in saved sessions can be resumed after restart.
+- Explicit JSON backup/restore also works across restarts. Import always creates a memory-only session; users must opt in again if they want local disk saving.
 - The older static pilot's in-tab state is not compatible with these snapshots.
 
 ## Optional external provider — only after explicit opt-in

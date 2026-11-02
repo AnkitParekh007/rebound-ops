@@ -24,7 +24,8 @@ The original Phase 1 pilot remains in `src/`, `tests/`, `index.html` and `styles
 - **Plan:** up to seven actions within budget; user-selected route, explicit checkbox progress.
 - **Job targets:** 0–3 manually pasted job descriptions, with 1–12 requirements each and explicit unreviewed/supported/gap states.
 - **Session:** v1 schema, unique ID, optimistic revision, timestamps, notes, requirement review.
-- **Backup:** user-initiated JSON download, validated import to a new session, and delete from memory.
+- **Backup:** user-initiated JSON download, validated import to a fresh memory-only session.
+- **Opt-in saving:** persisted local snapshots only after a private folder and session-specific user consent.
 
 **Important:** The UI's Confirm button records participant confirmation, not independent verification. User-entered evidence isn't proof of meeting a role requirement. Routes and plans are deterministic examples; no current job openings are fetched.
 
@@ -35,6 +36,9 @@ The original Phase 1 pilot remains in `src/`, `tests/`, `index.html` and `styles
 | GET | `/api/health` | No-AI/no-persistence status |
 | POST | `/api/sessions` | Create validated, memory-only session |
 | GET | `/api/sessions/:id` | Read current session |
+| GET | `/api/persistence/status` | Report local storage availability and recovery warnings |
+| GET | `/api/sessions/saved` | List opted-in resumable sessions |
+| PUT | `/api/sessions/:id/persistence` | Per-session consent to save or revert to memory-only |
 | PUT | `/api/sessions/:id/intake` | Replace intake; **resets** route/plan/review |
 | PUT | `/api/sessions/:id/evidence/:evidenceId` | Confirm/unverify/reject evidence |
 | POST | `/api/sessions/:id/documents` | Paste one local-only source document |
@@ -57,7 +61,7 @@ All state-changing operations except create require `expectedRevision`. Requests
 - API is intentionally bound to loopback (`127.0.0.1`) and limits JSON body size.
 - Calls with browser Origin outside a local allowlist are refused.
 - Angular templates interpolate text rather than inserting unsanitized HTML.
-- No telemetry, automatic provider calls, disk persistence, browser local storage or accounts; the optional AI adapter is disabled by default.
+- No telemetry, automatic provider calls, browser local storage or accounts; both local disk saving and AI are off by default.
 - No verified résumé ingestion, automatic job-description parsing or AI analysis. Users paste requirements manually.
 - Explicit user backups may contain personal information; they are not automatically encrypted.
 - A local computer isn't a security boundary against other local processes. Do not paste secrets.
@@ -69,7 +73,7 @@ All state-changing operations except create require `expectedRevision`. Requests
 1. Collect and document the actual Phase 1 feedback privately.
 2. Improve source references with exact résumé/project-note spans and refine manual requirement review.
 3. Add Angular browser tests and accessibility checks.
-4. Evaluate opt-in server-side persistence beyond manual backup/restore.
+4. Evaluate user acceptance and portability of the newly implemented opt-in saving.
 5. Verify the already scaffolded optional AI provider against live fictional data before enabling participant usage.
 
 ## Dependency policy

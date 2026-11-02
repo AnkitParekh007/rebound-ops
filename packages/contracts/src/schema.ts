@@ -137,7 +137,8 @@ export const SessionSchema = z.strictObject({
   sourceDocuments: z.array(SourceDocumentSchema).max(3).default([]),
   corrections: z.array(CorrectionSchema).max(50).default([]),
   plan: PlanSchema.nullable(),
-  reviewNotes: z.string().max(2000)
+  reviewNotes: z.string().max(2000),
+  persistence: z.enum(['memory', 'disk']).default('memory')
 });
 
 export const CreateSessionSchema = z.strictObject({ intake: IntakeSchema });
@@ -161,6 +162,11 @@ export type EvidenceCorrectionInput = z.infer<typeof CorrectEvidenceSchema>;
 export type JobTarget = z.infer<typeof JobTargetSchema>;
 export type JobRequirement = z.infer<typeof JobRequirementSchema>;
 export type RequirementStatus = JobRequirement['status'];
+
+export const PersistenceChoiceSchema = z.strictObject({
+  expectedRevision: z.number().int().nonnegative(),
+  mode: z.enum(['memory', 'disk'])
+});
 
 export const RestoreSessionSchema = z.strictObject({ session: SessionSchema });
 

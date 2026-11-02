@@ -48,7 +48,19 @@ For a production-local build, run `npm run build` followed by `npm run start -w 
 7. Mark actions complete, record feedback and export a Markdown summary with evidence quotations and correction history.
 8. Download or restore a private JSON session backup, or delete the memory-only API session.
 
-Sessions live **only in API memory** and disappear when the process restarts unless you explicitly download a private JSON backup and restore it later. The browser does not send telemetry or data to an AI provider automatically. External AI calls are possible only when specifically enabled and approved via a payload preview. **Do not enter credentials, private employer information, sensitive résumés or anything you need to recover later.** The initial API has no login or encryption and is intended only for personal localhost testing.
+Sessions are **memory-only by default**. With a configured private REBOUNDOPS_DATA_DIR, you can explicitly opt individual sessions into durable disk saving. Saved sessions survive API restarts; disabling saving removes the stored file. Private JSON backup/restore remains available. The browser does not send telemetry or data to an AI provider automatically. External AI calls are possible only when specifically enabled and approved via a payload preview. **Do not enter credentials, private employer information, sensitive résumés or anything you need to recover later.** The initial API has no login or encryption and is intended only for personal localhost testing.
+
+### Optional durable local sessions
+
+With the API stopped, configure a private directory outside the repository:
+
+~~~sh
+REBOUNDOPS_DATA_DIR="$HOME/.reboundops/sessions" npm run dev:api
+~~~
+
+Then select **Enable local disk saving for this session** in the UI. Only explicitly selected sessions survive restarts. Resume them from the intake page. Deleting a saved session removes its disk file; downloaded backups remain separate. Files are **not encrypted**.
+
+See [local saving and recovery](docs/local-persistence.md).
 
 ### Tests
 
@@ -89,6 +101,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release checklist](docs/release-checklist.md)
 - [Decision record: local-first architecture](docs/adr-0001-local-first.md)
 - [Private data and backup guidance](docs/privacy.md)
+- [Opt-in local saving and recovery](docs/local-persistence.md)
 - [Architecture](docs/architecture.md)
 - [Original roadmap](docs/roadmap.md)
 - [Pilot procedure](docs/manual-pilot.md)

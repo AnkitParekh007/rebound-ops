@@ -58,6 +58,21 @@
         <button class="minimal" type="button" (click)="clear()">Clear form</button>
       </div>
     </form>
+    @if (persistenceStatus()?.available && savedSessions().length > 0) {
+      <div class="saved-session-list">
+        <h3>Resume a saved session on this computer</h3>
+        <p class="muted">Only sessions you explicitly opted into saving are shown here.</p>
+        @for (saved of savedSessions(); track saved.id) {
+          <div class="saved-session-entry">
+            <div><strong>{{ saved.role }}</strong><small>Last updated {{ saved.updatedAt }} · revision {{ saved.revision }}</small></div>
+            <button type="button" class="secondary" [disabled]="busy()" (click)="resumeSaved(saved.id)">Resume session</button>
+          </div>
+        }
+      </div>
+    }
+    @if (persistenceStatus()?.warnings?.length) {
+      <p class="message error" role="status">Some saved files could not be loaded. They were left untouched in your local data folder. See your local persistence documentation before modifying them.</p>
+    }
     <div class="restore-control">
       <label>Resume a previous local backup
         <input type="file" accept=".json,application/json" (change)="restoreFile($event)" [disabled]="busy() || !apiAvailable()">
@@ -309,7 +324,20 @@
     }
     <section class="panel" aria-labelledby="privacy-heading">
       <div class="panel-top"><div><p class="eyebrow">Your data / Portable by default</p><h2 id="privacy-heading">Back up or delete this session</h2></div></div>
-      <p class="muted">Sessions stay in local API memory. Export a private JSON snapshot to resume after a restart, or delete the current server session. Backups are not automatically deleted from your device.</p>
+      <p class="muted">Sessions stay in local API memory unless you explicitly enable saving to your configured private data folder. JSON backups are separate files you control and are not automatically deleted.</p>
+      @if (persistenceStatus()?.available) {
+        <div class="persistence-controls">
+          <p><strong>Session storage:</strong> {{ current.persistence === 'disk' ? 'Saved on this computer' : 'Memory only (cleared on restart)' }}</p>
+          @if (current.persistence === 'memory') {
+            <button class="secondary" type="button" [disabled]="busy()" (click)="changePersistence('disk')">Enable local disk saving for this session</button>
+          } @else {
+            <button class="secondary" type="button" [disabled]="busy()" (click)="changePersistence('memory')">Turn off saving and delete local copy</button>
+          }
+          <p class="hint">Local disk files are not encrypted. This setting requires a private REBOUNDOPS_DATA_DIR configured when starting the API. They are never uploaded to a cloud account by this feature.</p>
+        </div>
+      } @else {
+        <p class="muted">Optional auto-save is not configured. To enable it, stop the API and restart with REBOUNDOPS_DATA_DIR pointing to a private folder on your computer.</p>
+      }
       <div class="actions">
         <button class="secondary" type="button" [disabled]="busy()" (click)="backup()">Download session JSON</button>
         <button class="minimal" type="button" [disabled]="busy()" (click)="deleteSession()">Delete local session</button>
