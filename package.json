@@ -1,14 +1,26 @@
 {
   "name": "rebound-ops",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "An evidence-led career recovery manual pilot",
+  "workspaces": ["packages/*", "apps/*"],
+  "description": "Evidence-led career recovery: Angular app, localhost API and typed contracts",
   "scripts": {
-    "dev": "node scripts/serve.mjs",
-    "test": "node --test"
+    "dev": "npm run dev:web",
+    "dev:web": "npm run start -w @reboundops/web",
+    "dev:api": "npm run dev -w @reboundops/api",
+    "build:contracts": "npm run build -w @reboundops/contracts",
+    "build:api": "npm run build -w @reboundops/api",
+    "build:web": "npm run build -w @reboundops/web",
+    "build": "npm run build:contracts && npm run build:api && npm run build:web",
+    "test": "npm run build:contracts && npm run build:api && node --test tests/*.test.mjs packages/contracts/tests/*.test.mjs apps/api/tests/*.test.mjs",
+    "test:pilot": "node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~6.0.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": "^22.22.3 || ^24.15.0 || >=26"
   }
 }

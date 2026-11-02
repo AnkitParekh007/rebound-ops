@@ -1,0 +1,133 @@
+<header class="topbar">
+  <a href="/" class="brand" aria-label="ReboundOps home"><span class="brand-mark" aria-hidden="true">↗</span> ReboundOps</a>
+  <span class="tag">Phase 2 · Local preview</span>
+</header>
+
+<main class="shell">
+  <section class="hero" aria-labelledby="hero-title">
+    <p class="eyebrow">A better way forward</p>
+    <h1 id="hero-title">Your experience matters.<br><em>So does your next step.</em></h1>
+    <p class="lede">Compare career directions using user-controlled evidence. Choose one path to test and get a seven-day plan that respects your time.</p>
+    <div class="disclosure"><strong>What this version does:</strong> Structured intake, manual evidence confirmation, route hypotheses, time-budgeted plans, local progress tracking and export.
+      <strong> What it does not do:</strong> AI analysis, job matching, salary predictions, provider calls or disk storage. The API listens on your machine and forgets sessions on restart.</div>
+  </section>
+
+  <nav class="steps" aria-label="Recovery workflow">
+    <span><b>01</b> Experience</span>
+    <span><b>02</b> Evidence</span>
+    <span><b>03</b> Direction</span>
+    <span><b>04</b> Progress</span>
+  </nav>
+
+  @if (error()) {
+    <div class="message error" role="alert">{{ error() }}</div>
+  }
+  @if (notice()) {
+    <div class="message success" role="status">{{ notice() }}</div>
+  }
+
+  <section class="panel" aria-labelledby="intake-heading">
+    <div class="panel-top">
+      <div><p class="eyebrow">01 / Starting point</p><h2 id="intake-heading">What can you build on?</h2></div>
+      <span class="note">{{ apiAvailable() ? 'Local API ready' : 'API offline' }}</span>
+    </div>
+
+    <form (ngSubmit)="submit()">
+      <div class="fields">
+        <label>Recent role <input type="text" name="role" [(ngModel)]="draft.role" required maxlength="120" placeholder="e.g. Senior Frontend Engineer"></label>
+        <label>Location or work preference <input type="text" name="location" [(ngModel)]="draft.location" maxlength="160"></label>
+        <label>Available hours per week <input type="number" name="weeklyHours" [(ngModel)]="draft.weeklyHours" min="1" max="20" required></label>
+        <label>Income urgency
+          <select name="urgency" [(ngModel)]="draft.urgency">
+            <option value="soon">As soon as practical</option>
+            <option value="quarter">Within three months</option>
+            <option value="flexible">Flexible</option>
+          </select>
+        </label>
+      </div>
+      <label>Priorities and constraints <textarea name="priorities" [(ngModel)]="draft.priorities" rows="2" maxlength="1200"></textarea></label>
+      <label>Demonstrated achievements — one per line <textarea name="evidenceText" [(ngModel)]="evidenceText" rows="4" maxlength="7500" placeholder="Describe work you can support with evidence, without confidential details."></textarea></label>
+      <p class="hint">These are user-entered claims, not independently verified facts. You can mark each line as confirmed or rejected below.</p>
+      <div class="fields">
+        <label>Adjacent direction <input name="shiftTarget" [(ngModel)]="draft.shiftTarget" maxlength="140" placeholder="AI application engineering"></label>
+        <label>Contract / bridge direction <input name="bridgeTarget" [(ngModel)]="draft.bridgeTarget" maxlength="140" placeholder="Frontend consulting"></label>
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit" [disabled]="busy() || !apiAvailable()">{{ session() ? 'Update intake' : 'Create recovery session' }} <span aria-hidden="true">→</span></button>
+        <button class="secondary" type="button" (click)="demo()">Use fictional example</button>
+        <button class="minimal" type="button" (click)="clear()">Clear form</button>
+      </div>
+    </form>
+  </section>
+
+  @if (session(); as current) {
+    <section class="panel" aria-labelledby="evidence-heading">
+      <div class="panel-top"><div><p class="eyebrow">02 / Provenance</p><h2 id="evidence-heading">Evidence you control</h2></div><span class="note">Revision {{ current.revision }}</span></div>
+      <p class="muted">Confirmation means <strong>you</strong> stand behind the claim. It does not mean ReboundOps or an employer has verified it.</p>
+      @if (current.intake.evidence.length === 0) {
+        <p class="empty">No evidence yet. Consider recovering a concrete achievement before making a career claim.</p>
+      }
+      <div class="evidence-list">
+        @for (item of current.intake.evidence; track item.id) {
+          <article class="evidence-item">
+            <div><p>{{ item.claim }}</p><small>{{ item.source.label }} · {{ item.status }}</small></div>
+            <div class="evidence-actions">
+              <button class="tiny" type="button" [disabled]="busy() || item.status === 'confirmed'" (click)="evidenceDecision(item.id,'confirmed')">Confirm</button>
+              <button class="tiny" type="button" [disabled]="busy() || item.status === 'rejected'" (click)="evidenceDecision(item.id,'rejected')">Reject</button>
+              <button class="tiny" type="button" [disabled]="busy() || item.status === 'unverified'" (click)="evidenceDecision(item.id,'unverified')">Unverify</button>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="routes-heading">
+      <div class="panel-top"><div><p class="eyebrow">03 / Realistic alternatives</p><h2 id="routes-heading">Choose a hypothesis to test</h2></div></div>
+      <p class="muted">These alternatives do not assess your fitness for actual vacancies. Candidate evidence is displayed for manual review, never counted as proof of suitability.</p>
+      <div class="routes">
+        @for (route of current.routes; track route.id) {
+          <article class="route">
+            <div class="route-type">{{ route.label }}</div>
+            <h3>{{ route.target }}</h3>
+            <p><strong>Uncertainty</strong><br>{{ route.uncertainty }}</p>
+            <p><strong>Missing proof</strong><br>{{ route.missingProof[0] }}</p>
+            <p><strong>Next test</strong><br>{{ route.nextTest }}</p>
+            <small>{{ route.candidateEvidenceIds.length }} user-entered evidence lines to review</small>
+            <button class="primary full" type="button" [disabled]="busy()" (click)="chooseRoute(route.id)">Test {{ route.label }}</button>
+          </article>
+        }
+      </div>
+    </section>
+
+    @if (current.plan; as plan) {
+      <section class="panel" aria-labelledby="plan-heading">
+        <div class="panel-top">
+          <div><p class="eyebrow">04 / Next seven days</p><h2 id="plan-heading">Make progress manageable</h2></div>
+          <span class="time-pill">{{ plan.plannedMinutes }} / {{ plan.budgetMinutes }} min budgeted</span>
+        </div>
+        <p class="muted">Complete one useful action rather than chasing an artificial employability score.</p>
+        <ol class="plan-list">
+          @for (action of plan.actions; track action.id) {
+            <li>
+              <label class="task">
+                <input type="checkbox" [checked]="action.completed" [disabled]="busy()" (change)="toggleAction(action.id, !action.completed)">
+                <span><small>Day {{ action.day }} · {{ action.minutes }} minutes</small><strong>{{ action.title }}</strong></span>
+              </label>
+            </li>
+          }
+        </ol>
+        <p class="progress" aria-live="polite">{{ completedCount() }} of {{ plan.actions.length }} actions completed</p>
+        <label>Check-in notes and real-world outcomes <textarea name="notesDraft" [(ngModel)]="notesDraft" rows="3" maxlength="2000" placeholder="What happened? What would you change?"></textarea></label>
+        <div class="actions">
+          <button class="primary" type="button" [disabled]="busy()" (click)="saveReview()">Save check-in</button>
+          <button class="secondary" type="button" [disabled]="busy()" (click)="download()">Export Markdown</button>
+        </div>
+        @if (current.reviewNotes) {
+          <p class="saved-review"><strong>Last saved check-in:</strong> {{ current.reviewNotes }}</p>
+        }
+      </section>
+    }
+  }
+</main>
+
+<footer><span>ReboundOps · Open-source Phase 2</span><span>Evidence over scores. Progress over promises.</span></footer>

@@ -1,6 +1,9 @@
 node_modules/
 dist/
 coverage/
+.angular/
+apps/web/.angular/
+*.tsbuildinfo
 .env
 .env.*
 !.env.example

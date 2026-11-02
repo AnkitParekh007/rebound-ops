@@ -1,48 +1,39 @@
-# Architecture and implementation plan
+# Architecture
 
-## Current v0.1: deterministic manual pilot
+## Current Phase 2 typed MVP slice
 
-The browser loads static files with no build step or third-party dependencies:
+\`\`\`text
+Angular standalone app (apps/web, port 4200)
+   │
+   └── /api → localhost Fastify (apps/api, port 4174)
+                ├── validated Zod request contracts
+                ├── explicit workflow transitions
+                ├── in-memory sessions + optimistic revisions
+                └── Markdown export
 
-- index.html — semantic accessible progressive workflow
-- styles.css — responsive layout
-- src/app.mjs — client-side state + event handlers
-- src/core.mjs — pure route/action/export logic
-- src/demo.mjs — fictional sample (never real user data)
-- tests/core.test.mjs — tests using Node's built-in runner
-- scripts/serve.mjs — localhost-only development static server
+Shared: packages/contracts (Zod schemas + pure workflow logic)
+Legacy: root static prototype (preserved)
+\`\`\`
 
-Data remains in JavaScript memory and is discarded on refresh. Markdown export only happens on explicit click. No telemetry, providers, authentication, persistence, third-party CDN, uploads or network calls exist in the prototype. Avoid entering secrets or confidential employer information.
+In development, Angular proxies \`/api\` requests to the Fastify service. The API binds only to 127.0.0.1. When the production Angular build is present, the API also serves the compiled site.
 
-## Planned v0.2 after validation
+## Functional scope
 
-Frontend: Angular + TypeScript and Material/CDK.
-Local API: Node.js LTS + Fastify.
-Contracts: Zod / JSON Schema for provenance, extracted evidence, route comparison, action plan and review.
-AI: One official provider TypeScript SDK behind a typed adapter.
-Persistence: Versioned JSON in a user-owned local directory, with backups and opt-in storage.
-Verification: Vitest + Playwright + GitHub Actions.
+- Enter 1–15 user-reported achievements with explicitly **unverified** sources.
+- Confirm/reject claims manually; confirmation is not third-party validation.
+- Compare Return / Shift / Bridge hypotheses, including missing proof and next tests.
+- Select a route and generate a time-budgeted, deterministic plan.
+- Complete actions and record outcomes.
+- Export Markdown with status, source and review details.
 
-### Suggested modules
+No AI calls, job-description analysis, hiring scores, automatic applications or persistent storage are implemented. The former static pilot remains available at the root.
 
-- core/evidence — claim, supporting source span, confirmation status
-- core/routes — alternatives with supporting evidence, gaps, uncertainty, next test
-- core/planning — allowed hours, dependencies, step limits, action order
-- core/review — observations, plan version and rationale for changes
-- ai/provider — request schema, redaction, cost limits, retries, provider adapter
-- app — accessible intake, comparison, edits and export
+## Next design steps
 
-### Constraints
+1. Add job-description sources and source spans using the same provenance-first contracts.
+2. Build evidence-to-requirement review with explicit user validation.
+3. Add resumable, versioned local JSON with consent and safe migrations.
+4. Add a single provider adapter and output validators only after the above.
+5. Extend tests to cover errors, interruption, injection-like document content and browser accessibility.
 
-- Any AI claim must cite supplied evidence and be confirmable by the person.
-- Text from a résumé or job description is **data**, not trusted instructions.
-- No unstated salary, vacancy or hiring-probability claims.
-- Users approve each significant state transition.
-- Show the exact information leaving the computer before AI calls.
-- Prevent accidental Git commits of private profiles, API keys or pilot notes.
-- Keep provider keys in environment variables on the local API, not frontend JavaScript.
-- Maintain schema version and migration strategy before adding durable user data.
-
-## Security follow-ups
-
-Threat model: prompt injection, fabricated extracted evidence, secret leakage, untrusted job descriptions, overcollection, XSS, malicious export filenames, and offline recovery. Use deterministic validators and human approval for any AI-generated outputs.
+See [Phase 2 details](phase-2.md) and [roadmap](roadmap.md).
