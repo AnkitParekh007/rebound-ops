@@ -99,6 +99,8 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [AI provider setup, privacy and safety](docs/ai-provider.md)
 - [Synthetic AI evaluation and live-test approval gate](docs/ai-evaluation.md)
 - [Fictional recovery journeys](examples/fictional-journeys.md)
+- [Facilitated pilot protocol](docs/pilot-evaluation-pack.md) · [Blank scorecard](docs/pilot-scorecard.md)
+- [Release preview script and decision gate](docs/public-preview-kit.md)
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release checklist](docs/release-checklist.md)
 - [Decision record: local-first architecture](docs/adr-0001-local-first.md)
 - [Private data and backup guidance](docs/privacy.md)
