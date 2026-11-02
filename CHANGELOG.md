@@ -15,6 +15,7 @@
 - Adversarial mock-provider tests and sanitized usage counters without recording prompts or sensitive output.
 - Unit, API integration, Playwright journey and axe accessibility checks.
 - Privacy, security, contributing and release-gate documentation.
+- Facilitated pilot guide, blank evaluation scorecard, proposed public-preview script and responsive/keyboard browser checks.
 
 ### Preserved
 - Original zero-dependency browser pilot remains at repository root.
