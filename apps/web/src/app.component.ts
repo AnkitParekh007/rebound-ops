@@ -43,7 +43,11 @@ export class AppComponent implements OnInit {
   readonly savedSessions = signal<Array<{
     id: string; role: string; updatedAt: string; revision: number;
   }>>([]);
-  readonly aiStatus = signal<{ enabled: boolean; provider: string | null; model: string | null } | null>(null);
+  readonly aiStatus = signal<{
+    enabled: boolean; provider: string | null; model: string | null;
+    attempts: number; maxAttempts: number; successful: number; failed: number;
+    reportedInputTokens: number; reportedOutputTokens: number;
+  } | null>(null);
   readonly aiPreview = signal<{
     enabled: boolean; provider: string; model: string | null; sessionRevision: number;
     payload: AiPayload; previewHash: string;
@@ -71,7 +75,7 @@ export class AppComponent implements OnInit {
       const status = await firstValueFrom(this.http.get<{ status: string }>('/api/health'));
       this.apiAvailable.set(status.status === 'ok');
       await this.refreshSavedSessions();
-      this.aiStatus.set(await firstValueFrom(this.http.get<{ enabled: boolean; provider: string | null; model: string | null }>('/api/ai/status')));
+      await this.refreshAiStatus();
     } catch {
       this.error.set('Local API is not running. Start it using npm run dev:api in a separate terminal.');
     }
@@ -325,6 +329,15 @@ export class AppComponent implements OnInit {
     }
   }
 
+  async refreshAiStatus(): Promise<void> {
+    const result = await firstValueFrom(this.http.get<{
+      enabled: boolean; provider: string | null; model: string | null;
+      attempts: number; maxAttempts: number; successful: number; failed: number;
+      reportedInputTokens: number; reportedOutputTokens: number;
+    }>('/api/ai/status'));
+    this.aiStatus.set(result);
+  }
+
   async previewAI(targetId: string): Promise<void> {
     const current = this.session();
     if (!current || this.busy()) return;
@@ -356,12 +369,15 @@ export class AppComponent implements OnInit {
     try {
       const result = await firstValueFrom(this.http.post<{
         analysis: AiAnalysis; autoApplied: boolean; provider: string; model: string;
+        usage: { inputTokens: number; outputTokens: number } | null;
       }>('/api/sessions/' + current.id + '/ai/analyze', {
         targetId: preview.payload.target.id, previewHash: preview.previewHash,
         expectedRevision: preview.sessionRevision, consent: true
       }));
       this.aiAnalysis.set(result.analysis);
-      this.notice.set('AI suggestions returned. Nothing was applied to your evidence or plan.');
+      this.notice.set('AI suggestions returned. Nothing was applied to your evidence or plan.' +
+        (result.usage ? ' Provider reported ' + result.usage.inputTokens + ' input and ' + result.usage.outputTokens + ' output tokens.' : ' Token usage was not reported.'));
+      await this.refreshAiStatus();
     } catch (failure) {
       if (failure instanceof HttpErrorResponse && failure.status === 409) {
         this.aiPreview.set(null);
@@ -372,6 +388,7 @@ export class AppComponent implements OnInit {
       }
     } finally {
       this.busy.set(false);
+      try { await this.refreshAiStatus(); } catch { /* status is advisory */ }
     }
   }
 

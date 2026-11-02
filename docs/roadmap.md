@@ -62,6 +62,8 @@ The validated manual pilot has led to a working typed Angular and local Fastify 
 - [x] Optional AI adapter disabled by default, with exact payload preview and consent gate
 - [x] Automated unit, API, browser-journey and axe accessibility tests
 - [ ] Confirm cross-platform manual testing and live provider compatibility with fictional data
+- [x] Add adversarial AI mock evaluation, provider error sanitization and token-usage reporting
+- [ ] Approve a small live-provider evaluation budget/key before paid calls
 - [ ] Collect and summarize actual pilot outcomes before claiming success metrics
 - [x] Add user-correctable exact source spans, document IDs and an auditable correction history (Issue #6)
 - [x] Implement consent-based durable local sessions and recovery (Issue #7)

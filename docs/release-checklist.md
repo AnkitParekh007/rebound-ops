@@ -18,7 +18,7 @@ This is a **pre-release checklist**, not a declaration that ReboundOps is produc
 - [x] Manual requirement-to-evidence links (no automated fit scores)
 - [x] Explicit JSON backup/restore and delete
 - [x] Consent-based local disk saving and resume controls
-- [x] Mock-tested AI data preview, consent gate and output validation
+- [x] Mock-tested AI data preview, consent gate, adversarial inputs, request cap, output validation and token reporting
 - [x] Automated unit, integration and end-to-end tests implemented
 - [ ] All CI jobs green and feature branch merged
 - [ ] Test across current supported operating systems and browsers
