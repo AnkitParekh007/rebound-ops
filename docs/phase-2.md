@@ -70,3 +70,15 @@ All state-changing operations except create require `expectedRevision`. Requests
 ## Dependency policy
 
 Angular 22.2.x (active), TypeScript 6.0.x, Fastify 5.12.x and Zod 4. Dependencies are installed from npm and pinned by the project once a verified lockfile is generated. GitHub CI tests the actual integration.
+
+## Browser smoke tests
+
+Playwright performs a full browser journey: initial intake, evidence confirmation, a supplied job requirement, route selection, progress update, Markdown export, JSON backup, deletion and restore. A separate axe-core check rejects serious/critical accessibility issues in the initial and intake states. Run after compiling the Angular site and API:
+
+```sh
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+CI installs Chromium with system dependencies. The browser tests use the built Angular application served locally by the Fastify API on port 4174. No hosted service or private account is involved.

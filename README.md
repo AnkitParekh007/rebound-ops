@@ -54,6 +54,7 @@ Sessions live **only in API memory** and disappear when the process restarts unl
 ```sh
 npm test
 npm run build:web
+npm run test:e2e  # install Chromium first: npx playwright install chromium
 ```
 
 GitHub Actions runs both tests and the Angular production build.
