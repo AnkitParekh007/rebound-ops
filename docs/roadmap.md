@@ -49,3 +49,18 @@ Defer building automated job scraping, auto-applying, recruiter contact harvesti
 4. Add job-description comparison with explicit missing evidence, never numeric hireability.
 5. Build accessibility and browser testing for an Angular MVP.
 6. Add encryption/secret handling and cost telemetry for local API providers.
+
+## Phase 2 implementation progress (owner review pending)
+
+The validated manual pilot has led to a working typed Angular and local Fastify application on a feature branch. This is **implementation progress**, not a claim that wider usability or market-evidence gates have been satisfied.
+
+- [x] Angular application and local Fastify service
+- [x] Shared Zod schema, source provenance and optimistic revisions
+- [x] Manual requirement review linked to participant-confirmed evidence
+- [x] Seven-day route plans, check-ins, Markdown export
+- [x] Explicit private JSON backup/restore and local delete
+- [x] Optional AI adapter disabled by default, with exact payload preview and consent gate
+- [x] Automated unit, API, browser-journey and axe accessibility tests
+- [ ] Confirm cross-platform manual testing and live provider compatibility with fictional data
+- [ ] Collect and summarize actual pilot outcomes before claiming success metrics
+- [ ] Add detailed source spans and determine whether opt-in durable storage is needed
