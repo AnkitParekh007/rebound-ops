@@ -50,6 +50,40 @@ export const PlanSchema = z.strictObject({
   actions: z.array(ActionSchema).max(7)
 });
 
+export const JobRequirementSchema = z.strictObject({
+  id: z.uuid(),
+  text: z.string().trim().min(1).max(500),
+  status: z.enum(['unreviewed', 'supported', 'gap']),
+  evidenceIds: z.array(z.uuid()).max(15)
+});
+
+export const JobTargetSchema = z.strictObject({
+  id: z.uuid(),
+  title: z.string().trim().min(1).max(140),
+  sourceUrl: z.string().trim().max(600).refine(
+    value => !value || /^https:\/\/[^\s]+$/i.test(value),
+    'Source URL must use HTTPS'
+  ),
+  requirements: z.array(JobRequirementSchema).min(1).max(12)
+});
+
+export const AddJobTargetSchema = z.strictObject({
+  expectedRevision: z.number().int().nonnegative(),
+  title: JobTargetSchema.shape.title,
+  sourceUrl: JobTargetSchema.shape.sourceUrl,
+  requirements: z.array(JobRequirementSchema.shape.text).min(1).max(12)
+});
+
+export const ReviewRequirementSchema = z.strictObject({
+  expectedRevision: z.number().int().nonnegative(),
+  status: JobRequirementSchema.shape.status,
+  evidenceIds: z.array(z.uuid()).max(15)
+});
+
+export const DeleteTargetSchema = z.strictObject({
+  expectedRevision: z.number().int().nonnegative()
+});
+
 export const SessionSchema = z.strictObject({
   schemaVersion: z.literal(1),
   id: z.uuid(),
@@ -58,6 +92,7 @@ export const SessionSchema = z.strictObject({
   updatedAt: z.iso.datetime(),
   intake: IntakeSchema,
   routes: z.array(RouteSchema).length(3),
+  jobTargets: z.array(JobTargetSchema).max(3),
   plan: PlanSchema.nullable(),
   reviewNotes: z.string().max(2000)
 });
@@ -76,3 +111,8 @@ export type RouteId = z.infer<typeof RouteIdSchema>;
 export type Action = z.infer<typeof ActionSchema>;
 export type Plan = z.infer<typeof PlanSchema>;
 export type Session = z.infer<typeof SessionSchema>;
+export type JobTarget = z.infer<typeof JobTargetSchema>;
+export type JobRequirement = z.infer<typeof JobRequirementSchema>;
+export type RequirementStatus = JobRequirement['status'];
+
+export const RestoreSessionSchema = z.strictObject({ session: SessionSchema });

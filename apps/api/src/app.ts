@@ -1,10 +1,12 @@
 import Fastify, { type FastifyReply } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
-  ActionDecisionSchema, CreateSessionSchema, EvidenceDecisionSchema,
+  ActionDecisionSchema, AddJobTargetSchema, CreateSessionSchema, DeleteTargetSchema,
+  EvidenceDecisionSchema, ReviewRequirementSchema, RestoreSessionSchema,
   ReplaceIntakeSchema, ReviewSchema, SelectRouteSchema, SessionSchema,
   completeAction, createSession, decideEvidence, exportMarkdown, recordReview,
-  replaceIntake, selectRoute, type Session
+  replaceIntake, selectRoute, addJobTarget, removeJobTarget, reviewRequirement,
+  validateRestoredSession, type Session
 } from '@reboundops/contracts';
 
 const allowedOrigins = new Set([
@@ -15,6 +17,8 @@ const allowedOrigins = new Set([
 type IdParams = { id: string };
 type EvidenceParams = IdParams & { evidenceId: string };
 type ActionParams = IdParams & { actionId: string };
+type TargetParams = IdParams & { targetId: string };
+type RequirementParams = TargetParams & { requirementId: string };
 
 export function buildApp() {
   const app = Fastify({ logger: false, bodyLimit: 128 * 1024 });
@@ -69,9 +73,43 @@ export function buildApp() {
     return reply.code(201).send(session);
   });
 
+  app.post('/api/sessions/restore', async (request, reply) => {
+    const parsed = RestoreSessionSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    if (sessions.size >= 100) return reply.code(503).send({ error: 'SESSION_CAPACITY_REACHED' });
+    try {
+      const snapshot = validateRestoredSession(parsed.data.session);
+      // Restoration is a new local session, with a new ID and fresh revision, not a remote sync.
+      const timestamp = now();
+      const session = SessionSchema.parse({
+        ...snapshot,
+        id: randomUUID(),
+        revision: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      });
+      sessions.set(session.id, session);
+      return reply.code(201).send(session);
+    } catch {
+      return reply.code(400).send({ error: 'INVALID_BACKUP' });
+    }
+  });
+
   app.get<{ Params: IdParams }>('/api/sessions/:id', async (request, reply) => {
     const session = sessions.get(request.params.id);
     return session ? reply.send(session) : reply.code(404).send({ error: 'SESSION_NOT_FOUND' });
+  });
+
+  app.delete<{ Params: IdParams }>('/api/sessions/:id', async (request, reply) => {
+    const parsed = DeleteTargetSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    const current = sessions.get(request.params.id);
+    if (!current) return reply.code(404).send({ error: 'SESSION_NOT_FOUND' });
+    if (current.revision !== parsed.data.expectedRevision) {
+      return reply.code(409).send({ error: 'STALE_REVISION', session: current });
+    }
+    sessions.delete(request.params.id);
+    return reply.code(204).send();
   });
 
   app.put<{ Params: IdParams }>('/api/sessions/:id/intake', async (request, reply) => {
@@ -86,6 +124,30 @@ export function buildApp() {
     return mutate(request.params.id, parsed.data.expectedRevision, reply, session =>
       decideEvidence(session, request.params.evidenceId, parsed.data.status));
   });
+
+  app.post<{ Params: IdParams }>('/api/sessions/:id/targets', async (request, reply) => {
+    const parsed = AddJobTargetSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    const { expectedRevision, ...input } = parsed.data;
+    return mutate(request.params.id, expectedRevision, reply, session =>
+      addJobTarget(session, input, randomUUID(), input.requirements.map(() => randomUUID())));
+  });
+
+  app.delete<{ Params: TargetParams }>('/api/sessions/:id/targets/:targetId', async (request, reply) => {
+    const parsed = DeleteTargetSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    return mutate(request.params.id, parsed.data.expectedRevision, reply, session =>
+      removeJobTarget(session, request.params.targetId));
+  });
+
+  app.put<{ Params: RequirementParams }>('/api/sessions/:id/targets/:targetId/requirements/:requirementId',
+    async (request, reply) => {
+      const parsed = ReviewRequirementSchema.safeParse(request.body);
+      if (!parsed.success) return invalid(reply, parsed.error);
+      return mutate(request.params.id, parsed.data.expectedRevision, reply, session =>
+        reviewRequirement(session, request.params.targetId, request.params.requirementId,
+          parsed.data.status, parsed.data.evidenceIds));
+    });
 
   app.put<{ Params: IdParams }>('/api/sessions/:id/route', async (request, reply) => {
     const parsed = SelectRouteSchema.safeParse(request.body);

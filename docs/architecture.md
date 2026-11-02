@@ -2,7 +2,7 @@
 
 ## Current Phase 2 typed MVP slice
 
-\`\`\`text
+```text
 Angular standalone app (apps/web, port 4200)
    │
    └── /api → localhost Fastify (apps/api, port 4174)
@@ -13,20 +13,22 @@ Angular standalone app (apps/web, port 4200)
 
 Shared: packages/contracts (Zod schemas + pure workflow logic)
 Legacy: root static prototype (preserved)
-\`\`\`
+```
 
-In development, Angular proxies \`/api\` requests to the Fastify service. The API binds only to 127.0.0.1. When the production Angular build is present, the API also serves the compiled site.
+In development, Angular proxies `/api` requests to the Fastify service. The API binds only to 127.0.0.1. When the production Angular build is present, the API also serves the compiled site.
 
 ## Functional scope
 
 - Enter 1–15 user-reported achievements with explicitly **unverified** sources.
 - Confirm/reject claims manually; confirmation is not third-party validation.
 - Compare Return / Shift / Bridge hypotheses, including missing proof and next tests.
+- Paste job requirements and manually link participant-confirmed evidence; revoke support when evidence is rejected.
 - Select a route and generate a time-budgeted, deterministic plan.
 - Complete actions and record outcomes.
-- Export Markdown with status, source and review details.
+- Export Markdown with evidence status, job requirements and review details.
+- User-initiated JSON backup/restore and deletion from API memory.
 
-No AI calls, job-description analysis, hiring scores, automatic applications or persistent storage are implemented. The former static pilot remains available at the root.
+No AI calls, automated job-description analysis, hiring scores, automatic applications or automatic disk persistence are implemented. The former static pilot remains available at the root.
 
 ## Next design steps
 

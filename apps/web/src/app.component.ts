@@ -40,6 +40,10 @@ export class AppComponent implements OnInit {
   draft: Draft = { ...sample };
   evidenceText = sampleEvidence;
   notesDraft = '';
+  targetTitle = '';
+  targetUrl = '';
+  targetRequirements = '';
+  evidenceSelection: Record<string, string> = {};
 
   async ngOnInit(): Promise<void> {
     try {
@@ -192,6 +196,127 @@ export class AppComponent implements OnInit {
       this.notice.set('Markdown plan exported to your device.');
     } catch {
       this.error.set('Unable to export the selected plan.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async addTarget(): Promise<void> {
+    const current = this.session();
+    if (!current) return;
+    const requirements = this.targetRequirements.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (!requirements.length || requirements.length > 12) {
+      this.error.set('Enter between 1 and 12 job requirements, one per line.');
+      return;
+    }
+    await this.execute(
+      () => firstValueFrom(this.http.post<Session>('/api/sessions/' + current.id + '/targets', {
+        expectedRevision: current.revision, title: this.targetTitle.trim(),
+        sourceUrl: this.targetUrl.trim(), requirements
+      })),
+      'Job requirements added for manual review. Nothing was fetched from the URL.'
+    );
+    if (!this.error()) {
+      this.targetTitle = '';
+      this.targetUrl = '';
+      this.targetRequirements = '';
+    }
+  }
+
+  async reviewRequirement(
+    targetId: string, requirementId: string, status: 'unreviewed' | 'supported' | 'gap'
+  ): Promise<void> {
+    const current = this.session();
+    if (!current) return;
+    const selected = this.evidenceSelection[requirementId] ||
+      current.jobTargets.find(t => t.id === targetId)?.requirements.find(r => r.id === requirementId)?.evidenceIds[0] || '';
+    if (status === 'supported' && !selected) {
+      this.error.set('Select a participant-confirmed achievement before marking this requirement as supported.');
+      return;
+    }
+    await this.execute(
+      () => firstValueFrom(this.http.put<Session>(
+        '/api/sessions/' + current.id + '/targets/' + targetId + '/requirements/' + requirementId,
+        { expectedRevision: current.revision, status, evidenceIds: status === 'supported' ? [selected] : [] }
+      )),
+      'Requirement reviewed. A confirmed claim is not independent proof of job readiness.'
+    );
+  }
+
+  async removeTarget(id: string): Promise<void> {
+    const current = this.session();
+    if (!current) return;
+    await this.execute(
+      () => firstValueFrom(this.http.request<Session>('DELETE',
+        '/api/sessions/' + current.id + '/targets/' + id,
+        { body: { expectedRevision: current.revision } })),
+      'Job target removed.'
+    );
+  }
+
+  private downloadText(contents: string, name: string, type: string): void {
+    const url = URL.createObjectURL(new Blob([contents], { type }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  backup(): void {
+    const current = this.session();
+    if (!current) return;
+    this.downloadText(JSON.stringify(current, null, 2),
+      'reboundops-session.json', 'application/json;charset=utf-8');
+    this.notice.set('An explicit local backup was downloaded. Keep it somewhere private.');
+    this.error.set('');
+  }
+
+  async restoreFile(event: Event): Promise<void> {
+    const field = event.target;
+    if (!(field instanceof HTMLInputElement)) return;
+    const file = field.files?.[0];
+    if (!file) return;
+    if (file.size > 128 * 1024) {
+      this.error.set('Backup exceeds 128 KB. Only ReboundOps JSON snapshots are supported.');
+      field.value = '';
+      return;
+    }
+    await this.execute(async () => {
+      const data: unknown = JSON.parse(await file.text());
+      const session = await firstValueFrom(this.http.post<Session>('/api/sessions/restore', { session: data }));
+      const { evidence, ...draft } = session.intake;
+      this.draft = { ...draft };
+      this.evidenceText = evidence.map(e => e.claim).join('\n');
+      this.notesDraft = session.reviewNotes;
+      this.evidenceSelection = {};
+      return session;
+    }, 'Backup restored as a fresh, memory-only session. No file was uploaded beyond localhost.');
+    field.value = '';
+  }
+
+  async deleteSession(): Promise<void> {
+    const current = this.session();
+    if (!current || this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      await firstValueFrom(this.http.request<void>('DELETE', '/api/sessions/' + current.id, {
+        body: { expectedRevision: current.revision }
+      }));
+      this.session.set(null);
+      this.notesDraft = '';
+      this.evidenceSelection = {};
+      this.notice.set('Session deleted from the local API. Any downloaded backups remain on your device.');
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 409 && error.error?.session) {
+        this.session.set(error.error.session as Session);
+        this.error.set('Session changed before deletion. Please retry.');
+      } else {
+        this.error.set('Could not delete the local session.');
+      }
     } finally {
       this.busy.set(false);
     }

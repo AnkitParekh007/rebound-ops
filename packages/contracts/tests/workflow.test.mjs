@@ -59,3 +59,38 @@ test('confirming evidence is explicit and export distinguishes its provenance', 
   assert.match(md, /\[x\] Day 1/);
   assert.throws(() => completeAction(session, 'unknown', true));
 });
+
+
+test('manual requirement links survive export and are revoked when evidence is rejected', async () => {
+  const { addJobTarget, reviewRequirement, removeJobTarget, validateRestoredSession } = await import('../dist/index.js');
+  const targetId = '8ec34282-38c0-44d0-81e2-6e017a055db3';
+  const requirementId = 'a9958768-cb40-4855-a453-eb498e99c86d';
+  let s = createSession(input, uuid, now);
+  s = addJobTarget(s, { title: 'Frontend platform', sourceUrl: 'https://example.org/job', requirements: ['Test accessible UIs'] },
+    targetId, [requirementId]);
+  assert.equal(s.jobTargets.length, 1);
+  assert.throws(() => reviewRequirement(s, targetId, requirementId, 'supported', [evidenceId]));
+  s = decideEvidence(s, evidenceId, 'confirmed');
+  s = reviewRequirement(s, targetId, requirementId, 'supported', [evidenceId]);
+  assert.equal(validateRestoredSession(s).jobTargets[0].requirements[0].status, 'supported');
+  s = selectRoute(s, 'return');
+  const output = exportMarkdown(s);
+  assert.match(output, /Supplied job requirements/);
+  assert.match(output, /\[supported\] Test accessible UIs/);
+  s = decideEvidence(s, evidenceId, 'rejected');
+  assert.equal(s.jobTargets[0].requirements[0].status, 'unreviewed');
+  s = removeJobTarget(s, targetId);
+  assert.equal(s.jobTargets.length, 0);
+});
+
+test('invalid snapshots with fabricated evidence references are rejected', async () => {
+  const { addJobTarget, validateRestoredSession } = await import('../dist/index.js');
+  const targetId = '8ec34282-38c0-44d0-81e2-6e017a055db3';
+  const requirementId = 'a9958768-cb40-4855-a453-eb498e99c86d';
+  let s = createSession(input, uuid, now);
+  s = addJobTarget(s, { title: 'Frontend platform', sourceUrl: '', requirements: ['Test accessible UIs'] }, targetId, [requirementId]);
+  const tampered = { ...s, jobTargets: [{ ...s.jobTargets[0], requirements: [{
+    ...s.jobTargets[0].requirements[0], status: 'supported', evidenceIds: [evidenceId]
+  }] }] };
+  assert.throws(() => validateRestoredSession(tampered));
+});

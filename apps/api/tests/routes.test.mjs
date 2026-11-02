@@ -97,3 +97,70 @@ test('changing constraints resets the plan and loses old progress intentionally'
   assert.equal(s.intake.weeklyHours, 1);
   await app.close();
 });
+
+
+test('job requirements require confirmed evidence for support and are invalidated on downgrade', async () => {
+  const app = buildApp();
+  let r = await app.inject({ method: 'POST', url: '/api/sessions', payload: { intake } });
+  let s = r.json();
+  const path = '/api/sessions/' + s.id;
+  r = await app.inject({ method: 'POST', url: path + '/targets',
+    payload: {
+      expectedRevision: s.revision, title: 'Frontend platform engineer',
+      sourceUrl: 'https://example.org/careers/platform', requirements: [
+        'Design reusable frontend components', 'Evaluate production architecture'
+      ]
+    } });
+  assert.equal(r.statusCode, 200);
+  s = r.json();
+  assert.equal(s.jobTargets.length, 1);
+  assert.equal(s.jobTargets[0].requirements[0].status, 'unreviewed');
+  const target = s.jobTargets[0];
+  const reqId = target.requirements[0].id;
+  r = await app.inject({ method: 'PUT', url: path + '/targets/' + target.id + '/requirements/' + reqId,
+    payload: { expectedRevision: s.revision, status: 'supported', evidenceIds: [evidenceId] } });
+  assert.equal(r.statusCode, 400, 'unconfirmed evidence must not count as support');
+  r = await app.inject({ method: 'PUT', url: path + '/evidence/' + evidenceId,
+    payload: { expectedRevision: s.revision, status: 'confirmed' } });
+  assert.equal(r.statusCode, 200);
+  s = r.json();
+  r = await app.inject({ method: 'PUT', url: path + '/targets/' + target.id + '/requirements/' + reqId,
+    payload: { expectedRevision: s.revision, status: 'supported', evidenceIds: [evidenceId] } });
+  assert.equal(r.statusCode, 200);
+  s = r.json();
+  assert.equal(s.jobTargets[0].requirements[0].status, 'supported');
+  r = await app.inject({ method: 'PUT', url: path + '/evidence/' + evidenceId,
+    payload: { expectedRevision: s.revision, status: 'rejected' } });
+  assert.equal(r.statusCode, 200);
+  s = r.json();
+  assert.equal(s.jobTargets[0].requirements[0].status, 'unreviewed');
+  assert.deepEqual(s.jobTargets[0].requirements[0].evidenceIds, []);
+  await app.close();
+});
+
+test('explicit snapshot restore preserves actions without using disk; deletion is permanent for current API process', async () => {
+  const app = buildApp();
+  let r = await app.inject({ method: 'POST', url: '/api/sessions', payload: { intake } });
+  let s = r.json();
+  r = await app.inject({ method: 'PUT', url: '/api/sessions/' + s.id + '/route',
+    payload: { expectedRevision: s.revision, routeId: 'return' } });
+  s = r.json();
+  r = await app.inject({ method: 'POST', url: '/api/sessions/restore',
+    payload: { session: s } });
+  assert.equal(r.statusCode, 201);
+  const restored = r.json();
+  assert.notEqual(restored.id, s.id);
+  assert.equal(restored.revision, 0);
+  assert.equal(restored.plan.routeId, 'return');
+
+  const tampered = { ...s, plan: { ...s.plan, plannedMinutes: 99999 } };
+  r = await app.inject({ method: 'POST', url: '/api/sessions/restore', payload: { session: tampered } });
+  assert.equal(r.statusCode, 400);
+
+  r = await app.inject({ method: 'DELETE', url: '/api/sessions/' + restored.id,
+    payload: { expectedRevision: restored.revision } });
+  assert.equal(r.statusCode, 204);
+  r = await app.inject({ method: 'GET', url: '/api/sessions/' + restored.id });
+  assert.equal(r.statusCode, 404);
+  await app.close();
+});
