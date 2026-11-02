@@ -61,7 +61,7 @@ GitHub Actions runs both tests and the Angular production build.
 
 ## Optional AI evidence review (disabled by default)
 
-Phase 2 includes an **opt-in**, server-side Anthropic adapter. It is disabled unless both \`REBOUNDOPS_AI_ENABLED=true\` and \`ANTHROPIC_API_KEY\` are set in the **local API process environment**. The sample \`.env.example\` does not automatically load or enable AI.
+Phase 2 includes an **opt-in**, server-side Anthropic adapter. It is disabled unless both `REBOUNDOPS_AI_ENABLED=true` and `ANTHROPIC_API_KEY` are set in the **local API process environment**. The sample `.env.example` does not automatically load or enable AI.
 
 For each user-supplied job target, **Preview optional AI review payload** shows the exact JSON that would be transmitted: job title, requirement text, and *only participant-confirmed achievement claims*. The preview is a local operation and sends nothing externally. A separate **I consent: send this exact payload** click is required for each request. There are no automatic model calls, sessions are not changed by suggestions, and local API calls are limited to ten AI attempts per process. Provider billing, if enabled, is separate from ChatGPT/Claude consumer subscriptions.
 

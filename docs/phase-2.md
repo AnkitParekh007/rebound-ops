@@ -73,7 +73,7 @@ Angular 22.2.x (active), TypeScript 6.0.x, Fastify 5.12.x and Zod 4. Dependencie
 
 ## Optional AI assessment (requires explicit consent)
 
-The backend exposes \`GET /api/ai/status\`, \`POST /api/sessions/:id/ai/preview\`, and \`POST /api/sessions/:id/ai/analyze\`. The preview is local and returns the exact payload and a SHA-256 digest. The analyze request requires an explicit consent literal, matching digest and session revision. The provider is disabled by default and never invoked by page load, session changes or preview. Suggestions are schema-validated and cross-checked against all supplied requirement and evidence IDs. They are not auto-applied to session data.
+The backend exposes `GET /api/ai/status`, `POST /api/sessions/:id/ai/preview`, and `POST /api/sessions/:id/ai/analyze`. The preview is local and returns the exact payload and a SHA-256 digest. The analyze request requires an explicit consent literal, matching digest and session revision. The provider is disabled by default and never invoked by page load, session changes or preview. Suggestions are schema-validated and cross-checked against all supplied requirement and evidence IDs. They are not auto-applied to session data.
 
 See [AI provider guide](ai-provider.md) for opt-in configuration, limitations and mock-test strategy.
 

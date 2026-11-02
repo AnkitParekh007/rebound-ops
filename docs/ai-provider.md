@@ -4,29 +4,29 @@
 
 ## Default: no AI
 
-The API reports \`enabled: false\` at \`GET /api/ai/status\`. Every core workflow (intake, evidence, job comparison, plan, review, backups, Markdown) works without a model or API key.
+The API reports `enabled: false` at `GET /api/ai/status`. Every core workflow (intake, evidence, job comparison, plan, review, backups, Markdown) works without a model or API key.
 
 ## Setup (on your own development machine only)
 
 1. Create an Anthropic API key using your provider account; it may incur charges.
-2. Keep it out of the repository and frontend. \`.env.example\` documents the needed variables but is **not loaded automatically**.
+2. Keep it out of the repository and frontend. `.env.example` documents the needed variables but is **not loaded automatically**.
 3. Set environment variables in the terminal that launches the local API:
 
-\`\`\`sh
+```sh
 export REBOUNDOPS_AI_ENABLED=true
 export ANTHROPIC_API_KEY='your-private-server-side-key'
 export REBOUNDOPS_ANTHROPIC_MODEL='claude-sonnet-5-5'
 npm run dev:api
-\`\`\`
+```
 
-4. Start the Angular frontend separately with \`npm run dev:web\`.
+4. Start the Angular frontend separately with `npm run dev:web`.
 5. Add a job target, preview the exact payload in the UI, then make an explicit consent decision.
 
 The provider configuration and model name may change with upstream availability. Official reference: https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript and https://platform.claude.com/docs/en/build-with-claude/structured-outputs
 
 ## Exact data boundary
 
-\`\`\`json
+```json
 {
   "target": {
     "id": "<UUID>",
@@ -39,18 +39,18 @@ The provider configuration and model name may change with upstream availability.
     { "id": "<UUID>", "claim": "Led a component library migration" }
   ]
 }
-\`\`\`
+```
 
-Only participant-confirmed evidence lines are included; \`location\`, \`urgency\`, \`priorities\`, \`reviewNotes\`, source labels, unverified/rejected claims and backups are not sent. Note that employer job descriptions and achievement claims may themselves contain sensitive information; inspect the full JSON before consenting.
+Only participant-confirmed evidence lines are included; `location`, `urgency`, `priorities`, `reviewNotes`, source labels, unverified/rejected claims and backups are not sent. Note that employer job descriptions and achievement claims may themselves contain sensitive information; inspect the full JSON before consenting.
 
-The API returns a SHA-256 digest of the exact JSON and the session revision. Analyze requires the digest, current revision and \`consent: true\`. A stale or modified payload is rejected.
+The API returns a SHA-256 digest of the exact JSON and the session revision. Analyze requires the digest, current revision and `consent: true`. A stale or modified payload is rejected.
 
 ## Reliability and limits
 
 - Model outputs are generated with schema-constrained JSON and then validated again using Zod.
 - Requirement IDs must match exactly, with one suggestion per input requirement.
 - Evidence IDs must correspond to participant-confirmed claims actually included in the payload.
-- \`possible_support\` requires a cited confirmed claim and is *not* proof of qualification.
+- `possible_support` requires a cited confirmed claim and is *not* proof of qualification.
 - Other statuses must not carry evidence IDs.
 - Suggestions are returned to the UI but **never applied automatically**.
 - API provider retries are disabled; output tokens are bounded and requests are capped at 10 per API process.

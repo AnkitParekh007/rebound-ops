@@ -28,7 +28,7 @@ Backups may contain career history, location preferences and private notes. The 
 
 ## Optional external provider — only after explicit opt-in
 
-With the default environment, no AI provider calls can occur. If \`REBOUNDOPS_AI_ENABLED=true\` **and** a server-side Anthropic API key are configured, the user can:
+With the default environment, no AI provider calls can occur. If `REBOUNDOPS_AI_ENABLED=true` **and** a server-side Anthropic API key are configured, the user can:
 
 1. Select a job target and request a preview (local-only; no provider call).
 2. Inspect the exact JSON containing the selected target title/requirements and **only confirmed** achievement claims. Location, income urgency, preferences and notes are omitted.
