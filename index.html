@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="ReboundOps: evidence-led, actionable career recovery for experienced software professionals.">
+  <title>ReboundOps · Career recovery, one step at a time</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="ReboundOps home"><span aria-hidden="true" class="brand-symbol">↗</span> ReboundOps</a>
+    <span class="phase">Manual pilot · v0.1</span>
+  </header>
+  <main id="main" class="shell">
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="eyebrow">Make the next step clearer</p>
+      <h1 id="hero-title">Your experience is the starting point.<br><em>Action is the outcome.</em></h1>
+      <p class="hero-copy">Compare career directions, identify what you can actually demonstrate, and build a realistic seven-day plan. Start with a fictional example or try your own inputs.</p>
+      <div class="notice" role="note"><strong>Prototype, not an AI assessment.</strong> Options are hypotheses to test, not predictions or verified job matches. No login, API key, network requests or automatic saving. Inputs stay in this browser tab until you refresh or close it.</div>
+    </section>
+
+    <ol class="steps" aria-label="Workflow stages">
+      <li><span>01</span> Build your evidence</li>
+      <li><span>02</span> Compare directions</li>
+      <li><span>03</span> Commit to a plan</li>
+      <li><span>04</span> Review progress</li>
+    </ol>
+
+    <section class="panel" id="intake-section" aria-labelledby="intake-title">
+      <div class="section-head"><div><p class="eyebrow">Step 01 / Your starting point</p><h2 id="intake-title">What are you working with?</h2></div><span class="section-note">Editable · no upload required</span></div>
+      <form id="intake-form">
+        <div class="field-grid">
+          <label>Most recent role <input name="role" required maxlength="100" autocomplete="off" placeholder="e.g. Senior Frontend Engineer"></label>
+          <label>Location / work preference <input name="location" maxlength="100" autocomplete="off" placeholder="e.g. Mumbai / remote"></label>
+          <label>Hours available per week <input name="weeklyHours" type="number" min="1" max="20" required value="6"></label>
+          <label>Income urgency
+            <select name="urgency">
+              <option value="soon">As soon as practical</option>
+              <option value="quarter">Within three months</option>
+              <option value="flexible">Flexible</option>
+            </select>
+          </label>
+        </div>
+        <label>Priorities and constraints <textarea name="priorities" rows="2" maxlength="700" placeholder="What kind of work do you want? Any constraints?"></textarea></label>
+        <label>Demonstrated achievements — one per line <textarea name="evidence" rows="4" maxlength="2400" placeholder="Only include things you can substantiate, with measurable outcomes when possible."></textarea></label>
+        <p class="hint">We treat these lines as user-entered claims. They have not been checked against a résumé or an employer.</p>
+        <div class="field-grid">
+          <label>Adjacent role to investigate <input name="shiftTarget" maxlength="100" placeholder="e.g. AI application engineer"></label>
+          <label>Contract / bridge opportunity <input name="bridgeTarget" maxlength="100" placeholder="e.g. Frontend consulting"></label>
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary">Compare directions <span aria-hidden="true">→</span></button>
+          <button type="button" class="secondary" id="load-demo">Load fictional example</button>
+          <button type="button" class="text-button" id="clear-all">Clear everything</button>
+        </div>
+        <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="panel" id="routes-section" hidden aria-labelledby="routes-title">
+      <div class="section-head"><div><p class="eyebrow">Step 02 / Three hypotheses</p><h2 id="routes-title">Which direction is worth testing?</h2></div></div>
+      <p>These are starting hypotheses derived from the categories you entered, <strong>not automated fit scores</strong>. Compare them to your evidence and edit your inputs if anything is wrong.</p>
+      <div id="evidence-list"></div>
+      <div id="route-cards" class="route-grid"></div>
+      <p id="routes-message" class="hint" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" id="plan-section" hidden aria-labelledby="plan-title">
+      <div class="section-head"><div><p class="eyebrow">Step 03 / Seven-day commitment</p><h2 id="plan-title">A plan that fits your week.</h2></div><div id="plan-budget" class="budget"></div></div>
+      <p>Every action has a time estimate. The total never exceeds your declared weekly limit; modify the plan if real-world conditions change.</p>
+      <ol id="plan-list" class="plan-list"></ol>
+      <div class="actions"><button class="primary" type="button" id="show-review">Review progress <span aria-hidden="true">→</span></button><button class="secondary" type="button" id="export-plan">Export Markdown</button></div>
+    </section>
+
+    <section class="panel" id="review-section" hidden aria-labelledby="review-title">
+      <div class="section-head"><div><p class="eyebrow">Step 04 / Check in</p><h2 id="review-title">What happened in the real world?</h2></div></div>
+      <p id="progress-summary" aria-live="polite"></p>
+      <label>What changed? What did you learn? <textarea id="review-notes" rows="3" maxlength="1200" placeholder="Record interview feedback, evidence you uncovered, or obstacles."></textarea></label>
+      <div class="actions"><button class="primary" type="button" id="export-reviewed">Export updated plan</button><button class="secondary" type="button" id="revisit">Revisit directions</button></div>
+    </section>
+  </main>
+  <footer class="footer"><span>ReboundOps · Open-source pilot</span><span>Evidence over scores. Progress over promises.</span></footer>
+  <script type="module" src="./src/app.mjs"></script>
+</body>
+</html>
