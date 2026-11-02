@@ -2,10 +2,19 @@ import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { AiAnalysisSchema, type AiAnalysis, type AiPayload } from '@reboundops/contracts';
 
+export interface ProviderUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+export interface ProviderResult {
+  analysis: AiAnalysis;
+  usage: ProviderUsage;
+}
+
 export interface AiProvider {
   name: string;
   model: string;
-  analyze(payload: AiPayload): Promise<AiAnalysis>;
+  analyze(payload: AiPayload): Promise<AiAnalysis | ProviderResult>;
 }
 
 /** Disabled unless both an explicit flag and API key are present. Never browser-side. */
@@ -18,7 +27,7 @@ export function loadAiProvider(): AiProvider | null {
   return {
     name: 'anthropic',
     model,
-    async analyze(payload: AiPayload): Promise<AiAnalysis> {
+    async analyze(payload: AiPayload): Promise<ProviderResult> {
       const response = await client.messages.parse({
         model,
         max_tokens: 3000,
@@ -39,7 +48,10 @@ export function loadAiProvider(): AiProvider | null {
         output_config: { format: zodOutputFormat(AiAnalysisSchema) }
       });
       if (!response.parsed_output) throw new Error('Structured AI output unavailable.');
-      return response.parsed_output;
+      return {
+        analysis: response.parsed_output,
+        usage: { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens }
+      };
     }
   };
 }

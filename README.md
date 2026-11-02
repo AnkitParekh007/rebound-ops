@@ -78,7 +78,7 @@ Phase 2 includes an **opt-in**, server-side Anthropic adapter. It is disabled un
 
 For each user-supplied job target, **Preview optional AI review payload** shows the exact JSON that would be transmitted: job title, requirement text, and *only participant-confirmed achievement claims*. The preview is a local operation and sends nothing externally. A separate **I consent: send this exact payload** click is required for each request. There are no automatic model calls, sessions are not changed by suggestions, and local API calls are limited to ten AI attempts per process. Provider billing, if enabled, is separate from ChatGPT/Claude consumer subscriptions.
 
-See [the AI integration and safety guide](docs/ai-provider.md) before enabling this feature. The provider integration has mocked tests but has not been verified against a live paid API account.
+See [the AI integration and safety guide](docs/ai-provider.md) before enabling this feature. The provider integration includes adversarial mock tests, an in-process attempt limit, and token usage reporting, but has not been verified against a live paid API account.
 
 ## Validated Phase 1 prototype
 
@@ -97,6 +97,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Evidence provenance and correction guide](docs/evidence-provenance.md)
 - [Job requirement comparison guide](docs/job-requirements.md)
 - [AI provider setup, privacy and safety](docs/ai-provider.md)
+- [Synthetic AI evaluation and live-test approval gate](docs/ai-evaluation.md)
 - [Fictional recovery journeys](examples/fictional-journeys.md)
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release checklist](docs/release-checklist.md)
 - [Decision record: local-first architecture](docs/adr-0001-local-first.md)

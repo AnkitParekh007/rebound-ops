@@ -249,6 +249,9 @@
           <p class="eyebrow">Optional / AI review with explicit consent</p>
           <h3 id="ai-review-title">Only send what you approve</h3>
           <p class="muted">The AI feature is {{ aiStatus()?.enabled ? 'configured locally, but inactive until you explicitly send a previewed payload' : 'disabled until configured with a local API key' }}. AI suggestions are not facts or hiring scores and are never applied automatically.</p>
+          @if (aiStatus(); as stats) {
+            <p class="muted">AI attempts: {{ stats.attempts }} / {{ stats.maxAttempts }} in this API process. Reported tokens: {{ stats.reportedInputTokens }} input, {{ stats.reportedOutputTokens }} output. These are usage counts, not a monetary guarantee.</p>
+          }
           @if (aiPreview(); as preview) {
             <p><strong>Proposed provider:</strong> {{ preview.provider }} · <strong>Model:</strong> {{ preview.model || 'none configured' }}</p>
             <p class="muted">This is the <strong>exact JSON</strong> that would be sent. It contains the selected job title, requirements, and only user-confirmed achievement claims. It excludes location, income urgency, preferences, and review notes. Data may be processed by the external provider if you consent.</p>

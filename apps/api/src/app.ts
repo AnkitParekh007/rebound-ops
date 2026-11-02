@@ -30,6 +30,12 @@ export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } 
   const sessions = new SessionStore(options.dataDir);
   const aiProvider = options.aiProvider ?? loadAiProvider();
   let aiRequests = 0;
+  let aiSuccesses = 0;
+  let aiFailures = 0;
+  let reportedInputTokens = 0;
+  let reportedOutputTokens = 0;
+  const maxAiAttempts = 10;
+  const maxAiPayloadBytes = 20_000;
   const now = () => new Date().toISOString();
 
   app.addHook('onRequest', async (request, reply) => {
@@ -71,7 +77,13 @@ export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } 
     enabled: Boolean(aiProvider),
     provider: aiProvider?.name ?? null,
     model: aiProvider?.model ?? null,
-    disclosure: 'Data is not transmitted unless a user explicitly previews and consents to the exact payload.'
+    disclosure: 'Data is not transmitted unless a user explicitly previews and consents to the exact payload.',
+    attempts: aiRequests,
+    maxAttempts: maxAiAttempts,
+    successful: aiSuccesses,
+    failed: aiFailures,
+    reportedInputTokens,
+    reportedOutputTokens
   }));
 
   app.get('/api/health', async () => ({
@@ -213,6 +225,9 @@ export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } 
     if (!session) return reply.code(404).send({ error: 'SESSION_NOT_FOUND' });
     try {
       const payload = createAiPayload(session, parsed.data.targetId);
+      if (Buffer.byteLength(JSON.stringify(payload), 'utf8') > maxAiPayloadBytes) {
+        return reply.code(413).send({ error: 'AI_PAYLOAD_TOO_LARGE' });
+      }
       const hash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
       return reply.send({
         provider: aiProvider?.name ?? 'not-configured',
@@ -244,18 +259,31 @@ export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } 
     }
     const hash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
     if (hash !== parsed.data.previewHash) return reply.code(409).send({ error: 'STALE_PREVIEW' });
-    if (aiRequests >= 10) return reply.code(429).send({ error: 'AI_REQUEST_LIMIT' });
+    if (Buffer.byteLength(JSON.stringify(payload), 'utf8') > maxAiPayloadBytes) {
+      return reply.code(413).send({ error: 'AI_PAYLOAD_TOO_LARGE' });
+    }
+    if (aiRequests >= maxAiAttempts) return reply.code(429).send({ error: 'AI_REQUEST_LIMIT' });
     aiRequests += 1; // no automatic retry and bounded number of calls per API process
     try {
-      const analysis = validateAiAnalysis(payload, await aiProvider.analyze(payload));
-      // Suggestions are NOT written into the session and never auto-confirm evidence.
+      const response = await aiProvider.analyze(payload);
+      const detailed = 'analysis' in response ? response : { analysis: response, usage: null };
+      const analysis = validateAiAnalysis(payload, detailed.analysis);
+      const usage = detailed.usage;
+      if (usage && (!Number.isSafeInteger(usage.inputTokens) || usage.inputTokens < 0 ||
+          !Number.isSafeInteger(usage.outputTokens) || usage.outputTokens < 0)) {
+        throw new Error('Invalid provider usage metadata.');
+      }
+      aiSuccesses++;
+      if (usage) {
+        reportedInputTokens += usage.inputTokens;
+        reportedOutputTokens += usage.outputTokens;
+      }
+      // Provider output is never applied to evidence, job reviews or session state.
       return reply.send({
-        analysis,
-        provider: aiProvider.name,
-        model: aiProvider.model,
-        autoApplied: false
+        analysis, usage, provider: aiProvider.name, model: aiProvider.model, autoApplied: false
       });
     } catch {
+      aiFailures++;
       // Never log the provider input, API key or raw model response.
       return reply.code(502).send({ error: 'AI_RESULT_UNAVAILABLE' });
     }
