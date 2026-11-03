@@ -40,6 +40,24 @@ jobs:
         run: npm run package:preview
       - name: Verify extracted candidate and production-only startup
         run: npm run smoke:preview
+      - name: Upload verified candidate for review (main only, no release)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: reboundops-v0.2.0-rc1-${{ github.sha }}
+          path: |
+            dist/preview/reboundops-v0.2.0-rc1-*.tar.gz
+            dist/preview/reboundops-v0.2.0-rc1-*.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Show candidate download instructions
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo '### Unpublished local developer-preview candidate' >> "$GITHUB_STEP_SUMMARY"
+          echo 'After **all CI jobs pass**, download artifact `reboundops-v0.2.0-rc1-${{ github.sha }}` from this run.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The artifact is a ZIP containing a `.tar.gz` and its `.sha256` checksum. Retained for 14 days.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This is not a GitHub Release, public deployment, npm publication or beta authorization.' >> "$GITHUB_STEP_SUMMARY"
 
   platform-package-smoke:
     name: Platform package smoke (${{ matrix.os }})

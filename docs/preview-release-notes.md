@@ -23,7 +23,7 @@ The pipeline requires a clean locked npm install, 40 unit/API checks, 51 Chromiu
 
 - Candidate source commit: fill from successful final CI run
 - CI run URL and test counts: fill from successful final CI run
-- Archive SHA-256: generated when a reviewer builds the package
+- Archive SHA-256: generated with each candidate and included alongside it in the GitHub Actions review artifact
 - Manual OS/accessibility acceptance: **pending**
 - Owner publication authorization: **pending**
 
@@ -32,6 +32,10 @@ The pipeline requires a clean locked npm install, 40 unit/API checks, 51 Chromiu
 There are no independent user interviews, retention measurements or confirmed real-world actions. Storage is local and potentially plaintext. The API is unauthenticated and **must never be exposed to the internet**. Automated tests do not replace manual device/assistive-tech testing. A recent npm audit reported 0 high/critical and 3 moderate production advisory entries across the @fastify/static → glob → minimatch chain (Issue #19); verify this again on the release commit. Development/build license/notice obligations need independent review.
 
 Not present: hosted accounts, verified job feeds, salary predictions, job scraping, automated applications, recruiter contact harvesting, placement guarantees, live-verified paid AI.
+
+## CI artifact for reviewers
+
+A green `main` workflow makes the tested `.tar.gz` and `.tar.gz.sha256` downloadable in the run's **Artifacts** section as a GitHub-generated ZIP retained for 14 days. This is for local review only and does **not** create a GitHub Release or authorize promotion to public beta. Use the [download and verification guide](preview-quickstart.md).
 
 ## Publication gate
 
