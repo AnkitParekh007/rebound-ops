@@ -11,7 +11,9 @@ const builds = [
 const browserRoot = builds.find(existsSync);
 if (browserRoot) {
   // Once compiled, API serves the Angular app on the same localhost origin.
-  await app.register(fastifyStatic, { root: browserRoot, prefix: '/' });
+  // Keep wildcard routing enabled: no filesystem glob enumeration for static files.
+  // This also avoids applying user-controlled patterns to the glob dependency.
+  await app.register(fastifyStatic, { root: browserRoot, prefix: '/', wildcard: true });
 }
 
 const port = Number(process.env.PORT || 4174);

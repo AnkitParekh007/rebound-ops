@@ -45,7 +45,8 @@ No real participant data or provider credentials are included in these tests.
 
 ## Gates that remain open
 
-- There is no committed npm dependency lockfile, so fully deterministic installs are not claimed.
+- A committed npm workspace lockfile now provides consistent npm ci resolution. OS-specific optional packages, npm registry availability and advisories still vary.
+- Automated CI stages an unpublished local-preview archive and checks an extracted production-only startup. Windows/macOS build smoke checks add automated platform coverage but not manual usability evidence.
 - Independent dependency and license review, Windows/macOS testing, human screen-reader testing and accessibility observations remain incomplete.
 - No external participant study or actual real-world action outcomes have occurred.
 - Paid AI compatibility, privacy terms and budget approval have not been verified.

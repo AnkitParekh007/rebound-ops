@@ -170,7 +170,8 @@ export class SessionStore {
     try {
       // Exclusive create, private file mode, flush then atomic replacement.
       writeFileSync(temp, data, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
-      const fd = openSync(temp, 'r');
+      // Windows FlushFileBuffers requires a write-capable handle even when only flushing.
+      const fd = openSync(temp, 'r+');
       try { fsyncSync(fd); } finally { closeSync(fd); }
       renameSync(temp, final);
       this.flushDirectory();

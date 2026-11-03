@@ -14,7 +14,7 @@ We cannot guarantee a response time while ReboundOps is maintained by volunteers
 
 - The Fastify API is designed for localhost, not an internet-facing deployment. It checks loopback Host headers, a small origin allowlist and cross-site browser metadata, but does not implement user authentication or protect against local malware.
 - There is no authentication or disk encryption.
-- A versioned npm lockfile provides dependency integrity metadata; CI runs `npm ci`, inventories license declarations and queries npm advisories. These checks do not constitute an independent security audit.
+- A versioned npm lockfile provides dependency integrity metadata; CI runs locked installs, inventories licenses and queries current npm advisories. The latest documented dependency graph contains three moderate @fastify/static/glob/minimatch entries (Issue #19), to be rechecked and dispositioned before publication. These checks are not an independent security audit.
 - Session data is memory-only by default. With explicit per-session opt-in and a private REBOUNDOPS_DATA_DIR, unencrypted snapshots may be stored locally. Separate JSON backups and private feedback exports are also unencrypted.
 - The optional AI provider is disabled by default; users must preview and consent to any request.
 - Pasted job requirements and participant claims are untrusted text.
