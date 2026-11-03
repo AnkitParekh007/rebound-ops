@@ -22,8 +22,10 @@ This is a **pre-release checklist**, not a declaration that ReboundOps is produc
 - [x] Consent-based local disk saving and resume controls
 - [x] Mock-tested AI data preview, consent gate, adversarial inputs, request cap, output validation and token reporting
 - [x] Automated unit, integration and end-to-end tests implemented
-- [ ] All CI jobs green and feature branch merged
-- [ ] Test across current supported operating systems and browsers
+- [x] CI checks on merged main commits (verify the exact intended release commit separately)
+- [x] Linux Chromium, Firefox and WebKit automated end-to-end and axe checks
+- [x] Local Host/Origin protection, saved-file change detection and release hygiene check
+- [ ] Test manually across supported operating systems, browsers and screen readers; automated Linux browser checks are not a human usability study
 - [ ] Validate keyboard and screen reader use with participants
 - [ ] Verify provider against fictional data before allowing real-user external calls
 - [ ] Add source spans for external descriptions and provenance migrations
@@ -34,7 +36,7 @@ This is a **pre-release checklist**, not a declaration that ReboundOps is produc
 - [ ] Confirm real participant data is absent from public history
 - [ ] Document deletion, backup and API key handling
 - [ ] Threat-model any transition from localhost to hosted access
-- [ ] Check dependencies and licence compatibility
+- [ ] Commit and review an npm lockfile for repeatable installs; check dependency and licence compatibility
 - [ ] Create scoped contribution issues and a maintainer triage cadence
 - [ ] Obtain explicit consent for testimonials and case studies
 

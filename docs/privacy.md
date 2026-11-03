@@ -7,7 +7,7 @@
 - Session data: memory-only by default, including source text and correction history. Configuring a private REBOUNDOPS_DATA_DIR **and** enabling saving per session allows unencrypted local disk writes.
 - No **automatic** AI provider calls, telemetry, hosted account, tracking pixel, résumé upload or job scraper. Optional external provider calls require local configuration, payload inspection and explicit consent.
 - Optional **Private pilot feedback** lives only in the open Angular page; its answers are never sent to the API, included in JSON session backups or sent to an AI provider. Export creates an unencrypted local Markdown file only after explicit agreement. Refreshing the page or switching sessions discards unsaved answers.
-- The API limits request bodies to 128 KB and accepts only defined localhost browser origins.
+- The API limits request bodies to 128 KB, rejects non-loopback Host headers and browser cross-site requests, and accepts only specified localhost browser origins. This is defense in depth for a local-only API, not authentication.
 - API has no user authentication. **Do not expose or reverse-proxy its port to the internet.**
 
 ## Back up

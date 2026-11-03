@@ -1,5 +1,5 @@
 import {
-  chmodSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync,
+  chmodSync, closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdirSync,
   openSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync
 } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -14,9 +14,19 @@ const diskFormat = z.strictObject({
 const uuidFile = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json$/;
 const MAX_FILE_BYTES = 256 * 1024;
 
+/** Do not send OS errors, private file paths or file contents in HTTP responses. */
+export class SessionStorageError extends Error {
+  constructor() {
+    super('Local storage unavailable. Saved data was not updated.');
+    this.name = 'SessionStorageError';
+  }
+}
+
 /**
- * All operations are synchronous to serialize writes within one local API process.
- * This is not a shared/network filesystem or multi-process database.
+ * Files are private and written atomically by one localhost API process.
+ * This does NOT provide cross-process locking or safe shared-filesystem access.
+ * Existing files are validated before each write/delete to avoid silent loss
+ * if another process or a person changed them after startup.
  */
 export class SessionStore {
   private readonly items = new Map<string, Session>();
@@ -27,24 +37,18 @@ export class SessionStore {
     this.directory = dataDir?.trim() ? resolve(dataDir) : null;
     if (!this.directory) return;
     mkdirSync(this.directory, { recursive: true, mode: 0o700 });
-    if (!lstatSync(this.directory).isDirectory()) throw new Error('The persistence path must be a real directory.');
+    if (!lstatSync(this.directory).isDirectory()) {
+      throw new Error('The persistence path must be a real directory.');
+    }
     if (process.platform !== 'win32') chmodSync(this.directory, 0o700);
     for (const file of readdirSync(this.directory)) {
       if (!uuidFile.test(file)) continue;
-      const path = join(this.directory, file);
       try {
-        if (!lstatSync(path).isFile()) throw new Error('Not a regular file.');
-        const size = lstatSync(path).size;
-        if (size > MAX_FILE_BYTES) throw new Error('Oversized session file.');
-        const parsed = diskFormat.parse(JSON.parse(readFileSync(path, 'utf8')));
-        const session = validateRestoredSession(parsed.session);
-        if (session.id + '.json' !== file || session.persistence !== 'disk') {
-          throw new Error('Session file name or consent flag does not match.');
-        }
+        const session = this.readDiskFile(file);
         if (this.items.size >= 100) throw new Error('At most 100 saved sessions are loaded.');
         this.items.set(session.id, session);
       } catch {
-        // Do not delete, move, modify or overwrite damaged/unsupported files.
+        // Preserve all unknown, corrupted, unsupported and insecure files.
         this.warnings.push('Skipped invalid or incompatible saved file: ' + file);
       }
     }
@@ -62,13 +66,24 @@ export class SessionStore {
 
   put(input: Session): Session {
     const session = validateRestoredSession(input);
+    const previous = this.items.get(session.id);
     if (session.persistence === 'disk') {
-      if (!this.directory) throw new Error('Disk persistence is not configured.');
-      this.writeAtomic(session);
-    } else if (this.items.get(session.id)?.persistence === 'disk') {
-      // Disabling consent removes the old disk record before the in-memory transition.
-      this.deleteDiskFile(session.id);
+      if (!this.directory) throw new SessionStorageError();
+      try {
+        this.requireUnchangedFile(session.id, previous);
+        this.writeAtomic(session);
+      } catch {
+        throw new SessionStorageError();
+      }
+    } else if (previous?.persistence === 'disk') {
+      try {
+        this.requireUnchangedFile(session.id, previous);
+        this.deleteDiskFile(session.id);
+      } catch {
+        throw new SessionStorageError();
+      }
     }
+    // Memory only changes AFTER a successful disk write or deletion.
     this.items.set(session.id, session);
     return session;
   }
@@ -76,19 +91,72 @@ export class SessionStore {
   delete(id: string): boolean {
     const current = this.items.get(id);
     if (!current) return false;
-    if (current.persistence === 'disk') this.deleteDiskFile(id);
+    if (current.persistence === 'disk') {
+      try {
+        this.requireUnchangedFile(id, current);
+        this.deleteDiskFile(id);
+      } catch {
+        throw new SessionStorageError();
+      }
+    }
     this.items.delete(id);
     return true;
   }
 
   private pathFor(id: string): string {
-    if (!this.directory || !uuidFile.test(id + '.json')) throw new Error('Invalid session file location.');
+    if (!this.directory || !uuidFile.test(id + '.json')) {
+      throw new Error('Invalid session file location.');
+    }
     return join(this.directory, id + '.json');
   }
 
+  private fileExists(path: string): boolean {
+    try {
+      lstatSync(path); // Includes dangling symlinks; never use existsSync here.
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+      throw error;
+    }
+  }
+
+  private readDiskFile(file: string): Session {
+    if (!uuidFile.test(file)) throw new Error('Invalid session filename.');
+    const fd = openSync(join(this.directory!, file),
+      constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+    try {
+      const stat = fstatSync(fd);
+      if (!stat.isFile() || stat.size > MAX_FILE_BYTES) {
+        throw new Error('Not a supported session file.');
+      }
+      if (process.platform !== 'win32' && (stat.mode & 0o077) !== 0) {
+        throw new Error('Stored file permissions are too broad.');
+      }
+      const parsed = diskFormat.parse(JSON.parse(readFileSync(fd, 'utf8')));
+      const session = validateRestoredSession(parsed.session);
+      if (session.id + '.json' !== file || session.persistence !== 'disk') {
+        throw new Error('Session ID or disk consent does not match its filename.');
+      }
+      return session;
+    } finally {
+      closeSync(fd);
+    }
+  }
+
+  private requireUnchangedFile(id: string, previous?: Session): void {
+    const occupied = this.fileExists(this.pathFor(id));
+    if (previous?.persistence === 'disk') {
+      if (!occupied || JSON.stringify(this.readDiskFile(id + '.json')) !== JSON.stringify(previous)) {
+        throw new Error('Saved file changed outside this local API; refusing destructive write.');
+      }
+    } else if (occupied) {
+      // Unknown/invalid files may contain recoverable information. Don't replace them.
+      throw new Error('An existing file would be overwritten.');
+    }
+  }
+
   private deleteDiskFile(id: string): void {
-    const path = this.pathFor(id);
-    if (existsSync(path)) unlinkSync(path);
+    unlinkSync(this.pathFor(id));
     this.flushDirectory();
   }
 
@@ -96,24 +164,25 @@ export class SessionStore {
     const final = this.pathFor(session.id);
     const temp = join(this.directory!, '.' + session.id + '-' + randomUUID() + '.tmp');
     const data = JSON.stringify({ formatVersion: 1, session }, null, 2) + '\n';
-    if (Buffer.byteLength(data, 'utf8') > MAX_FILE_BYTES) throw new Error('Session exceeds local storage limit.');
+    if (Buffer.byteLength(data, 'utf8') > MAX_FILE_BYTES) {
+      throw new Error('Session exceeds local storage limit.');
+    }
     try {
-      // Exclusive create, private file mode and durable flush before atomic replacement.
+      // Exclusive create, private file mode, flush then atomic replacement.
       writeFileSync(temp, data, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
       const fd = openSync(temp, 'r');
       try { fsyncSync(fd); } finally { closeSync(fd); }
       renameSync(temp, final);
-      if (process.platform !== 'win32') chmodSync(final, 0o600);
       this.flushDirectory();
     } catch (error) {
-      if (existsSync(temp)) unlinkSync(temp);
+      if (this.fileExists(temp)) unlinkSync(temp);
       throw error;
     }
   }
 
   private flushDirectory(): void {
     if (!this.directory) return;
-    // Some filesystems/platforms don't support directory fsync.
+    // Directory fsync isn't supported by every platform or filesystem.
     try {
       const fd = openSync(this.directory, 'r');
       try { fsyncSync(fd); } finally { closeSync(fd); }
