@@ -16,6 +16,7 @@
 - Unit, API integration, Playwright journey and axe accessibility checks.
 - Privacy, security, contributing and release-gate documentation.
 - Facilitated pilot guide, blank evaluation scorecard, proposed public-preview script and responsive/keyboard browser checks.
+- Voluntary, browser-memory-only private pilot feedback panel with consent-controlled Markdown download and no automatic telemetry.
 
 ### Preserved
 - Original zero-dependency browser pilot remains at repository root.

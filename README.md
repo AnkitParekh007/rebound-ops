@@ -47,6 +47,7 @@ For a production-local build, run `npm run build` followed by `npm run start -w 
 6. Choose a direction and get a seven-day plan bounded by your available hours.
 7. Mark actions complete, record feedback and export a Markdown summary with evidence quotations and correction history.
 8. Download or restore a private JSON session backup, or delete the memory-only API session.
+9. Optionally answer a private pilot feedback questionnaire and download its responses; nothing is collected or shared automatically.
 
 Sessions are **memory-only by default**. With a configured private REBOUNDOPS_DATA_DIR, you can explicitly opt individual sessions into durable disk saving. Saved sessions survive API restarts; disabling saving removes the stored file. Private JSON backup/restore remains available. The browser does not send telemetry or data to an AI provider automatically. External AI calls are possible only when specifically enabled and approved via a payload preview. **Do not enter credentials, private employer information, sensitive résumés or anything you need to recover later.** The initial API has no login or encryption and is intended only for personal localhost testing.
 
@@ -61,6 +62,12 @@ REBOUNDOPS_DATA_DIR="$HOME/.reboundops/sessions" npm run dev:api
 Then select **Enable local disk saving for this session** in the UI. Only explicitly selected sessions survive restarts. Resume them from the intake page. Deleting a saved session removes its disk file; downloaded backups remain separate. Files are **not encrypted**.
 
 See [local saving and recovery](docs/local-persistence.md).
+
+### Optional private pilot feedback
+
+After creating a session, participants may use the **Private pilot feedback** section to record clarity, confusion, action attempts and willingness to use the app again. Answers exist **only in the open browser page**. They are not sent to the API, stored in session JSON backups or shared with an AI provider. A participant must explicitly choose to export a local Markdown report; they separately decide whether to share it. The file is unencrypted, and it should be redacted before sharing.
+
+This supports a facilitator-run pilot, **not** passive analytics or automatic participant recruitment. Read the [pilot runbook](docs/external-pilot-runbook.md). Real-world outcomes and user validation still require volunteers and meaningful consent.
 
 ### Tests
 
@@ -101,6 +108,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Fictional recovery journeys](examples/fictional-journeys.md)
 - [Cloud acceptance test report (synthetic, not participant validation)](docs/cloud-acceptance-report.md)
 - [Facilitated pilot protocol](docs/pilot-evaluation-pack.md) · [Blank scorecard](docs/pilot-scorecard.md)
+- [External-user pilot launch runbook and invitation text](docs/external-pilot-runbook.md)
 - [Release preview script and decision gate](docs/public-preview-kit.md)
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release checklist](docs/release-checklist.md)
 - [Decision record: local-first architecture](docs/adr-0001-local-first.md)

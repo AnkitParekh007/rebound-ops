@@ -52,4 +52,6 @@ Ask what action was actually attempted, whether it was completed, what evidence 
 - Time budget is never exceeded.
 - Negative and mixed findings are included in the anonymized synthesis, not suppressed.
 
+Participants may optionally fill in **Private pilot feedback** inside their active session and download a Markdown report. This is not telemetry: the answers remain in browser memory and are never uploaded. See the [external pilot runbook](external-pilot-runbook.md) for instructions, recruitment language, follow-up handling and redaction.
+
 Use [the evaluation rubric](evaluation-rubric.md) and the [blank scorecard](pilot-scorecard.md). The owner must review the evidence before approving a public beta.
