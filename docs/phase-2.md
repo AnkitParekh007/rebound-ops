@@ -1,6 +1,6 @@
 # Phase 2 — typed application implementation
 
-The Phase 1 manual prototype has been validated by the project owner. This implementation carries the chosen workflow into a new typed application. Validation results are not yet included in the public repository; do not fabricate participant metrics.
+The Phase 1 manual prototype was feature-tested by the solo project owner; **no external participants have yet tested the application**. The typed application and its cloud end-to-end checks demonstrate engineered behavior, not user desirability or real-world outcomes. Do not fabricate participant metrics.
 
 ## Architecture (v0.2)
 
