@@ -1,0 +1,32 @@
+name: One-time lockfile bootstrap (feature branch only)
+on:
+  push:
+    branches: [feat/reproducible-deps]
+permissions:
+  contents: write
+jobs:
+  generate-lock:
+    if: github.repository == 'AnkitParekh007/rebound-ops' && github.ref == 'refs/heads/feat/reproducible-deps'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/reproducible-deps
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Generate workspace lockfile without executing install scripts
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit lockfile to feature branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- package-lock.json
+          if git diff --cached --quiet; then
+            echo 'No lockfile changes'
+          else
+            git commit -m 'build: generate npm workspace lockfile'
+            git push origin HEAD:feat/reproducible-deps
+          fi
