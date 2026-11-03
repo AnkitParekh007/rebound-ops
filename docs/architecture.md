@@ -28,7 +28,7 @@ In development, Angular proxies `/api` requests to the Fastify service. The API 
 - Export Markdown with evidence status, job requirements and review details.
 - User-initiated JSON backup/restore and deletion from API memory.
 
-No **automatic** AI calls, automated job-description extraction, hiring scores, automatic applications or disk persistence are implemented. The optional AI adapter is disabled without explicit configuration and per-request user consent. The former static pilot remains available at the root.
+No **automatic** AI calls, automated job-description extraction, hiring scores or automatic applications are implemented. Durable local persistence exists with a separately configured folder and explicit per-session opt-in. The optional AI adapter is disabled without explicit configuration and per-request user consent. The former static pilot remains available at the root.
 
 ## Next design steps
 

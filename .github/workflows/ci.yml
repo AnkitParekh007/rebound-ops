@@ -36,3 +36,32 @@ jobs:
           node --check src/app.mjs
           node --check src/demo.mjs
           node --check scripts/serve.mjs
+      - name: Build unpublished developer-preview candidate
+        run: npm run package:preview
+      - name: Verify extracted candidate and production-only startup
+        run: npm run smoke:preview
+
+  platform-package-smoke:
+    name: Platform package smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Clean locked workspace install
+        run: npm ci --no-audit --no-fund
+      - name: Unit and API tests
+        run: npm test
+      - name: Production Angular build
+        run: npm run build:web
+      - name: Local preview package (not uploaded or released)
+        run: npm run package:preview
+      - name: Extract, verify, install and smoke-test
+        run: npm run smoke:preview

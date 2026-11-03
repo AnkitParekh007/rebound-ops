@@ -69,6 +69,22 @@ After creating a session, participants may use the **Private pilot feedback** se
 
 This supports a facilitator-run pilot, **not** passive analytics or automatic participant recruitment. Read the [pilot runbook](docs/external-pilot-runbook.md). Real-world outcomes and user validation still require volunteers and meaningful consent.
 
+### Local developer preview candidate (unpublished)
+
+This repository can prepare an **unpublished v0.2.0-rc1 archive** containing the compiled Angular site, localhost API, shared contracts, pinned npm lockfile and selected documentation. Credentials, user sessions and node_modules are not bundled. Use Node 24.
+
+~~~sh
+npm ci
+npm test
+npm run build:web
+npm run package:preview
+npm run smoke:preview
+~~~
+
+The archive and SHA-256 sidecar are created under dist/preview. **No GitHub Release, npm package, public website or beta is published by these commands.** The extracted archive has a manifest verifier and can install production-only npm dependencies, then start the API and site together at http://127.0.0.1:4174.
+
+See the [quick start](docs/preview-quickstart.md), [draft release notes](docs/preview-release-notes.md), [security triage](docs/preview-security-review.md) and [manual QA handoff](docs/preview-manual-qa.md). Publication requires separate owner approval. Real device and assistive-tech testing and unresolved moderate advisory disposition remain open.
+
 ### Tests
 
 ```sh
@@ -115,6 +131,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Cloud acceptance test report (synthetic, not participant validation)](docs/cloud-acceptance-report.md)
 - [Release reliability and threat boundaries](docs/reliability-hardening.md)
 - [Locked dependency security and license review](docs/dependency-security-review.md)
+- [Unpublished developer preview candidate](docs/preview-quickstart.md)
 - [Facilitated pilot protocol](docs/pilot-evaluation-pack.md) · [Blank scorecard](docs/pilot-scorecard.md)
 - [External-user pilot launch runbook and invitation text](docs/external-pilot-runbook.md)
 - [Release preview script and decision gate](docs/public-preview-kit.md)

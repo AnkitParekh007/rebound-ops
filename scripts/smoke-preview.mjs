@@ -25,10 +25,14 @@ try {
     { cwd: folder, stdio: 'inherit' });
   if (verify.status !== 0) throw new Error('Manifest verification failed.');
 
-  const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  const install = spawnSync(npmCommand,
-    ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'],
-    { cwd: folder, stdio: 'inherit', timeout: 180_000 });
+  const npmCli = process.env.npm_execpath;
+  const npmCommand = npmCli ? process.execPath : (process.platform === 'win32' ? 'npm.cmd' : 'npm');
+  const installArgs = [
+    ...(npmCli ? [npmCli] : []), 'ci', '--omit=dev', '--ignore-scripts',
+    '--no-audit', '--no-fund'
+  ];
+  const install = spawnSync(npmCommand, installArgs,
+    { cwd: folder, stdio: 'inherit', timeout: 240_000, shell: !npmCli && process.platform === 'win32' });
   if (install.status !== 0) throw new Error('Clean production-only npm ci failed.');
 
   const port = await new Promise((resolvePort, reject) => {

@@ -17,7 +17,9 @@
     "test": "npm run build:contracts && npm run build:api && node --test tests/*.test.mjs packages/contracts/tests/*.test.mjs apps/api/tests/*.test.mjs",
     "test:pilot": "node --test tests/*.test.mjs",
     "audit:release": "node scripts/release-audit.mjs",
-    "review:deps": "node scripts/dependency-review.mjs"
+    "review:deps": "node scripts/dependency-review.mjs",
+    "package:preview": "node scripts/package-preview.mjs",
+    "smoke:preview": "node scripts/smoke-preview.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

@@ -18,6 +18,7 @@
 - Facilitated pilot guide, blank evaluation scorecard, proposed public-preview script and responsive/keyboard browser checks.
 - Voluntary, browser-memory-only private pilot feedback panel with consent-controlled Markdown download and no automatic telemetry.
 - Cross-browser CI (Chromium/Firefox/WebKit), defense-in-depth localhost requests, fail-closed local snapshot updates and release hygiene auditing.
+- Unpublished preview archive builder, per-file integrity manifest and SHA-256 sidecar, clean extracted runtime smoke test and Windows/macOS build verification; owner publication approval remains a separate gate.
 
 ### Preserved
 - Original zero-dependency browser pilot remains at repository root.

@@ -11,7 +11,7 @@ Read [product brief](docs/product-brief.md), [architecture](docs/architecture.md
 Requires a compatible Node.js 22/24 runtime and npm.
 
 ```sh
-npm install
+npm ci
 npm run build:contracts
 npm run dev:api
 # in another terminal
@@ -23,11 +23,14 @@ For checks:
 ```sh
 npm test
 npm run build:web
-npx playwright install chromium
+npx playwright install chromium firefox webkit
 npm run test:e2e
+npm run audit:release
+npm run package:preview
+npm run smoke:preview
 ```
 
-Keep changes focused and add tests for new domain behavior. API handlers should delegate domain rules to `packages/contracts`; Angular should not bypass validation. Run through a fictional end-to-end journey before raising a PR.
+Use npm ci for repeatable installs; update package manifests and the lockfile together when intentionally upgrading dependencies. The local candidate packaging command does not publish a release. Keep changes focused and add tests for new domain behavior. API handlers should delegate domain rules to `packages/contracts`; Angular should not bypass validation. Run through a fictional end-to-end journey before raising a PR.
 
 ## Product and privacy rules
 
