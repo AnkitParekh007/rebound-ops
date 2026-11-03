@@ -19,7 +19,7 @@ The original **Phase 1 prototype**, feature-tested by its solo maintainer but no
 ```sh
 git clone https://github.com/AnkitParekh007/rebound-ops.git
 cd rebound-ops
-npm install
+npm ci
 npm run build:contracts
 ```
 
@@ -83,7 +83,7 @@ GitHub Actions runs the unit/API suite, Angular production build and Playwright 
 
 The API rejects non-local Host headers, unauthorized request origins and browser cross-site requests. Saved sessions are checked for unexpected disk changes before writes and deletion; storage failures return a generic error rather than exposing private filesystem paths. These checks assume a single-process localhost installation.
 
-No dependency lockfile is currently committed, so `npm install` resolves allowed ranges at installation time. Fully reproducible dependency resolution is **not** claimed. Native OS compatibility, independent security review and human accessibility evaluation remain outstanding. See [reliability hardening](docs/reliability-hardening.md).
+A root npm workspace **package-lock.json** now pins dependency versions and integrity hashes. Use `npm ci` for clean installs; CI uses `npm ci` rather than resolving fresh versions. The dependency review checks license metadata and npm security advisories for both runtime and all dependencies. Locks improve reproducibility, but native OS packages, registry integrity, new advisories and independent security review remain separate concerns. See [reliability hardening](docs/reliability-hardening.md) and [dependency review](docs/dependency-security-review.md).
 
 ## Optional AI evidence review (disabled by default)
 
@@ -114,6 +114,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Fictional recovery journeys](examples/fictional-journeys.md)
 - [Cloud acceptance test report (synthetic, not participant validation)](docs/cloud-acceptance-report.md)
 - [Release reliability and threat boundaries](docs/reliability-hardening.md)
+- [Locked dependency security and license review](docs/dependency-security-review.md)
 - [Facilitated pilot protocol](docs/pilot-evaluation-pack.md) · [Blank scorecard](docs/pilot-scorecard.md)
 - [External-user pilot launch runbook and invitation text](docs/external-pilot-runbook.md)
 - [Release preview script and decision gate](docs/public-preview-kit.md)

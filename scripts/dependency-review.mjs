@@ -24,7 +24,7 @@ const unknown = [];
 let scanned = 0;
 let missingOnPlatform = 0;
 let licenseFromInstalled = 0;
-const cautionPattern = /\b(?:AGPL|GPL|LGPL|SSPL|BUSL|EPL|MPL|CPAL|OSL|CC-BY-NC|Commons-Clause)\b/i;
+const cautionPattern = /\b(?:AGPL|GPL|LGPL|SSPL|BUSL|EPL|MPL|CPAL|OSL|CC-BY(?:-NC)?|Commons-Clause)\b/i;
 for (const [location, entry] of Object.entries(lock.packages)) {
   if (!location.includes('node_modules/') || entry.link) continue;
   scanned++;
@@ -42,7 +42,7 @@ for (const [location, entry] of Object.entries(lock.packages)) {
   if (!expression || /^(?:SEE LICENSE|UNLICENSED|UNKNOWN)$/i.test(expression)) {
     unknown.push(location);
   } else if (cautionPattern.test(expression)) {
-    review.push({ location, license: expression });
+    review.push({ location, license: expression, devOnly: Boolean(entry.dev) });
   }
 }
 console.log('[dependency-review] npm lockfile v' + lock.lockfileVersion +
@@ -55,7 +55,7 @@ console.log('[dependency-review] Missing/ambiguous license declarations: ' + unk
 if (unknown.length) console.log('[dependency-review] Review unknown licenses: ' + unknown.slice(0,25).join(', ') +
   (unknown.length>25 ? ' (more omitted)' : ''));
 console.log('[dependency-review] Licenses needing manual obligations review: ' + review.length);
-if (review.length) console.log('[dependency-review] Review: ' + review.slice(0,25).map(x=>x.location+' ['+x.license+']').join('; ') +
+if (review.length) console.log('[dependency-review] Review: ' + review.slice(0,25).map(x=>x.location+' ['+x.license+(x.devOnly?', dev':'')+']').join('; ') +
   (review.length>25 ? ' (more omitted)' : ''));
 
 function summarizeAudit(label, path) {
@@ -77,10 +77,10 @@ function summarizeAudit(label, path) {
     ' advisories: total=' + total + ' critical=' + critical +
     ' high=' + high + ' moderate=' + moderate + ' low=' + low);
   const items = Object.entries(payload.vulnerabilities ?? {})
-    .filter(([,v]) => v.severity === 'high' || v.severity === 'critical')
+    .filter(([,v]) => ['low','moderate','high','critical'].includes(v.severity))
     .map(([name,v])=> name + ' (' + v.severity + (v.isDirect ? ',direct':'') +
          ', fix=' + (typeof v.fixAvailable === 'object' ? 'major/explicit' : String(v.fixAvailable)) + ')');
-  if (items.length) console.log('[dependency-review] ' + label + ' high/critical packages: ' + items.join(', '));
+  if (items.length) console.log('[dependency-review] ' + label + ' affected packages: ' + items.join(', '));
   return { total, critical, high, moderate, low };
 }
 const production = summarizeAudit('production', process.argv[2]);
