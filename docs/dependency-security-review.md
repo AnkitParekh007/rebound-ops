@@ -22,10 +22,10 @@ This is a point-in-time review. Advisory data may change after a green build. Ac
 
 ## License inventory
 
-The initial lockfile recorded **453 pinned package locations** (including platform-specific optional packages), with 0 missing declared license expressions. Most were labeled MIT, ISC, BSD-2/3-Clause or Apache-2.0. The automated script identifies licenses that deserve manual attention rather than silently calling them compatible.
+The initial pre-remediation lockfile recorded **453 pinned locations**. After remediation, the current lock records **442 pinned package locations**, including platform-specific optional packages, with 0 missing declared license expressions. Most were labeled MIT, ISC, BSD-2/3-Clause or Apache-2.0. The automated script identifies licenses that deserve manual attention rather than silently calling them compatible.
 
-- **MPL-2.0:** `axe-core`, `@axe-core/playwright`, and the `lightningcss` package/platform variants. These appear in development/build/test dependencies; MPL has file-level source/notice obligations for redistribution or modifications of covered code. No evidence here that ReboundOps modifies those sources. Verify the exact distribution contents before shipping them.
-- **CC-BY-4.0:** one pinned package declares this license. Its identity and whether its data is redistributed must be reviewed for attribution requirements.
+- **MPL-2.0:** **14 pinned locations**, covering `axe-core`, `@axe-core/playwright`, and the `lightningcss` package/platform variants. All 14 are marked development/build/test dependencies in the lockfile; MPL has file-level source/notice obligations for redistribution or modifications of covered code. No evidence here that ReboundOps modifies those sources. Verify the exact distribution contents before shipping them.
+- **CC-BY-4.0:** `caniuse-lite` declares this license and is a development/build-time dependency. Confirm any applicable attribution when redistributing its source or data; metadata itself is not a legal opinion.
 - **MIT, ISC, BSD, Apache-2.0, BlueOak-1.0.0, Unlicense and 0BSD:** broadly permissive/other notices still require retaining applicable license texts/attribution when distributing covered components. A package metadata label alone is not sufficient legal due diligence.
 - npm lockfile `license` values are **package-declared metadata**, not audited legal evidence. Copyleft, mixed-expression or missing declarations should be reviewed against original license files.
 
