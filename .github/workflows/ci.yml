@@ -15,7 +15,12 @@ jobs:
         with:
           node-version: '24'
       - name: Install workspace dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+      - name: Review dependency licenses and npm security advisories
+        run: |
+          npm audit --omit=dev --json > "$RUNNER_TEMP/npm-audit-prod.json" || true
+          npm audit --json > "$RUNNER_TEMP/npm-audit-full.json" || true
+          npm run review:deps -- "$RUNNER_TEMP/npm-audit-prod.json" "$RUNNER_TEMP/npm-audit-full.json"
       - name: Test contracts, API and preserved manual pilot
         run: npm test
       - name: Compile Angular production application
