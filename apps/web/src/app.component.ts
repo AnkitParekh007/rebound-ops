@@ -181,9 +181,13 @@ export class AppComponent implements OnInit {
         this.session.set(failure.error.session as Session);
         this.error.set('The session changed before this action. Latest version loaded; please retry.');
       } else if (failure instanceof HttpErrorResponse) {
-        this.error.set(failure.error?.error === 'INVALID_REQUEST'
-          ? 'Please review the form values and source claims.'
-          : (failure.error?.error || 'The local API request failed.'));
+        if (failure.error?.error === 'INVALID_REQUEST') {
+          this.error.set('Please review the form values and source claims.');
+        } else if (failure.error?.error === 'INVALID_TRANSITION') {
+          this.error.set(failure.error?.message || 'This change could not be saved. Review the evidence and try again.');
+        } else {
+          this.error.set(failure.error?.error || 'The local API request failed.');
+        }
       } else {
         this.error.set(failure instanceof Error ? failure.message : 'An unexpected error occurred.');
       }
