@@ -36,7 +36,9 @@ This is a **pre-release checklist**, not a declaration that ReboundOps is produc
 - [ ] Confirm real participant data is absent from public history
 - [ ] Document deletion, backup and API key handling
 - [ ] Threat-model any transition from localhost to hosted access
-- [ ] Commit and review an npm lockfile for repeatable installs; check dependency and licence compatibility
+- [x] Commit npm workspace lockfile and verify `npm ci` in CI
+- [x] Scan npm advisories (production and full graph) and inventory declared dependency licenses
+- [ ] Verify individual license notices / redistribution obligations and repeat npm audit at each release
 - [ ] Create scoped contribution issues and a maintainer triage cadence
 - [ ] Obtain explicit consent for testimonials and case studies
 
