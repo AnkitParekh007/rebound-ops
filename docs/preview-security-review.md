@@ -22,7 +22,7 @@ At the last verified review on 3 November 2026, npm reported **zero critical, ze
 - Glob advisory GHSA-3g3m-2fjr-6pw4 affects cancellation behavior during traversal and has a fix in glob 14.0.2.
 - Minimatch advisory GHSA-g3hv-75wg-m249 concerns resource amplification from an attacker-controlled glob expression and has a fix in minimatch 11.0.1.
 - Current static-plugin dependencies do not accept these newer semver-major versions without further compatibility investigation. We have not forced unsupported overrides.
-- The API serves a fixed compiled Angular directory and does not intentionally accept user-supplied glob patterns. This reduces the obvious input path but does **not** prove non-exploitability.
+- The API serves a fixed compiled Angular directory with static-plugin wildcard routing explicitly enabled. The plugin's glob enumeration is used by its wildcard:false mode, which we do **not** enable; ReboundOps accepts no user-supplied glob patterns. This reduces the obvious input path but does **not** prove non-exploitability.
 - Issue #19 tracks compatible upstream changes and repeat review. Fresh npm advisories can appear after any successful build; audit again on the eventual release commit.
 
 CI fails on new high/critical production findings and prints all observed moderate and low findings. Remaining moderate findings must be explicitly reviewed by the owner before publication, not ignored.

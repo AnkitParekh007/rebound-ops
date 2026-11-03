@@ -25,7 +25,7 @@
 - [ ] Keyboard-only flow, visible focus and logical heading/control order.
 - [ ] Screen reader announcements, errors, status notices and accessible naming.
 - [ ] Mobile viewport, pinch zoom, touch targets and content overflow.
-- [ ] Inspect the unencrypted export disclosures, local API binding, deletion and restart.
+- [ ] Inspect the unencrypted export disclosures, local API binding, deletion and restart. Check that opt-in disk saving works on this OS; Windows requires a write-capable handle for file flushes.
 - [ ] Review security advisories, package integrity and third-party notices.
 - [ ] Confirm the owner's named issue triage contact and no private data in any public report.
 - [ ] Record defects using synthetic steps and obtain owner review.
