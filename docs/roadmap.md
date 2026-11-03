@@ -73,4 +73,7 @@ The solo maintainer feature-tested the original prototype, and the Angular/Fasti
 - [ ] Collect and summarize actual pilot outcomes before claiming success metrics
 - [x] Add user-correctable exact source spans, document IDs and an auditable correction history (Issue #6)
 - [x] Implement consent-based durable local sessions and recovery (Issue #7)
+- [x] Add Chromium/Firefox/WebKit browser CI, Host-header safeguards, external disk-change detection and release hygiene audit
+- [ ] Commit a reviewed dependency lockfile for repeatable installs and assess supply-chain/native OS dependencies
+- [ ] Independent security review and manual screen-reader/cross-platform evaluation
 - [ ] Validate opt-in saving with users across supported operating systems

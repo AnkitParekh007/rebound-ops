@@ -20,10 +20,12 @@ jobs:
         run: npm test
       - name: Compile Angular production application
         run: npm run build:web
-      - name: Install Chromium for browser tests
-        run: npx playwright install --with-deps chromium
-      - name: Run end-to-end and accessibility tests
+      - name: Install Chromium, Firefox and WebKit for browser tests
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Run cross-browser end-to-end and accessibility tests
         run: npm run test:e2e
+      - name: Audit release inputs for accidental private files
+        run: npm run audit:release
       - name: Check legacy browser prototype
         run: |
           node --check src/app.mjs

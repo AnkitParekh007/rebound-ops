@@ -77,7 +77,13 @@ npm run build:web
 npm run test:e2e  # install Chromium first: npx playwright install chromium
 ```
 
-GitHub Actions runs both tests and the Angular production build.
+GitHub Actions runs the unit/API suite, Angular production build and Playwright workflows in **Chromium, Firefox and WebKit**, plus a check for accidentally committed private files. Run `npm run audit:release` to repeat the hygiene check locally. This is not a vulnerability scan or human screen-reader test.
+
+## Reliability and packaging notes
+
+The API rejects non-local Host headers, unauthorized request origins and browser cross-site requests. Saved sessions are checked for unexpected disk changes before writes and deletion; storage failures return a generic error rather than exposing private filesystem paths. These checks assume a single-process localhost installation.
+
+No dependency lockfile is currently committed, so `npm install` resolves allowed ranges at installation time. Fully reproducible dependency resolution is **not** claimed. Native OS compatibility, independent security review and human accessibility evaluation remain outstanding. See [reliability hardening](docs/reliability-hardening.md).
 
 ## Optional AI evidence review (disabled by default)
 
@@ -107,6 +113,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Synthetic AI evaluation and live-test approval gate](docs/ai-evaluation.md)
 - [Fictional recovery journeys](examples/fictional-journeys.md)
 - [Cloud acceptance test report (synthetic, not participant validation)](docs/cloud-acceptance-report.md)
+- [Release reliability and threat boundaries](docs/reliability-hardening.md)
 - [Facilitated pilot protocol](docs/pilot-evaluation-pack.md) · [Blank scorecard](docs/pilot-scorecard.md)
 - [External-user pilot launch runbook and invitation text](docs/external-pilot-runbook.md)
 - [Release preview script and decision gate](docs/public-preview-kit.md)

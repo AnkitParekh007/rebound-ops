@@ -17,6 +17,7 @@
 - Privacy, security, contributing and release-gate documentation.
 - Facilitated pilot guide, blank evaluation scorecard, proposed public-preview script and responsive/keyboard browser checks.
 - Voluntary, browser-memory-only private pilot feedback panel with consent-controlled Markdown download and no automatic telemetry.
+- Cross-browser CI (Chromium/Firefox/WebKit), defense-in-depth localhost requests, fail-closed local snapshot updates and release hygiene auditing.
 
 ### Preserved
 - Original zero-dependency browser pilot remains at repository root.

@@ -1,7 +1,7 @@
 import Fastify, { type FastifyReply } from 'fastify';
 import { randomUUID, createHash } from 'node:crypto';
 import { loadAiProvider, type AiProvider } from './provider.js';
-import { SessionStore } from './storage.js';
+import { SessionStore, SessionStorageError } from './storage.js';
 import {
   ActionDecisionSchema, AddJobTargetSchema, AiPreviewRequestSchema, AiAnalyzeRequestSchema, CreateSessionSchema, DeleteTargetSchema,
   EvidenceDecisionSchema, CorrectEvidenceSchema, AddSourceDocumentSchema, PersistenceChoiceSchema,
@@ -39,10 +39,18 @@ export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } 
   const now = () => new Date().toISOString();
 
   app.addHook('onRequest', async (request, reply) => {
-    // The API is localhost-only; requests from arbitrary website origins are refused.
+    // Explicitly refuse DNS rebinding and browser cross-site requests; never
+    // trust an arbitrary Host header just because the listener is on loopback.
+    const host = request.headers.host ?? '';
+    if (!/^(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/i.test(host)) {
+      return reply.code(403).send({ error: 'HOST_REJECTED' });
+    }
+    if (request.headers['sec-fetch-site'] === 'cross-site') {
+      return reply.code(403).send({ error: 'CROSS_SITE_REJECTED' });
+    }
     const origin = request.headers.origin;
     if (origin && !allowedOrigins.has(origin)) {
-      await reply.code(403).send({ error: 'ORIGIN_REJECTED' });
+      return reply.code(403).send({ error: 'ORIGIN_REJECTED' });
     }
     reply.header('Cache-Control', 'no-store');
     reply.header('X-Content-Type-Options', 'nosniff');
@@ -69,6 +77,9 @@ export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } 
       sessions.put(next);
       return reply.send(next);
     } catch (error) {
+      if (error instanceof SessionStorageError) {
+        return reply.code(503).send({ error: 'LOCAL_STORAGE_UNAVAILABLE' });
+      }
       return reply.code(400).send({ error: 'INVALID_TRANSITION', message: error instanceof Error ? error.message : 'Invalid change' });
     }
   }
@@ -145,8 +156,15 @@ export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } 
     if (current.revision !== parsed.data.expectedRevision) {
       return reply.code(409).send({ error: 'STALE_REVISION', session: current });
     }
-    sessions.delete(request.params.id);
-    return reply.code(204).send();
+    try {
+      sessions.delete(request.params.id);
+      return reply.code(204).send();
+    } catch (error) {
+      if (error instanceof SessionStorageError) {
+        return reply.code(503).send({ error: 'LOCAL_STORAGE_UNAVAILABLE' });
+      }
+      return reply.code(500).send({ error: 'DELETE_FAILED' });
+    }
   });
 
   app.put<{ Params: IdParams }>('/api/sessions/:id/persistence', async (request, reply) => {
