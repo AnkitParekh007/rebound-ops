@@ -67,6 +67,9 @@ The solo maintainer feature-tested the original prototype, and the Angular/Fasti
 - [x] Add adversarial AI mock evaluation, provider error sanitization and token-usage reporting
 - [ ] Approve a small live-provider evaluation budget/key before paid calls
 - [x] Prepare facilitator guide, consent introduction, blank results scorecard and synthetic demo script
+- [x] Add optional browser-only participant feedback with consent-gated Markdown export and no telemetry
+- [x] Prepare recruitment invitation and facilitator handoff for a private pilot
+- [ ] Recruit actual volunteers; conduct five interviews, three journeys and follow-ups
 - [ ] Collect and summarize actual pilot outcomes before claiming success metrics
 - [x] Add user-correctable exact source spans, document IDs and an auditable correction history (Issue #6)
 - [x] Implement consent-based durable local sessions and recovery (Issue #7)

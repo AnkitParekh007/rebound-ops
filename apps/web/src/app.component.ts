@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { JsonPipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import type { Intake, Session, RouteId, Evidence, AiPayload, AiAnalysis } from '@reboundops/contracts';
+import { blankPilotFeedback, exportPilotFeedback, hasPilotAnswer, type PilotFeedback } from './pilot-feedback.js';
 
 type Draft = Omit<Intake, 'evidence'>;
 
@@ -69,6 +70,7 @@ export class AppComponent implements OnInit {
   editReason = '';
   citationDocumentId = '';
   citationExcerpt = '';
+  pilotFeedback: PilotFeedback = blankPilotFeedback();
 
   async ngOnInit(): Promise<void> {
     try {
@@ -127,6 +129,7 @@ export class AppComponent implements OnInit {
     this.evidenceText = sampleEvidence;
     this.notesDraft = '';
     this.editingEvidenceId = '';
+    this.pilotFeedback = blankPilotFeedback();
     this.notice.set('Fictional example loaded. Claims are unverified and editable.');
     this.error.set('');
   }
@@ -142,6 +145,7 @@ export class AppComponent implements OnInit {
     this.evidenceText = '';
     this.notesDraft = '';
     this.editingEvidenceId = '';
+    this.pilotFeedback = blankPilotFeedback();
     this.notice.set('Draft cleared from the screen. Server sessions are temporary until the API restarts.');
     this.error.set('');
   }
@@ -172,6 +176,7 @@ export class AppComponent implements OnInit {
     this.notice.set('');
     try {
       const current = await action();
+      if (this.session()?.id !== current.id) this.pilotFeedback = blankPilotFeedback();
       this.session.set(current);
       this.aiPreview.set(null);
       this.aiAnalysis.set(null);
@@ -460,6 +465,29 @@ export class AppComponent implements OnInit {
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  canExportPilotFeedback(): boolean {
+    return this.pilotFeedback.consent && hasPilotAnswer(this.pilotFeedback);
+  }
+
+  downloadPilotFeedback(): void {
+    if (!this.canExportPilotFeedback()) return;
+    try {
+      const text = exportPilotFeedback(
+        this.pilotFeedback, this.session()?.plan?.routeId, new Date().toISOString().slice(0, 10)
+      );
+      this.downloadText(text, 'reboundops-private-pilot-feedback.md', 'text/markdown;charset=utf-8');
+      this.notice.set('Private feedback downloaded locally. Review and redact it before choosing to share.');
+      this.error.set('');
+    } catch {
+      this.error.set('Unable to export pilot feedback. Check consent and at least one answer.');
+    }
+  }
+
+  clearPilotFeedback(): void {
+    this.pilotFeedback = blankPilotFeedback();
+    this.notice.set('Unsaved pilot feedback cleared from this browser page.');
+  }
+
   backup(): void {
     const current = this.session();
     if (!current) return;
@@ -504,6 +532,7 @@ export class AppComponent implements OnInit {
       this.session.set(null);
       this.notesDraft = '';
       this.editingEvidenceId = '';
+      this.pilotFeedback = blankPilotFeedback();
       this.evidenceSelection = {};
       this.notice.set('Session deleted from the local API and configured disk folder. Downloaded backups remain on your device.');
       await this.refreshSavedSessions();

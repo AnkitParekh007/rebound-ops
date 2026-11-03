@@ -6,6 +6,7 @@
 - API: Fastify bound to `127.0.0.1:4174`. The UI sends form data to this local process only.
 - Session data: memory-only by default, including source text and correction history. Configuring a private REBOUNDOPS_DATA_DIR **and** enabling saving per session allows unencrypted local disk writes.
 - No **automatic** AI provider calls, telemetry, hosted account, tracking pixel, résumé upload or job scraper. Optional external provider calls require local configuration, payload inspection and explicit consent.
+- Optional **Private pilot feedback** lives only in the open Angular page; its answers are never sent to the API, included in JSON session backups or sent to an AI provider. Export creates an unencrypted local Markdown file only after explicit agreement. Refreshing the page or switching sessions discards unsaved answers.
 - The API limits request bodies to 128 KB and accepts only defined localhost browser origins.
 - API has no user authentication. **Do not expose or reverse-proxy its port to the internet.**
 
@@ -25,6 +26,10 @@ Backups also contain all retained pasted source document texts, original and rev
 - Restarting the API clears memory-only sessions. Explicitly opted-in saved sessions can be resumed after restart.
 - Explicit JSON backup/restore also works across restarts. Import always creates a memory-only session; users must opt in again if they want local disk saving.
 - The older static pilot's in-tab state is not compatible with these snapshots.
+
+## Optional research feedback — local download only
+
+During a facilitated study, participants may answer optional questions about clarity, confusion, attempted real-world actions and willingness to use the tool again. No answers are auto-collected. The local Markdown feedback file contains only form answers, an optional anonymous code, the selected route and the date, not résumé data. The respondent must review/redact before deciding whether to share it; explicit permission is still required before publishing quotes. An app checkbox authorizes export only; it is not a substitute for facilitator consent or retention controls.
 
 ## Optional external provider — only after explicit opt-in
 

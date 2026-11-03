@@ -5,6 +5,7 @@ This is a **pre-release checklist**, not a declaration that ReboundOps is produc
 ## Product and evaluation
 
 - [x] Prepare interview guide, seven-day follow-up method, blank anonymized scorecard and demo walkthrough
+- [x] Add consent-gated, browser-only participant feedback export and recruitment handoff
 - [ ] Collect anonymized synthesis of five discovery interviews without publishing raw notes
 - [ ] Document three facilitated complete journeys and seven-day action follow-ups
 - [ ] Confirm the core workflow is useful beyond polished generated text
