@@ -81,7 +81,7 @@ npm run package:preview
 npm run smoke:preview
 ~~~
 
-The archive and SHA-256 sidecar are created under dist/preview. **No GitHub Release, npm package, public website or beta is published by these commands.** The extracted archive has a manifest verifier and can install production-only npm dependencies, then start the API and site together at http://127.0.0.1:4174.
+The archive and SHA-256 sidecar are created under dist/preview. Successful `main` CI runs also attach a 14-day downloadable GitHub Actions artifact (ZIP with the archive and checksum). [See how to download and verify it](docs/preview-quickstart.md). **No GitHub Release, npm package, public website or beta is published by these commands.** The extracted archive has a manifest verifier and can install production-only npm dependencies, then start the API and site together at http://127.0.0.1:4174.
 
 See the [quick start](docs/preview-quickstart.md), [draft release notes](docs/preview-release-notes.md), [security triage](docs/preview-security-review.md) and [manual QA handoff](docs/preview-manual-qa.md). Publication requires separate owner approval. Real device and assistive-tech testing and unresolved moderate advisory disposition remain open.
 

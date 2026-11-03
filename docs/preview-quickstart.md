@@ -11,6 +11,18 @@
 
 The archive contains the compiled Angular site, compiled Fastify API, compiled shared contracts, npm workspace manifests, package-lock.json and basic documentation. Dependencies are **not bundled** and must be installed from npm. The candidate does not contain personal sessions or credentials.
 
+## Download a GitHub Actions review artifact
+
+After every job passes in a `main` branch CI run, its local release candidate and checksum are available as a **GitHub Actions artifact** for **14 days**. This is an experimental review download, **not** a published GitHub Release, hosted service, or approval for beta.
+
+1. Open [ReboundOps CI workflow runs](https://github.com/AnkitParekh007/rebound-ops/actions/workflows/ci.yml).
+2. Select a **successful push run on `main`** (not a pull request or feature branch). Verify that Linux, Windows and macOS jobs all passed.
+3. Under **Artifacts**, click `reboundops-v0.2.0-rc1-<full-commit-SHA>`. GitHub downloads a ZIP containing the `.tar.gz` candidate archive and its `.tar.gz.sha256` checksum sidecar.
+4. Extract the ZIP. In that directory, verify the SHA-256 sidecar with `sha256sum -c *.tar.gz.sha256` on Linux, or `shasum -a 256 -c *.tar.gz.sha256` on macOS. On Windows use `Get-FileHash -Algorithm SHA256` and compare the result against the sidecar.
+5. Extract the verified `.tar.gz` archive and follow the steps below. Check that `preview-manifest.json` identifies the source commit shown in GitHub Actions; run `node scripts/verify-preview.mjs` from the extracted folder.
+
+GitHub manages artifact access and expiration according to repository settings. Do not treat these artifacts as private storage or publisher-signed software. If an artifact expires, a new authorized successful `main` CI build is required.
+
 ## Starting from an extracted candidate archive
 
 An archive is named reboundops-v0.2.0-rc1-COMMIT.tar.gz. Replace COMMIT with the actual short source commit printed by the packaging command.
@@ -39,7 +51,7 @@ npm run package:preview
 npm run smoke:preview
 ~~~
 
-The archive and SHA-256 sidecar appear under dist/preview and are **not automatically published** to GitHub Releases, npm or any host. package:preview refuses missing builds and copies only approved source documents and compiled assets. smoke:preview unpacks the archive into a temporary folder, verifies file hashes, installs production dependencies, starts the local API and checks the compiled site, disabled AI and memory-only session defaults.
+The archive and SHA-256 sidecar appear under dist/preview. Successful `main` runs also attach them as a 14-day GitHub Actions review artifact. No GitHub Release, npm publication or hosted app is created. package:preview refuses missing builds and copies only approved source documents and compiled assets. smoke:preview unpacks the archive into a temporary folder, verifies file hashes, installs production dependencies, starts the local API and checks the compiled site, disabled AI and memory-only session defaults.
 
 ## Fictional demonstration
 
