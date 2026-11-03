@@ -6,7 +6,7 @@ An open-source career recovery assistant for experienced software professionals 
 
 ## Phase 2 — Angular + local API preview
 
-The validated **Phase 1 manual pilot** remains available at the repository root. Phase 2 adds a typed Angular frontend and a Fastify API, with shared Zod contracts and explicit state transitions. AI remains **disabled by default**; a separate optional Anthropic adapter requires local configuration and explicit per-request consent. There are no résumé uploads, hosted accounts, salary predictions, scraped job offers or automated applications.
+The original **Phase 1 prototype**, feature-tested by its solo maintainer but not yet validated with external participants, remains available at the repository root. Phase 2 adds a typed Angular frontend and a Fastify API, with shared Zod contracts and explicit state transitions. AI remains **disabled by default**; a separate optional Anthropic adapter requires local configuration and explicit per-request consent. There are no résumé uploads, hosted accounts, salary predictions, scraped job offers or automated applications.
 
 ### Requirements
 
@@ -80,7 +80,7 @@ For each user-supplied job target, **Preview optional AI review payload** shows 
 
 See [the AI integration and safety guide](docs/ai-provider.md) before enabling this feature. The provider integration includes adversarial mock tests, an in-process attempt limit, and token usage reporting, but has not been verified against a live paid API account.
 
-## Validated Phase 1 prototype
+## Original Phase 1 prototype (founder feature-tested)
 
 The original static version is preserved:
 
@@ -99,6 +99,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [AI provider setup, privacy and safety](docs/ai-provider.md)
 - [Synthetic AI evaluation and live-test approval gate](docs/ai-evaluation.md)
 - [Fictional recovery journeys](examples/fictional-journeys.md)
+- [Cloud acceptance test report (synthetic, not participant validation)](docs/cloud-acceptance-report.md)
 - [Facilitated pilot protocol](docs/pilot-evaluation-pack.md) · [Blank scorecard](docs/pilot-scorecard.md)
 - [Release preview script and decision gate](docs/public-preview-kit.md)
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release checklist](docs/release-checklist.md)
@@ -110,7 +111,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Pilot procedure](docs/manual-pilot.md)
 - [Evaluation rubric](docs/evaluation-rubric.md)
 
-**Next gates:** strengthen source-span verification, cross-browser usability, optional local durable storage and live provider compatibility testing with consenting fictional inputs.
+**Next gates:** external participant discovery and complete human journeys, cross-browser and screen-reader usability, live provider compatibility with explicit key/budget approval, and an owner release decision. Exact source citations and opt-in local persistence are implemented but still need real-user evaluation.
 
 ## Principles
 

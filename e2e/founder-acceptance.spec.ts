@@ -21,7 +21,7 @@ for (const scenario of scenarios) {
     await page.getByLabel('Location or work preference').fill('Fictional remote-only');
     await page.getByLabel('Priorities and constraints').fill('Synthetic data only; prefer small experiments');
     await page.getByLabel('Demonstrated achievements — one per line').fill(
-      'Built a fictional UI library\nHelped a fictional team with release practices'
+      'Built a fictional UI library\nHelped a fictional team with release practices\nImproved fictional accessibility checks'
     );
     await page.getByLabel('Adjacent direction').fill(scenario.shift);
     await page.getByLabel('Contract / bridge direction').fill(scenario.bridge);

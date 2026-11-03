@@ -52,7 +52,7 @@ Defer building automated job scraping, auto-applying, recruiter contact harvesti
 
 ## Phase 2 implementation progress (owner review pending)
 
-The validated manual pilot has led to a working typed Angular and local Fastify application on a feature branch. This is **implementation progress**, not a claim that wider usability or market-evidence gates have been satisfied.
+The solo maintainer feature-tested the original prototype, and the Angular/Fastify application is now merged into `main` with scripted cloud acceptance checks. **No external participant interviews or completed real-world action journeys have yet been documented.** These engineering checks cannot satisfy the user-research gates.
 
 - [x] Angular application and local Fastify service
 - [x] Shared Zod schema, source provenance and optimistic revisions
@@ -61,6 +61,8 @@ The validated manual pilot has led to a working typed Angular and local Fastify 
 - [x] Explicit private JSON backup/restore and local delete
 - [x] Optional AI adapter disabled by default, with exact payload preview and consent gate
 - [x] Automated unit, API, browser-journey and axe accessibility tests
+- [x] Cloud-hosted scripted end-to-end acceptance for Return, Shift and Bridge using fictional data
+- [ ] Independent human usability evaluation with at least three real journeys
 - [ ] Confirm cross-platform manual testing and live provider compatibility with fictional data
 - [x] Add adversarial AI mock evaluation, provider error sanitization and token-usage reporting
 - [ ] Approve a small live-provider evaluation budget/key before paid calls
