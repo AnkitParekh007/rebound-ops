@@ -80,6 +80,7 @@ test('pilot responses are not saved in session backups and are cleared between s
   expect(backup).not.toContain('P07');
   expect(backup).not.toContain('seven_day_followup');
   await page.getByRole('button', { name: 'Clear form' }).click();
+  await page.getByLabel('Recent role').fill('Second fictional participant');
   await page.getByRole('button', { name: /Create recovery session/i }).click();
   await expect(page.getByLabel('What, if anything, was most useful?')).toHaveValue('');
   await expect(page.getByLabel('Anonymous participant code (optional; not a name)')).toHaveValue('');
