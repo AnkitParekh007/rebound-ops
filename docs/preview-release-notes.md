@@ -19,7 +19,7 @@ ReboundOps is a local, open-source prototype for experienced software profession
 
 ## Evidence and release-build fields
 
-The pipeline requires a clean locked npm install, 40 unit/API checks, 45 Chromium/Firefox/WebKit journeys, Angular production build, dependency and package audits, preview manifest verification and an extracted startup smoke test. **Do not assume any particular build passed until the run is complete.**
+The pipeline requires a clean locked npm install, 40 unit/API checks, 51 Chromium/Firefox/WebKit checks (17 per engine), Angular production build, dependency and package audits, preview manifest verification and an extracted startup smoke test. **Do not assume any particular build passed until the run is complete.**
 
 - Candidate source commit: fill from successful final CI run
 - CI run URL and test counts: fill from successful final CI run
