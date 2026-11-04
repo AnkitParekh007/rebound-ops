@@ -1,0 +1,36 @@
+# Automated dependency update PRs. Each PR runs the full CI (unit/API, Angular
+# build, cross-browser E2E, Node 22 job, CodeQL) and still needs owner review:
+# lockfile changes are supply-chain changes. See docs/dependency-security-review.md.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /            # root lockfile covers all workspaces
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      angular:
+        patterns: ['@angular/*', '@angular-devkit/*']
+      dev-tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+      runtime-patches:
+        dependency-type: production
+        update-types: [patch]
+
+  - package-ecosystem: github-actions
+    directory: /            # SHA-pinned actions are bumped with their version comments
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ['*']

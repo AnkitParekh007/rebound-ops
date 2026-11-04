@@ -36,3 +36,12 @@ Run `npm run review:deps -- <production-audit.json> <full-audit.json>` after gen
 ## Deferred checks
 
 Independent vulnerability and licensing review, macOS/Windows clean installations, source-level notices, dependency update policy, and actual participant validation remain separate release gates. Paid AI tests and public beta are not authorized by this milestone.
+
+## Continuous supply-chain controls (roadmap B3)
+
+- **Pinned CI actions:** every `uses:` in `.github/workflows/` references a full commit SHA with the version in a trailing comment. A moved or compromised tag cannot change what runs. Workflows default to `permissions: contents: read`; only the CodeQL job adds `security-events: write`.
+- **Dependabot** (`.github/dependabot.yml`): weekly PRs for the npm workspace lockfile (Angular packages grouped; dev minor/patch grouped; production patches grouped) and for GitHub Actions (SHA and comment bumped together). Every Dependabot PR runs the full CI and **still needs owner review**, because a lockfile change is a supply-chain change. Merging one does not replace the advisory triage above.
+- **CodeQL** (`.github/workflows/codeql.yml`): `security-extended` queries for JavaScript/TypeScript and for the workflow files, on pushes to `main`, on PRs and weekly. Findings appear under *Security → Code scanning*.
+- **Node 22 job:** the supported 22.x line is tested in CI alongside Node 24.
+- **Not configurable from the repository:** secret scanning and push protection must be switched on by the owner (*Settings → Code security*). Until then, `npm run audit:release` remains the only committed-secrets check, and it matches file names, not secret contents.
+

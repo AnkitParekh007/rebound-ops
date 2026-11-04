@@ -65,10 +65,10 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 
 | # | Gap | Why it matters | Response |
 |---|---|---|---|
-| S1 | GitHub Actions pinned by tag (`@v4`), not commit SHA; no Dependabot/Renovate; no CodeQL/secret scanning workflow | Exposure to supply-chain attacks through CI; new advisories arrive unnoticed between manual reviews (#19) | Pin actions to SHAs; enable Dependabot (npm + actions) and CodeQL; enable GitHub secret scanning/push protection |
+| S1 | ~~GitHub Actions pinned by tag (`@v4`), not commit SHA; no Dependabot/Renovate; no CodeQL/secret scanning workflow~~ | Exposure to supply-chain attacks through CI; new advisories arrive unnoticed between manual reviews (#19) | **Done (B3):** actions SHA-pinned, least-privilege workflow permissions, Dependabot (npm + actions), CodeQL (`security-extended`, JS/TS + workflows). **Owner action still open:** enable secret scanning and push protection in repository settings (not configurable from files) |
 | S2 | Preview archive has a SHA-256 checksum produced by the same pipeline, but no build-provenance attestation or SBOM | A checksum proves the file is intact, not where it came from | `actions/attest-build-provenance` + CycloneDX SBOM attached to the artifact before any publication |
 | S3 | Encryption at rest for saved sessions (original engineering issue 6) not implemented | Saved files hold career/personal data in plaintext | Keep documented as a limitation for the localhost pilot; becomes **mandatory** for any hosted or shared-machine scenario (ADR-0002 trigger) |
-| S4 | README claims Node 22.x support, but CI tests only Node 24 | Users on 22.x may hit failures CI never sees | Add Node 22 to the test matrix or narrow the supported engines |
+| S4 | ~~README claims Node 22.x support, but CI tests only Node 24~~ | Users on 22.x may hit failures CI never sees | **Done (B3):** `Node 22 compatibility` CI job runs install, unit/API tests and the Angular build |
 
 ### 2.6 Accessibility and quality
 
@@ -106,7 +106,7 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 | B0 | Docs drift fix + this roadmap | 2.7 | Cheap; prevents misleading reviewers |
 | B1 | ✅ Schema migration framework + fixtures | D1 | Done 4 Nov 2026; every future schema change follows the [playbook](schema-migrations.md) |
 | B2 | ✅ Angular decomposition: feature components, `SessionApiService`, `SessionStore` (no behaviour change) | F1, F2 | Done 4 Nov 2026; see [frontend architecture](frontend-architecture.md) |
-| B3 | CI supply-chain hardening: SHA-pinned actions, Dependabot, CodeQL, Node 22 matrix | S1, S4 | Low effort, ongoing protection (#19) |
+| B3 | ✅ CI supply-chain hardening: SHA-pinned actions, Dependabot, CodeQL, Node 22 job | S1, S4 | Done 4 Nov 2026; owner must enable secret scanning/push protection in settings |
 | B4 | AI golden set + offline eval runner (mock + live mode), prompt/model versioning | A1, A2, A5 | Prerequisite for live evaluation (#8) |
 | B5 | Live provider evaluation on fictional data with provider-side spend limit (owner approval) | A3, #8 | **G2** |
 | B6 | Component tests, typed forms on contracts | F3, F4 | After B2 |
@@ -133,7 +133,7 @@ Public beta (original week 8) moves to **after G4**; the date follows the eviden
 | Saved sessions break on upgrade | Low (B1 done) | High | Migration chain + frozen fixtures + pre-upgrade backups |
 | Live model over-claims support or tone harms users | Medium | High | G2 golden set incl. fairness pairs; suggestions never auto-applied |
 | Single-maintainer bus factor | High | Medium | Decomposed frontend (B2 done), current docs, contributor guide |
-| Dependency advisory exposure | Medium | Medium | Dependabot/CodeQL; #19 tracking; localhost-only binding |
+| Dependency advisory exposure | Medium | Medium | Dependabot + CodeQL active (B3); #19 tracking; localhost-only binding |
 
 ## 5. Deferred scope and re-entry triggers
 

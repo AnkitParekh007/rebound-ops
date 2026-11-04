@@ -93,7 +93,7 @@ npm run build:web
 npm run test:e2e  # install Chromium first: npx playwright install chromium
 ```
 
-GitHub Actions runs the unit/API suite, Angular production build and Playwright workflows in **Chromium, Firefox and WebKit**, plus a check for accidentally committed private files. Run `npm run audit:release` to repeat the hygiene check locally. This is not a vulnerability scan or human screen-reader test.
+GitHub Actions runs the unit/API suite, Angular production build and Playwright workflows in **Chromium, Firefox and WebKit**, a Node 22 compatibility job, CodeQL security analysis, plus a check for accidentally committed private files. Actions are pinned to commit SHAs and kept current by Dependabot. Run `npm run audit:release` to repeat the hygiene check locally. This is not a vulnerability scan or human screen-reader test.
 
 ## Reliability and packaging notes
 
