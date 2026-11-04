@@ -58,7 +58,7 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 
 | # | Gap | Why it matters | Response |
 |---|---|---|---|
-| D1 | `schemaVersion: z.literal(1)` with **no migration path** for saved sessions or JSON backups | The first schema change in a pilot upgrade will make participants' saved sessions and backups unreadable | Versioned migration chain (`v1 → v2 …`) in contracts, applied on restore/load, with fixture tests per version; required before any schema-changing release reaches pilot users |
+| D1 | ~~`schemaVersion: z.literal(1)` with no migration path for saved sessions or JSON backups~~ | The first schema change in a pilot upgrade would have made participants' saved sessions and backups unreadable | **Done (B1):** forward-only migration chain applied on disk load and backup restore, pre-upgrade `.backup` files, newer-version refusal, frozen v1 fixture; see [schema migrations](schema-migrations.md) |
 | D2 | No stated retention guidance for pilot artifacts (backups, feedback exports, facilitator notes) | Privacy promises depend on facilitators deleting data on schedule | Add retention/deletion step to the pilot runbook (e.g. delete raw notes after synthesis) |
 
 ### 2.5 Security and supply chain
@@ -104,7 +104,7 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 | Order | Item | Gaps closed | Why now |
 |---|---|---|---|
 | B0 | Docs drift fix + this roadmap | 2.7 | Cheap; prevents misleading reviewers |
-| B1 | Schema migration framework + fixtures | D1 | **Must land before any schema change ships to pilot users** |
+| B1 | ✅ Schema migration framework + fixtures | D1 | Done 4 Nov 2026; every future schema change follows the [playbook](schema-migrations.md) |
 | B2 | Angular decomposition: feature components, `SessionApiService`, `SessionStore` (no behaviour change) | F1, F2 | Makes it safe to fix pilot findings quickly; E2E suite is the safety net |
 | B3 | CI supply-chain hardening: SHA-pinned actions, Dependabot, CodeQL, Node 22 matrix | S1, S4 | Low effort, ongoing protection (#19) |
 | B4 | AI golden set + offline eval runner (mock + live mode), prompt/model versioning | A1, A2, A5 | Prerequisite for live evaluation (#8) |
@@ -130,7 +130,7 @@ Public beta (original week 8) moves to **after G4**; the date follows the eviden
 |---|---|---|---|
 | Recruitment stalls (solo maintainer, sensitive audience) | High | Critical | Timebox at Nov 22; multiple channels; prepared [invitation](external-pilot-runbook.md) |
 | Scope creep while research lags | High | High | Track B limited to pilot-enabling items; feature freeze until G1 |
-| Saved sessions break on upgrade | Medium | High | B1 before any schema change |
+| Saved sessions break on upgrade | Low (B1 done) | High | Migration chain + frozen fixtures + pre-upgrade backups |
 | Live model over-claims support or tone harms users | Medium | High | G2 golden set incl. fairness pairs; suggestions never auto-applied |
 | Single-maintainer bus factor | High | Medium | Decomposed frontend, current docs, contributor guide |
 | Dependency advisory exposure | Medium | Medium | Dependabot/CodeQL; #19 tracking; localhost-only binding |
@@ -172,7 +172,7 @@ Still deferred: automated job scraping, auto-applying, recruiter contact harvest
 ### First engineering issues (original list)
 
 1. [x] Structured intake and evidence schemas with explicit source provenance.
-2. [x] State transitions and resumable local sessions with consent. *(Migrations open: D1.)*
+2. [x] State transitions and resumable local sessions with consent, with schema migrations (D1).
 3. [ ] Reviewable AI extraction behind one provider adapter. *(Adapter and requirement review done; extraction deferred: A6.)*
 4. [x] Job-description comparison with explicit missing evidence, never numeric hireability.
 5. [x] Accessibility and browser testing for an Angular MVP. *(Manual AT testing open: Q1.)*

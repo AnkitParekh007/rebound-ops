@@ -188,6 +188,10 @@ export class AppComponent implements OnInit {
       } else if (failure instanceof HttpErrorResponse) {
         if (failure.error?.error === 'INVALID_REQUEST') {
           this.error.set('Please review the form values and source claims.');
+        } else if (failure.error?.error === 'BACKUP_FROM_NEWER_VERSION') {
+          this.error.set('This backup was created by a newer ReboundOps version. Upgrade ReboundOps to open it; the file was not changed.');
+        } else if (failure.error?.error === 'INVALID_BACKUP') {
+          this.error.set('This file is not a valid ReboundOps backup, or it failed integrity checks. The file was not changed.');
         } else if (failure.error?.error === 'INVALID_TRANSITION') {
           this.error.set(failure.error?.message || 'This change could not be saved. Review the evidence and try again.');
         } else {

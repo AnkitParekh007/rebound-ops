@@ -5,12 +5,14 @@ import { SessionStore, SessionStorageError } from './storage.js';
 import {
   ActionDecisionSchema, AddJobTargetSchema, AiPreviewRequestSchema, AiAnalyzeRequestSchema, CreateSessionSchema, DeleteTargetSchema,
   EvidenceDecisionSchema, CorrectEvidenceSchema, AddSourceDocumentSchema, PersistenceChoiceSchema,
-  ReviewRequirementSchema, RestoreSessionSchema,
+  ReviewRequirementSchema, RestoreSessionRequestSchema,
   ReplaceIntakeSchema, ReviewSchema, SelectRouteSchema, SessionSchema,
   completeAction, createSession, decideEvidence, exportMarkdown, recordReview,
   replaceIntake, selectRoute, addJobTarget, removeJobTarget, reviewRequirement,
   addSourceDocument, removeSourceDocument, correctEvidence,
-  validateRestoredSession, createAiPayload, validateAiAnalysis, type Session
+  validateRestoredSession, createAiPayload, validateAiAnalysis, type Session,
+  CURRENT_SESSION_SCHEMA_VERSION, MIN_SUPPORTED_SESSION_SCHEMA_VERSION, migrateSession,
+  SessionMigrationError, type MigrationOptions
 } from '@reboundops/contracts';
 
 const allowedOrigins = new Set([
@@ -25,9 +27,13 @@ type TargetParams = IdParams & { targetId: string };
 type RequirementParams = TargetParams & { requirementId: string };
 type DocumentParams = IdParams & { documentId: string };
 
-export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } = {}) {
+export function buildApp(options: {
+  aiProvider?: AiProvider; dataDir?: string;
+  /** Test seam: override the migration chain. Production uses the registered chain. */
+  sessionMigration?: MigrationOptions;
+} = {}) {
   const app = Fastify({ logger: false, bodyLimit: 128 * 1024 });
-  const sessions = new SessionStore(options.dataDir);
+  const sessions = new SessionStore(options.dataDir, { migration: options.sessionMigration });
   const aiProvider = options.aiProvider ?? loadAiProvider();
   let aiRequests = 0;
   let aiSuccesses = 0;
@@ -99,13 +105,15 @@ export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } 
 
   app.get('/api/health', async () => ({
     status: 'ok', mode: 'local-only', persistence: sessions.available ? 'opt-in-disk' : 'memory',
-    aiEnabled: Boolean(aiProvider), schemaVersion: 1
+    aiEnabled: Boolean(aiProvider), schemaVersion: CURRENT_SESSION_SCHEMA_VERSION,
+    minSupportedSchemaVersion: MIN_SUPPORTED_SESSION_SCHEMA_VERSION
   }));
 
   app.get('/api/persistence/status', async () => ({
     available: sessions.available,
     savedCount: sessions.listSaved().length,
     warnings: sessions.warnings,
+    migratedSessions: sessions.migratedCount,
     disclosure: 'Disk storage is opt-in per session, after setting REBOUNDOPS_DATA_DIR on this computer.'
   }));
 
@@ -121,11 +129,20 @@ export function buildApp(options: { aiProvider?: AiProvider; dataDir?: string } 
   });
 
   app.post('/api/sessions/restore', async (request, reply) => {
-    const parsed = RestoreSessionSchema.safeParse(request.body);
+    const parsed = RestoreSessionRequestSchema.safeParse(request.body);
     if (!parsed.success) return invalid(reply, parsed.error);
     if (sessions.size >= 100) return reply.code(503).send({ error: 'SESSION_CAPACITY_REACHED' });
+    let snapshot: Session;
     try {
-      const snapshot = validateRestoredSession(parsed.data.session);
+      // Older backups are upgraded in memory; the user's file is never modified.
+      snapshot = migrateSession(parsed.data.session, options.sessionMigration).session;
+    } catch (error) {
+      if (error instanceof SessionMigrationError && error.code === 'NEWER_VERSION') {
+        return reply.code(400).send({ error: 'BACKUP_FROM_NEWER_VERSION', message: error.message });
+      }
+      return reply.code(400).send({ error: 'INVALID_BACKUP' });
+    }
+    try {
       // Restoration is a new local session, with a new ID and fresh revision, not a remote sync.
       const timestamp = now();
       const session = validateRestoredSession({

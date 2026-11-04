@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+/**
+ * Version of the persisted/exported Session shape. Bump only together with a
+ * registered migration in migrations.ts and a new frozen fixture (see docs/schema-migrations.md).
+ */
+export const CURRENT_SESSION_SCHEMA_VERSION = 1 as const;
+
 export const SourceSpanSchema = z.strictObject({
   documentId: z.uuid(),
   start: z.number().int().nonnegative(),
@@ -126,7 +132,7 @@ export const CorrectEvidenceSchema = z.strictObject({
 });
 
 export const SessionSchema = z.strictObject({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(CURRENT_SESSION_SCHEMA_VERSION),
   id: z.uuid(),
   revision: z.number().int().nonnegative(),
   createdAt: z.iso.datetime(),
@@ -169,6 +175,11 @@ export const PersistenceChoiceSchema = z.strictObject({
 });
 
 export const RestoreSessionSchema = z.strictObject({ session: SessionSchema });
+/**
+ * Restore request envelope. The snapshot itself is deliberately untyped here:
+ * it may be an older schema version and is upgraded by migrateSession().
+ */
+export const RestoreSessionRequestSchema = z.strictObject({ session: z.record(z.string(), z.unknown()) });
 
 /** An explicit, minimal subset of session data that can be approved for provider transfer. */
 export const AiPayloadSchema = z.strictObject({

@@ -138,7 +138,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release checklist](docs/release-checklist.md)
 - [Decision record: local-first architecture](docs/adr-0001-local-first.md)
 - [Private data and backup guidance](docs/privacy.md)
-- [Opt-in local saving and recovery](docs/local-persistence.md)
+- [Opt-in local saving and recovery](docs/local-persistence.md) · [Schema versioning and migrations](docs/schema-migrations.md)
 - [Architecture](docs/architecture.md)
 - [Original roadmap](docs/roadmap.md)
 - [Pilot procedure](docs/manual-pilot.md)

@@ -23,5 +23,6 @@ Pushing straight to `main` skips pull-request review, so run the relevant local 
 
 - Read [docs/roadmap.md](docs/roadmap.md) for current status, gaps (IDs such as D1, F1, A1) and decision gates G1–G4.
 - Never fabricate user-research, pilot or outcome metrics. Only engineering facts verifiable in the repo may be marked done.
+- Any change to the persisted `Session` shape must follow [docs/schema-migrations.md](docs/schema-migrations.md) (version bump, migration, new frozen fixture). Never edit a committed fixture.
 - Never commit real participant data, résumés, API keys or session files.
 - AI stays disabled by default; never weaken the payload preview, consent or non-auto-apply guarantees.

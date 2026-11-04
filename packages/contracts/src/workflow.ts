@@ -1,5 +1,5 @@
 import type { Intake, Evidence, Route, RouteId, Session, Plan, JobTarget, RequirementStatus, SourceDocument, EvidenceCorrectionInput, EvidenceSource } from './schema.js';
-import { IntakeSchema, SessionSchema } from './schema.js';
+import { CURRENT_SESSION_SCHEMA_VERSION, IntakeSchema, SessionSchema } from './schema.js';
 
 export const ROUTE_META: Record<RouteId, { label: string; uncertainty: string; nextTest: string; missingProof: string }> = {
   return: {
@@ -84,7 +84,7 @@ export function buildPlan(routeId: RouteId, weeklyHours: number): Plan {
 export function createSession(input: Intake, id: string, now: string): Session {
   const intake = IntakeSchema.parse(input);
   return validateRestoredSession(SessionSchema.parse({
-    schemaVersion: 1, id, revision: 0, createdAt: now, updatedAt: now,
+    schemaVersion: CURRENT_SESSION_SCHEMA_VERSION, id, revision: 0, createdAt: now, updatedAt: now,
     intake, routes: buildRoutes(intake), jobTargets: [], sourceDocuments: [], corrections: [], plan: null, reviewNotes: ''
   }));
 }

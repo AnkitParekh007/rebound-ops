@@ -3,6 +3,7 @@
 ## Unreleased — Phase 2 typed MVP
 
 ### Added
+- Session schema migration framework: versioned forward-only migration chain, upgrade of saved files and JSON backups on load, byte-exact pre-upgrade `.backup` files, refusal of newer-version snapshots, and a frozen v1 fixture that every future version must load ([guide](docs/schema-migrations.md)).
 - Angular guided career-recovery application and Fastify localhost API.
 - Zod intake, evidence, route, requirement and plan contracts.
 - Provenance labels and explicit participant confirmation.
