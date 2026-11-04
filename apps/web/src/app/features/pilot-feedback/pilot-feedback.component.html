@@ -1,0 +1,67 @@
+<section class="panel" aria-labelledby="pilot-feedback-heading">
+  <div class="panel-top">
+    <div><p class="eyebrow">Optional / research, not telemetry</p><h2 id="pilot-feedback-heading">Private pilot feedback</h2></div>
+    <span class="note">Nothing sent automatically</span>
+  </div>
+  <p class="muted">If you are testing ReboundOps, you can record your experience here. Your answers stay <strong>only in this open browser page</strong> until you choose to download them; they are not included in session backups, API storage or AI requests. Closing or refreshing the page loses unsaved answers.</p>
+  <p class="hint">Do not include your name, contact information, employer identities, confidential work or sensitive personal details. Sharing the downloaded report with a facilitator is a separate decision.</p>
+  <div class="pilot-form fields">
+    <label>Anonymous participant code (optional; not a name)
+      <input name="pilotCode" [(ngModel)]="pilotFeedback.participantCode" maxlength="30" placeholder="e.g. P01">
+    </label>
+    <label>When are you answering?
+      <select name="pilotStage" [(ngModel)]="pilotFeedback.stage">
+        <option value="first_session">During or just after first session</option>
+        <option value="seven_day_followup">Seven-day follow-up</option>
+      </select>
+    </label>
+    <label>Were the Return / Shift / Bridge directions understandable?
+      <select name="pilotClarity" [(ngModel)]="pilotFeedback.clarity">
+        <option value="">Prefer not to answer</option>
+        <option value="yes">Yes</option>
+        <option value="partly">Partly</option>
+        <option value="no">No</option>
+      </select>
+    </label>
+    <label>Was it clear what stays on your computer and what could be sent to AI?
+      <select name="pilotPrivacy" [(ngModel)]="pilotFeedback.privacyUnderstanding">
+        <option value="">Prefer not to answer</option>
+        <option value="yes">Yes</option>
+        <option value="partly">Partly</option>
+        <option value="no">No</option>
+      </select>
+    </label>
+    <label>What, if anything, was most useful?
+      <textarea name="pilotUseful" [(ngModel)]="pilotFeedback.useful" rows="2" maxlength="600" placeholder="Your own experience; skip if you prefer"></textarea>
+    </label>
+    <label>What was confusing, unhelpful or broken?
+      <textarea name="pilotConfusing" [(ngModel)]="pilotFeedback.confusing" rows="2" maxlength="600" placeholder="Negative feedback is valuable"></textarea>
+    </label>
+    <label>Did you actually attempt a real-world action from the plan?
+      <select name="pilotAction" [(ngModel)]="pilotFeedback.actionOutcome">
+        <option value="">Prefer not to answer</option>
+        <option value="not_attempted">Not attempted yet</option>
+        <option value="attempted">Attempted, not completed</option>
+        <option value="completed">Completed (self-reported)</option>
+        <option value="prefer_not_to_say">Prefer not to say</option>
+      </select>
+    </label>
+    <label>Would you choose to use ReboundOps again?
+      <select name="pilotReturn" [(ngModel)]="pilotFeedback.wouldReturn">
+        <option value="">Prefer not to answer</option>
+        <option value="yes">Yes</option>
+        <option value="maybe">Maybe</option>
+        <option value="no">No</option>
+      </select>
+    </label>
+  </div>
+  <label class="pilot-consent">
+    <input type="checkbox" name="pilotConsent" [(ngModel)]="pilotFeedback.consent">
+    I choose to create a local feedback file from these answers. I understand that downloading does not send it, and it will be shared only if I choose to share it.
+  </label>
+  <div class="actions">
+    <button class="secondary" type="button" (click)="downloadPilotFeedback()" [disabled]="store.busy() || !canExportPilotFeedback()">Download private feedback</button>
+    <button class="minimal" type="button" (click)="clearPilotFeedback()">Clear these answers</button>
+  </div>
+  <p class="hint">A completed checkbox or self-report is not independent evidence of a job-search outcome. No analytics, recruitment or participant study is performed automatically.</p>
+</section>

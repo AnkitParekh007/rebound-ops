@@ -4,6 +4,7 @@
 
 ```text
 Angular standalone app (apps/web, port 4200)
+   │   shell → feature components → SessionStore (signals) → SessionApiService
    │
    └── /api → localhost Fastify (apps/api, port 4174)
                 ├── validated Zod request contracts

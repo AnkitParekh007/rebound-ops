@@ -1,0 +1,54 @@
+  <section class="panel" aria-labelledby="intake-heading">
+    <div class="panel-top">
+      <div><p class="eyebrow">01 / Starting point</p><h2 id="intake-heading">What can you build on?</h2></div>
+      <span class="note">{{ store.apiAvailable() ? 'Local API ready' : 'API offline' }}</span>
+    </div>
+
+    <form (ngSubmit)="submit()">
+      <div class="fields">
+        <label>Recent role <input type="text" name="role" [(ngModel)]="draft.role" required maxlength="120" placeholder="e.g. Senior Frontend Engineer"></label>
+        <label>Location or work preference <input type="text" name="location" [(ngModel)]="draft.location" maxlength="160"></label>
+        <label>Available hours per week <input type="number" name="weeklyHours" [(ngModel)]="draft.weeklyHours" min="1" max="20" required></label>
+        <label>Income urgency
+          <select name="urgency" [(ngModel)]="draft.urgency">
+            <option value="soon">As soon as practical</option>
+            <option value="quarter">Within three months</option>
+            <option value="flexible">Flexible</option>
+          </select>
+        </label>
+      </div>
+      <label>Priorities and constraints <textarea name="priorities" [(ngModel)]="draft.priorities" rows="2" maxlength="1200"></textarea></label>
+      <label>Demonstrated achievements — one per line <textarea name="evidenceText" [(ngModel)]="evidenceText" rows="4" maxlength="7500" placeholder="Describe work you can support with evidence, without confidential details."></textarea></label>
+      <p class="hint">These are user-entered claims, not independently verified facts. You can mark each line as confirmed or rejected below.</p>
+      <div class="fields">
+        <label>Adjacent direction <input name="shiftTarget" [(ngModel)]="draft.shiftTarget" maxlength="140" placeholder="AI application engineering"></label>
+        <label>Contract / bridge direction <input name="bridgeTarget" [(ngModel)]="draft.bridgeTarget" maxlength="140" placeholder="Frontend consulting"></label>
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit" [disabled]="store.busy() || !store.apiAvailable()">{{ store.session() ? 'Update intake' : 'Create recovery session' }} <span aria-hidden="true">→</span></button>
+        <button class="secondary" type="button" (click)="demo()">Use fictional example</button>
+        <button class="minimal" type="button" (click)="clear()">Clear form</button>
+      </div>
+    </form>
+    @if (store.persistenceStatus()?.available && store.savedSessions().length > 0) {
+      <div class="saved-session-list">
+        <h3>Resume a saved session on this computer</h3>
+        <p class="muted">Only sessions you explicitly opted into saving are shown here.</p>
+        @for (saved of store.savedSessions(); track saved.id) {
+          <div class="saved-session-entry">
+            <div><strong>{{ saved.role }}</strong><small>Last updated {{ saved.updatedAt }} · revision {{ saved.revision }}</small></div>
+            <button type="button" class="secondary" [disabled]="store.busy()" (click)="resumeSaved(saved.id)">Resume session</button>
+          </div>
+        }
+      </div>
+    }
+    @if (store.persistenceStatus()?.warnings?.length) {
+      <p class="message error" role="status">Some saved files could not be loaded. They were left untouched in your local data folder. See your local persistence documentation before modifying them.</p>
+    }
+    <div class="restore-control">
+      <label>Resume a previous local backup
+        <input type="file" accept=".json,application/json" (change)="restoreFile($event)" [disabled]="store.busy() || !store.apiAvailable()">
+      </label>
+      <p class="hint">Only files you deliberately select are read. The JSON is sent to your localhost API, not to an AI service or cloud account.</p>
+    </div>
+  </section>

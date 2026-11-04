@@ -1,0 +1,18 @@
+@let current = session();
+<section class="panel" aria-labelledby="routes-heading">
+  <div class="panel-top"><div><p class="eyebrow">03 / Realistic alternatives</p><h2 id="routes-heading">Choose a hypothesis to test</h2></div></div>
+  <p class="muted">These alternatives do not assess your fitness for actual vacancies. Candidate evidence is displayed for manual review, never counted as proof of suitability.</p>
+  <div class="routes">
+    @for (route of current.routes; track route.id) {
+      <article class="route">
+        <div class="route-type">{{ route.label }}</div>
+        <h3>{{ route.target }}</h3>
+        <p><strong>Uncertainty</strong><br>{{ route.uncertainty }}</p>
+        <p><strong>Missing proof</strong><br>{{ route.missingProof[0] }}</p>
+        <p><strong>Next test</strong><br>{{ route.nextTest }}</p>
+        <small>{{ route.candidateEvidenceIds.length }} user-entered evidence lines to review</small>
+        <button class="primary full" type="button" [disabled]="store.busy()" (click)="chooseRoute(route.id)">Test {{ route.label }}</button>
+      </article>
+    }
+  </div>
+</section>

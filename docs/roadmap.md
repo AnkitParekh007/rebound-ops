@@ -49,8 +49,8 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 
 | # | Gap | Why it matters | Response |
 |---|---|---|---|
-| F1 | Entire UI is one 554-line `AppComponent` with a 420-line template, ~14 signals and ~15 mutable template-driven fields | Hard to change safely during the pilot, review or test in isolation; contributors face a high entry cost | Decompose into feature components (intake, evidence, sources, routes, targets, AI review, plan, persistence, pilot feedback); behaviour-preserving, guarded by the existing Playwright suite |
-| F2 | HTTP calls and session state live in the component; no service or store layer | Optimistic-revision/409 handling is duplicated and hard to test | `SessionApiService` (typed, contract-validated) + signal-based `SessionStore` owning revision/conflict logic |
+| F1 | ~~Entire UI is one 554-line `AppComponent`~~ **Done (B2)** with a 420-line template, ~14 signals and ~15 mutable template-driven fields | Hard to change safely during the pilot, review or test in isolation; contributors face a high entry cost | Decompose into feature components (intake, evidence, sources, routes, targets, AI review, plan, persistence, pilot feedback); behaviour-preserving, guarded by the existing Playwright suite |
+| F2 | ~~HTTP calls and session state live in the component; no service or store layer~~ **Done (B2)** | Optimistic-revision/409 handling is duplicated and hard to test | `SessionApiService` (typed, contract-validated) + signal-based `SessionStore` owning revision/conflict logic |
 | F3 | No Angular unit/component tests; only E2E | Slow feedback; E2E alone cannot cover edge states | Add component tests for store and conflict handling after F1/F2 |
 | F4 | Template-driven `FormsModule` mixed with signals | Inconsistent reactivity model; validation duplicated from Zod | Move to typed forms validated against `@reboundops/contracts` schemas |
 
@@ -105,7 +105,7 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 |---|---|---|---|
 | B0 | Docs drift fix + this roadmap | 2.7 | Cheap; prevents misleading reviewers |
 | B1 | ✅ Schema migration framework + fixtures | D1 | Done 4 Nov 2026; every future schema change follows the [playbook](schema-migrations.md) |
-| B2 | Angular decomposition: feature components, `SessionApiService`, `SessionStore` (no behaviour change) | F1, F2 | Makes it safe to fix pilot findings quickly; E2E suite is the safety net |
+| B2 | ✅ Angular decomposition: feature components, `SessionApiService`, `SessionStore` (no behaviour change) | F1, F2 | Done 4 Nov 2026; see [frontend architecture](frontend-architecture.md) |
 | B3 | CI supply-chain hardening: SHA-pinned actions, Dependabot, CodeQL, Node 22 matrix | S1, S4 | Low effort, ongoing protection (#19) |
 | B4 | AI golden set + offline eval runner (mock + live mode), prompt/model versioning | A1, A2, A5 | Prerequisite for live evaluation (#8) |
 | B5 | Live provider evaluation on fictional data with provider-side spend limit (owner approval) | A3, #8 | **G2** |
@@ -132,7 +132,7 @@ Public beta (original week 8) moves to **after G4**; the date follows the eviden
 | Scope creep while research lags | High | High | Track B limited to pilot-enabling items; feature freeze until G1 |
 | Saved sessions break on upgrade | Low (B1 done) | High | Migration chain + frozen fixtures + pre-upgrade backups |
 | Live model over-claims support or tone harms users | Medium | High | G2 golden set incl. fairness pairs; suggestions never auto-applied |
-| Single-maintainer bus factor | High | Medium | Decomposed frontend, current docs, contributor guide |
+| Single-maintainer bus factor | High | Medium | Decomposed frontend (B2 done), current docs, contributor guide |
 | Dependency advisory exposure | Medium | Medium | Dependabot/CodeQL; #19 tracking; localhost-only binding |
 
 ## 5. Deferred scope and re-entry triggers

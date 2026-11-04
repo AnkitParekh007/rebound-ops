@@ -1,0 +1,22 @@
+@let current = session();
+<section class="panel" aria-labelledby="privacy-heading">
+  <div class="panel-top"><div><p class="eyebrow">Your data / Portable by default</p><h2 id="privacy-heading">Back up or delete this session</h2></div></div>
+  <p class="muted">Sessions stay in local API memory unless you explicitly enable saving to your configured private data folder. JSON backups are separate files you control and are not automatically deleted.</p>
+  @if (store.persistenceStatus()?.available) {
+    <div class="persistence-controls">
+      <p><strong>Session storage:</strong> {{ current.persistence === 'disk' ? 'Saved on this computer' : 'Memory only (cleared on restart)' }}</p>
+      @if (current.persistence === 'memory') {
+        <button class="secondary" type="button" [disabled]="store.busy()" (click)="changePersistence('disk')">Enable local disk saving for this session</button>
+      } @else {
+        <button class="secondary" type="button" [disabled]="store.busy()" (click)="changePersistence('memory')">Turn off saving and delete local copy</button>
+      }
+      <p class="hint">Local disk files are not encrypted. This setting requires a private REBOUNDOPS_DATA_DIR configured when starting the API. They are never uploaded to a cloud account by this feature.</p>
+    </div>
+  } @else {
+    <p class="muted">Optional auto-save is not configured. To enable it, stop the API and restart with REBOUNDOPS_DATA_DIR pointing to a private folder on your computer.</p>
+  }
+  <div class="actions">
+    <button class="secondary" type="button" [disabled]="store.busy()" (click)="backup()">Download session JSON</button>
+    <button class="minimal" type="button" [disabled]="store.busy()" (click)="deleteSession()">Delete local session</button>
+  </div>
+</section>

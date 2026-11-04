@@ -5,7 +5,8 @@ The Phase 1 manual prototype was feature-tested by the solo project owner; **no 
 ## Architecture (v0.2)
 
 ```text
-apps/web/              Angular standalone app with signals and FormsModule
+apps/web/              Angular standalone app: shell + feature components, SessionStore (signals),
+                       typed SessionApiService; see frontend-architecture.md
   proxy.conf.json      Proxy /api to localhost:4174 during development
 apps/api/              Fastify API, bound to 127.0.0.1
 packages/contracts/    Zod schemas + deterministic workflow transitions

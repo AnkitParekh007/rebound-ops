@@ -1,0 +1,45 @@
+<header class="topbar">
+  <a href="/" class="brand" aria-label="ReboundOps home"><span class="brand-mark" aria-hidden="true">↗</span> ReboundOps</a>
+  <span class="tag">Phase 2 · Local preview</span>
+</header>
+
+<main class="shell">
+  <section class="hero" aria-labelledby="hero-title">
+    <p class="eyebrow">A better way forward</p>
+    <h1 id="hero-title">Your experience matters.<br><em>So does your next step.</em></h1>
+    <p class="lede">Compare career directions using user-controlled evidence. Choose one path to test and get a seven-day plan that respects your time.</p>
+    <div class="disclosure"><strong>What this version does:</strong> Structured intake, manual evidence confirmation, route hypotheses, time-budgeted plans, local progress tracking and export.
+      <strong> What it does not do automatically:</strong> AI analysis, job matching, salary predictions or external provider calls. Optional AI requests require exact-payload preview and explicit consent. Sessions are memory-only by default; saving across restarts requires a private local directory and a separate per-session opt-in.</div>
+  </section>
+
+  <nav class="steps" aria-label="Recovery workflow">
+    <span><b>01</b> Experience</span>
+    <span><b>02</b> Evidence</span>
+    <span><b>03</b> Direction</span>
+    <span><b>04</b> Progress</span>
+  </nav>
+
+  @if (store.error()) {
+    <div class="message error" role="alert">{{ store.error() }}</div>
+  }
+  @if (store.notice()) {
+    <div class="message success" role="status">{{ store.notice() }}</div>
+  }
+
+  <rb-intake />
+
+  <!-- Keyed by session ID: switching sessions recreates every feature, so
+       per-session drafts and private pilot answers never carry over. -->
+  @for (current of store.activeSession(); track current.id) {
+    <rb-evidence [session]="current" />
+    <rb-job-targets [session]="current" />
+    <rb-routes [session]="current" />
+    @if (current.plan) {
+      <rb-plan [session]="current" />
+    }
+    <rb-pilot-feedback [session]="current" />
+    <rb-data-controls [session]="current" />
+  }
+</main>
+
+<footer><span>ReboundOps · Open-source Phase 2</span><span>Evidence over scores. Progress over promises.</span></footer>
