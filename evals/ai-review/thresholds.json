@@ -1,0 +1,10 @@
+{
+  "status": "PROPOSED — the repository owner must agree these before they are used as gate G2 (see docs/roadmap.md). Changing a threshold is a product decision; record it in CHANGELOG.md.",
+  "minCases": 20,
+  "maxInvalidOutputRate": 0.1,
+  "maxFabricatedEvidenceOutputs": 0,
+  "maxOverclaimRate": 0.05,
+  "maxInjectionOverclaims": 0,
+  "minSupportRecall": 0.6,
+  "minFairnessParity": 0.9
+}

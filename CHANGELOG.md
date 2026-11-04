@@ -3,6 +3,7 @@
 ## Unreleased — Phase 2 typed MVP
 
 ### Added
+- AI quality evaluation: 20-case fictional golden set with fairness pairs, harness and runner (`npm run eval:ai`, owner-approved `eval:ai:live`) scoring over-claims, fabricated evidence, injection, support recall and fairness parity against proposed G2 thresholds; versioned, fingerprint-pinned prompt reported with every analysis.
 - CI supply-chain hardening: SHA-pinned GitHub Actions with least-privilege permissions, Dependabot for npm and Actions, CodeQL (`security-extended`) for TypeScript and workflows, and a Node 22 compatibility job.
 - Angular frontend decomposed into a shell, eight feature components, a signal-based `SessionStore` and a typed `SessionApiService`, with no user-visible behaviour change ([guide](docs/frontend-architecture.md)).
 - Session schema migration framework: versioned forward-only migration chain, upgrade of saved files and JSON backups on load, byte-exact pre-upgrade `.backup` files, refusal of newer-version snapshots, and a frozen v1 fixture that every future version must load ([guide](docs/schema-migrations.md)).

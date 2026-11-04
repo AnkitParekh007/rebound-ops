@@ -94,6 +94,7 @@ export function buildApp(options: {
     enabled: Boolean(aiProvider),
     provider: aiProvider?.name ?? null,
     model: aiProvider?.model ?? null,
+    promptVersion: aiProvider?.promptVersion ?? null,
     disclosure: 'Data is not transmitted unless a user explicitly previews and consents to the exact payload.',
     attempts: aiRequests,
     maxAttempts: maxAiAttempts,
@@ -315,7 +316,8 @@ export function buildApp(options: {
       }
       // Provider output is never applied to evidence, job reviews or session state.
       return reply.send({
-        analysis, usage, provider: aiProvider.name, model: aiProvider.model, autoApplied: false
+        analysis, usage, provider: aiProvider.name, model: aiProvider.model,
+        promptVersion: aiProvider.promptVersion ?? null, autoApplied: false
       });
     } catch {
       aiFailures++;

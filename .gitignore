@@ -13,3 +13,6 @@ data/
 
 playwright-report/
 test-results/
+
+# Local AI evaluation reports (live provider output; never commit)
+evals/ai-review/results/

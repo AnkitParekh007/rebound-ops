@@ -27,4 +27,5 @@ Pushing straight to `main` skips pull-request review, so run the relevant local 
 - Frontend: components never call `HttpClient`; go through `SessionStore` intents. Keep session-scoped UI state in feature components and private pilot answers out of the store (see [docs/frontend-architecture.md](docs/frontend-architecture.md)).
 - CI: pin every new GitHub Action to a full commit SHA with a `# vX.Y.Z` comment, and keep workflow `permissions` least-privilege.
 - Never commit real participant data, résumés, API keys or session files.
+- AI prompt: any edit to `apps/api/src/prompt.ts` text needs a version bump, a new pinned fingerprint and a golden-set run; never commit `evals/ai-review/results/` or put real data in the golden set.
 - AI stays disabled by default; never weaken the payload preview, consent or non-auto-apply guarantees.

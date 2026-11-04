@@ -38,11 +38,11 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 
 | # | Gap | Why it matters | Response |
 |---|---|---|---|
-| A1 | Only **invariant** tests exist (consent, IDs, injection, caps). There is no **quality** evaluation set with expected outcomes or metrics | Mock tests cannot say whether suggestions are useful or over-claim support; a model change cannot be regression-tested | Versioned fictional golden set (≥20 cases incl. red-team scenarios from the [rubric](evaluation-rubric.md)) with metrics: invalid-output rate, over-claimed `possible_support` rate (human-labelled), gap-recall, latency, tokens |
-| A2 | Prompt and model are not versioned or recorded with outputs | Results can't be reproduced or compared after a prompt or model change | Prompt ID/version constant; return `{model, promptVersion}` with every analysis; changing either requires a golden-set rerun |
+| A1 | ~~Only **invariant** tests exist (consent, IDs, injection, caps). There is no **quality** evaluation set with expected outcomes or metrics~~ **Done (B4)** | Mock tests cannot say whether suggestions are useful or over-claim support; a model change cannot be regression-tested | Versioned fictional golden set (≥20 cases incl. red-team scenarios from the [rubric](evaluation-rubric.md)) with metrics: invalid-output rate, over-claimed `possible_support` rate (human-labelled), gap-recall, latency, tokens |
+| A2 | ~~Prompt and model are not versioned or recorded with outputs~~ **Done (B4)** | Results can't be reproduced or compared after a prompt or model change | Prompt ID/version constant; return `{model, promptVersion}` with every analysis; changing either requires a golden-set rerun |
 | A3 | Spend control is a per-process attempt counter that resets on restart; no currency ceiling | Restarting the process removes the cap | Require a provider-side workspace spend limit before live tests; document it as the real ceiling; optionally persist counters with durable storage |
 | A4 | No user-feedback loop on AI suggestions (accept/dismiss) | AI usefulness can't be measured during the pilot | Explicit "apply suggestion" action that goes through the existing manual requirement review, plus local-only accept/dismiss counts included in the pilot feedback export |
-| A5 | No fairness / responsible-AI test cases (career breaks, non-native English phrasing, seniority/age signals) | Career guidance is high-impact; the target users skew experienced | Add to the golden set; reviewer checks tone and assessment parity across paired cases |
+| A5 | ~~No fairness / responsible-AI test cases (career breaks, non-native English phrasing, seniority/age signals)~~ **Done (B4)** | Career guidance is high-impact; the target users skew experienced | Add to the golden set; reviewer checks tone and assessment parity across paired cases |
 | A6 | Highest-value AI use (reviewable claim **extraction** from pasted documents with span citations, original engineering issue 3) is not built | The span/citation infrastructure exists, so this is the natural next AI capability | **Deferred** until G2 (live eval) passes and pilot shows that manual claim entry is a real friction point |
 
 ### 2.3 Frontend architecture (Angular)
@@ -107,7 +107,7 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 | B1 | ✅ Schema migration framework + fixtures | D1 | Done 4 Nov 2026; every future schema change follows the [playbook](schema-migrations.md) |
 | B2 | ✅ Angular decomposition: feature components, `SessionApiService`, `SessionStore` (no behaviour change) | F1, F2 | Done 4 Nov 2026; see [frontend architecture](frontend-architecture.md) |
 | B3 | ✅ CI supply-chain hardening: SHA-pinned actions, Dependabot, CodeQL, Node 22 job | S1, S4 | Done 4 Nov 2026; owner must enable secret scanning/push protection in settings |
-| B4 | AI golden set + offline eval runner (mock + live mode), prompt/model versioning | A1, A2, A5 | Prerequisite for live evaluation (#8) |
+| B4 | ✅ AI golden set + offline eval runner (mock + live mode), prompt/model versioning | A1, A2, A5 | Done 4 Nov 2026; thresholds proposed, owner to agree; see [AI evaluation](ai-evaluation.md) |
 | B5 | Live provider evaluation on fictional data with provider-side spend limit (owner approval) | A3, #8 | **G2** |
 | B6 | Component tests, typed forms on contracts | F3, F4 | After B2 |
 | B7 | Provenance attestation + SBOM for the preview artifact | S2 | Before **G4** |
@@ -118,7 +118,7 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 | Gate | Criterion (proposed, from [rubric](evaluation-rubric.md)) | If not met |
 |---|---|---|
 | **G1 Problem** | ≥3 of 5 interviewees independently describe the same consequential problem, and it matches the app's core flow | Pivot the problem framing before any further feature work |
-| **G2 AI quality** | Golden set: 0 invalid outputs accepted, 0 fabricated evidence IDs, over-claimed support ≤ an agreed threshold, plus human review sign-off; provider terms reviewed | AI stays disabled for participants; core flow ships without it |
+| **G2 AI quality** | Live golden-set run (`npm run eval:ai:live`) passes every check in [`thresholds.json`](../evals/ai-review/thresholds.json) (0 fabricated evidence, ≤5% over-claims, 0 injection over-claims, ≥90% fairness parity — proposed, owner to agree), plus human review sign-off; provider terms reviewed | AI stays disabled for participants; core flow ships without it |
 | **G3 Value** | ≥4 of 5 complete the core flow without help; ≥50% complete one real action within 7 days; no invented achievements in exports | Iterate on the pilot or defer the public preview |
 | **G4 Release** | G3 passed; open advisories triaged (#19); manual OS/screen-reader QA; provenance/SBOM; owner approval | No public release |
 
