@@ -11,6 +11,7 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:
@@ -30,8 +31,10 @@ jobs:
       - name: Compile Angular production application
         run: npm run build:web
       - name: Install Chromium, Firefox and WebKit for browser tests
+        timeout-minutes: 8 # a stalled browser download hung a run for 30+ min
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Run cross-browser end-to-end and accessibility tests
+        timeout-minutes: 12
         run: npm run test:e2e
       - name: Audit release inputs for accidental private files
         run: npm run audit:release
@@ -66,6 +69,7 @@ jobs:
   platform-package-smoke:
     name: Platform package smoke (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -92,6 +96,7 @@ jobs:
     # README/engines promise Node 22.x support; verify it on every change.
     name: Node 22 compatibility
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
