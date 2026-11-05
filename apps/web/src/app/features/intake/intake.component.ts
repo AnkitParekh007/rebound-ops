@@ -1,9 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import type { Intake, Session } from '@reboundops/contracts';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { EvidenceSchema, IntakeSchema, type Intake, type Session } from '@reboundops/contracts';
 import { SessionStore } from '../../core/session-store';
+import {
+  FORM_INVALID_MESSAGE, contractValidator, fieldError, linesValidator, nonEmptyLines
+} from '../../core/form-validation';
 
-type Draft = Omit<Intake, 'evidence'>;
+type Draft = Omit<Intake, 'evidence'> & { evidenceText: string };
 
 const sample: Draft = {
   role: 'Senior Frontend Engineer',
@@ -12,22 +15,28 @@ const sample: Draft = {
   urgency: 'quarter',
   priorities: 'Prefer hands-on product work. Avoid a long retraining period.',
   shiftTarget: 'AI application engineer',
-  bridgeTarget: 'Frontend architecture consulting'
+  bridgeTarget: 'Frontend architecture consulting',
+  evidenceText: [
+    'Led a component library migration (fictional résumé item 1)',
+    'Improved CI build performance (fictional résumé item 2)',
+    'Mentored engineers on frontend testing (fictional résumé item 3)'
+  ].join('\n')
 };
-const sampleEvidence = [
-  'Led a component library migration (fictional résumé item 1)',
-  'Improved CI build performance (fictional résumé item 2)',
-  'Mentored engineers on frontend testing (fictional résumé item 3)'
-].join('\n');
-const blankDraft = (): Draft => ({
+const blank: Draft = {
   role: '', location: '', weeklyHours: 6, urgency: 'quarter',
-  priorities: '', shiftTarget: '', bridgeTarget: ''
-});
+  priorities: '', shiftTarget: '', bridgeTarget: '', evidenceText: ''
+};
+
+const field = IntakeSchema.shape;
+/** Mirrors IntakeSchema.evidence `.max(15)`; a unit test asserts they stay equal. */
+export const MAX_EVIDENCE_LINES = 15;
+const text = (value: string, schema: Parameters<typeof contractValidator>[0]) =>
+  new FormControl(value, { nonNullable: true, validators: contractValidator(schema) });
 
 /** Step 01: intake form, resume of opted-in saved sessions and backup restore. */
 @Component({
   selector: 'rb-intake',
-  imports: [FormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './intake.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'feature' }
@@ -35,22 +44,49 @@ const blankDraft = (): Draft => ({
 export class IntakeComponent {
   protected readonly store = inject(SessionStore);
 
-  draft: Draft = { ...sample };
-  evidenceText = sampleEvidence;
+  /** Typed form; every rule comes from the shared IntakeSchema the API enforces. */
+  readonly form = new FormGroup({
+    role: text(sample.role, field.role),
+    location: text(sample.location, field.location),
+    weeklyHours: new FormControl<number>(sample.weeklyHours, {
+      nonNullable: true, validators: contractValidator(field.weeklyHours)
+    }),
+    urgency: new FormControl<Intake['urgency']>(sample.urgency, {
+      nonNullable: true, validators: contractValidator(field.urgency)
+    }),
+    priorities: text(sample.priorities, field.priorities),
+    shiftTarget: text(sample.shiftTarget, field.shiftTarget),
+    bridgeTarget: text(sample.bridgeTarget, field.bridgeTarget),
+    evidenceText: new FormControl(sample.evidenceText, {
+      nonNullable: true,
+      validators: linesValidator({
+        min: 0, max: MAX_EVIDENCE_LINES, item: EvidenceSchema.shape.claim,
+        tooFew: '', tooMany: 'Use at most 15 evidence lines.', itemLabel: 'Line'
+      })
+    })
+  });
+
+  error(name: keyof IntakeComponent['form']['controls']): string | null {
+    return fieldError(this.form.controls[name]);
+  }
 
   async submit(): Promise<void> {
-    await this.store.submitIntake(() => this.collectIntake());
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      const lines = this.form.controls.evidenceText.errors?.['lines'] as string | undefined;
+      this.store.setError(lines === 'Use at most 15 evidence lines.' ? lines : FORM_INVALID_MESSAGE);
+      return;
+    }
+    await this.store.submitIntake(() => this.toIntake());
   }
 
   demo(): void {
-    this.draft = { ...sample };
-    this.evidenceText = sampleEvidence;
+    this.form.reset(sample);
     this.store.reset('Fictional example loaded. Claims are unverified and editable.');
   }
 
   clear(): void {
-    this.draft = blankDraft();
-    this.evidenceText = '';
+    this.form.reset(blank);
     this.store.reset('Draft cleared from the screen. Server sessions are temporary until the API restarts.');
   }
 
@@ -60,37 +96,37 @@ export class IntakeComponent {
   }
 
   async restoreFile(event: Event): Promise<void> {
-    const field = event.target;
-    if (!(field instanceof HTMLInputElement)) return;
-    const file = field.files?.[0];
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    const file = input.files?.[0];
     if (!file) return;
     if (file.size > 128 * 1024) {
       this.store.setError('Backup exceeds 128 KB. Only ReboundOps JSON snapshots are supported.');
-      field.value = '';
+      input.value = '';
       return;
     }
     const session = await this.store.restoreBackup(file);
     if (session) this.loadDraftFrom(session);
-    field.value = '';
+    input.value = '';
   }
 
   private loadDraftFrom(session: Session): void {
     const { evidence, ...draft } = session.intake;
-    this.draft = { ...draft };
-    this.evidenceText = evidence.map(item => item.claim).join('\n');
+    this.form.reset({ ...draft, evidenceText: evidence.map(item => item.claim).join('\n') });
   }
 
-  private collectIntake(): Intake {
-    const lines = this.evidenceText.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-    if (lines.length > 15) throw new Error('Use at most 15 evidence lines.');
+  /** Builds the API payload; values are already contract-valid. */
+  toIntake(): Intake {
+    const v = this.form.getRawValue();
     return {
-      ...this.draft,
-      role: this.draft.role.trim(),
-      location: this.draft.location.trim(),
-      priorities: this.draft.priorities.trim(),
-      shiftTarget: this.draft.shiftTarget.trim(),
-      bridgeTarget: this.draft.bridgeTarget.trim(),
-      evidence: lines.map((claim, i) => ({
+      role: v.role.trim(),
+      location: v.location.trim(),
+      weeklyHours: v.weeklyHours,
+      urgency: v.urgency,
+      priorities: v.priorities.trim(),
+      shiftTarget: v.shiftTarget.trim(),
+      bridgeTarget: v.bridgeTarget.trim(),
+      evidence: nonEmptyLines(v.evidenceText).map((claim, i) => ({
         id: crypto.randomUUID(),
         claim,
         status: 'unverified',

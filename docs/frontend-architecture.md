@@ -40,10 +40,23 @@ feature component ──intent──▶ SessionStore ──▶ SessionApiService
 2. **One request at a time.** `busy` serializes mutations, matching the API's single-writer, optimistic-revision model. Every mutation sends the last-seen `revision`; on HTTP 409 the store loads the server's latest session and asks the user to retry.
 3. **Any successful session change clears the AI preview and analysis**, so a consent click always refers to the current data.
 4. **Session-scoped UI state lives in the feature component**, not the store: form drafts, evidence-link selections and private pilot answers. The shell renders features inside `@for (current of store.activeSession(); track current.id)`, so switching, restoring or deleting a session recreates them, and per-session state can never leak into another session.
-5. **Private pilot feedback stays out of the store** on purpose: it must never reach the API, backups or AI payloads.
-6. Features receive the active session as a required signal input (`session = input.required<Session>()`) and read global status from the store. All components use `OnPush` and the app runs zoneless.
+5. **Forms are typed reactive forms validated with the shared contracts** (below); never add `FormsModule`/`ngModel`.
+6. **Private pilot feedback stays out of the store** on purpose: it must never reach the API, backups or AI payloads.
+7. Features receive the active session as a required signal input (`session = input.required<Session>()`) and read global status from the store. All components use `OnPush` and the app runs zoneless.
 
-## Next steps (roadmap B6)
+## Forms and validation (roadmap B6, gap F4)
 
-- Unit tests for `SessionStore` (conflict handling, AI invalidation) and `describeFailure`, using a stubbed `SessionApiService`.
-- Replace template-driven `FormsModule` drafts with typed forms validated against `@reboundops/contracts` schemas (gap F4).
+All forms are **typed reactive forms** (`ReactiveFormsModule`); there is no template-driven `ngModel` left.
+
+- Validators come from the **shared Zod contracts** through `core/form-validation.ts`: `contractValidator(IntakeSchema.shape.role)`, plus `linesValidator` for "one per line" fields. The browser and the API enforce exactly the same rules, including trimming, length limits, integer hours and the HTTPS-only job URL.
+- Zod's issue codes are turned into short, readable messages (`describeIssue`). Custom contract messages (e.g. "Source URL must use HTTPS") are passed through.
+- An invalid form is **not sent**: fields are marked touched, inline messages appear, and the store shows the same summary the API returns for bad input.
+- Inline messages sit **outside** the `<label>` and are linked with `aria-describedby` plus `aria-invalid`, so a control's accessible name stays stable and screen readers announce the error as its description.
+- **Bundle trade-off:** importing the contract schemas brings Zod's validation core into the browser bundle (about 71 kB → about 150 kB gzipped initial; Zod's non-English locales are already removed). This was accepted because it gives one source of truth for validation, and the app is served from loopback. `angular.json` now has budgets (initial: warn 800 kB, error 1 MB) to stop silent growth. A future option is moving the contracts to `zod/mini`.
+
+## Unit tests (roadmap B6, gap F3)
+
+- Runner: Angular's `@angular/build:unit-test` builder with **Vitest** and jsdom (`npm run test:web`, also part of root `npm test`, so CI runs it on Linux, Windows, macOS and Node 22).
+- Specs live next to the code (`*.spec.ts`). `src/app/testing/fixtures.ts` builds fictional sessions with the real `createSession`, so fixtures stay contract-valid.
+- Coverage today: `SessionStore` (revision sent with every mutation, 409 conflict reload, one request at a time, AI-preview invalidation, consent-only provider calls, delete races), error mapping, contract validators, the intake and job-target forms, and the pilot-feedback export.
+- Component specs stub `SessionStore` with the signals their template reads and spied intents; the store spec stubs `SessionApiService`. Playwright remains the end-to-end safety net, including `e2e/form-validation.spec.ts` for inline errors and accessibility.

@@ -14,7 +14,7 @@ The repository owner wants every commit made in a Claude session to land on `mai
 
 Pushing straight to `main` skips pull-request review, so run the relevant local checks before every push:
 
-- `npm test` (contracts, API and legacy pilot) for any code or contract change
+- `npm test` (contracts, API, legacy pilot, AI-eval harness and web unit tests) for any code or contract change
 - `npm run build:web` for frontend changes
 - `npm run test:e2e` for UI/workflow changes (Chromium is preinstalled in cloud sessions)
 - `npm run audit:release` before pushing anything that adds files
@@ -24,7 +24,7 @@ Pushing straight to `main` skips pull-request review, so run the relevant local 
 - Read [docs/roadmap.md](docs/roadmap.md) for current status, gaps (IDs such as D1, F1, A1) and decision gates G1–G4.
 - Never fabricate user-research, pilot or outcome metrics. Only engineering facts verifiable in the repo may be marked done.
 - Any change to the persisted `Session` shape must follow [docs/schema-migrations.md](docs/schema-migrations.md) (version bump, migration, new frozen fixture). Never edit a committed fixture.
-- Frontend: components never call `HttpClient`; go through `SessionStore` intents. Keep session-scoped UI state in feature components and private pilot answers out of the store (see [docs/frontend-architecture.md](docs/frontend-architecture.md)).
+- Frontend: components never call `HttpClient`; go through `SessionStore` intents. Use typed reactive forms validated with `contractValidator` (no `ngModel`). Keep session-scoped UI state in feature components and private pilot answers out of the store (see [docs/frontend-architecture.md](docs/frontend-architecture.md)).
 - CI: pin every new GitHub Action to a full commit SHA with a `# vX.Y.Z` comment, and keep workflow `permissions` least-privilege.
 - Never commit real participant data, résumés, API keys or session files.
 - AI prompt: any edit to `apps/api/src/prompt.ts` text needs a version bump, a new pinned fingerprint and a golden-set run; never commit `evals/ai-review/results/` or put real data in the golden set.

@@ -6,14 +6,21 @@
   </div>
   <p class="muted">Paste specific requirements from a job description, one per line. Nothing is fetched from a URL. Match them manually to achievements you've confirmed; unsupported requirements remain gaps or unreviewed.</p>
   @if (current.jobTargets.length < 3) {
-    <form class="target-form" (ngSubmit)="addTarget()">
+    <form class="target-form" [formGroup]="targetForm" (ngSubmit)="addTarget()">
       <div class="fields">
-        <label>Job title / opportunity <input name="targetTitle" [(ngModel)]="targetTitle" required maxlength="140" placeholder="e.g. Frontend Platform Engineer"></label>
-        <label>Source URL (optional, HTTPS only) <input name="targetUrl" [(ngModel)]="targetUrl" maxlength="600" placeholder="https://example.org/jobs/123"></label>
+        <div class="field">
+          <label>Job title / opportunity <input formControlName="title" [attr.aria-invalid]="!!error(targetForm.controls.title)" [attr.aria-describedby]="error(targetForm.controls.title) ? 'target-title-error' : null" required maxlength="140" placeholder="e.g. Frontend Platform Engineer"></label>
+          @if (error(targetForm.controls.title); as message) { <span class="field-error" id="target-title-error">{{ message }}</span> }
+        </div>
+        <div class="field">
+          <label>Source URL (optional, HTTPS only) <input formControlName="sourceUrl" [attr.aria-invalid]="!!error(targetForm.controls.sourceUrl)" [attr.aria-describedby]="error(targetForm.controls.sourceUrl) ? 'target-sourceUrl-error' : null" maxlength="600" placeholder="https://example.org/jobs/123"></label>
+          @if (error(targetForm.controls.sourceUrl); as message) { <span class="field-error" id="target-sourceUrl-error">{{ message }}</span> }
+        </div>
       </div>
       <label>Requirements from this opportunity — one per line
-        <textarea name="targetRequirements" [(ngModel)]="targetRequirements" rows="4" required maxlength="6500" placeholder="Design accessible component systems&#10;Improve CI and test reliability"></textarea>
+        <textarea formControlName="requirements" [attr.aria-invalid]="!!error(targetForm.controls.requirements)" [attr.aria-describedby]="error(targetForm.controls.requirements) ? 'target-requirements-error' : null" rows="4" required maxlength="6500" placeholder="Design accessible component systems&#10;Improve CI and test reliability"></textarea>
       </label>
+      @if (error(targetForm.controls.requirements); as message) { <span class="field-error" id="target-requirements-error">{{ message }}</span> }
       <button class="secondary" type="submit" [disabled]="store.busy()">Add requirements for review</button>
     </form>
   }
@@ -34,12 +41,11 @@
             <p>{{ requirement.text }}</p>
             <span class="requirement-state">{{ requirement.status }}</span>
             <label>Evidence to link (only user-confirmed claims)
-              <select [name]="'evidence-' + requirement.id"
-                [ngModel]="evidenceSelection[requirement.id] || requirement.evidenceIds[0] || ''"
-                (ngModelChange)="evidenceSelection[requirement.id] = $event">
-                <option value="">No evidence selected</option>
+              @let chosen = selectedEvidence(requirement.id, requirement.evidenceIds);
+              <select [name]="'evidence-' + requirement.id" (change)="selectEvidence(requirement.id, $event)">
+                <option value="" [selected]="!chosen">No evidence selected</option>
                 @for (item of current.intake.evidence; track item.id) {
-                  @if (item.status === 'confirmed') { <option [value]="item.id">{{ item.claim }}</option> }
+                  @if (item.status === 'confirmed') { <option [value]="item.id" [selected]="item.id === chosen">{{ item.claim }}</option> }
                 }
               </select>
             </label>

@@ -44,4 +44,5 @@ Independent vulnerability and licensing review, macOS/Windows clean installation
 - **CodeQL** (`.github/workflows/codeql.yml`): `security-extended` queries for JavaScript/TypeScript and for the workflow files, on pushes to `main`, on PRs and weekly. Findings appear under *Security → Code scanning*.
 - **Node 22 job:** the supported 22.x line is tested in CI alongside Node 24.
 - **Not configurable from the repository:** secret scanning and push protection must be switched on by the owner (*Settings → Code security*). Until then, `npm run audit:release` remains the only committed-secrets check, and it matches file names, not secret contents.
+- **Frontend unit-test tooling (B6):** `vitest` and `jsdom` (MIT) are **dev-only** dependencies of `@reboundops/web`, required by Angular's unit-test builder. The lockfile change was purely additive (49 new packages, no existing version changed or removed), and the dependency review showed no new advisories and no new licences needing review. They are not part of the preview archive.
 

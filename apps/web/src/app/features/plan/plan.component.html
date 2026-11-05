@@ -16,7 +16,8 @@
       }
     </ol>
     <p class="progress" aria-live="polite">{{ store.completedCount() }} of {{ plan.actions.length }} actions completed</p>
-    <label>Check-in notes and real-world outcomes <textarea name="notesDraft" [(ngModel)]="notesDraft" rows="3" maxlength="2000" placeholder="What happened? What would you change?"></textarea></label>
+    <label>Check-in notes and real-world outcomes <textarea [formControl]="notes" [attr.aria-invalid]="!!error()" [attr.aria-describedby]="error() ? 'plan-notes-error' : null" rows="3" maxlength="2000" placeholder="What happened? What would you change?"></textarea></label>
+    @if (error(); as message) { <span class="field-error" id="plan-notes-error">{{ message }}</span> }
     <div class="actions">
       <button class="primary" type="button" [disabled]="store.busy()" (click)="saveReview()">Save check-in</button>
       <button class="secondary" type="button" [disabled]="store.busy()" (click)="download()">Export Markdown</button>

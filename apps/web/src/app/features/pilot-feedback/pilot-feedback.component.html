@@ -5,18 +5,18 @@
   </div>
   <p class="muted">If you are testing ReboundOps, you can record your experience here. Your answers stay <strong>only in this open browser page</strong> until you choose to download them; they are not included in session backups, API storage or AI requests. Closing or refreshing the page loses unsaved answers.</p>
   <p class="hint">Do not include your name, contact information, employer identities, confidential work or sensitive personal details. Sharing the downloaded report with a facilitator is a separate decision.</p>
-  <div class="pilot-form fields">
+  <div class="pilot-form fields" [formGroup]="form">
     <label>Anonymous participant code (optional; not a name)
-      <input name="pilotCode" [(ngModel)]="pilotFeedback.participantCode" maxlength="30" placeholder="e.g. P01">
+      <input formControlName="participantCode" maxlength="30" placeholder="e.g. P01">
     </label>
     <label>When are you answering?
-      <select name="pilotStage" [(ngModel)]="pilotFeedback.stage">
+      <select formControlName="stage">
         <option value="first_session">During or just after first session</option>
         <option value="seven_day_followup">Seven-day follow-up</option>
       </select>
     </label>
     <label>Were the Return / Shift / Bridge directions understandable?
-      <select name="pilotClarity" [(ngModel)]="pilotFeedback.clarity">
+      <select formControlName="clarity">
         <option value="">Prefer not to answer</option>
         <option value="yes">Yes</option>
         <option value="partly">Partly</option>
@@ -24,7 +24,7 @@
       </select>
     </label>
     <label>Was it clear what stays on your computer and what could be sent to AI?
-      <select name="pilotPrivacy" [(ngModel)]="pilotFeedback.privacyUnderstanding">
+      <select formControlName="privacyUnderstanding">
         <option value="">Prefer not to answer</option>
         <option value="yes">Yes</option>
         <option value="partly">Partly</option>
@@ -32,13 +32,13 @@
       </select>
     </label>
     <label>What, if anything, was most useful?
-      <textarea name="pilotUseful" [(ngModel)]="pilotFeedback.useful" rows="2" maxlength="600" placeholder="Your own experience; skip if you prefer"></textarea>
+      <textarea formControlName="useful" rows="2" maxlength="600" placeholder="Your own experience; skip if you prefer"></textarea>
     </label>
     <label>What was confusing, unhelpful or broken?
-      <textarea name="pilotConfusing" [(ngModel)]="pilotFeedback.confusing" rows="2" maxlength="600" placeholder="Negative feedback is valuable"></textarea>
+      <textarea formControlName="confusing" rows="2" maxlength="600" placeholder="Negative feedback is valuable"></textarea>
     </label>
     <label>Did you actually attempt a real-world action from the plan?
-      <select name="pilotAction" [(ngModel)]="pilotFeedback.actionOutcome">
+      <select formControlName="actionOutcome">
         <option value="">Prefer not to answer</option>
         <option value="not_attempted">Not attempted yet</option>
         <option value="attempted">Attempted, not completed</option>
@@ -47,7 +47,7 @@
       </select>
     </label>
     <label>Would you choose to use ReboundOps again?
-      <select name="pilotReturn" [(ngModel)]="pilotFeedback.wouldReturn">
+      <select formControlName="wouldReturn">
         <option value="">Prefer not to answer</option>
         <option value="yes">Yes</option>
         <option value="maybe">Maybe</option>
@@ -56,7 +56,7 @@
     </label>
   </div>
   <label class="pilot-consent">
-    <input type="checkbox" name="pilotConsent" [(ngModel)]="pilotFeedback.consent">
+    <input type="checkbox" [formControl]="form.controls.consent">
     I choose to create a local feedback file from these answers. I understand that downloading does not send it, and it will be shared only if I choose to share it.
   </label>
   <div class="actions">

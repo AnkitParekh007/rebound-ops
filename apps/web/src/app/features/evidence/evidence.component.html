@@ -14,19 +14,23 @@
       </article>
     }
     @if (current.sourceDocuments.length < 3) {
-      <form (ngSubmit)="addSource()" class="target-form">
+      <form [formGroup]="sourceForm" (ngSubmit)="addSource()" class="target-form">
         <div class="fields">
-          <label>Source title <input name="sourceTitle" [(ngModel)]="sourceTitle" required maxlength="160" placeholder="e.g. Fictional project case study"></label>
+          <div class="field">
+            <label>Source title <input formControlName="label" [attr.aria-invalid]="!!error(sourceForm.controls.label)" [attr.aria-describedby]="error(sourceForm.controls.label) ? 'source-label-error' : null" required maxlength="160" placeholder="e.g. Fictional project case study"></label>
+            @if (error(sourceForm.controls.label); as message) { <span class="field-error" id="source-label-error">{{ message }}</span> }
+          </div>
           <label>Source type
-            <select name="sourceKind" [(ngModel)]="sourceKind">
+            <select formControlName="kind">
               <option value="resume">Résumé excerpt</option>
               <option value="project_note">Project note</option>
             </select>
           </label>
         </div>
         <label>Source text (pasted locally, maximum 10,000 characters)
-          <textarea name="sourceBody" [(ngModel)]="sourceBody" required rows="4" maxlength="10000" placeholder="Paste only text you are comfortable storing in a local session."></textarea>
+          <textarea formControlName="body" [attr.aria-invalid]="!!error(sourceForm.controls.body)" [attr.aria-describedby]="error(sourceForm.controls.body) ? 'source-body-error' : null" required rows="4" maxlength="10000" placeholder="Paste only text you are comfortable storing in a local session."></textarea>
         </label>
+        @if (error(sourceForm.controls.body); as message) { <span class="field-error" id="source-body-error">{{ message }}</span> }
         <button type="submit" class="secondary" [disabled]="store.busy()">Add private source</button>
       </form>
     }
@@ -58,27 +62,30 @@
     }
   </div>
   @if (editingEvidenceId) {
-    <form class="correction-editor" (ngSubmit)="saveEvidenceCorrection()">
+    <form class="correction-editor" [formGroup]="correctionForm" (ngSubmit)="saveEvidenceCorrection()">
       <h3>Correct the achievement and its source</h3>
       <p class="muted">Corrections preserve the same evidence ID, record your reason, reset confirmation and clear dependent job-requirement support.</p>
       <label>Revised claim
-        <textarea name="editClaim" [(ngModel)]="editClaim" required maxlength="500" rows="2"></textarea>
+        <textarea formControlName="claim" [attr.aria-invalid]="!!error(correctionForm.controls.claim)" [attr.aria-describedby]="error(correctionForm.controls.claim) ? 'correction-claim-error' : null" required maxlength="500" rows="2"></textarea>
       </label>
+      @if (error(correctionForm.controls.claim); as message) { <span class="field-error" id="correction-claim-error">{{ message }}</span> }
       <label>Correction reason
-        <input name="editReason" [(ngModel)]="editReason" required minlength="3" maxlength="300" placeholder="e.g. Added a precise source reference">
+        <input formControlName="reason" [attr.aria-invalid]="!!error(correctionForm.controls.reason)" [attr.aria-describedby]="error(correctionForm.controls.reason) ? 'correction-reason-error' : null" required minlength="3" maxlength="300" placeholder="e.g. Added a precise source reference">
       </label>
+      @if (error(correctionForm.controls.reason); as message) { <span class="field-error" id="correction-reason-error">{{ message }}</span> }
       <label>Source document for the citation
-        <select name="citationDocumentId" [(ngModel)]="citationDocumentId">
+        <select formControlName="documentId">
           <option value="">Manual claim — no exact citation</option>
           @for (doc of current.sourceDocuments; track doc.id) {
             <option [value]="doc.id">{{ doc.label }}</option>
           }
         </select>
       </label>
-      @if (citationDocumentId) {
+      @if (correctionForm.controls.documentId.value) {
         <label>Exact unique quotation from the source document
-          <textarea name="citationExcerpt" [(ngModel)]="citationExcerpt" required maxlength="700" rows="3" placeholder="Paste an exact, unique passage, including punctuation and whitespace."></textarea>
+          <textarea formControlName="excerpt" [attr.aria-invalid]="!!error(correctionForm.controls.excerpt)" [attr.aria-describedby]="error(correctionForm.controls.excerpt) ? 'correction-excerpt-error' : null" required maxlength="700" rows="3" placeholder="Paste an exact, unique passage, including punctuation and whitespace."></textarea>
         </label>
+        @if (error(correctionForm.controls.excerpt); as message) { <span class="field-error" id="correction-excerpt-error">{{ message }}</span> }
         <p class="hint">The server checks that this passage occurs exactly once and records its character offsets. A paraphrase does not count as an exact citation.</p>
       }
       <div class="actions">

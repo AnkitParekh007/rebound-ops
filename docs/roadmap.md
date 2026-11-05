@@ -51,8 +51,8 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 |---|---|---|---|
 | F1 | ~~Entire UI is one 554-line `AppComponent`~~ **Done (B2)** with a 420-line template, ~14 signals and ~15 mutable template-driven fields | Hard to change safely during the pilot, review or test in isolation; contributors face a high entry cost | Decompose into feature components (intake, evidence, sources, routes, targets, AI review, plan, persistence, pilot feedback); behaviour-preserving, guarded by the existing Playwright suite |
 | F2 | ~~HTTP calls and session state live in the component; no service or store layer~~ **Done (B2)** | Optimistic-revision/409 handling is duplicated and hard to test | `SessionApiService` (typed, contract-validated) + signal-based `SessionStore` owning revision/conflict logic |
-| F3 | No Angular unit/component tests; only E2E | Slow feedback; E2E alone cannot cover edge states | Add component tests for store and conflict handling after F1/F2 |
-| F4 | Template-driven `FormsModule` mixed with signals | Inconsistent reactivity model; validation duplicated from Zod | Move to typed forms validated against `@reboundops/contracts` schemas |
+| F3 | ~~No Angular unit/component tests; only E2E~~ **Done (B6)** | Slow feedback; E2E alone cannot cover edge states | Add component tests for store and conflict handling after F1/F2 |
+| F4 | ~~Template-driven `FormsModule` mixed with signals~~ **Done (B6)** | Inconsistent reactivity model; validation duplicated from Zod | Move to typed forms validated against `@reboundops/contracts` schemas |
 
 ### 2.4 Data and contracts
 
@@ -109,7 +109,7 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 | B3 | ✅ CI supply-chain hardening: SHA-pinned actions, Dependabot, CodeQL, Node 22 job | S1, S4 | Done 4 Nov 2026; owner must enable secret scanning/push protection in settings |
 | B4 | ✅ AI golden set + offline eval runner (mock + live mode), prompt/model versioning | A1, A2, A5 | Done 4 Nov 2026; thresholds proposed, owner to agree; see [AI evaluation](ai-evaluation.md) |
 | B5 | Live provider evaluation on fictional data with provider-side spend limit (owner approval) | A3, #8 | **G2** |
-| B6 | Component tests, typed forms on contracts | F3, F4 | After B2 |
+| B6 | ✅ Component tests, typed forms on contracts | F3, F4 | Done 5 Nov 2026; Vitest unit tests in `npm test`, reactive forms validated by shared Zod contracts |
 | B7 | Provenance attestation + SBOM for the preview artifact | S2 | Before **G4** |
 | B8 | AI suggestion apply/dismiss with local-only counts in pilot feedback export | A4 | Only if G2 passes and AI is enabled in the pilot |
 

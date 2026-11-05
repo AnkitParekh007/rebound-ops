@@ -88,7 +88,7 @@ See the [quick start](docs/preview-quickstart.md), [draft release notes](docs/pr
 ### Tests
 
 ```sh
-npm test
+npm test          # contracts, API, AI-eval harness and Angular unit tests (Vitest)
 npm run build:web
 npm run test:e2e  # install Chromium first: npx playwright install chromium
 ```
