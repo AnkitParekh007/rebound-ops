@@ -33,7 +33,8 @@ This is a **pre-release checklist**, not a declaration that ReboundOps is produc
 - [ ] Test manually across supported operating systems, browsers and screen readers; automated Linux browser checks are not a human usability study
 - [ ] Validate keyboard and screen reader use with participants
 - [ ] Verify provider against fictional data before allowing real-user external calls
-- [ ] Add source spans for external descriptions and provenance migrations
+- [x] Versioned session snapshots with forward-only migrations and pre-upgrade backups ([schema migrations](schema-migrations.md))
+- [ ] Add exact source spans for pasted job descriptions (résumé/project-note spans are done)
 
 ## Safety and operations
 

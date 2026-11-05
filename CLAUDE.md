@@ -22,6 +22,7 @@ Pushing straight to `main` skips pull-request review, so run the relevant local 
 ## Project rules
 
 - Read [docs/roadmap.md](docs/roadmap.md) for current status, gaps (IDs such as D1, F1, A1) and decision gates G1–G4.
+- Only `docs/roadmap.md` lists future work; other docs describe what exists today. When you finish roadmap work, update the docs it makes stale in the same commit.
 - Never fabricate user-research, pilot or outcome metrics. Only engineering facts verifiable in the repo may be marked done.
 - Any change to the persisted `Session` shape must follow [docs/schema-migrations.md](docs/schema-migrations.md) (version bump, migration, new frozen fixture). Never edit a committed fixture.
 - Frontend: components never call `HttpClient`; go through `SessionStore` intents. Use typed reactive forms validated with `contractValidator` (no `ngModel`). Keep session-scoped UI state in feature components and private pilot answers out of the store (see [docs/frontend-architecture.md](docs/frontend-architecture.md)).

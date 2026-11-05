@@ -76,15 +76,15 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 |---|---|---|
 | Q1 | No explicit conformance target; axe covers only serious/critical rules | Declare **WCAG 2.2 AA** as target; extend axe to all rules with a triaged baseline; manual screen-reader pass (NVDA + VoiceOver) remains a gate (#9) |
 
-### 2.7 Documentation drift
+### 2.7 Documentation drift — resolved (B0, 5 Nov 2026)
 
-Some documents describe work that is already finished as future work. This misleads contributors and reviewers:
+Some documents described finished work as future work, which misled contributors and reviewers:
 
 - `architecture.md` "Next design steps" 1–3 are implemented (spans, requirement review, opt-in persistence).
 - `phase-2.md` still says "No … AI analysis" and lists completed items under "Next vertical slice".
 - The "First engineering issues" list (below) had no completion state.
 
-Response: fix in a single docs-only PR (Track B, item B0).
+Response: fixed in B0. `architecture.md` now has a status table, and `phase-2.md` points to this roadmap for upcoming work instead of keeping its own list. Rule going forward: **only the roadmap holds future work**, other docs describe what exists.
 
 ## 3. Revised plan (from week 1)
 
@@ -103,7 +103,7 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 
 | Order | Item | Gaps closed | Why now |
 |---|---|---|---|
-| B0 | Docs drift fix + this roadmap | 2.7 | Cheap; prevents misleading reviewers |
+| B0 | ✅ Docs drift fix + this roadmap | 2.7 | Done 5 Nov 2026; future work lives only in the roadmap |
 | B1 | ✅ Schema migration framework + fixtures | D1 | Done 4 Nov 2026; every future schema change follows the [playbook](schema-migrations.md) |
 | B2 | ✅ Angular decomposition: feature components, `SessionApiService`, `SessionStore` (no behaviour change) | F1, F2 | Done 4 Nov 2026; see [frontend architecture](frontend-architecture.md) |
 | B3 | ✅ CI supply-chain hardening: SHA-pinned actions, Dependabot, CodeQL, Node 22 job | S1, S4 | Done 4 Nov 2026; owner must enable secret scanning/push protection in settings |

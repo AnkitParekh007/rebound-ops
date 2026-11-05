@@ -5,14 +5,20 @@
 ```text
 Angular standalone app (apps/web, port 4200)
    │   shell → feature components → SessionStore (signals) → SessionApiService
+   │   typed reactive forms validated by the shared contracts
    │
    └── /api → localhost Fastify (apps/api, port 4174)
                 ├── validated Zod request contracts
-                ├── explicit workflow transitions
-                ├── in-memory sessions + optimistic revisions
+                ├── explicit workflow transitions + optimistic revisions
+                ├── sessions in memory; opt-in disk saving per session
+                │     └── versioned snapshots + forward-only migrations
+                ├── optional AI review adapter (off by default; preview → consent;
+                │     versioned prompt; never auto-applied)
                 └── Markdown export
 
-Shared: packages/contracts (Zod schemas + pure workflow logic)
+Shared: packages/contracts (Zod schemas, pure workflow logic, schema migrations)
+Evaluation: evals/ai-review (fictional golden set; not shipped)
+Release: preview archive with manifest hashes, CycloneDX SBOM and CI attestations
 Legacy: root static prototype (preserved)
 ```
 
@@ -27,16 +33,19 @@ In development, Angular proxies `/api` requests to the Fastify service. The API 
 - Select a route and generate a time-budgeted, deterministic plan.
 - Complete actions and record outcomes.
 - Export Markdown with evidence status, job requirements and review details.
-- User-initiated JSON backup/restore and deletion from API memory.
+- User-initiated JSON backup/restore (older backups are upgraded on restore) and deletion from API memory and, for opted-in sessions, from disk.
+- Optional AI review of one job target: exact payload preview, explicit per-request consent, suggestions shown but never applied.
 
 No **automatic** AI calls, automated job-description extraction, hiring scores or automatic applications are implemented. Durable local persistence exists with a separately configured folder and explicit per-session opt-in. The optional AI adapter is disabled without explicit configuration and per-request user consent. The former static pilot remains available at the root.
 
-## Next design steps
+## Status of earlier design steps
 
-1. Add job-description sources and source spans using the same provenance-first contracts.
-2. Build evidence-to-requirement review with explicit user validation.
-3. Add resumable, versioned local JSON with consent and safe migrations.
-4. Live-test the optional provider adapter with fictional data and evaluate output relevance; it already has mock tests and strict validation.
-5. Extend tests to cover errors, interruption, injection-like document content and browser accessibility.
+| Earlier step | Status |
+|---|---|
+| Source spans with provenance-first contracts | **Done** for pasted résumé/project-note excerpts ([evidence provenance](evidence-provenance.md)). Spans for **job-description** sources are still open. |
+| Evidence-to-requirement review with explicit user validation | **Done** ([job requirements](job-requirements.md)) |
+| Resumable, versioned local JSON with consent and safe migrations | **Done** ([local persistence](local-persistence.md), [schema migrations](schema-migrations.md)) |
+| Live-test the optional AI adapter with fictional data | **Open**: golden-set harness ready ([AI evaluation](ai-evaluation.md)); live run waits for owner approval (roadmap B5) |
+| Tests for errors, interruption, injection-like content and accessibility | **Done** in automated form (unit, API, golden-set, Playwright and axe); manual screen-reader testing is still open |
 
-See [Phase 2 details](phase-2.md) and [roadmap](roadmap.md).
+Current priorities, gaps and decision gates live in the [roadmap](roadmap.md). Component-level design is in [frontend architecture](frontend-architecture.md) and [Phase 2 details](phase-2.md).

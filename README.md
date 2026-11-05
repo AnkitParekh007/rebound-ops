@@ -144,7 +144,7 @@ It requires no dependencies or API key. It keeps information in a browser tab an
 - [Pilot procedure](docs/manual-pilot.md)
 - [Evaluation rubric](docs/evaluation-rubric.md)
 
-**Next gates:** external participant discovery and complete human journeys, cross-browser and screen-reader usability, live provider compatibility with explicit key/budget approval, and an owner release decision. Exact source citations and opt-in local persistence are implemented but still need real-user evaluation.
+**Next gates:** external participant discovery and complete human journeys, screen-reader and manual cross-platform usability, a live AI golden-set evaluation with explicit key/budget approval, and an owner release decision (gates G1–G4 in the [roadmap](docs/roadmap.md)). Engineering hardening (schema migrations, frontend architecture and unit tests, CI supply-chain controls, AI evaluation harness, SBOM and provenance) is done, but exact citations, opt-in persistence and the rest of the workflow still need real-user evaluation.
 
 ## Principles
 
