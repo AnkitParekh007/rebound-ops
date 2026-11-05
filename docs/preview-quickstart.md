@@ -17,9 +17,15 @@ After every job passes in a `main` branch CI run, its local release candidate an
 
 1. Open [ReboundOps CI workflow runs](https://github.com/AnkitParekh007/rebound-ops/actions/workflows/ci.yml).
 2. Select a **successful push run on `main`** (not a pull request or feature branch). Verify that Linux, Windows and macOS jobs all passed.
-3. Under **Artifacts**, click `reboundops-v0.2.0-rc1-<full-commit-SHA>`. GitHub downloads a ZIP containing the `.tar.gz` candidate archive and its `.tar.gz.sha256` checksum sidecar.
+3. Under **Artifacts**, click `reboundops-v0.2.0-rc1-<full-commit-SHA>`. GitHub downloads a ZIP containing the `.tar.gz` candidate archive, its `.tar.gz.sha256` checksum sidecar and a `.cdx.json` CycloneDX SBOM.
 4. Extract the ZIP. In that directory, verify the SHA-256 sidecar with `sha256sum -c *.tar.gz.sha256` on Linux, or `shasum -a 256 -c *.tar.gz.sha256` on macOS. On Windows use `Get-FileHash -Algorithm SHA256` and compare the result against the sidecar.
-5. Extract the verified `.tar.gz` archive and follow the steps below. Check that `preview-manifest.json` identifies the source commit shown in GitHub Actions; run `node scripts/verify-preview.mjs` from the extracted folder.
+5. **Verify who built it (recommended).** With the [GitHub CLI](https://cli.github.com/) installed and signed in, check the signed attestations recorded by CI for this exact archive:
+   ```sh
+   gh attestation verify reboundops-v0.2.0-rc1-*.tar.gz --repo AnkitParekh007/rebound-ops
+   gh attestation verify reboundops-v0.2.0-rc1-*.tar.gz --repo AnkitParekh007/rebound-ops --predicate-type https://cyclonedx.org/bom
+   ```
+   The first proves the archive was built by this repository's `CI` workflow from the stated commit on `main` (SLSA build provenance, signed through Sigstore). The second proves the SBOM was attested for the same archive. If either fails, **do not run the archive**.
+6. Extract the verified `.tar.gz` archive and follow the steps below. Check that `preview-manifest.json` identifies the source commit shown in GitHub Actions; run `node scripts/verify-preview.mjs` from the extracted folder.
 
 GitHub manages artifact access and expiration according to repository settings. Do not treat these artifacts as private storage or publisher-signed software. If an artifact expires, a new authorized successful `main` CI build is required.
 
@@ -37,7 +43,9 @@ npm run start -w @reboundops/api
 
 Open **http://127.0.0.1:4174**. The compiled UI and API use the same loopback port; the Angular dev port 4200 is not needed. Never expose or tunnel 4174 to the internet.
 
-The verifier checks SHA-256 values in preview-manifest.json. The matching .tar.gz.sha256 sidecar checks the archive bytes. These verify integrity, **not publisher identity**. Review the source commit shown by the manifest.
+The verifier checks SHA-256 values in preview-manifest.json. The matching .tar.gz.sha256 sidecar checks the archive bytes. These verify integrity, **not publisher identity**; publisher identity comes from `gh attestation verify` (step 5 above). Review the source commit shown by the manifest.
+
+**SBOM:** `sbom.cdx.json` inside the archive (identical to the `.cdx.json` sidecar) is a CycloneDX 1.5 inventory of the **production** npm dependency graph, generated from the bundled `package-lock.json` by `scripts/sbom.mjs`. It covers the API runtime packages and the Angular packages compiled into `dist/web`, with versions, licences, purls and integrity hashes; dev tooling is excluded. Feed it to your own scanner (e.g. Dependency-Track, Grype or Trivy) to check new advisories.
 
 ## Building and testing the candidate from Git
 

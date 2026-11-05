@@ -55,6 +55,7 @@ jobs:
           path: |
             dist/preview/reboundops-v0.2.0-rc1-*.tar.gz
             dist/preview/reboundops-v0.2.0-rc1-*.tar.gz.sha256
+            dist/preview/reboundops-v0.2.0-rc1-*.cdx.json
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -65,6 +66,55 @@ jobs:
           echo 'After **all CI jobs pass**, download artifact `reboundops-v0.2.0-rc1-${{ github.sha }}` from this run.' >> "$GITHUB_STEP_SUMMARY"
           echo 'The artifact is a ZIP containing a `.tar.gz` and its `.sha256` checksum. Retained for 14 days.' >> "$GITHUB_STEP_SUMMARY"
           echo 'This is not a GitHub Release, public deployment, npm publication or beta authorization.' >> "$GITHUB_STEP_SUMMARY"
+
+  attest-preview:
+    # Signed SLSA build provenance and SBOM attestations for the exact archive
+    # built and smoke-tested above. Separate job so only it holds id-token and
+    # attestations write; runs on main pushes only (never on pull requests).
+    name: Attest preview candidate (provenance + SBOM)
+    needs: test-and-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download the verified candidate from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: reboundops-v0.2.0-rc1-${{ github.sha }}
+          path: preview
+      - name: Re-check archive checksum and locate the SBOM
+        id: files
+        working-directory: preview
+        run: |
+          sha256sum -c reboundops-v0.2.0-rc1-*.tar.gz.sha256
+          sboms=(reboundops-v0.2.0-rc1-*.cdx.json)
+          test "${#sboms[@]}" -eq 1 && test -f "${sboms[0]}"
+          echo "sbom=preview/${sboms[0]}" >> "$GITHUB_OUTPUT"
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: preview/reboundops-v0.2.0-rc1-*.tar.gz
+      - name: Attest CycloneDX SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: preview/reboundops-v0.2.0-rc1-*.tar.gz
+          sbom-path: ${{ steps.files.outputs.sbom }}
+      - name: Show verification commands
+        run: |
+          {
+            echo '### Attested preview candidate'
+            echo 'Provenance and SBOM attestations were recorded for the archive in artifact `reboundops-v0.2.0-rc1-${{ github.sha }}`.'
+            echo 'Verify after download (GitHub CLI):'
+            echo '```sh'
+            echo 'gh attestation verify reboundops-v0.2.0-rc1-*.tar.gz --repo ${{ github.repository }}'
+            echo 'gh attestation verify reboundops-v0.2.0-rc1-*.tar.gz --repo ${{ github.repository }} --predicate-type https://cyclonedx.org/bom'
+            echo '```'
+            echo 'This is still not a GitHub Release or publication.'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   platform-package-smoke:
     name: Platform package smoke (${{ matrix.os }})

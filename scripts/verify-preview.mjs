@@ -24,7 +24,7 @@ for (const [path, checksum] of Object.entries(manifest.files)) {
   if (checksum !== actual) throw new Error('Preview integrity check failed: ' + path);
   count++;
 }
-for (const expected of ['LICENSE', 'package-lock.json', 'dist/api/server.js',
+for (const expected of ['LICENSE', 'package-lock.json', 'sbom.cdx.json', 'dist/api/server.js',
   'dist/web/browser/index.html', 'packages/contracts/dist/index.js']) {
   if (!manifest.files[expected]) throw new Error('Missing expected file: ' + expected);
 }

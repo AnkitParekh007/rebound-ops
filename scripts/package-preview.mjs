@@ -10,6 +10,7 @@ import {
   copyFileSync, rmSync
 } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { generateSbom } from './sbom.mjs';
 
 const root = process.cwd();
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
@@ -85,6 +86,18 @@ const requiredBuild = [
 for (const required of requiredBuild) {
   if (!allowedFiles.includes(required)) throw new Error('Required build asset missing: ' + required);
 }
+// CycloneDX SBOM of the production dependency graph (roadmap B7). It is placed
+// inside the archive (covered by the manifest hashes) and beside it as a
+// sidecar, which CI attests together with the archive.
+const fullCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+const commitTime = new Date(execFileSync('git', ['log', '-1', '--format=%cI', fullCommit],
+  { cwd: root, encoding: 'utf8' }).trim()).toISOString();
+const sbom = generateSbom(JSON.parse(readFileSync(join(stage, 'package-lock.json'), 'utf8')),
+  { timestamp: commitTime, commit: fullCommit });
+const sbomJson = JSON.stringify(sbom, null, 2) + '\n';
+writeFileSync(join(stage, 'sbom.cdx.json'), sbomJson);
+allowedFiles.push('sbom.cdx.json');
+
 const files = {};
 for (const path of allowedFiles.sort()) {
   if (files[path]) throw new Error('Duplicate package file: ' + path);
@@ -102,6 +115,8 @@ const archive = join(outputRoot, folder + '.tar.gz');
 execFileSync('tar', ['-czf', archive, '-C', outputRoot, basename(stage)]);
 const checksum = createHash('sha256').update(readFileSync(archive)).digest('hex');
 writeFileSync(archive + '.sha256', checksum + '  ' + basename(archive) + '\n');
+writeFileSync(join(outputRoot, folder + '.cdx.json'), sbomJson);
 console.log('Preview candidate prepared locally: ' + relative(root, archive));
 console.log('Archive SHA-256: ' + checksum);
+console.log('SBOM: ' + sbom.components.length + ' production components (inside archive and as ' + folder + '.cdx.json)');
 console.log('No GitHub Release, deployment, npm publication or participant data was created.');

@@ -27,6 +27,8 @@ This is a **pre-release checklist**, not a declaration that ReboundOps is produc
 - [x] Local Host/Origin protection, saved-file change detection and release hygiene check
 - [x] Unpublished preview archive allowlist, SHA-256 manifest, archive checksum and clean extracted startup smoke checks in CI
 - [x] Configure expiring GitHub Actions artifact download on successful `main` push builds (no GitHub Release)
+- [x] CycloneDX SBOM inside every preview archive, with SLSA build-provenance and SBOM attestations on `main` builds
+- [ ] Verify one downloaded candidate end-to-end with `gh attestation verify` (owner)
 - [ ] Manually verify the final preview archive and complete the OS/assistive-technology QA handoff
 - [ ] Test manually across supported operating systems, browsers and screen readers; automated Linux browser checks are not a human usability study
 - [ ] Validate keyboard and screen reader use with participants

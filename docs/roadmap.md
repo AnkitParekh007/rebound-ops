@@ -66,7 +66,7 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 | # | Gap | Why it matters | Response |
 |---|---|---|---|
 | S1 | ~~GitHub Actions pinned by tag (`@v4`), not commit SHA; no Dependabot/Renovate; no CodeQL/secret scanning workflow~~ | Exposure to supply-chain attacks through CI; new advisories arrive unnoticed between manual reviews (#19) | **Done (B3):** actions SHA-pinned, least-privilege workflow permissions, Dependabot (npm + actions), CodeQL (`security-extended`, JS/TS + workflows). **Owner action still open:** enable secret scanning and push protection in repository settings (not configurable from files) |
-| S2 | Preview archive has a SHA-256 checksum produced by the same pipeline, but no build-provenance attestation or SBOM | A checksum proves the file is intact, not where it came from | `actions/attest-build-provenance` + CycloneDX SBOM attached to the artifact before any publication |
+| S2 | ~~Preview archive has a SHA-256 checksum produced by the same pipeline, but no build-provenance attestation or SBOM~~ **Done (B7)** | A checksum proves the file is intact, not where it came from | `actions/attest-build-provenance` + CycloneDX SBOM attached to the artifact before any publication |
 | S3 | Encryption at rest for saved sessions (original engineering issue 6) not implemented | Saved files hold career/personal data in plaintext | Keep documented as a limitation for the localhost pilot; becomes **mandatory** for any hosted or shared-machine scenario (ADR-0002 trigger) |
 | S4 | ~~README claims Node 22.x support, but CI tests only Node 24~~ | Users on 22.x may hit failures CI never sees | **Done (B3):** `Node 22 compatibility` CI job runs install, unit/API tests and the Angular build |
 
@@ -110,7 +110,7 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 | B4 | ✅ AI golden set + offline eval runner (mock + live mode), prompt/model versioning | A1, A2, A5 | Done 4 Nov 2026; thresholds proposed, owner to agree; see [AI evaluation](ai-evaluation.md) |
 | B5 | Live provider evaluation on fictional data with provider-side spend limit (owner approval) | A3, #8 | **G2** |
 | B6 | ✅ Component tests, typed forms on contracts | F3, F4 | Done 5 Nov 2026; Vitest unit tests in `npm test`, reactive forms validated by shared Zod contracts |
-| B7 | Provenance attestation + SBOM for the preview artifact | S2 | Before **G4** |
+| B7 | ✅ Provenance attestation + SBOM for the preview artifact | S2 | Done 5 Nov 2026; CycloneDX SBOM in every archive, SLSA provenance + SBOM attestations on `main` builds |
 | B8 | AI suggestion apply/dismiss with local-only counts in pilot feedback export | A4 | Only if G2 passes and AI is enabled in the pilot |
 
 ### Decision gates

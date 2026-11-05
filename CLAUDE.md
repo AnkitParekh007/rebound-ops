@@ -25,6 +25,7 @@ Pushing straight to `main` skips pull-request review, so run the relevant local 
 - Never fabricate user-research, pilot or outcome metrics. Only engineering facts verifiable in the repo may be marked done.
 - Any change to the persisted `Session` shape must follow [docs/schema-migrations.md](docs/schema-migrations.md) (version bump, migration, new frozen fixture). Never edit a committed fixture.
 - Frontend: components never call `HttpClient`; go through `SessionStore` intents. Use typed reactive forms validated with `contractValidator` (no `ngModel`). Keep session-scoped UI state in feature components and private pilot answers out of the store (see [docs/frontend-architecture.md](docs/frontend-architecture.md)).
+- Preview archive: keep `sbom.cdx.json` in the package and any new shipped file inside the allowlist in `scripts/package-preview.mjs`.
 - CI: pin every new GitHub Action to a full commit SHA with a `# vX.Y.Z` comment, and keep workflow `permissions` least-privilege.
 - Never commit real participant data, résumés, API keys or session files.
 - AI prompt: any edit to `apps/api/src/prompt.ts` text needs a version bump, a new pinned fingerprint and a golden-set run; never commit `evals/ai-review/results/` or put real data in the golden set.

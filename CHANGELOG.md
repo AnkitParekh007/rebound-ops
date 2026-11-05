@@ -3,6 +3,7 @@
 ## Unreleased — Phase 2 typed MVP
 
 ### Added
+- Supply-chain evidence for the preview candidate: deterministic CycloneDX 1.5 SBOM of the production dependency graph (inside the archive and as a sidecar), plus signed SLSA build-provenance and SBOM attestations on `main` CI builds, verifiable with `gh attestation verify`. Root and workspace manifests now declare the MIT licence.
 - Frontend unit tests (Angular unit-test builder with Vitest/jsdom, run by `npm test`) for the session store, error mapping, contract validators and forms; all forms converted to typed reactive forms validated by the shared Zod contracts, with accessible inline errors and bundle budgets.
 - AI quality evaluation: 20-case fictional golden set with fairness pairs, harness and runner (`npm run eval:ai`, owner-approved `eval:ai:live`) scoring over-claims, fabricated evidence, injection, support recall and fairness parity against proposed G2 thresholds; versioned, fingerprint-pinned prompt reported with every analysis.
 - CI supply-chain hardening: SHA-pinned GitHub Actions with least-privilege permissions, Dependabot for npm and Actions, CodeQL (`security-extended`) for TypeScript and workflows, and a Node 22 compatibility job.

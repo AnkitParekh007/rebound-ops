@@ -24,6 +24,12 @@ try {
   const verify = spawnSync(process.execPath, ['scripts/verify-preview.mjs'],
     { cwd: folder, stdio: 'inherit' });
   if (verify.status !== 0) throw new Error('Manifest verification failed.');
+  // The attested sidecar SBOM must be byte-identical to the one inside the archive.
+  const inside = readFileSync(join(folder, 'sbom.cdx.json'));
+  const sidecar = readFileSync(join(output, name.replace(/\.tar\.gz$/, '.cdx.json')));
+  if (!inside.equals(sidecar)) throw new Error('Sidecar SBOM differs from the archived SBOM.');
+  const bom = JSON.parse(inside.toString('utf8'));
+  if (bom.bomFormat !== 'CycloneDX' || !bom.components?.length) throw new Error('Archived SBOM is malformed.');
 
   const npmCli = process.env.npm_execpath;
   const npmCommand = npmCli ? process.execPath : (process.platform === 'win32' ? 'npm.cmd' : 'npm');
