@@ -13,6 +13,17 @@ updates:
     commit-message:
       prefix: build
       include: scope
+    ignore:
+      # @angular/compiler-cli accepts only the TypeScript minor it was built for
+      # (currently >=6.0 <6.1). Bump TypeScript by hand together with an Angular
+      # upgrade; patch releases still arrive automatically.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      # Node typings must not run ahead of the supported runtimes (engines:
+      # Node 22+), or code can compile against APIs missing at runtime. Raise
+      # the major by hand when the engines floor moves.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
     groups:
       angular:
         patterns: ['@angular/*', '@angular-devkit/*']
