@@ -11,7 +11,7 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -31,8 +31,20 @@ jobs:
       - name: Compile Angular production application
         run: npm run build:web
       - name: Install Chromium, Firefox and WebKit for browser tests
-        timeout-minutes: 8 # a stalled browser download hung a run for 30+ min
-        run: npx playwright install --with-deps chromium firefox webkit
+        # Browser downloads occasionally stall (seen in 2 of ~10 runs; a healthy
+        # install takes under a minute). Bound each attempt and retry instead of
+        # failing or hanging the whole build.
+        timeout-minutes: 11
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 180 npx playwright install --with-deps chromium firefox webkit; then
+              exit 0
+            fi
+            echo "::warning::Playwright browser install attempt $attempt failed or stalled; retrying"
+            sleep 10
+          done
+          echo "::error::Playwright browser install failed after 3 attempts"
+          exit 1
       - name: Run cross-browser end-to-end and accessibility tests
         timeout-minutes: 12
         run: npm run test:e2e
