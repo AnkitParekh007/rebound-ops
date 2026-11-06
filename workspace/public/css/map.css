@@ -1,0 +1,226 @@
+/* #/map — relevance-first Leaflet job map (views/map.js). */
+:root {
+  --map-score-top: #006b5e;
+  --map-score-good: #2f7f74;
+  /* Final-regression P3: light rings paint this as the number on a white
+     fill — #789792 read 3.16:1 (AA needs 4.5). #567b75 holds 4.68:1 in both
+     directions (ink on the white ring, white ink on a mid-tile). The dark
+     value below already reads 4.98:1 on the dark --paper ring, untouched. */
+  --map-score-mid: #567b75;
+  --map-score-low: #aeb8b6;
+  --map-score-none: #8f9997;
+}
+[data-theme="dark"] {
+  --map-score-top: #53d3c4;
+  --map-score-good: #3fa99b;
+  --map-score-mid: #718f8a;
+  --map-score-low: #566563;
+  --map-score-none: #7b8885;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --map-score-top: #53d3c4;
+    --map-score-good: #3fa99b;
+    --map-score-mid: #718f8a;
+    --map-score-low: #566563;
+    --map-score-none: #7b8885;
+  }
+}
+.job-map-page { display: flex; min-height: 0; flex-direction: column; gap: 12px; }
+.job-map-toolbar { display: flex; gap: 8px; align-items: center; padding: 0 0 8px; }
+/* v1.251.1 — true 50/50: at 390 px the old 58/42 split left the search at
+   124 px and truncated its placeholder. min-width: 0 lets the flex items
+   shrink below content size so both columns stay equal. */
+.job-map-toolbar .job-map-spec-select { flex: 1 1 0; min-width: 0; }
+.job-map-toolbar .job-map-search { flex: 1 1 0; min-width: 0; }
+.job-map-wrap { position: relative; display: flex; min-height: 0; flex-direction: column; gap: 10px; }
+.job-map { height: calc(100vh - 390px); min-height: 360px; border-radius: 12px; border: 1px solid var(--slate); isolation: isolate; }
+.job-map-sheet { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 10px 12px; border: 1px solid var(--slate); border-radius: 12px; background: var(--paper); color: var(--hof); box-shadow: var(--shadow-sm); }
+.job-map-filter-body { display: flex; min-width: 0; flex: 1; flex-wrap: wrap; align-items: center; gap: 16px; }
+.job-map-filter-group { display: flex; align-items: center; gap: 9px; }
+.job-map-filter-group .select { min-width: 150px; }
+.map-check { display: inline-flex; min-height: 32px; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.map-check input { margin: 0; }
+.job-map-filter-actions { display: flex; gap: 6px; }
+.job-map-legend-inline { display: flex; min-width: 0; flex-direction: column; color: var(--foggy); font-size: 11px; line-height: 1.25; white-space: nowrap; }
+.job-map-legend-inline strong { color: var(--hof); }
+.job-map-sheet-close, .job-map-filter-button, .job-map-status-chip, .job-map-peek { display: none; }
+.job-map-sheet [hidden] { display: none !important; }
+/* CAR-57 (v1.247.0) — dark-theme basemap with no key and no extra vendor:
+   unless MAP_TILE_DARK_URL configures a real dark provider (the Carto preset
+   in map.mjs is placeholder-gated keyless), dark mode keeps the light OSM
+   raster and inverts it in place — only the tile <img>s; markers, tooltips
+   and controls keep their own theme tokens. JS toggles the class exactly
+   while the effective theme is dark. */
+.job-map--invert .leaflet-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(.87) contrast(.88) saturate(.55);
+}
+.job-map .leaflet-tooltip { min-width: 200px; max-width: 280px; white-space: normal; line-height: 1.35; }
+.job-marker-best { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--map-score-top) 72%, transparent)); }
+.job-cluster { box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--c); color: #fff; border: 2px solid #fff; font: 700 11px/1 Inter, sans-serif; box-shadow: 0 1px 4px rgba(0,0,0,.35); cursor: pointer; }
+.job-cluster.ring { background: #fff; color: var(--c); border: 3px solid var(--c); }
+.job-cluster-best { font-size: 11px; white-space: nowrap; }
+.job-cluster-count { font-size: 9px; opacity: .86; }
+/* Browser sweep P2 — dark-theme cluster bubbles. The score palette is tuned
+   for dark tiles, so the theme-blind fills inverted the relationship: a dark
+   ring read its teal number on a white fill (1.83:1) and filled tiles put
+   white numbers on bright teal at the same ratio. Dark rings sit on the
+   --paper surface with the score colour for the number and border; dark
+   filled tiles keep the score fill and flip the number to --paper ink.
+   Computed on the dark palette: top #53d3c4 9.5:1, good #3fa99b 6.1:1,
+   mid #718f8a 5.0:1, none #7b8885 4.7:1 — the lowest colour
+   (--map-score-low #566563) cannot reach 4.5:1 against any dark surface in
+   either direction, so data-dim clusters take white-on-tile (filled,
+   6.1:1) or a --hof-lifted mix (ring, 6.4:1) instead. Light theme keeps the
+   white fill its own palette is tuned for. */
+[data-theme="dark"] .job-cluster { color: var(--paper); }
+[data-theme="dark"] .job-cluster.ring { background: var(--paper); color: var(--c); }
+[data-theme="dark"] .job-cluster[data-dim] { color: #fff; }
+[data-theme="dark"] .job-cluster.ring[data-dim] { color: color-mix(in srgb, var(--c) 60%, var(--hof)); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .job-cluster { color: var(--paper); }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .job-cluster.ring { background: var(--paper); color: var(--c); }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .job-cluster[data-dim] { color: #fff; }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .job-cluster.ring[data-dim] { color: color-mix(in srgb, var(--c) 60%, var(--hof)); }
+}
+.job-map-home { display: grid; place-items: center; border: 2px solid var(--paper); border-radius: 50%; background: var(--hof); color: var(--paper); font-size: 19px; box-shadow: 0 1px 5px rgba(0,0,0,.36); }
+.commute-cell { white-space: nowrap; }
+.commute-cell.is-unknown { color: var(--foggy); }
+.commute-cell.is-over { color: var(--danger); font-weight: 700; }
+.job-map-legend { background: var(--paper); color: var(--hof); padding: 6px 8px; border-radius: 8px; font-size: 11px; line-height: 1.6; box-shadow: 0 1px 4px rgba(0,0,0,.25); max-width: 260px; }
+.job-map-swatch { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; margin-right: 6px; vertical-align: -2px; border-radius: 50%; box-sizing: border-box; font-size: 8px; font-weight: 700; }
+.job-map-swatch.dot { background: #008a05; border: 1.5px solid #fff; box-shadow: 0 0 0 1px #008a05; }
+.job-map-swatch.ring { background: #fff; border: 2.5px solid #2b6cb0; }
+.job-map-swatch.count { background: #e0a100; color: #fff; width: 14px; height: 14px; }
+
+/* CAR-57 (v1.246.0) — Leaflet's stock controls stayed white in dark mode while
+   the app's own legend adapted: a jarring light block on a dark widget. Tiles
+   stay on the server-configured layer (the CSP img-src origin is derived from
+   MAP_TILE_URL server-side, so the client cannot swap layers); the chrome —
+   zoom, layers, attribution — follows the theme instead. */
+[data-theme="dark"] .job-map .leaflet-control-zoom a {
+  background: var(--elev); color: var(--hof); border-bottom-color: var(--slate);
+}
+[data-theme="dark"] .job-map .leaflet-control-zoom a:hover { background: var(--paper); }
+[data-theme="dark"] .job-map .leaflet-control-layers,
+[data-theme="dark"] .job-map .leaflet-control-attribution { background: var(--paper); color: var(--foggy); }
+[data-theme="dark"] .job-map .leaflet-control-attribution a { color: var(--foggy); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .job-map .leaflet-control-zoom a { background: var(--elev); color: var(--hof); border-bottom-color: var(--slate); }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .job-map .leaflet-control-zoom a:hover { background: var(--paper); }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .job-map .leaflet-control-layers,
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .job-map .leaflet-control-attribution { background: var(--paper); color: var(--foggy); }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .job-map .leaflet-control-attribution a { color: var(--foggy); }
+}
+
+/* v1.250.0 — the FAB is hidden on the map page at every width: it covered
+   the Leaflet attribution's bottom-right corner once the toolbar shifted the
+   map down, and the map is a full-bleed surface (the docs assistant stays
+   reachable from every other page). */
+body.job-map-active .docs-fab { display: none; }
+
+@media (max-width: 900px) {
+  body.job-map-active .content { width: 100%; max-width: none; padding: 0; overflow: hidden; }
+  .job-map-page { height: calc(100dvh - var(--topbar-h, 80px)); gap: 0; }
+  .job-map-page > .page-header { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .job-map-toolbar { gap: 6px; padding-bottom: 6px; }
+  .job-map-toolbar .job-map-spec-select, .job-map-toolbar .job-map-search { flex: 1 1 0; min-width: 0; min-height: 38px; }
+  .job-map-wrap { flex: 1; gap: 0; overflow: hidden; }
+  .job-map { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; }
+  .job-map-status-chip { position: absolute; z-index: var(--z-map-control); top: 12px; inset-inline-start: 12px; display: block; min-height: 38px; padding: 9px 12px; border: 1px solid var(--slate); border-radius: 999px; background: color-mix(in srgb, var(--paper) 92%, transparent); color: var(--hof); font-size: 12px; font-weight: 700; box-shadow: var(--shadow-sm); backdrop-filter: blur(8px); }
+  .job-map-filter-button { position: absolute; z-index: var(--z-map-control); inset-inline-end: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); display: inline-flex; min-height: 44px; }
+  .job-map-sheet { position: absolute; z-index: var(--z-map-sheet); right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); left: 8px; display: none; max-height: 58dvh; padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); overflow: auto; border-radius: 18px; box-shadow: 0 -8px 30px rgba(0,0,0,.25); }
+  .job-map-sheet.is-open { display: block; }
+  .job-map-sheet::before { content: ""; display: block; width: 40px; height: 4px; margin: -8px auto 12px; border-radius: 4px; background: var(--slate); }
+  .job-map-filter-body { display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
+  .job-map-filter-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .job-map-filter-group .select { width: 100%; min-height: 44px; }
+  .map-check { min-height: 44px; }
+  .map-check input { width: 20px; height: 20px; }
+  .job-map-legend-inline { padding-top: 4px; white-space: normal; }
+  .job-map-filter-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .job-map-filter-actions .btn { min-height: 44px; flex: 1; }
+  .job-map-sheet-close { position: absolute; z-index: var(--z-map-control); top: 8px; inset-inline-end: 10px; display: grid; width: 44px; height: 44px; padding: 0; place-items: center; border: 0; background: transparent; color: var(--hof); font-size: 28px; cursor: pointer; }
+  .job-map-peek:not([hidden]) { display: block; }
+  /* padding-inline-end reserves the sheet-close button's corner (it mirrors with the sheet) */
+  .job-map-peek-card { display: flex; min-height: 94px; flex-direction: column; justify-content: center; gap: 7px; padding-block: 12px 4px; padding-inline: 2px 44px; outline: none; cursor: pointer; }
+  .job-map-peek-card strong { font-size: 16px; line-height: 1.35; }
+  .job-map-peek-card span { color: var(--foggy); font-size: 13px; }
+  .job-map-peek-card:focus-visible { border-radius: 8px; box-shadow: inset 0 0 0 2px var(--accent); }
+  .job-map .leaflet-control-zoom { display: none; }
+  .job-map .leaflet-control-attribution { margin-bottom: calc(var(--map-sheet-h, 0px) + env(safe-area-inset-bottom)); transition: margin-bottom .18s ease; }
+}
+
+/* ============================================================
+   CAR-125 (map v2) — clusters, side list, filter chips.
+   Append-only block: every selector is v2-map-prefixed.
+   ============================================================ */
+
+/* Filter chips — specialization (from the settings) + score bands.
+   One chip row instead of the old select-in-a-sheet: applied
+   immediately, active state visible at a glance, like #/scan. */
+.v2-map-chiprow { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding-bottom: 8px; }
+.v2-map-chipset { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.v2-map-chip { min-height: 30px; padding: 3px 12px; border: 1px solid var(--slate); border-radius: 999px; background: var(--paper); color: var(--hof); font: 600 12.5px/1.2 Inter, sans-serif; cursor: pointer; transition: background .12s ease, border-color .12s ease, color .12s ease; }
+.v2-map-chip:hover { border-color: var(--hof); }
+.v2-map-chip.is-active { background: var(--hof); border-color: var(--hof); color: var(--paper); }
+.v2-map-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Layout: the map and the bounds-synced side list share one row on
+   desktop; the list matches the map's own height formula. Review f9:
+   the basis is shrinkable (`0 1`) with a 260px floor — at 901–1100px
+   the list narrows first and the map keeps ~600px+ (the rigid
+   `flex: 0 0 320px` squeezed the map to ~500px). */
+.v2-map-layout { display: flex; gap: 12px; align-items: stretch; }
+.v2-map-layout .job-map-wrap { flex: 1 1 auto; min-width: 0; }
+.v2-map-list { display: flex; flex-direction: column; flex: 0 1 320px; min-width: 260px; min-height: 360px; max-height: calc(100vh - 390px); border: 1px solid var(--slate); border-radius: 12px; background: var(--paper); color: var(--hof); overflow: hidden; }
+.v2-map-list-head { display: flex; flex: none; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--slate); font-size: 13px; }
+.v2-map-list-head strong { flex: 1; }
+.v2-map-list-count { color: var(--foggy); font-weight: 700; font-variant-numeric: tabular-nums; }
+.v2-map-list-rows { margin: 0; padding: 0; list-style: none; flex: 1; overflow: auto; }
+.v2-map-row { display: block; width: 100%; padding: 9px 12px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--slate) 55%, transparent); background: transparent; color: inherit; text-align: inherit; font: inherit; cursor: pointer; }
+.v2-map-row:hover, .v2-map-row:focus-visible { background: color-mix(in srgb, var(--hof) 7%, transparent); outline: none; }
+.v2-map-row-main { display: block; font-size: 13px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.v2-map-row-meta { display: block; margin-top: 2px; color: var(--foggy); font-size: 12px; overflow-wrap: anywhere; }
+.v2-map-list-empty { padding: 18px 14px; color: var(--foggy); font-size: 13px; }
+.v2-map-list-more { padding: 9px 12px; color: var(--foggy); font-size: 12px; list-style: none; }
+.v2-map-list-close, .v2-map-list-toggle { display: none; }
+/* The keyboard/hover path onto the map: one highlight primitive for the
+   drawn marker (an SVG path for singletons, a div for clusters). */
+.v2-map-marker-hot { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--map-score-top) 85%, transparent)) drop-shadow(0 0 2px color-mix(in srgb, var(--map-score-top) 60%, transparent)); }
+
+/* The «Without a location: N» click-through to #/scan. */
+.v2-map-noloc { display: inline-flex; align-items: center; min-height: 28px; margin-top: 4px; padding: 2px 10px; border: 1px solid var(--slate); border-radius: 999px; background: transparent; color: var(--foggy); font-size: 12px; font-weight: 600; cursor: pointer; }
+.v2-map-noloc:hover { border-color: var(--hof); color: var(--hof); }
+.v2-map-noloc:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.v2-map-noloc[hidden] { display: none; }
+
+/* Cluster expansion — a quick scale-in while Leaflet animates the zoom
+   itself; disabled for reduced-motion users. */
+@keyframes v2-map-cluster-in { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.v2-map-cluster { animation: v2-map-cluster-in 160ms var(--ease-out); }
+.v2-map-cluster--m { box-shadow: 0 2px 8px rgba(0, 0, 0, .4); }
+.v2-map-cluster--l { box-shadow: 0 3px 11px rgba(0, 0, 0, .48); }
+@media (prefers-reduced-motion: reduce) {
+  .v2-map-cluster { animation: none; }
+}
+
+@media (max-width: 900px) {
+  /* Chips scroll horizontally instead of eating map height. */
+  .v2-map-chiprow { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+  /* The chipset itself must not shrink: with the desktop min-width:0 it
+     collapsed to a fraction of the row while its nowrap chips kept their
+     intrinsic width and painted OVER the sibling chipset — «All scores»
+     started at x189 inside a spec chip ending at x330 (mobile-390 sweep,
+     CTA elementFromPoint hit the wrong chip). Content-sized chipsets turn
+     the row into the one scrollable strip CAR-125 intended. */
+  .v2-map-chipset { flex: 0 0 auto; flex-wrap: nowrap; }
+  .v2-map-chip { flex: 0 0 auto; white-space: nowrap; min-height: 36px; }
+  /* The list becomes a bottom sheet over the full-screen map. */
+  .v2-map-layout { position: relative; flex: 1; min-height: 0; flex-direction: column; }
+  .v2-map-list { position: absolute; z-index: var(--z-map-sheet); right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); left: 8px; flex: none; display: none; min-height: 0; max-height: 52dvh; border-radius: 18px; box-shadow: 0 -8px 30px rgba(0, 0, 0, .25); }
+  .v2-map-list.is-open { display: flex; }
+  .v2-map-list-toggle { position: absolute; z-index: var(--z-map-control); inset-inline-start: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); display: inline-flex; min-height: 44px; }
+  .v2-map-list-close { position: absolute; z-index: var(--z-map-control); top: 8px; inset-inline-end: 10px; display: grid; width: 44px; height: 44px; padding: 0; place-items: center; border: 0; background: transparent; color: var(--hof); font-size: 28px; cursor: pointer; }
+  .v2-map-noloc { min-height: 36px; }
+}

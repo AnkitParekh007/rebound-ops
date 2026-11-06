@@ -1,0 +1,95 @@
+---
+import { formatNumber, t, type Locale } from '../i18n/locales';
+import facts from '../generated/facts.json';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+
+// VERIFIED 2026-10-29 (worktree feat/deel-provider, upstream #6189 port):
+//   node -e "import('./server/lib/sources/registry.mjs').then(m=>console.log(m.SOURCES.length))"
+//     → SOURCES 123 (118 EN + 5 RU)
+//   node -e "import('./server/lib/portals/registry.mjs').then(m=>console.log(m.ALL_ADAPTERS.length))"
+//     → ALL_ADAPTERS 118
+//   npm test → # pass 6347 / # tests 6353 (6 skipped, 0 fail)
+//     (facts.tests reads the release-pinned count from docs/sdd/CONVENTIONS.md; the
+//      tile shows it rounded down to the nearest hundred with a "+" suffix, so a
+//      between-release lag always understates, never overstates.)
+//   locales → 19 entries in site/src/i18n/locales.ts
+// Every number below comes from src/generated/facts.json (written from the live
+// registry at build time) — nothing on the page is typed by hand.
+
+// Exact, build-time registry-derived counts. The sources total (123) is the
+// public-facing count (118 EN + 5 RU — see CONTEXT.md); facts.adapters holds
+// that same 123 (one server/lib/sources/<slug>.mjs file per registry entry —
+// sync-assets fails the build if the two disagree). The "adapters" key name
+// is historical and kept for consumer stability; in CONTEXT.md vocabulary the
+// 118 "adapters" are the EN fetch-walk adapters, and the technical
+// EN/RU split (facts.adaptersEn / facts.adaptersRu) stays in the verified
+// comment above, not in the marketing band.
+const sources = facts.sources.length;
+// The tests tile keeps the "+" convention: floor to the nearest hundred so a
+// release-pinned count can never overstate the live suite.
+const testsRounded = facts.tests ? Math.floor(facts.tests / 100) * 100 : null;
+// CAR-138: stats.note carries {sources}/{en}/{ru} placeholders instead of
+// typed numbers — a registry change updates the note at build, never by hand.
+const note = t(locale, 'stats.note')
+  .replace('{sources}', String(sources))
+  .replace('{en}', String(facts.adaptersEn))
+  .replace('{ru}', String(facts.adaptersRu));
+
+type Tile = { value: string; label: string; count?: number; suffix?: string };
+
+const tiles: Tile[] = [
+  {
+    value: String(sources),
+    count: sources,
+    label: t(locale, 'stats.t.sources'),
+  },
+  ...(testsRounded
+    ? [
+        {
+          value: `${formatNumber(locale, testsRounded)}+`,
+          count: testsRounded,
+          suffix: '+',
+          label: t(locale, 'stats.t.tests'),
+        },
+      ]
+    : []),
+  {
+    value: String(facts.locales),
+    count: facts.locales,
+    label: t(locale, 'stats.t.langs'),
+  },
+  {
+    value: String(facts.providers),
+    count: facts.providers,
+    label: t(locale, 'stats.t.providers'),
+  },
+  { value: 'MIT', label: t(locale, 'stats.t.license') },
+  { value: '100%', label: t(locale, 'stats.t.local') },
+];
+---
+
+<!-- CAR-133: the numbers band replaced the old one-line stats strip — animated
+     count-up on reveal (motion-safe), staggered, with the license +
+     self-hosted stance as first-class tiles. -->
+<section class="border-y border-line bg-paper-alt py-12">
+  <div class="container-site">
+    <ul class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-6">
+      {tiles.map((tile, i) => (
+        <li class={`num-tile reveal reveal-d${(i % 6) + 1}`}>
+          <span
+            class="num-value"
+            dir="ltr"
+            data-count={tile.count !== undefined ? String(tile.count) : undefined}
+            data-suffix={tile.suffix}
+          >{tile.value}</span>
+          <span class="num-label">{tile.label}</span>
+        </li>
+      ))}
+    </ul>
+    <p class="num-note reveal">{note}</p>
+  </div>
+</section>

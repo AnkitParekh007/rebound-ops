@@ -1,0 +1,329 @@
+/**
+ * cvstart.org — the only client-side JS on the site (< 15KB gzip budget).
+ * Everything here is progressive enhancement: the page is fully readable
+ * and navigable without it (html.js gates all hiding CSS).
+ */
+
+/* ---------------------------------------------------------------- header */
+const header = document.querySelector('.site-header');
+if (header) {
+  const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 8);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
+/* ----------------------------------------------------------- mobile menu */
+const menuBtn = document.getElementById('menu-btn');
+const mobileMenu = document.getElementById('mobile-menu');
+if (menuBtn && mobileMenu) {
+  const setOpen = (open) => {
+    mobileMenu.hidden = !open;
+    menuBtn.setAttribute('aria-expanded', String(open));
+    document.body.style.overflow = open ? 'hidden' : '';
+  };
+  menuBtn.addEventListener('click', () => setOpen(mobileMenu.hidden));
+  mobileMenu.addEventListener('click', (e) => {
+    if (e.target.closest('a') || e.target.closest('[data-close-menu]')) setOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !mobileMenu.hidden) setOpen(false);
+  });
+}
+
+/* ------------------------------------------------------ language switcher */
+for (const details of document.querySelectorAll('details.lang-switcher')) {
+  const summary = details.querySelector('summary');
+  const options = [...details.querySelectorAll('[role="option"]')];
+  const sync = () => summary.setAttribute('aria-expanded', String(details.open));
+  details.addEventListener('toggle', sync);
+  sync();
+  document.addEventListener('click', (e) => {
+    if (details.open && !details.contains(e.target)) details.open = false;
+  });
+  details.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      details.open = false;
+      summary.focus();
+      return;
+    }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const i = options.indexOf(document.activeElement);
+    const next =
+      e.key === 'ArrowDown'
+        ? options[Math.min(i + 1, options.length - 1)] || options[0]
+        : options[Math.max(i - 1, 0)] || options[0];
+    next.focus();
+  });
+  // Remember an explicit language choice.
+  details.addEventListener('click', (e) => {
+    const opt = e.target.closest('[role="option"]');
+    if (opt && opt.dataset.code) {
+      try {
+        localStorage.setItem('cvstart-lang', opt.dataset.code);
+      } catch {
+        /* private mode */
+      }
+    }
+  });
+}
+
+/* ------------------------------------------------------------ install tabs */
+for (const widget of document.querySelectorAll('[data-install]')) {
+  const tabs = [...widget.querySelectorAll('.install-tab')];
+  const panels = [...widget.querySelectorAll('.install-panel')];
+  const select = (name) => {
+    for (const t of tabs) t.setAttribute('aria-selected', String(t.dataset.tab === name));
+    for (const p of panels) p.hidden = p.dataset.panel !== name;
+  };
+  for (const t of tabs) t.addEventListener('click', () => select(t.dataset.tab));
+  tabs
+    .filter((t) => t.getAttribute('role') === 'tab')
+    .forEach((t, idx, arr) => {
+      t.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        e.preventDefault();
+        const dir = e.key === 'ArrowRight' ? 1 : -1;
+        const next = arr[(idx + dir + arr.length) % arr.length];
+        next.focus();
+        select(next.dataset.tab);
+      });
+    });
+  select(tabs[0] && tabs[0].dataset.tab);
+}
+
+/* ------------------------------------------------------------ copy buttons */
+/* CAR-141: the async Clipboard API is refused in headless browsers,
+ * permission-denied contexts and insecure origins — the old early-return
+ * left the click SILENT there (the "копирование без обратной связи"
+ * finding). A rejection now falls back to the hidden-textarea + execCommand
+ * path, and both success paths share one announce (icon swap + aria-live).
+ * On a genuine double failure nothing claims success — a false "Copied"
+ * with an empty clipboard is worse than silence. */
+const live = document.getElementById('copy-live');
+const revertTimers = new WeakMap();
+const showCopied = (btn) => {
+  btn.classList.add('copied'); // icon swap is class-driven in global.css
+  if (live) live.textContent = btn.dataset.copiedLabel || 'Copied';
+  clearTimeout(revertTimers.get(btn)); // re-click resets, never stacks
+  revertTimers.set(
+    btn,
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      if (live) live.textContent = '';
+    }, 2000)
+  );
+};
+// Deprecated, but the only clipboard path left where the async API is
+// unavailable; it reports whether the copy actually happened.
+const legacyCopy = (text) => {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'absolute';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try {
+    ok = Boolean(document.execCommand && document.execCommand('copy'));
+  } catch {
+    ok = false;
+  }
+  ta.remove();
+  return ok;
+};
+for (const btn of document.querySelectorAll('[data-copy]')) {
+  btn.addEventListener('click', async () => {
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(btn.dataset.copy);
+      ok = true;
+    } catch {
+      ok = legacyCopy(btn.dataset.copy);
+    }
+    if (ok) showCopied(btn);
+  });
+}
+
+/* ------------------------------------------------- scroll reveal (one-shot) */
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if ('IntersectionObserver' in window && !reduced) {
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        if (en.target.classList.contains('terminal')) en.target.classList.add('played');
+        else en.target.classList.add('in');
+        io.unobserve(en.target);
+      }
+    },
+    { threshold: 0.15 }
+  );
+  for (const el of document.querySelectorAll('.reveal, .terminal')) io.observe(el);
+} else {
+  for (const el of document.querySelectorAll('.reveal')) el.classList.add('in');
+  for (const el of document.querySelectorAll('.terminal')) el.classList.add('played');
+}
+
+/* --------------------------------------------------------- language banner */
+(() => {
+  const banner = document.getElementById('lang-banner');
+  if (!banner) return;
+  let stored = null;
+  try {
+    stored = localStorage.getItem('cvstart-lang');
+  } catch {
+    return;
+  }
+  if (stored) return; // choice already made (switch or dismiss) — never nag again
+  const current = document.documentElement.dataset.locale;
+  const locales = JSON.parse(banner.dataset.locales || '[]');
+  const norm = (s) => s.toLowerCase();
+  const findLocale = (tag) => {
+    const lower = norm(tag);
+    let hit = locales.find((l) => norm(l.code) === lower);
+    if (hit) return hit;
+    const primary = lower.split('-')[0];
+    if (primary === 'zh') {
+      return locales.find((l) => norm(l.code) === (/tw|hant|hk|mo/.test(lower) ? 'zh-tw' : 'zh-cn'));
+    }
+    hit = locales.find((l) => norm(l.code).split('-')[0] === primary);
+    return hit;
+  };
+  let target = null;
+  for (const tag of navigator.languages || [navigator.language]) {
+    const found = findLocale(tag);
+    if (found) {
+      target = found;
+      break;
+    }
+  }
+  if (!target || target.code === current) return;
+  const text = (banner.dataset.text || '')
+    .replace('{lang}', `${target.flag ? target.flag + ' ' : ''}${target.endonym}`);
+  banner.querySelector('#lang-banner-text').textContent = text;
+  const link = banner.querySelector('#lang-banner-link');
+  link.href = target.path;
+  link.addEventListener('click', () => {
+    try {
+      localStorage.setItem('cvstart-lang', target.code);
+    } catch {
+      /* ignore */
+    }
+  });
+  banner.querySelector('#lang-banner-dismiss').addEventListener('click', () => {
+    try {
+      localStorage.setItem('cvstart-lang', current);
+    } catch {
+      /* ignore */
+    }
+    banner.hidden = true;
+  });
+  banner.hidden = false;
+})();
+
+/* ------------------------------------------------------- live GitHub stars */
+/* The build snapshots the star count into the page (sync-assets.mjs). This
+ * refreshes it from the GitHub API on every visit so the number never goes
+ * stale between deploys. Progressive enhancement: on any failure the
+ * build-time value (or a hidden badge) stays as-is. */
+(() => {
+  const counters = document.querySelectorAll('[data-gh-stars]');
+  if (!counters.length) return;
+  fetch('https://api.github.com/repos/AnkitParekh007/rebound-ops', {
+    headers: { accept: 'application/vnd.github+json' },
+  })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      const stars = data && typeof data.stargazers_count === 'number' ? data.stargazers_count : null;
+      if (stars === null) return;
+      const text = new Intl.NumberFormat(document.documentElement.lang || undefined).format(stars);
+      for (const el of counters) {
+        el.textContent = text;
+        const badge = el.closest('[data-gh-stars-badge]');
+        if (badge) badge.hidden = false;
+      }
+    })
+    .catch(() => {
+      /* offline / rate-limited — keep the build-time snapshot */
+    });
+})();
+
+/* ----------------------------------------------- CAR-133: hero parallax */
+/* Decorative drift for [data-parallax] layers (blobs + demo frame). The JS
+ * only writes the --plx custom property; global.css applies it strictly
+ * inside prefers-reduced-motion: no-preference + fine pointer, so this is
+ * a double gate. rAF-throttled, passive, stops caring past the hero. */
+(() => {
+  const els = document.querySelectorAll('[data-parallax]');
+  if (!els.length) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    const y = window.scrollY;
+    if (y > window.innerHeight * 1.5) return; // hero long gone — skip the math
+    for (const el of els) {
+      const factor = parseFloat(el.dataset.parallax || '0.08') || 0.08;
+      el.style.setProperty('--plx', `${(-y * factor).toFixed(1)}px`);
+    }
+  };
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    },
+    { passive: true }
+  );
+  update();
+})();
+
+/* ---------------------------------------- CAR-133: numbers band count-up */
+/* Markup carries the FINAL value (so no-JS and reduced-motion readers see
+   the real number); with motion allowed the tile counts up once when it
+   enters the viewport. */
+(() => {
+  const els = document.querySelectorAll('[data-count]');
+  if (!els.length) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!('IntersectionObserver' in window)) return;
+  let fmt;
+  try {
+    fmt = new Intl.NumberFormat(document.documentElement.lang || undefined);
+  } catch {
+    fmt = new Intl.NumberFormat('en');
+  }
+  const run = (el) => {
+    const to = parseInt(el.dataset.count, 10);
+    if (!Number.isFinite(to) || to <= 0) return;
+    const suffix = el.dataset.suffix || '';
+    const DUR = 900;
+    const t0 = performance.now();
+    const step = (t) => {
+      const p = Math.min((t - t0) / DUR, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt.format(Math.round(to * eased)) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        io.unobserve(en.target);
+        run(en.target);
+      }
+    },
+    { threshold: 0.6 }
+  );
+  for (const el of els) {
+    el.textContent = fmt.format(0) + (el.dataset.suffix || ''); // zeroed only when we will animate
+    io.observe(el);
+  }
+})();

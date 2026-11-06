@@ -1,0 +1,46 @@
+/**
+ * v1.109.0 — scan Exclude filter + include-OR, and the pipeline overview strip.
+ * Client-view source-pattern checks (the views touch `window`/DOM), matching the
+ * convention in router.test.mjs.
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { loadScanSrc } from './helpers/scan-src.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const read = (...p) => readFileSync(resolve(__dirname, '..', ...p), 'utf8');
+
+test('scan.js has an Exclude field wired into filtering + saved-search state', () => {
+  const src = loadScanSrc();
+  assert.match(src, /const filterExclude = /);
+  // include treated as comma-OR, exclude hides on ANY match
+  assert.match(src, /qTerms\.some\(\(term\) => hay\.includes\(term\)\)/);
+  assert.match(src, /exTerms\.some\(\(term\) => hay\.includes\(term\)\)/);
+  // round-trips through saved-search state + reset
+  assert.match(src, /exclude: filterExclude\.value/);
+  assert.match(src, /filterExclude\.value = s\.exclude/);
+  assert.match(src, /filterExclude\.value = '';/);
+});
+
+test('pipeline.js renders an overview strip (inbox + tracked + key statuses)', () => {
+  const src = read('public', 'js', 'views', 'pipeline.js');
+  assert.match(src, /const overview = /);
+  assert.match(src, /ovChip\(allUrls\.length, t\('pipe\.ovInbox'/);
+  // CAR-93 — a failed tracker read shows "—" instead of a fake "0 tracked".
+  assert.match(src, /ovChip\(trackerLoadFailed \? '—' : trackerRows\.length, t\('pipe\.ovTracked'/);
+  // CAR-21 (v1.243.0) — the hard-coded English stage list is replaced by the
+  // server's canonical stages (GET /api/tracker/stages) folded through
+  // window.TrackerStages, and paintOverview() runs on every refresh() so the
+  // strip stays truthful after add/delete.
+  assert.match(src, /api\/tracker\/stages/);
+  assert.match(src, /window\.TrackerStages/);
+  assert.doesNotMatch(src, /\['Applied', 'Responded', 'Interview', 'Offer'\]/,
+    'the hard-coded stage whitelist must stay gone');
+  assert.match(src, /paintOverview\(\)/);
+  // degrades gracefully if the tracker can't be read (CAR-93 — the failure
+  // is now VISIBLE: the .then(onFailure) handler flips trackerLoadFailed).
+  assert.match(src, /API\.get\('\/api\/tracker'\)\.then/);
+});

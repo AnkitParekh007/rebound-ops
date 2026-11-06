@@ -6,7 +6,7 @@ An open-source career recovery assistant for experienced software professionals 
 
 ## Phase 2 — Angular + local API preview
 
-The original **Phase 1 prototype**, feature-tested by its solo maintainer but not yet validated with external participants, remains available at the repository root. Phase 2 adds a typed Angular frontend and a Fastify API, with shared Zod contracts and explicit state transitions. AI remains **disabled by default**; a separate optional Anthropic adapter requires local configuration and explicit per-request consent. There are no résumé uploads, hosted accounts, salary predictions, scraped job offers or automated applications.
+The original **Phase 1 prototype**, feature-tested by its solo maintainer but not yet validated with external participants, remains available at the repository root. Phase 2 adds a typed Angular frontend and a Fastify API, with shared Zod contracts and explicit state transitions. AI remains **disabled by default**; a separate optional Anthropic adapter requires local configuration and explicit per-request consent. The recovery app (`apps/`, `packages/`) has no résumé uploads, hosted accounts, salary predictions, scraped job offers or automated applications; the optional job-search workspace described below is separate and works differently.
 
 ### Requirements
 
@@ -93,6 +93,18 @@ npm run test:e2e  # install Chromium first: npx playwright install chromium
 ```
 
 GitHub Actions runs the unit/API suite, Angular production build and Playwright workflows in **Chromium, Firefox and WebKit**, a Node 22 compatibility job, CodeQL security analysis, plus a check for accidentally committed private files. Actions are pinned to commit SHAs and kept current by Dependabot. Run `npm run audit:release` to repeat the hygiene check locally. This is not a vulnerability scan or human screen-reader test.
+
+## Recovery + job-search demo (`workspace/`, `engine/`)
+
+This repository also contains the **ReboundOps Workspace** (`workspace/`, an Express + vanilla-JS job-search UI) and the **ReboundOps engine** (`engine/`, the job-search data folder and CLI scripts it uses). A same-origin bridge connects the Workspace to the recovery API, so one browser journey runs goal → recovery → direction → seven-day plan → job-search workspace:
+
+```sh
+scripts/start-demo.sh        # then open http://127.0.0.1:4317/#/start
+```
+
+Details, security model and tests: [workspace/docs/INTEGRATION-DEMO.md](workspace/docs/INTEGRATION-DEMO.md); walkthrough: [workspace/docs/DEMO-WALKTHROUGH.md](workspace/docs/DEMO-WALKTHROUGH.md).
+
+Unlike the recovery app, the Workspace and engine **can**, when you ask them to: scan public job-board APIs, import a CV file, store your CV, tracker and reports as local files in `engine/`, and call an AI provider if you add a key (none is set by default). They never submit applications for you. They are derived from MIT-licensed third-party projects — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Reliability and packaging notes
 

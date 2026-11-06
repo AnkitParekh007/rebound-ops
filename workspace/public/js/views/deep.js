@@ -1,0 +1,414 @@
+/* global Router, API, UI, I18n, HelpHint */
+/**
+ * #/deep — Deep company research.
+ * CAR-119 — the page renders through the shared LlmPageKit template:
+ * two-column form|result, a progress/ETA/Cancel run panel over POST /api/deep
+ * (AbortSignal-wired), and a tracker autofill combobox for company/role.
+ * // CAR-119 i18n: no new dictionary keys here — the kit's `llm2.*` strings
+ * ship as I18n.t EN fallbacks inside public/js/lib/llm-page-kit.js.
+ */
+Router.register('deep', async () => {
+  const c = UI.el;
+  const t = (k, f) => I18n.t(k, f);
+
+  const company = c('input', { className: 'input', id: 'deep-company', placeholder: t('deep.companyExample') });
+  const role = c('input', { className: 'input', id: 'deep-role', placeholder: t('deep.roleExample') });
+  const out = c('div');
+  const archive = c('div');
+  // CAR-119 — run/progress panel host (result column) + tracker autofill.
+  const runHost = c('div');
+  const picker = window.LlmPageKit.jobPicker({
+    map: { company: 'company', role: 'role' },
+    fields: { company, role },
+  });
+  let liveAvailable = false;
+  let liveEngine = '';
+  // CAR-94 (5) — cross-button single-flight + stale token. "Run live",
+  // "Copy prompt"/"Generate prompt" and the prompt card's "Show result" all
+  // POST /api/deep; withSpinner disables only the clicked button, so two of
+  // them could fire concurrent paid calls, and whichever resolved last
+  // clobbered `out`. One flag guards entry for the whole view; a token
+  // invalidates a resolution that is no longer the newest before it writes.
+  let inFlight = false;
+  let runToken = 0;
+
+  // v1.157.0 — "Run live" availability follows the SERVER's active provider, i.e.
+  // ANY of the seven (Anthropic / Gemini / OpenAI / Qwen / OpenRouter / GitHub
+  // Models / Hermes) honoring the auto order + LLM_PROVIDER — not just Anthropic
+  // or Gemini. `/api/status/providers` (via window.ProviderStatus) is the single
+  // source of truth the server's dispatch cascade also uses.
+  {
+    const ls = await window.ProviderStatus.live();
+    liveAvailable = ls.available;
+    liveEngine = ls.engine;
+  }
+
+  // UX-A6 (v1.58.52, NEW-M4-r1) — extracted from the inline render
+  // loop so every saved-card across every path uses the same structure.
+  // The 2026-05-19 verification regression observed a card with no
+  // structural children — the title+date were concatenated as a single
+  // text node (`software-engineer-generalyesterday`). Whatever code
+  // path produced that card is now routed through this single helper,
+  // which always emits the same `<span class="saved-card__title">` +
+  // `<time class="saved-card__date" datetime=…>` shape. Spacing comes
+  // from the flex gap on `.saved-card` (M-4 / v1.58.11), so the
+  // children are required for the visual to work.
+  function renderSavedCard(f) {
+    const iso = new Date(f.mtime).toISOString();
+    return c('button', {
+      className: 'btn btn-ghost btn-sm saved-card',
+      title: new Date(f.mtime).toLocaleString(),
+      'data-slug': f.name.replace(/\.md$/, ''),
+      onClick: async (e) => {
+        // CAR-94 (10) — the awaited spinner had no try/catch: a failed GET
+        // rejected unhandled (no toast, error only in the console). Surface
+        // it like every other failure in this view.
+        try {
+          const r = await UI.withSpinner(e.currentTarget, () => API.get('/api/interview-prep/' + encodeURIComponent(f.name)));
+          showResult(f.name, r.markdown, { saved: f.name });
+        } catch (err) {
+          UI.toast((err && err.message) || t('common.error', 'Error'), 'error');
+        }
+      },
+    }, [
+      c('span', { className: 'saved-card__title' }, f.name.replace(/\.md$/, '')),
+      c('time', { className: 'saved-card__date', datetime: iso }, formatRelative(f.mtime)),
+    ]);
+  }
+
+  function renderArchive(files) {
+    archive.innerHTML = '';
+    if (!files.length) {
+      archive.appendChild(c('p', { style: { color: 'var(--foggy)', fontSize: '13px' } }, t('deep.archiveEmpty', 'No saved deep-research files yet.')));
+      return;
+    }
+    archive.appendChild(c('h3', { className: 'section-title' }, t('deep.archiveTitle', 'Saved research')));
+    const list = c('div', { className: 'flex gap-3', style: { flexWrap: 'wrap' } });
+    for (const f of files) {
+      list.appendChild(renderSavedCard(f));
+    }
+    archive.appendChild(list);
+  }
+
+  async function loadArchive() {
+    try {
+      const r = await API.get('/api/interview-prep');
+      renderArchive(r.files || []);
+    } catch (e) {
+      // CAR-94 (9) — a failed GET used to render an EMPTY archive here,
+      // which reads as "No saved deep-research files yet" — a fake empty
+      // state over a real failure. Render the error instead (existing
+      // common.error key + the server's own message).
+      archive.innerHTML = '';
+      archive.appendChild(c('p', { style: { color: 'var(--danger, #d9534f)', fontSize: '13px' } },
+        t('common.error', 'Error') + ': ' + ((e && e.message) || t('common.error', 'Error'))));
+    }
+  }
+
+  // I-2 (v1.58.17) — relative-time labels were hardcoded English
+  // (`today` / `1d ago` / `Nd ago`) on every locale. Use the platform
+  // Intl.RelativeTimeFormat with `numeric: 'auto'` so today/yesterday
+  // are localized to the active SPA language (сегодня/вчера, 今日/昨日,
+  // etc.). For dates older than a week we fall back to a localized
+  // absolute date via Intl.DateTimeFormat.
+  function formatRelative(iso) {
+    const d = new Date(iso);
+    const days = Math.round((d.getTime() - Date.now()) / 86400000); // negative = past
+    const locale = (window.I18n && I18n.getLang && I18n.getLang()) || 'en';
+    try {
+      if (Math.abs(days) < 7) {
+        return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(days, 'day');
+      }
+      return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(d);
+    } catch {
+      // Defensive fallback for environments without Intl (very old browsers).
+      if (days >= 0) return 'today';
+      if (days === -1) return '1d ago';
+      if (days > -30) return Math.abs(days) + 'd ago';
+      return d.toLocaleDateString();
+    }
+  }
+
+  // CAR-20 (v1.243.0) — the download name used to have every non-word
+  // byte replaced with an underscore, which smashed every non-ASCII
+  // title ('Резюме — роль' → '______—_____'). Unicode is legal in a
+  // download attribute and in OS filenames; only characters genuinely
+  // unsafe across filesystems are neutralised (kept unicode, per the
+  // ReportExport download precedent).
+  function safeName(name, fallback) {
+    const cleaned = String(name || '')
+      .replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return cleaned || fallback;
+  }
+
+  function showResult(title, markdown, opts = {}) {
+    out.innerHTML = '';
+    const card = c('div', { className: 'card' });
+    const header = c('div', { className: 'flex-between mb-3' }, [
+      c('strong', null, title),
+      c('div', { className: 'flex gap-3' }, [
+        // UX-D-L (v1.58.44) — explicit close affordance on the opened
+        // brief. Pre-fix the only way to dismiss the inline brief body
+        // was to scroll away or navigate; an X button matches the
+        // modal-close pattern (api.js UI.modal × button) and lives on
+        // the keyboard path (Tab to it, Enter / Space to dismiss).
+        c('button', {
+          className: 'btn btn-ghost btn-sm',
+          'aria-label': t('deep.closeBrief', 'Close brief'),
+          title: t('deep.closeBrief', 'Close brief'),
+          onClick: () => { out.innerHTML = ''; },
+        }, '×'),
+        c('button', {
+          className: 'btn btn-ghost btn-sm',
+          // CAR-20 (v1.243.0) — writeText is async and can reject
+          // (permission denied, non-secure context); the fire-and-forget
+          // call still toasted "Copied" on failure. Await it and fall
+          // back to the manual-copy hint (existing auto.copyFail key).
+          onClick: async () => {
+            try { await navigator.clipboard.writeText(markdown); UI.toast(t('eval.copied', 'Copied'), 'success'); }
+            catch { UI.toast(t('auto.copyFail', 'Copy failed — select the text and copy manually.'), 'error'); }
+          },
+        }, '📋 ' + t('eval.copy', 'Copy')),
+        c('button', {
+          className: 'btn btn-ghost btn-sm',
+          onClick: () => {
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = opts.saved ? safeName(opts.saved, 'deep.md') : safeName(title, 'deep') + '.md';
+            a.click();
+            URL.revokeObjectURL(a.href);
+          },
+        }, '⬇ ' + t('deep.download', 'Download .md')),
+        opts.saved ? c('button', {
+          className: 'btn btn-ghost btn-sm',
+          onClick: () => {
+            window.open('/api/interview-prep/' + encodeURIComponent(opts.saved), '_blank');
+          },
+        }, '↗ ' + t('deep.openTab', 'Open in tab')) : null,
+        c('button', {
+          className: 'btn btn-primary btn-sm',
+          onClick: (e) => {
+            if (opts.saved) {
+              // We have a persisted interview-prep file — use the dedicated
+              // endpoint so the PDF metadata reflects the real filename.
+              window.PdfGenerate.run({ kind: 'deep', name: opts.saved, button: e.currentTarget });
+            } else {
+              window.PdfGenerate.run({
+                kind: 'inline', markdown, title, slug: 'deep', button: e.currentTarget,
+              });
+            }
+          },
+        }, '📄 ' + t('common.generatePdf', 'Generate PDF')),
+      ]),
+    ]);
+  // UX-A1 (v1.58.54) — defensive structure check: the canonical
+  // Deep-research brief promised in github.com/AnkitParekh007/rebound-ops has 6 H2
+  // sections (Company snapshot / Engineering culture / Recent news
+  // / Glassdoor / Interview process / Negotiation leverage). The
+  // root prompt-layer fix lives in the parent project (C-1, blocked)
+  // — until it lands, when the saved brief is meta-narration with
+  // fewer than 3 of these sections we surface a non-blocking warning
+  // explaining what the brief should look like, with a link to the
+  // canonical reference. Defensive only — never rewrites the brief.
+  // CAR-20 (v1.243.0) — the matcher was an exact `^## <English name>`
+  // regex, so it false-positived on numbered headings (`## 1. Company
+  // snapshot`) and on localized briefs (the parent generates the
+  // sections in the UI language). A heading now counts when its
+  // enumeration prefix is stripped and the name matches; and a brief
+  // that carries a real section skeleton (≥3 `##` headings) is
+  // structured regardless of its language — the warning targets
+  // meta-narration, which has no `##` skeleton at all.
+  function looksLikeStructuredBrief(md) {
+    const src = String(md || '');
+    const headings = src.split(/\r?\n/)
+      .filter((l) => /^##\s+\S/.test(l))
+      .map((l) => l.replace(/^##\s+/, '').trim());
+    const norm = (s) => s.toLowerCase()
+      .replace(/^\d+\s*[.)\-:–—]?\s*/, '')
+      .replace(/[*_`]/g, '')
+      .trim();
+    const expected = ['Company snapshot', 'Engineering culture', 'Recent news',
+                      'Glassdoor', 'Interview process', 'Negotiation leverage'];
+    const found = headings.filter((h) => expected.includes(norm(h))).length;
+    return found >= 3 || headings.length >= 3;
+  }
+
+  const briefWarning = !looksLikeStructuredBrief(markdown || '')
+      ? c('div', { className: 'brief-warning', role: 'status' }, [
+          c('strong', null, t('deep.briefUnstructured.title',
+            "This brief doesn't match the canonical 6-section structure")),
+          c('p', null, t('deep.briefUnstructured.body',
+            'Re-run with Run live, or check `modes/deep.md` in your parent project to enforce the final-form output.')),
+          c('a', {
+            href: 'https://github.com/AnkitParekh007/rebound-ops',
+            target: '_blank', rel: 'noopener noreferrer',
+          }, t('deep.docsLink', 'Read the deep-research reference')),
+        ])
+      : null;
+    const body = c('div', { className: 'card md', html: UI.md(markdown || '') });
+    // v1.239.4 warnings surface (BACKLOG views-2) — POST /api/deep names a
+    // cut-off brief (and context-notice extras) on `warnings`; runLive used
+    // to drop them, so a truncated brief rendered as if it were whole. Lead
+    // the band with the shared localized notice; server strings stay data.
+    const warnings = Array.isArray(opts.warnings) ? opts.warnings : [];
+    if (warnings.length) {
+      card.appendChild(c('div', {
+        className: 'badge badge-warn',
+        role: 'status',
+        style: { display: 'block', marginBottom: '12px', whiteSpace: 'normal', lineHeight: '1.5', textAlign: 'start' },
+      }, [
+        c('div', { style: { margin: '2px 0', fontWeight: 600 } }, '⚠ ' + t('llm.truncatedNotice', 'Model output may be truncated — re-run if the report looks cut off')),
+        ...warnings.map((w) => c('div', { style: { margin: '2px 0' } }, '· ' + w)),
+      ]));
+    }
+    if (briefWarning) card.appendChild(briefWarning);
+    card.append(header, body);
+    out.appendChild(card);
+  }
+
+  function showPrompt(prompt, message) {
+    out.innerHTML = '';
+    out.appendChild(c('div', { className: 'card' }, [
+      c('p', { style: { color: 'var(--foggy)' } }, message || ''),
+      c('pre', { className: 'console' }, prompt),
+      c('div', { className: 'flex gap-3 mt-3' }, [
+        // CAR-20 (v1.243.0) — writeText awaited with a real failure path.
+        c('button', { className: 'btn btn-primary', onClick: async () => {
+          try { await navigator.clipboard.writeText(prompt); UI.toast(t('eval.copied', 'Copied'), 'success'); }
+          catch { UI.toast(t('auto.copyFail', 'Copy failed — select the text and copy manually.'), 'error'); }
+        }}, '📋 ' + t('eval.copy', 'Copy prompt')),
+        // Re-submits the same form with run:true so users who hit
+        // "Generate prompt" first can still get the LLM result inline
+        // without retyping. Surfaces a clear error toast when no API
+        // key is set.
+        c('button', {
+          className: 'btn btn-ghost',
+          onClick: async (e) => {
+            if (!liveAvailable) {
+              UI.toast(t('deep.needKey', 'Set ANTHROPIC_API_KEY or GEMINI_API_KEY in .env first'), 'error');
+              return;
+            }
+            await runLive(e.currentTarget);
+          },
+        }, '⚡ ' + t('deep.showResult', 'Show result')),
+      ]),
+    ]));
+  }
+
+  async function runLive(btn) {
+    if (!company.value.trim()) return UI.toast(t('deep.enterCompany'), 'error');
+    if (inFlight) return; // CAR-94 (5) — one paid POST at a time for this view
+    inFlight = true;
+    const myToken = ++runToken;
+    // CAR-119 — the shared run panel: paints synchronously, live elapsed/ETA,
+    // Cancel aborts the request (the result is discarded; full server-side
+    // cancellation stays a server hand-off).
+    const runCtrl = window.LlmPageKit.createRun({ etaSeconds: 180, onBegin: () => page.show('result') }).mount(runHost);
+    try {
+      const r = await UI.withSpinner(btn, () => window.LlmPageKit.run({
+        run: runCtrl,
+        request: (signal) => window.LlmPageKit.postJSON('/api/deep', {
+          company: company.value.trim(),
+          role: role.value.trim() || undefined,
+          run: true,
+        }, signal),
+      }));
+      if (myToken !== runToken) return; // a newer run owns `out`
+      if (runCtrl.cancelled || runCtrl.signal.aborted) return; // a cancelled run paints nothing more
+      if (r && r.markdown) {
+        showResult(`${company.value.trim()}${role.value.trim() ? ' — ' + role.value.trim() : ''}`, r.markdown, { saved: r.saved, warnings: r.warnings });
+        loadArchive();
+      } else {
+        // CAR-20 (v1.243.0) — the old message hard-named Gemini while the
+        // active provider can be any of the seven; prefer the server's own
+        // (provider-neutral) message when it supplies one. (A
+        // provider-neutral dict key to replace deep.geminiNoOutput is
+        // still worth a follow-up — reported to the parent session.)
+        showPrompt(r.prompt, r.message || t('deep.geminiNoOutput', 'Gemini returned no output. Showing the prompt — paste it into Claude Code instead.'));
+      }
+    } catch (e) {
+      // CAR-119 review #4 — the kit's llm2run--fail panel (role=alert, in
+      // runHost right above) is the single announcement; no second paint.
+      if (myToken !== runToken) return;
+    } finally {
+      if (myToken === runToken) inFlight = false;
+    }
+  }
+
+  async function runManual(btn) {
+    if (!company.value.trim()) return UI.toast(t('deep.enterCompany'), 'error');
+    if (inFlight) return; // CAR-94 (5) — shared with runLive / Show result
+    inFlight = true;
+    const myToken = ++runToken;
+    out.innerHTML = `<div class="loading">${t('deep.generating')}</div>`;
+    try {
+      const r = await UI.withSpinner(btn, () => API.post('/api/deep', {
+        company: company.value.trim(),
+        role: role.value.trim() || undefined,
+      }, { lang: true }));
+      if (myToken !== runToken) return;
+      showPrompt(r.prompt, r.message);
+    } catch (e) {
+      if (myToken !== runToken) return;
+      out.innerHTML = '';
+      out.appendChild(c('div', { className: 'empty' }, e.message));
+    } finally {
+      if (myToken === runToken) inFlight = false;
+    }
+  }
+
+  await loadArchive();
+
+  // CAR-51 #1 (v1.247.0) — ONE time/cost pattern: ⏱ ETA + cost hint sit in
+  // a meta line under the view title (was an orphan row inside the
+  // manual-prompt result card).
+  const pageMeta = UI.pageMeta(t,
+    c('span', { className: 'advisor-eta' }, '⏱ ' + t('advisor.eta', '~2–4 min')),
+    UI.providerCostHint(t),
+  );
+
+  // CAR-119 — the shared AI-page template: form (sticky) | result,
+  // "Input / Result" tabs below 1280 px. begin() flips to the Result tab
+  // (review #2) so the run panel is never painted into a hidden pane.
+  const page = window.LlmPageKit.layout({
+    // CAR-146 (browser contract) — the saved-research archive stays in the
+    // FORM column: it is browse input, not a run result, and the result
+    // pane is tab-hidden below 1280 px (burying the saved cards there
+    // regressed the narrow-viewport sweep).
+    form: c('div', null, [picker, c('div', { className: 'card' }, [
+      c('div', { className: 'row' }, [
+        c('div', { className: 'field' }, [c('label', { htmlFor: 'deep-company' }, t('deep.companyLbl')), company]),
+        c('div', { className: 'field' }, [c('label', { htmlFor: 'deep-role' }, t('deep.roleLbl')), role]),
+      ]),
+      c('div', { className: 'flex gap-3' }, [
+        liveAvailable
+          ? c('button', {
+              className: 'btn btn-primary',
+              title: liveEngine, // engine name kept as hover tooltip; the label stays clean
+              onClick: (e) => runLive(e.currentTarget),
+            }, '⚡ ' + t('deep.runLive', 'Run live'))
+          : null,
+        c('button', { className: 'btn btn-ghost', onClick: (e) => runManual(e.currentTarget) }, liveAvailable ? t('deep.copyPrompt', 'Copy prompt') : t('deep.run')),
+      ]),
+      liveAvailable
+        ? null
+        : c('p', { style: { color: 'var(--foggy)', fontSize: '13px', marginTop: '8px' } },
+          t('deep.tipManual', 'Tip: set ANTHROPIC_API_KEY (or GEMINI_API_KEY) in .env to run research live in the browser. Without it, the prompt is generated for you to paste into Claude Code.')),
+    ]), archive]),
+    result: c('div', null, [runHost, out]),
+  });
+
+  return c('div', null, [
+    c('header', { className: 'page-header' }, [
+      c('div', null, [
+        HelpHint.title(t('deep.title'), 'help.hint.deep'),
+        c('p', { className: 'page-subtitle' }, t('deep.subtitle')),
+        pageMeta,
+      ]),
+    ]),
+    page.root,
+  ]);
+});

@@ -1,0 +1,799 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * components.css — split out of app.css (v1.131.2, file-size-contract debt).
+ * Loaded AFTER app.css in index.html, in original source order, so the cascade
+ * is byte-for-byte identical to the pre-split single file. Holds: cards, grids,
+ * paginator, badges, tables, forms, log/console, markdown, language switcher,
+ * chip filter, connection banner.
+ * ───────────────────────────────────────────────────────────────────────── */
+/* ───────────────────────── cards ───────────────────────── */
+.card {
+  background: var(--paper);
+  border: 1px solid var(--slate);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.card:hover { box-shadow: var(--shadow-md); }
+
+/* CAR-52/58 (v1.246.0) — theme-aware callout banners. Views used to inline
+   light-theme colors (#eef5ff surface), which in dark mode kept a light block
+   whose inherited link color (#f3f4f6) dropped to ≈1.0:1 — invisible. A callout
+   names its surface/border/text/link as --callout-* custom properties; the
+   dark-theme blocks below swap them, and `.callout a` picks the per-theme link
+   color instead of the global `a` color. Light values stay the original ones. */
+.callout { background: var(--callout-bg, var(--elev)); border-color: var(--callout-border, var(--slate)); color: var(--callout-text, var(--hof)); }
+/* CAR-58 #4 (v1.247.0) — `:not(.btn)`: the hero banner's CTA is a .btn-primary anchor, and this rule (0,2,1) outranked .btn-primary's white — dark amber on crimson. Text links keep the per-theme link color. */
+.callout a:not(.btn) { color: var(--callout-link, var(--rausch-text)); text-decoration: underline; }
+/* Phase-2 v3 — callout families ride the cv3 soft/ink pairs (one theme-aware rule per family replaces the old light+dark+system triple; contrast ink-on-soft: info 6.22/8.10:1, warn 5.76/8.52:1, ok/danger like the band pairs ≥6:1). */
+.callout--info { --callout-bg: var(--cv3-info-soft); --callout-border: var(--cv3-info); --callout-text: var(--cv3-info-ink); --callout-link: var(--cv3-info-ink); }
+/* CAR-58 #4 (v1.247.0) — yellow warning banners (config / batch / dashboard hero): same token contract as --info. */
+.callout--warn { --callout-bg: var(--cv3-warn-soft); --callout-border: var(--cv3-warn); --callout-text: var(--cv3-warn-ink); --callout-link: var(--cv3-warn-ink); }
+.callout--ok { --callout-bg: var(--cv3-ok-soft); --callout-border: var(--cv3-ok); --callout-text: var(--cv3-ok-ink); --callout-link: var(--cv3-ok-ink); } /* v3 phase 3 — ok/danger on the same contract (contrast gated in css-a11y-contrast) */
+.callout--danger { --callout-bg: var(--cv3-danger-soft); --callout-border: var(--cv3-danger); --callout-text: var(--cv3-danger-ink); --callout-link: var(--cv3-danger-ink); }
+
+.card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); }
+/* PROFILE-1 — `anywhere`, not `break-word`: only `anywhere` counts toward min-content, which is what bursts the track (tests/playwright-card-overflow.mjs). */
+.card-value { font-size: 17px; font-weight: 600; margin-top: 6px; overflow-wrap: anywhere; }
+.card-row > * { min-width: 0; }
+/* CAR-56 #3 (v1.247.0) — long identifiers (an email) stay on one line with an ellipsis; wrap-anywhere only on a phone-narrow card. v1.248.2 (QA) — at 1440 the 17px value still clipped a normal 24-char address in the card's ≈218px inner width; 15px keeps it whole (computed in tests/design-qa-v1248). */
+.card-value--nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
+@media (max-width: 480px) {
+  .card-value--nowrap { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+}
+
+/* v1.55.5 — UX-3: dashboard hero; P0 CTAs dominate, recent-activity focal, quiet chips. */
+.dash-hero {
+  display: flex; flex-direction: column; gap: 12px; padding: 20px 24px; margin-bottom: var(--space-4);
+  border: 1px solid var(--border, rgba(0,0,0,.08)); border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 100%); /* v3 phase 3 — was a coral rgba gradient */
+}
+.dash-hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-hero { font-size: 16px; font-weight: 700; padding: 14px 22px; border-radius: 12px; }
+.dash-hero-focal { font-size: 14px; color: var(--hof); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dash-hero-focal:hover { text-decoration: underline; }
+.dash-hero-focal--empty { color: var(--foggy); }
+.dash-hero-focal-label { font-weight: 600; }
+.dash-hero-focal-title { color: var(--foggy); }
+.dash-chip { display: inline-block; padding: 3px 10px; font-size: var(--font-size-sm); border-radius: 999px; background: var(--bg-subtle, rgba(0,0,0,.04)); color: var(--foggy-strong); } /* v1.248.3 — plain --foggy was 4.31:1 on the chip surface (CAR-68 follow-up) */
+
+/* v1.55.6 — UX-4: #/scan "Advanced filters" (facet-chip) disclosure. Compact
+   v1.244.2: same rules, fewer lines (components.css 800-LOC contract). */
+.scan-advanced { display: inline-block; }
+.scan-advanced > summary {
+  cursor: pointer; font-size: var(--font-size-md); color: var(--rausch-text, var(--rausch));
+  -webkit-user-select: none; user-select: none; list-style: none; padding: 6px 2px;
+}
+.scan-advanced > summary::-webkit-details-marker { display: none; }
+.scan-advanced > summary::before { content: '⚙ '; }
+.scan-advanced[open] > summary { font-weight: 600; }
+
+/* v1.131.0 — #/tracker CRM stage-tab strip (parent web/ `/pipeline` board port;
+   replaces the v1.55.8 funnel chip bar). Underline-active tabs across the full
+   canonical funnel — ALL + every stage the server sent, zero-count stages
+   included — each with a live whole-history count. */
+.tracker-tabs {
+  display: flex; flex-wrap: wrap; gap: 2px;
+  border-bottom: 1px solid var(--slate); margin-bottom: 12px;
+}
+.tracker-tab {
+  appearance: none; border: none; background: none; color: var(--foggy);
+  font: inherit; font-size: var(--font-size-md); font-weight: 600;
+  /* WCAG 2.5.5 — ≥ 44 px hit area, matching the .tab-btn treatment. */
+  min-height: 44px; padding: 9px 12px; margin-bottom: -1px;
+  border-bottom: 2px solid transparent; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+.tracker-tab:hover { color: var(--hof); }
+/* Phase-2 v3 — the active tab is ACCENT semantics: text from --accent-soft-ink
+   (on --paper 8.38/8.63:1 light/dark), underline rides the accent --rausch.
+   (rausch-text is the danger ink now — red text on a blue underline would clash.) */
+.tracker-tab.is-active {
+  color: var(--accent-soft-ink); border-bottom-color: var(--rausch);
+}
+.tracker-tab-n {
+  color: var(--foggy); font-weight: 500; font-variant-numeric: tabular-nums;
+}
+.tracker-tab.is-active .tracker-tab-n { color: var(--accent-soft-ink); }
+
+/* v1.58.21 (U-1) — removed `.cv-breadcrumb` (was v1.56.0 UX-9 chip).
+   #/cv now uses the standard `.page-title` + `.page-subtitle` pair
+   like every other page; H1 stays as the single semantic heading. */
+
+/* v1.56.0 — UX-10: quiet, honest cost ballpark next to ⚡ Run live. */
+.cost-hint {
+  font-size: var(--font-size-sm); color: var(--foggy); margin: 8px 0 0;
+}
+.cost-hint[hidden] { display: none; }
+
+.metric-card { display: flex; flex-direction: column; gap: var(--space-2); }
+.metric-label { color: var(--foggy); font-size: var(--font-size-md); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+.metric-value { font-size: 38px; font-weight: 700; letter-spacing: -1px; color: var(--hof); }
+.metric-sub { color: var(--foggy); font-size: var(--font-size-md); }
+
+/* ───────────────────────── grids ───────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+@media (max-width: 900px) {
+  .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
+}
+/* v1.208.0 — grid items may shrink below content width (min-width:auto is the
+   grid min-content trap): a wide child must not burst the track/page; each
+   item's own overflow strategy contains it. Harmless on desktop. */
+.grid-2 > *, .grid-3 > *, .qa-grid > *, .card-row > *, .help-grid > * { min-width: 0; }
+/* Help = a 240px table-of-contents + a 1fr article. On a phone it stacks to a
+   single column (the TOC card sits above the article) so neither is squeezed. */
+.help-grid { grid-template-columns: 240px 1fr; }
+@media (max-width: 900px) { .help-grid { grid-template-columns: 1fr; } }
+
+/* UX-A14 (v1.59.0) — mobile ≤420px pass: 1-up card-row, stacked hero CTAs,
+   stacked page-header, tighter qa-grid floor, tighter notif head gaps. */
+@media (max-width: 420px) {
+  .card-row { grid-template-columns: 1fr; }
+  .dash-hero-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dash-hero-cta .btn-hero { width: 100%; }
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .qa-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .api-keys__summary { padding: 8px 10px; gap: 6px; }
+  /* Notifications drawer was already responsive (right: 0, fixed),
+     but the head's clear-all + close together exceeded the available
+     header width on the smallest viewports. Wrap-friendly gap. */
+  .notif-drawer__head { gap: 6px; }
+}
+
+.section { margin-top: var(--space-6); }
+.section-title {
+  font-size: 20px; font-weight: 700; margin: 0 0 var(--space-4);
+}
+
+/* ── Quick-action grid on Dashboard (Command Center) ── */
+.qa-group { margin-bottom: var(--space-5); }
+.qa-group-title {
+  font-size: var(--font-size-md); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--foggy); margin: 0 0 var(--space-3);
+}
+.qa-grid {
+  display: grid;
+  /* Fixed column count (not auto-fill) so a 3-tile group and a 4-tile group
+     render tiles of the SAME width and share a flush right edge — an auto-fill
+     grid let shorter groups stretch their tiles wider, leaving the sections
+     visually ragged. minmax(0,1fr) keeps a long label from blowing out a track. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+@media (max-width: 1180px) { .qa-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 820px)  { .qa-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px)  { .qa-grid { grid-template-columns: 1fr; } }
+.qa-tile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: start;
+  font: inherit;
+  color: inherit;
+  box-shadow: var(--shadow-1);
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+.qa-tile:hover {
+  transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--rausch);
+}
+.qa-tile:focus-visible {
+  outline: 2px solid var(--rausch); outline-offset: 2px;
+}
+/* UX-A15 (v1.58.63) — primary tile: bolder label + larger icon. CAR-49 #4 (v1.247.0) — the always-on crimson border read as an unexplained third emphasis level; hover/focus only now. */
+.qa-tile--primary .qa-icon { font-size: 26px; }
+.qa-tile--primary .qa-label { font-weight: 600; }
+.qa-tile--primary:hover, .qa-tile--primary:focus-visible {
+  border-color: var(--rausch);
+  box-shadow: 0 0 0 1px var(--rausch) inset, var(--shadow-2);
+}
+.qa-icon {
+  font-size: var(--font-size-xl);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.qa-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.qa-label { font-weight: 600; font-size: 14px; }
+.qa-sub { font-size: var(--font-size-sm); color: var(--foggy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Paginator (UI.paginate) ── */
+.paginator {
+  display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+  padding: var(--space-3) 0; margin-top: var(--space-3);
+}
+.paginator .pg-btn { min-width: 36px; padding: 4px 10px; }
+.paginator .pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.paginator .pg-summary {
+  font-size: var(--font-size-md); color: var(--foggy); padding: 0 var(--space-2);
+}
+
+/* ───────────────────────── badges ───────────────────────── */
+.badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: var(--radius-pill); font-size: var(--font-size-sm); font-weight: 600; background: var(--beach); color: var(--hof); }
+.badge-ok { background: rgba(0,138,5,.12); color: var(--kazan-text); }
+.badge-warn { background: rgba(255,180,0,.18); color: var(--darjeeling-text); }
+.badge-bad { background: var(--danger-soft); color: var(--rausch-text); } /* v3 phase 3 — wash was rgba(255,56,92,.13) */
+.badge-info { background: rgba(0,166,153,.13); color: var(--babu-text); }
+/* v1.118.0 — parent v1.18.0 parity: canonical 'Hired' state (job landed). */
+.badge-hired { background: rgba(0,138,5,.2); color: var(--kazan-text); box-shadow: inset 0 0 0 1px rgba(0,138,5,.35); }
+.hired-banner { display: flex; align-items: center; gap: 10px; border: 1px solid rgba(0,138,5,.35); background: rgba(0,138,5,.08); }
+.hired-banner-emoji { font-size: var(--font-size-xl); line-height: 1; }
+
+.score-pill {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 48px;
+  /* v1.174.0 — a score chip stays compact: never wraps, never grows past the
+     card (the parser compacts; this is the hard cap against stray long values). */
+  flex-shrink: 0; max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 4px 10px; border-radius: var(--radius-pill);
+  font-weight: 700; font-size: var(--font-size-md); background: var(--beach);
+  /* CAR-58 (v1.246.0) — a score is a numeric composition ("1.5 / 5"); in an RTL
+     page the neutral "/" made bidi flip it to "5 / 1.5". LTR + isolate renders
+     the numbers in logical order in every locale (same as dir="ltr" markup). */
+  direction: ltr; unicode-bidi: isolate;
+}
+/* Phase-2 v3 — score chips paint the cv3 band ink/wash pairs (app.css --band-*):
+   ink on its own wash ≥6.1:1 light / ≥7.2:1 dark. high=A(green), mid=D(warm),
+   low=G(red); the neutral 3.0–3.8 tone rides the cv3 neutral pair. */
+.score-high { background: var(--band-a-bg); color: var(--band-a-ink); }
+.score-mid { background: var(--band-d-bg); color: var(--band-d-ink); }
+/* v1.128.0 (parent web/ port #3) — the neutral fourth tone (3.0–3.8): a
+   passing-but-unremarkable score, distinct from the warn-yellow of 3.8–4.2. */
+.score-muted { background: var(--cv3-neutral-soft); color: var(--cv3-neutral-ink); }
+.score-low { background: var(--band-g-bg); color: var(--band-g-ink); }
+/* v1.22.0 (M-3) — WCAG 1.4.1 "use of color". Prefix a redundant glyph
+ * so the high/mid/low tier is legible without perceiving hue. The
+ * glyph uses ::before so existing render sites don't need to change.
+ * aria-hidden via content-visibility prevents screen-readers voicing
+ * the symbol when the numeric score is already announced.
+ */
+.score-high::before,
+.score-mid::before,
+.score-low::before {
+  display: inline-block;
+  margin-inline-end: 6px;
+  font-weight: 700;
+}
+.score-high::before { content: '✓'; }
+.score-mid::before  { content: '◐'; }
+.score-low::before  { content: '○'; }
+
+/* ───────────────────────── tables ───────────────────────── */
+/* v1.199.0 — wide tables scroll horizontally instead of clipping (was
+   `overflow: hidden`, the scan-table "не вмещается" bug); non-visible
+   overflow still clips to the rounded border. */
+.table-wrap {
+  border: 1px solid var(--slate); border-radius: var(--radius-lg); overflow-x: auto;
+  /* Release the flex/grid-item content floor so a wide table scrolls INSIDE
+     the wrap instead of forcing the wrap (and the page) wider than the
+     viewport on a phone. */
+  min-width: 0; max-width: 100%;
+}
+table.tbl {
+  width: 100%; border-collapse: collapse; background: var(--paper);
+}
+table.tbl th, table.tbl td {
+  /* v3 phase 3 — data density: ≈32px rows (1.45em = the body line-height). */
+  padding: calc((var(--cv3-row-h) - 1.45em - 1px) / 2) 16px; text-align: start; border-bottom: 1px solid var(--slate); font-size: 14px;
+}
+table.tbl th {
+  background: var(--beach); font-weight: 600; color: var(--foggy);
+  font-size: var(--font-size-sm); text-transform: uppercase; letter-spacing: 0.5px;
+}
+table.tbl tr:last-child td { border-bottom: none; }
+table.tbl tr:hover td { background: var(--beach); }
+/* v1.13.0 — boosted rows get a subtle accent strip, scannable in dark mode. */
+table.tbl tr.row-boosted td:first-child { box-shadow: inset 3px 0 0 var(--rausch); }
+
+/* v1.180.0 — #/reports list is a table in its own scroll wrapper (4 columns scroll, not per-character breaks). */
+.reports-scroll {
+  border: 1px solid var(--slate); border-radius: var(--radius-lg); overflow-x: auto;
+}
+.reports-tbl { min-width: 520px; }
+.reports-tbl td.report-title-cell { font-weight: 600; overflow-wrap: anywhere; }
+/* CAR-53 (v1.246.0) — an ISO date is one token: never let the DATE column break
+   it across lines ("2026-07-" / "01"); the cell keeps the full string on one line. */
+.reports-tbl td.report-date-cell { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.reports-tbl tr.report-row { cursor: pointer; }
+
+/* ───────────────────────── forms ───────────────────────── */
+.field { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+.field label {
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  color: var(--hof);
+}
+.field-hint { color: var(--foggy); font-size: var(--font-size-md); }
+
+/* #/scan result-filter panel + all other #/scan chrome: see the
+   "scan page chrome" section at the end of this file (v1.244.2). */
+.input, .textarea, .select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--cv3-input-line, var(--slate));
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.input:focus, .textarea:focus, .select:focus {
+  border-color: var(--hof);
+  box-shadow: 0 0 0 3px rgba(34,34,34,.08);
+}
+/* M-1 (v1.58.9, WCAG 2.4.7) — the zero-`outline` form base overrode the global
+   focus-visible ring; re-establish a keyboard-only ring at matching specificity
+   (mouse focus stays clean via `:focus`). */
+.input:focus-visible,
+.textarea:focus-visible,
+.select:focus-visible {
+  outline: 2px solid var(--accent-c, var(--rausch, #ff385c));
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-c, var(--rausch, #ff385c)) 18%, transparent);
+  border-color: var(--accent-c, var(--rausch, #ff385c));
+}
+.searchbar input:focus-visible {
+  outline: 2px solid var(--accent-c, var(--rausch, #ff385c));
+  outline-offset: 2px;
+}
+.textarea { resize: vertical; min-height: 140px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; line-height: 1.5; }
+.row { display: flex; gap: var(--space-3); }
+.row > * { flex: 1; }
+
+/* ───────────────────────── log/console ───────────────────────── */
+.console {
+  background: #111;
+  color: #c5e6c5;
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  max-height: 480px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.console .err { color: #ff8a8a; }
+.console .meta { color: #888; }
+
+/* ───────────────────────── markdown ───────────────────────── */
+.md {
+  line-height: 1.7;
+  font-size: var(--font-size-base);
+  /* Long unbreakable tokens (URLs, file paths, inline code) in help/AI
+     markdown wrap instead of forcing the card wider than a phone screen.
+     Inherited, so paragraphs, list items and blockquotes wrap too; ```code
+     fences still scroll via `.md pre { overflow-x: auto }`. */
+  overflow-wrap: break-word;
+}
+.md h1 { font-size: 26px; margin-top: 0; }
+.md h2 { font-size: 20px; margin-top: var(--space-6); padding-top: var(--space-3); border-top: 1px solid var(--slate); }
+.md h3 { font-size: 17px; margin-top: var(--space-5); }
+/* A markdown table is its own scroll container (display:block + overflow-x)
+   so wide tables scroll inside the article on a phone; desktop unchanged. */
+.md table { display: block; width: 100%; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: var(--space-3) 0; }
+.md th, .md td { padding: 8px 12px; border: 1px solid var(--slate); font-size: 13.5px; text-align: start; }
+.md th { background: var(--beach); }
+.md code { background: var(--beach); padding: 2px 6px; border-radius: 6px; font-size: var(--font-size-md); }
+/* CAR-57 #2 (v1.247.0) — inline code is a directional island: LTR + isolate keeps the token whole in RTL, nowrap bans mid-token wraps, long values scroll in place. */
+[dir="rtl"] .md code, [dir="rtl"] .help-pop-body code {
+  direction: ltr; unicode-bidi: isolate; white-space: nowrap;
+  display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: bottom;
+}
+.md pre { background: #111; color: #c5e6c5; padding: var(--space-4); border-radius: var(--radius); overflow-x: auto; }
+.md pre code { background: transparent; color: inherit; padding: 0; }
+.md a { color: var(--rausch-text); } /* CAR-23: AA on --paper in both themes (raw --rausch was 3.52/2.94) */
+.md blockquote { border-inline-start: 3px solid var(--rausch); padding-inline-start: var(--space-4); color: var(--foggy); margin: var(--space-3) 0; }
+
+/* ───────────────────────── language switcher ───────────────────────── */
+.lang-switcher { padding-bottom: 8px; }
+/* I18N-EXPAND (v1.70.0) — native <select> language picker, ≥28px target
+   (WCAG 2.5.8), full-width so long native labels never clip. */
+.lang-select {
+  width: 100%;
+  min-height: 32px;
+  font-size: var(--font-size-sm);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--slate);
+  background: var(--paper);
+  color: var(--hof);
+  cursor: pointer;
+  font-weight: 500;
+  transition: border-color var(--transition), background var(--transition);
+}
+.lang-select:hover { border-color: var(--foggy); }
+.lang-select:focus-visible { outline: 2px solid var(--rausch); outline-offset: 1px; }
+
+/* ───────────────────────── chip filter ───────────────────────── */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  /* WCAG 2.5.8 spaced-target exception (v1.20.0): gap 8 → chip ≥24px + ≥24px spacing. */
+  gap: 8px;
+  align-items: center;
+}
+.chip-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--foggy);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-inline-end: 4px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  /* WCAG 2.5.8 (v3 phase 3): 24px chip + the 8px .chip-row gap = the spaced-target AA minimum (was 28px, v1.20.0). */
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--slate);
+  background: var(--paper);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--hof);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  user-select: none;
+}
+.chip:hover { background: var(--beach); }
+.chip.on {
+  background: var(--hof);
+  color: var(--paper);
+  border-color: var(--hof);
+}
+.chip-count {
+  font-weight: 700;
+  font-size: var(--font-size-xs);
+  opacity: .7;
+}
+.chip.clear {
+  background: transparent;
+  border-color: transparent;
+  color: var(--rausch-text); /* CAR-23: AA text variant (raw --rausch was 3.52/2.94) */
+  font-weight: 600;
+}
+.chip.clear:hover { background: var(--danger-soft); } /* v3 phase 3 — was rgba(255,56,92,.08) */
+
+/* ───────────────────────── connection banner ───────────────────────── */
+/* CAR-23 v1.243.0 — was sticky (painted over the topbar once scrolled); now a
+   plain in-flow block. Fill = --rausch-dark/--paper pair (≥4.57:1 both themes). */
+.conn-banner {
+  background: var(--rausch-dark); color: var(--paper);
+  padding: 12px 24px; display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; font-size: 14px; font-weight: 500;
+}
+.conn-banner[hidden] { display: none; }
+/* The translucent-black chip keeps literal WHITE text in both themes (≥7.7:1 light
+   / ≥7.9:1 dark over the banner fill) — --ink is near-BLACK in light: owner screenshot. */
+.conn-banner .btn-dark { background: rgba(0,0,0,.4); border: none; color: #fff; }
+.conn-banner .btn-dark:hover { background: rgba(0,0,0,.6); }
+
+/* v1.55.3 (UX-2) — 4-provider OR onboarding: .onboarding-warn = loud cold-start banner
+   (0 keys); .onboarding-ok = quiet provider chip (≥1). CAR-23 — in-flow, --rausch-dark/--paper pair. */
+#onboarding-banner[hidden] { display: none; }
+#onboarding-banner.onboarding-warn {
+  background: var(--rausch-dark);
+  color: var(--paper);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+#onboarding-banner.onboarding-warn .btn-dark { background: rgba(0,0,0,.4); border: none; color: #fff; } /* literal white — see .conn-banner above */
+#onboarding-banner.onboarding-warn .btn-dark:hover { background: rgba(0,0,0,.6); }
+#onboarding-banner.onboarding-ok {
+  padding: 6px 24px;
+  font-size: var(--font-size-sm);
+  color: var(--foggy);
+  background: var(--bg-subtle, rgba(0,0,0,.03));
+  border-bottom: 1px solid var(--border, rgba(0,0,0,.08));
+}
+/* v1.22.0 (M-3) — WCAG 1.4.1 redundant cue: the leading ⚠ carries the
+ * "server down" signal without relying on hue alone. */
+.conn-msg::before {
+  content: '⚠ ';
+  font-weight: 700;
+  margin-inline-end: 4px;
+}
+
+/* v1.139.0 — HelpHint: `?` affordance + theme-aware popover, CSP-safe,
+   RTL-mirrored. FIX-4 (v1.162.0): 24×24 hit box with an 18px visible ring
+   drawn by ::before, so the target grows without shifting the title baseline. */
+.help-hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: 0 0 0 3px;
+  padding: 0;
+  flex: 0 0 auto;
+  vertical-align: middle;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--foggy);
+  background: transparent;
+  border: 0;
+  cursor: help;
+  transition: color var(--transition);
+}
+.help-hint::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  transition: border-color var(--transition), background var(--transition);
+}
+[dir="rtl"] .help-hint { margin: 0 3px 0 0; }
+/* CAR-23 — the filled "?" chip needs the AA pair too (white on --rausch: 3.52/2.94). */
+.help-hint:hover,
+.help-hint[aria-expanded="true"] { color: var(--paper); }
+.help-hint:hover::before,
+.help-hint[aria-expanded="true"]::before {
+  background: var(--rausch-dark);
+  border-color: var(--rausch-dark);
+}
+.help-hint:focus-visible {
+  outline: 2px solid var(--rausch);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+.help-pop {
+  position: fixed;
+  z-index: var(--z-popover);
+  max-width: 320px;
+  padding: 12px 14px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg, 0 8px 30px rgba(0,0,0,.18));
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+}
+.help-pop-title {
+  font-weight: 700;
+  font-size: var(--font-size-md);
+  margin: 0 0 4px;
+  color: var(--ink);
+}
+.help-pop-body { color: var(--foggy); }
+.help-pop-body p { margin: 0 0 6px; }
+.help-pop-body p:last-child { margin-bottom: 0; }
+.help-pop-body strong { color: var(--ink); }
+.help-pop-body code {
+  font-size: var(--font-size-sm);
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--bg-subtle, rgba(0,0,0,.05));
+}
+
+
+/* FIND-3 (v1.231.3): ≤420px topbar search — at 320px the field collapses behind
+   a magnifier that expands over the whole bar on tap. Lives HERE, not app.css
+   (800-LOC limit); specificity matches `.topbar .topbar-actions .btn` (0,3,0)
+   so `.search-toggle` wins on source order (v1.231.2 regression). */
+header.topbar .topbar-actions .search-toggle { display: none; }
+.search-ico-close { display: none; }
+
+@media (max-width: 420px) {
+  header.topbar .topbar-actions .search-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 15px;
+  }
+  /* Closed: the field is gone and the magnifier stands in for it. */
+  header.topbar .searchbar { display: none; }
+  /* Open: the field takes the whole bar; the menu and the other actions step
+     aside so it gets real width instead of the 8px it used to get. The toggle
+     stays put and becomes the ✕ that closes it. */
+  header.topbar.search-open .searchbar { display: flex; flex: 1 1 auto; min-width: 0; }
+  header.topbar.search-open .sidebar-toggle,
+  header.topbar.search-open .topbar-actions > :not(.search-toggle) { display: none; }
+  header.topbar.search-open .search-ico-open { display: none; }
+  header.topbar.search-open .search-ico-close { display: inline; }
+}
+
+/* CAR-49 #3 (v1.247.0) — topbar icon set: bell/theme/doctor are one stroke-SVG
+   language (currentColor); the toggle ships BOTH glyphs and CSS shows the right
+   one per resolved theme — JS never writes into the button. */
+.topbar-actions svg.ico { display: block; width: 17px; height: 17px; }
+.theme-toggle .theme-ico--sun { display: none; }
+[data-theme="dark"] .theme-toggle .theme-ico--sun { display: block; }
+[data-theme="dark"] .theme-toggle .theme-ico--moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .theme-toggle .theme-ico--sun { display: block; }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .theme-toggle .theme-ico--moon { display: none; }
+}
+
+/* #/scan results rows (v1.244.0, spec 2026-10-06-scan-page-redesign): one
+   posting = one row — ⭐ cell + bounded td.scan-cell-posting (a 2-col grid:
+   signal-icon rail left of .scan-posting-title + .scan-posting-meta).
+   table-layout:fixed + minmax(0,1fr) bound the posting column at every
+   viewport; seniority/salary hide below 900px. */
+table.scan-tbl { table-layout: fixed; }
+table.scan-tbl th, table.scan-tbl td { padding: 10px 12px; }
+table.scan-tbl .scan-col-star { width: 40px; padding: 10px 4px; text-align: center; }
+table.scan-tbl .scan-col-sen { width: 108px; }
+table.scan-tbl .scan-col-salary { width: 120px; }
+.scan-cell-star { text-align: center; }
+.scan-cell-posting {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.scan-posting-signals { grid-row: 1 / span 2; display: flex; align-items: center; gap: 3px; }
+.scan-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; font-size: 12px; line-height: 1;
+  color: var(--foggy); cursor: help; font-variant-numeric: tabular-nums;
+}
+.scan-icon--boost { color: var(--babu-text, var(--babu)); }
+.scan-icon--fit.scan-icon--strong { color: var(--kazan-text, var(--kazan)); }
+.scan-icon--trust { color: var(--darjeeling-text, var(--darjeeling)); }
+.scan-icon--score { font-size: 11px; letter-spacing: -0.5px; }
+.scan-posting-title, .scan-posting-meta {
+  grid-column: 2; min-width: 0; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.scan-posting-title { font-weight: 600; color: var(--rausch-text, var(--rausch)); text-decoration: none; }
+a.scan-posting-title:hover, a.scan-posting-title:focus-visible { text-decoration: underline; }
+.scan-posting-meta { grid-row: 2; font-size: 12.5px; color: var(--foggy); }
+/* Rows-per-page control (AC3): a quiet right-aligned bar above the table,
+ * outside the re-rendered #scan-results subtree. */
+.scan-pagebar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 8px; }
+.scan-pagebar .select { width: auto; min-height: 32px; padding: 4px 8px; }
+@media (max-width: 900px) {
+  #scan-results .scan-col-aux, #scan-results .scan-cell-aux { display: none; }
+}
+
+/* ───────────────────── #/scan page chrome (v1.244.2) ─────────────────────
+ * Blocks AROUND the results table, unified: small-caps 11px labels above
+ * 40px controls, one baseline per row, tokens only, RTL via logical props. */
+.scan-field__label {
+  font-size: 11px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--foggy);
+}
+/* Shared 40px control height for launcher + filter-grid chrome. */
+.scan-launcher .select, .scan-launcher .input,
+.scan-filters .scan-field .input, .scan-filters .scan-field .select,
+.scan-filters__saved .select, .scan-filters__saved .input {
+  width: 100%; min-height: 40px; height: 40px; padding: 8px 12px; box-sizing: border-box;
+}
+.scan-launcher .btn, .scan-filters__saved .btn, .scan-filters__actions .btn {
+  min-height: 40px; height: 40px; padding: 0 18px;
+}
+/* CAR-50 (v1.246.0) — controls may shrink below their intrinsic min-width so a
+   narrow viewport WRAPS the row instead of clipping "Save search" at the edge;
+   the buttons keep their natural size and flow onto the next flex line. */
+.scan-filters__saved .select, .scan-filters__saved .input { min-width: 0; }
+.scan-filters__saved .btn { flex: 0 0 auto; }
+/* 1 · Launcher card — one aligned control row; [Scan] dominant primary. */
+.scan-launcher { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3) var(--space-4); }
+.scan-launcher .scan-cell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.scan-launcher .scan-cell--grow { flex: 1 1 240px; }
+.scan-launcher .scan-cell--max .input { width: 110px; }
+.scan-launcher .scan-launcher__actions { flex-direction: row; align-items: center; gap: var(--space-2); }
+.scan-launcher .scan-run-btn { padding-inline: 22px; font-weight: 700; }
+@media (max-width: 560px) {
+  /* Phones: stack launcher cells full-width; the action cell goes vertical
+     (the ≤420 dash-hero pattern) so touch targets never wrap mid-label. */
+  .scan-launcher .scan-cell { flex: 1 1 100%; }
+  .scan-launcher .scan-cell--max .input { width: 100%; }
+  .scan-launcher .scan-launcher__actions { flex-direction: column; align-items: stretch; }
+}
+.scan-checkline {
+  display: flex; align-items: center; gap: 8px; min-height: 40px;
+  cursor: pointer; -webkit-user-select: none; user-select: none;
+}
+.scan-checkline__hint { font-size: 13px; color: var(--foggy); }
+.scan-launcher .scan-checkline input[type='checkbox'],
+.scan-filters .scan-checkline input[type='checkbox'] {
+  flex: none; width: 16px; height: 16px; margin: 0; accent-color: var(--rausch); cursor: pointer;
+}
+/* 2 · Terminal status bar — dark console strip with a state dot
+ * (idle=foggy, running=pulsing accent, done=green, error=red). */
+.scan-terminal {
+  display: flex; align-items: flex-start; gap: 10px; margin: var(--space-2) 0;
+  background: #0f1115; border: 1px solid rgba(255,255,255,.09);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+}
+.scan-terminal .console {
+  flex: 1; min-width: 0; margin: 0; background: transparent;
+  border-radius: 0; padding: 0; font-size: 13px; color: #c8d3c8;
+}
+.scan-terminal .console .meta { color: #8b949e; }
+.scan-terminal .console .err { color: #ff9a9a; }
+.scan-terminal__dot {
+  flex: none; width: 8px; height: 8px; margin-top: 7px; border-radius: 50%;
+  background: #6b7280; transition: background var(--transition);
+}
+.scan-terminal[data-state='running'] .scan-terminal__dot { background: var(--rausch); animation: scan-dot 1.2s ease-in-out infinite; }
+.scan-terminal[data-state='done'] .scan-terminal__dot { background: var(--kazan); }
+.scan-terminal[data-state='error'] .scan-terminal__dot { background: var(--rausch-dark); }
+@keyframes scan-dot { 50% { box-shadow: 0 0 0 5px var(--accent-soft); } } /* v3 phase 3 — halo was rgba(255,56,92,.18) */
+/* 3 · Reposts disclosure — proper card header: chevron caret, hover,
+ * count badge; inner table shares the results-table cell rhythm. */
+.reposts { padding: 0; overflow: hidden; }
+.reposts-summary {
+  display: flex; align-items: center; gap: 10px; padding: 14px 20px;
+  font-weight: 600; cursor: pointer; transition: background var(--transition);
+  -webkit-user-select: none; user-select: none; list-style: none;
+}
+.reposts-summary::-webkit-details-marker { display: none; }
+.reposts-summary:hover { background: var(--beach); }
+.reposts-summary::before {
+  content: ''; flex: none; width: 7px; height: 7px; margin-inline-start: 2px;
+  border-right: 2px solid var(--foggy); border-bottom: 2px solid var(--foggy);
+  transform: rotate(-45deg); transition: transform var(--transition);
+}
+.reposts[open] .reposts-summary::before { transform: rotate(45deg); }
+[dir='rtl'] .reposts-summary::before { transform: rotate(-135deg); }
+[dir='rtl'] .reposts[open] .reposts-summary::before { transform: rotate(45deg); }
+.reposts-badge {
+  margin-inline-start: auto; padding: 2px 10px; border-radius: var(--radius-pill);
+  background: var(--elev); color: #6e6e6e; font-size: var(--font-size-sm);
+  font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.reposts-body { padding: 2px 20px 20px; max-height: 460px; overflow: auto; }
+.reposts-body .tbl th { position: sticky; top: 0; } /* positioned ⇒ paints above the row backgrounds */
+.reposts-body .tbl th, .reposts-body .tbl td { padding: calc((var(--cv3-row-h) - 1.45em - 1px) / 2) 12px; font-size: 13.5px; } /* v3 phase 3 — same row density */
+/* 4 · Filter grid — uniform responsive cells; saved searches = one bordered
+ * sub-card spanning the top; footer = hint LEFT, [Apply]+[Reset] RIGHT on
+ * one baseline above a hairline. */
+.scan-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
+  gap: var(--space-4);
+  align-items: end;
+  margin-bottom: var(--space-3);
+}
+.scan-filters .scan-field { margin-bottom: 0; min-width: 0; }
+.scan-filters__saved {
+  grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--space-2); padding: var(--space-3);
+  border: 1px solid var(--slate); border-radius: var(--radius); background: var(--beach);
+}
+.scan-filters__saved .select { flex: 2 1 200px; width: auto; }
+.scan-filters__saved .input { flex: 1 1 160px; }
+.scan-filters__saved .btn { padding: 0 14px; font-size: var(--font-size-md); }
+.scan-filters__footer {
+  grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: var(--space-2) var(--space-4);
+  padding-top: var(--space-3); border-top: 1px solid var(--line);
+}
+.scan-filters__actions { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2); }
+.scan-filters__hint { margin: 0; max-width: 72ch; }
+/* CAR-49 (v1.246.0) — the machine slug tail shown after a localized activity
+   ACTION label (dynamic families keep the identifier traceable). */
+.activity-raw-slug { margin-inline-start: 6px; font-size: 11px; color: var(--foggy); }
+

@@ -1,0 +1,177 @@
+---
+import { t, type Locale } from '../i18n/locales';
+import facts from '../generated/facts.json';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+
+// Public site per source value. The list itself comes from facts.sources
+// (synced from the live registry at build), so a new adapter without a row
+// here fails tests/site-sources.test.mjs rather than silently dropping off
+// the landing. 'rss' is the app's own generic feed connector — it links to
+// the user guide instead of an external site.
+const SOURCE_URLS: Record<string, string> = {
+  '4dayweek': 'https://4dayweek.io',
+  'a16z-speedrun-talent': 'https://speedrun-talent-network.com',
+  agenticjobs: 'https://www.agentic-engineering-jobs.com',
+  alibaba: 'https://talent.alibaba.com',
+  amazon: 'https://www.amazon.jobs',
+  apple: 'https://jobs.apple.com',
+  arbeitnow: 'https://www.arbeitnow.com',
+  arbeitsagentur: 'https://www.arbeitsagentur.de/jobsuche/',
+  ashby: 'https://www.ashbyhq.com',
+  'atlassian': 'https://www.atlassian.com/company/careers',
+  avature: 'https://www.avature.net',
+  bamboohr: 'https://www.bamboohr.com',
+  beesite: 'https://www.milchundzucker.de',
+  breezy: 'https://breezy.hr',
+  'bwi': 'https://www.bwi.de/karriere',
+  careerviet: 'https://careerviet.vn',
+  comeet: 'https://www.comeet.com',
+  'computrabajo': 'https://www.computrabajo.com',
+  consider: 'https://www.getconsider.com',
+  cryptocurrencyjobs: 'https://cryptocurrencyjobs.co',
+  csod: 'https://www.cornerstoneondemand.com',
+  dassault: 'https://www.3ds.com',
+  deel: 'https://www.deel.com',
+  applicantpro: 'https://www.applicantpro.com',
+  darwinbox: 'https://www.darwinbox.in',
+  germantechjobs: 'https://germantechjobs.de',
+  keka: 'https://www.keka.com/careers',
+  bulldogjob: 'https://bulldogjob.pl/companies/jobs',
+  deutschebahn: 'https://karriere.deutschebahn.com',
+  'dover': 'https://app.dover.com',
+  eightfold: 'https://eightfold.ai',
+  flowxtra: 'https://app.flowxtra.com',
+  gem: 'https://www.gem.com',
+  getonbrd: 'https://www.getonbrd.com',
+  getro: 'https://www.getro.com',
+  glints: 'https://glints.com',
+  'google': 'https://www.google.com/about/careers/',
+  greenhouse: 'https://www.greenhouse.com',
+  hackernews: 'https://news.ycombinator.com',
+  hecklerkoch: 'https://www.heckler-koch.com',
+  higheredjobs: 'https://www.higheredjobs.com',
+  himalayas: 'https://himalayas.app',
+  ibm: 'https://www.ibm.com/careers',
+  icims: 'https://www.icims.com',
+  itviec: 'https://itviec.com',
+  jibeapply: 'https://www.icims.com',
+  jobbankca: 'https://www.jobbank.gc.ca',
+  jobicy: 'https://jobicy.com',
+  jobspresso: 'https://jobspresso.co',
+  jobstreet: 'https://www.jobstreet.com',
+  jobvite: 'https://www.jobvite.com',
+  join: 'https://join.com',
+  joinup: 'https://joinup.ch',
+  justjoin: 'https://justjoin.it',
+  'kalibrr': 'https://www.kalibrr.com',
+  landingjobs: 'https://landing.jobs',
+  larajobs: 'https://larajobs.com',
+  lever: 'https://www.lever.co',
+  'magneto': 'https://www.magneto365.com',
+  manfred: 'https://www.getmanfred.com',
+  meituan: 'https://zhaopin.meituan.com',
+  mycareersfuture: 'https://www.mycareersfuture.gov.sg',
+  nodesk: 'https://nodesk.co',
+  nofluffjobs: 'https://nofluffjobs.com',
+  oraclecloud: 'https://www.oracle.com/human-capital-management/recruiting/',
+  paylocity: 'https://recruiting.paylocity.com',
+  personio: 'https://www.personio.com',
+  phenom: 'https://www.phenom.com',
+  pinpoint: 'https://www.pinpointhq.com',
+  'platsbanken': 'https://www.arbetsformedlingen.se/platsbanken',
+  radancy: 'https://www.radancy.com',
+  recruitee: 'https://recruitee.com',
+  remoteok: 'https://remoteok.com',
+  remotive: 'https://remotive.com',
+  remotli: 'https://remotli.ch',
+  rheinmetall: 'https://www.rheinmetall.com',
+  rippling: 'https://www.rippling.com',
+  rss: '',
+  senjob: 'https://senjob.com',
+  smartrecruiters: 'https://www.smartrecruiters.com',
+  successfactors: 'https://www.sap.com',
+  softgarden: 'https://softgarden.com',
+  solidjobs: 'https://solid.jobs',
+  teamtailor: 'https://www.teamtailor.com',
+  builtin: 'https://builtin.com',
+  collage: 'https://www.collage.co',
+  'feishu-jobs': 'https://jobs.bytedance.com',
+  garena: 'https://careers.garena.com',
+  mokahr: 'https://www.mokahr.com',
+  'techinasia': 'https://www.techinasia.com/jobs',
+  telegram: 'https://telegram.org',
+  'telegram-channel': 'https://telegram.org',
+  tencent: 'https://careers.tencent.com',
+  thehub: 'https://thehub.io',
+  pythonorg: 'https://www.python.org/jobs/',
+  'generalist-world': 'https://generalist.world/jobs',
+  eploy: 'https://www.eploy.co.uk',
+  hiringroom: 'https://www.hiringroom.com',
+  peoplesoft: 'https://www.oracle.com/applications/peoplesoft/',
+  prevueaps: 'https://www.prevuehr.com',
+  'adp-workforcenow': 'https://workforcenow.adp.com',
+  gupy: 'https://portal.gupy.io',
+  jazzhr: 'https://www.jazzhr.com',
+  'startup-jobs': 'https://startup.jobs',
+  taleo: 'https://www.oracle.com/human-capital-management/taleo/',
+  ultipro: 'https://www.ukg.com',
+  applitrack: 'https://www.frontlineeducation.com/applitrack/',
+  neogov: 'https://www.neogov.com',
+  occ: 'https://www.occ.com.mx',
+  redrover: 'https://www.redroverk12.com',
+  schoolspring: 'https://www.schoolspring.com',
+  themuse: 'https://www.themuse.com',
+  tkms: 'https://www.thyssenkrupp-marinesystems.com',
+  torre: 'https://torre.ai',
+  trakstar: 'https://www.trakstar.com',
+  vdab: 'https://www.vdab.be',
+  weworkremotely: 'https://weworkremotely.com',
+  wttj: 'https://www.welcometothejungle.com',
+  workable: 'https://www.workable.com',
+  workday: 'https://www.workday.com',
+  pageup: 'https://careers.pageuppeople.com',
+  workingnomads: 'https://www.workingnomads.com',
+  yourator: 'https://www.yourator.co',
+  geekjob: 'https://geekjob.ru',
+  getmatch: 'https://getmatch.ru',
+  'habr-career': 'https://career.habr.com',
+  'hh.ru': 'https://hh.ru',
+  trudvsem: 'https://trudvsem.ru',
+  'zoho-recruit': 'https://www.zoho.com/recruit/',
+};
+
+const home = locale.slug === '' ? '/' : `/${locale.slug}/`;
+const hrefFor = (value: string) => SOURCE_URLS[value] || `${home}help/`;
+const en = facts.sources.filter((s) => s.region === 'en');
+const ru = facts.sources.filter((s) => s.region === 'ru');
+const chip =
+  'inline-flex items-center rounded-full border border-line bg-paper px-3.5 py-1.5 text-sm text-ink-soft transition hover:border-ink-faint hover:text-ink';
+---
+
+<section id="sources" class="section">
+  <div class="container-site">
+    <div class="reveal mb-10 max-w-2xl">
+      <h2 class="mb-3 text-3xl font-bold tracking-tight md:text-4xl">{t(locale, 'src.title')}</h2>
+      <p class="text-lg text-ink-soft">{t(locale, 'src.lead').replace('{n}', String(facts.sources.length))}</p>
+    </div>
+    <ul class="mt-8 flex flex-wrap gap-2.5">
+      {en.map((s) => (
+        <li>
+          <a href={hrefFor(s.value)} rel="noopener noreferrer nofollow" class={chip}>{s.label}</a>
+        </li>
+      ))}
+    </ul>
+    <h3 class="mt-8 mb-3 text-sm font-bold uppercase tracking-wide text-ink-faint">{t(locale, 'src.ru')}</h3>
+    <ul class="flex flex-wrap gap-2.5">
+      {ru.map((s) => (
+        <li>
+          <a href={hrefFor(s.value)} rel="noopener noreferrer nofollow" class={chip}>{s.label}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>

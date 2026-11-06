@@ -145,6 +145,12 @@ Still deferred: automated job scraping, auto-applying, recruiter contact harvest
 | Hosted service / accounts / sync | G3 shows that local-only setup is a top adoption blocker | ADR-0002; authN/authZ, encryption at rest, tenancy isolation, privacy compliance review (e.g. India DPDP Act, GDPR), incident response |
 | AI claim extraction from documents (A6) | G2 passed and pilot shows manual claim entry is a key friction point | Span-citation contracts (exist); golden set extension |
 | Additional AI providers | A concrete user or cost need | Existing `AiProvider` interface; same golden-set gate |
+| Recovery ↔ job-search data handoff (`workspace/`, `engine/`) | Pilot users want their chosen direction reflected in job-search targets | Schema map from session route to engine profile/targets; explicit consent UI before any write into `engine/`; no automatic sync |
+| Two-way sync of CV, evidence, job targets and applications | The handoff above is in use and users ask for shared records | Conflict rules, provenance carried across, per-record consent |
+| Recovery screens inside the Workspace for evidence review, job targets and corrections | Users split between the Angular app and the Workspace | Bridge allowlist extension with the same validation discipline |
+| Durable recovery sessions through the bridge (`REBOUNDOPS_DATA_DIR`) | Demo users lose sessions on API restart | Existing opt-in disk persistence; bridge allowlist for the persistence route |
+| Translations for the Workspace recovery screens (English only today) | Non-English pilot participants | Workspace locale dictionaries |
+| Vector (SVG) logo | Print or large-format use | Source artwork from the logo owner |
 
 ## 6. Original stage checklists (updated)
 

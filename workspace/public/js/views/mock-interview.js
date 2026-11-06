@@ -1,0 +1,234 @@
+/* global Router, API, UI, I18n, HelpHint */
+/**
+ * #/mock-interview — Mock Interview 2.0 (v1.90.0, Epic 15).
+ *
+ * Turn-by-turn conversational rehearsal. The user sets a target role (+ optional
+ * company / JD), the interviewer opens with a question, and each answer gets
+ * per-answer feedback (STAR+R gaps), a score, and a follow-up. All grounded in
+ * the user's CV / profile / two-pager / story bank server-side. With a provider
+ * key it runs live; without one it hands back a copy-paste prompt (honest — no
+ * fabricated answers). Finished transcripts can be saved to the user layer.
+ *
+ * CAR-119 — the page renders through the shared LlmPageKit template:
+ * two-column form|result, a progress/ETA/Cancel run panel per turn, tracker
+ * autofill for role/company, and the saved-sessions list as a kit history
+ * drawer (same endpoints, card UI + confirm-gated delete).
+ * // CAR-119 i18n: no new dictionary keys — the kit's `llm2.*` strings ship
+ * as I18n.t EN fallbacks inside public/js/lib/llm-page-kit.js.
+ */
+Router.register('mock-interview', async () => {
+  const c = UI.el;
+  const t = (k, f) => I18n.t(k, f);
+
+  const root = c('div');
+  root.appendChild(HelpHint.title(t('mock.title', 'Mock interview'), 'help.hint.mock'));
+  root.appendChild(c('p', { className: 'page-subtitle' },
+    t('mock.subtitle', 'Rehearse turn by turn against a real role. Every answer gets STAR+R feedback, a score, and a follow-up — grounded in your CV, two-pager, and story bank.')));
+
+  // ── setup bar ──
+  const roleInput = c('input', { type: 'text', className: 'input', 'data-i18n-placeholder': 'mock.rolePh', 'data-i18n-aria-label': 'mock.rolePh' });
+  roleInput.placeholder = t('mock.rolePh', 'Target role (e.g. Senior Backend Engineer)');
+  const companyInput = c('input', { type: 'text', className: 'input', 'data-i18n-placeholder': 'mock.companyPh', 'data-i18n-aria-label': 'mock.companyPh' });
+  companyInput.placeholder = t('mock.companyPh', 'Company (optional)');
+  const jdInput = c('textarea', { className: 'input', rows: '3', 'data-i18n-placeholder': 'mock.jdPh', 'data-i18n-aria-label': 'mock.jdPh' });
+  jdInput.placeholder = t('mock.jdPh', 'Paste the job description (optional) — sharpens the questions.');
+
+  const startBtn = c('button', { className: 'btn btn-primary', type: 'button' }, t('mock.start', 'Start interview'));
+  // CAR-119 — run/progress host (result column) + tracker autofill.
+  const runHost = c('div');
+  const picker = window.LlmPageKit.jobPicker({
+    map: { company: 'company', role: 'role' },
+    fields: { company: companyInput, role: roleInput },
+  });
+  const setup = c('div', { className: 'card', style: { padding: '16px', margin: '12px 0 20px', display: 'grid', gap: '10px' } }, [
+    field(t('mock.roleLabel', 'Role'), roleInput),
+    field(t('mock.companyLabel', 'Company'), companyInput),
+    field(t('mock.jdLabel', 'Job description'), jdInput),
+    c('div', null, startBtn),
+  ]);
+  const convo = c('div', { style: { display: 'none', margin: '0 0 16px' } });
+  const page = window.LlmPageKit.layout({
+    form: c('div', null, [picker, setup]),
+    result: c('div', null, [runHost, convo]),
+  });
+  root.appendChild(page.root);
+
+  function field(label, el) {
+    return c('label', { style: { display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: 'var(--foggy)' } }, [label, el]);
+  }
+
+  // ── conversation ──
+  const thread = c('div', { role: 'log', 'aria-live': 'polite', style: { display: 'flex', flexDirection: 'column', gap: '12px', margin: '0 0 14px' } });
+  const answerBox = c('textarea', { className: 'input', rows: '4', 'data-i18n-placeholder': 'mock.answerPh', 'data-i18n-aria-label': 'mock.answerPh' });
+  answerBox.placeholder = t('mock.answerPh', 'Type your answer, then Send…');
+  const sendBtn = c('button', { className: 'btn btn-primary', type: 'button' }, t('mock.send', 'Send answer'));
+  const saveBtn = c('button', { className: 'btn btn-ghost', type: 'button' }, t('mock.save', 'Save transcript'));
+  const restartBtn = c('button', { className: 'btn btn-ghost', type: 'button' }, t('mock.restart', 'New interview'));
+  const convoActions = c('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '8px 0 0' } }, [sendBtn, saveBtn, restartBtn]);
+  convo.append(thread, field(t('mock.yourAnswer', 'Your answer'), answerBox), convoActions);
+  root.appendChild(convo);
+
+  // history = [{ speaker, text }]; mirrors the server contract.
+  const history = [];
+  let session = { role: '', company: '', jd: '' };
+  // CAR-21 (v1.243.0) — stale-turn guard. Restarting / starting a new
+  // interview while a turn was in flight let the OLD response land in the
+  // NEW session's thread and history. Every requestTurn tags itself with
+  // the epoch; a response from an older epoch is dropped wholesale (no
+  // bubble, no history push, no button re-enable).
+  let sessionEpoch = 0;
+
+  function bubble(speaker, markdown) {
+    const mine = speaker === 'candidate';
+    const who = mine ? t('mock.you', 'You') : t('mock.interviewer', 'Interviewer');
+    return c('div', {
+      className: 'card',
+      style: {
+        padding: '12px 14px', maxWidth: '90%', alignSelf: mine ? 'flex-end' : 'flex-start',
+        background: mine ? 'var(--panel-2, #eef1f6)' : 'var(--panel, #fff)',
+        borderInlineStart: mine ? 'none' : '3px solid var(--accent, #4c8bf5)',
+      },
+    }, [
+      c('div', { style: { fontSize: '11px', fontWeight: '700', color: 'var(--foggy)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.04em' } }, who),
+      c('div', { className: 'md', html: UI.md(markdown) }),
+    ]);
+  }
+
+  async function requestTurn() {
+    const epoch = sessionEpoch;
+    sendBtn.disabled = true; startBtn.disabled = true;
+    // CAR-119 — the shared run panel (progress/ETA/Cancel) replaces the
+    // static thinking bubble; Cancel drops the turn like a stale one.
+    const runCtrl = window.LlmPageKit.createRun({ etaSeconds: 30, onBegin: () => page.show('result') }).mount(runHost);
+    // Review #9 — remember the candidate turn this request answers, so a
+    // CANCEL can put it back where it came from (a cancelled turn must not
+    // leave two consecutive candidate entries in the transcript).
+    const pendingCandidate = (history.length && history[history.length - 1].speaker === 'candidate')
+      ? history[history.length - 1]
+      : null;
+    try {
+      const res = await window.LlmPageKit.run({
+        run: runCtrl,
+        failText: t('mock.turnFailed', 'Could not get the next turn'),
+        intro: t('mock.thinking', 'Interviewer is thinking…'),
+        request: (signal) => window.LlmPageKit.postJSON('/api/mock-interview/turn', { role: session.role, company: session.company, jd: session.jd, history, run: true }, signal),
+      });
+      if (epoch !== sessionEpoch) return; // stale turn — a newer session superseded it
+      if (runCtrl.cancelled || runCtrl.signal.aborted) {
+        // Review #9 — restore the cancelled turn: pop the pending candidate
+        // entry and put its text back into the answer box so the user can
+        // re-send it (the transcript never holds two candidate turns).
+        if (pendingCandidate && history[history.length - 1] === pendingCandidate) {
+          history.pop();
+          // the bubble leaves the thread with the transcript entry
+          if (thread.lastChild) thread.removeChild(thread.lastChild);
+          answerBox.value = pendingCandidate.text;
+        }
+        return;
+      }
+      if (res && res.markdown) {
+        history.push({ speaker: 'interviewer', text: res.markdown });
+        thread.appendChild(bubble('interviewer', res.markdown));
+      } else {
+        // No provider key → show the copy-paste prompt honestly in a modal.
+        showManualPrompt(res && res.prompt);
+      }
+    } catch {
+      // CAR-119 review #4 — the kit's fail panel announces the failure.
+      if (epoch !== sessionEpoch) return;
+    } finally {
+      if (epoch === sessionEpoch) {
+        sendBtn.disabled = false; startBtn.disabled = false;
+        thread.scrollIntoView({ block: 'end' });
+      }
+    }
+  }
+
+  function showManualPrompt(prompt) {
+    const dump = c('textarea', { className: 'input', rows: '16', readonly: 'readonly', style: { width: '100%', fontFamily: 'monospace', fontSize: '12px' } }, prompt);
+    A11yDump.label(dump, t('a11y.readonlyOutput', 'Generated result — read only'));
+    const body = c('div', null, [
+      c('p', { style: { margin: '0 0 10px', color: 'var(--foggy)' } },
+        t('mock.manualHelp', 'No LLM key is set. Copy this prompt into any LLM, then paste the interviewer’s reply back in as your next answer prompt.')),
+      dump,
+    ]);
+    UI.modal(t('mock.manualTitle', 'Run this turn manually'), body);
+  }
+
+  startBtn.addEventListener('click', () => {
+    const role = roleInput.value.trim();
+    const jd = jdInput.value.trim();
+    if (!role && !jd) { UI.toast(t('mock.needRole', 'Enter a role or paste a job description first'), 'error'); return; }
+    session = { role, company: companyInput.value.trim(), jd };
+    sessionEpoch++; // invalidate any turn still in flight from the previous session
+    history.length = 0;
+    thread.textContent = '';
+    setup.style.display = 'none';
+    convo.style.display = 'block';
+    requestTurn();
+  });
+
+  sendBtn.addEventListener('click', () => {
+    const text = answerBox.value.trim();
+    if (!text) return;
+    history.push({ speaker: 'candidate', text });
+    thread.appendChild(bubble('candidate', text));
+    answerBox.value = '';
+    requestTurn();
+  });
+
+  restartBtn.addEventListener('click', () => {
+    sessionEpoch++; // a turn in flight belongs to the abandoned session — drop its response
+    convo.style.display = 'none';
+    setup.style.display = 'grid';
+    startBtn.disabled = false;
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    if (!history.length) { UI.toast(t('mock.nothingToSave', 'Nothing to save yet'), 'error'); return; }
+    const transcript = history
+      .map((h) => `**${h.speaker === 'candidate' ? t('mock.you', 'You') : t('mock.interviewer', 'Interviewer')}:**\n\n${h.text}`)
+      .join('\n\n---\n\n');
+    saveBtn.disabled = true;
+    try {
+      const { name } = await API.post('/api/mock-interview/save', { role: session.role, company: session.company, transcript });
+      UI.toast(t('mock.saved', 'Transcript saved') + ' · ' + name, 'success');
+      refreshSessions();
+    } catch (err) {
+      UI.toast((err && err.message) || t('mock.saveFailed', 'Could not save the transcript'), 'error');
+    } finally { saveBtn.disabled = false; }
+  });
+
+  // ── saved sessions ──
+  // CAR-119 — the hand-rolled list became the kit's history drawer (same
+  // endpoints; the drawer's labels reuse this view's already-translated
+  // strings, so no dictionary change).
+  const saved = window.LlmPageKit.historyDrawer({
+    title: t('mock.savedTitle', 'Saved sessions'),
+    labels: {
+      view: t('mock.view', 'View'),
+      del: t('mock.delete', 'Delete'),
+      confirm: t('mock.confirmDelete', 'Delete this saved session?'),
+      empty: t('mock.savedEmpty', 'No saved sessions yet — finish an interview and click “Save transcript”.'),
+    },
+    load: async () => {
+      // review #12 — errors propagate to the drawer's role=alert state.
+      const { sessions } = await API.get('/api/mock-interview/sessions');
+      return sessions || [];
+    },
+    onView: async (s) => {
+      try {
+        const { markdown } = await API.get(`/api/mock-interview/sessions/${encodeURIComponent(s.name)}`);
+        UI.modal(s.name, c('div', { className: 'md', html: UI.md(markdown) }));
+      } catch (err) { UI.toast((err && err.message) || t('common.error', 'Error'), 'error'); }
+    },
+    onDelete: async (s) => {
+      await API.del(`/api/mock-interview/sessions/${encodeURIComponent(s.name)}`);
+    },
+  });
+  root.appendChild(saved.el);
+  const refreshSessions = saved.refresh;
+  await refreshSessions();
+
+  return root;
+});

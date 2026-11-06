@@ -1,0 +1,256 @@
+/* ReboundOps Next — brand theme + recovery views.
+ *
+ * Theme is token-only: both ReboundOps token families (the cv3 set in
+ * tokens-v3.css and the legacy app.css neutrals most components still read)
+ * plus the "Ask the docs" launcher tokens are re-pointed at the ReboundOps
+ * logo palette. No ReboundOps component, layout or dashboard rule changes
+ * except two brand accents (sidebar rail, active nav icon) below.
+ * Loaded after tokens-v3.css (accent wins), before motion.css (stays last).
+ *
+ * Palette sampled from the supplied logo (public/brand/, originals in
+ * docs/reboundops-next/brand/): orange #E8541F (range #D04018–#F87830),
+ * deep brown #220B08, cream #FAF6F0. Neutrals are warm tints of those two,
+ * replacing upstream's blue-grey (hue 250) greys.
+ *
+ * The pure logo orange is 3.7:1 on white, so it is used for the logo, icons
+ * and decoration; text-bearing fills use a deeper/lighter step.
+ * Contrast (WCAG 2.x, computed — scratch check in the demo report):
+ *   light  ink #2A140F on paper #FFFDFA .... 17.2:1   muted #75625A ..... 5.7:1
+ *          muted on raised #F4ECE3 ......... 4.9:1    input line ....... 3.6:1
+ *          #fff on accent #C9441A .......... 4.9:1    accent text ...... 4.8:1
+ *          orange icon on brown nav pill ... 5.7:1    #9A3412 on soft .. 6.4:1
+ *   dark   ink #FAF1E8 on paper #241310 .... 16.0:1   muted #C2AD9F .... 8.3:1
+ *          #220B08 on accent #F26A2E ....... 6.1:1    accent text ...... 5.9:1
+ *          input line #7E6052 .............. 3.1:1    #FDBA8C on soft .. 9.4:1
+ */
+:root {
+  /* brand */
+  --rb-orange: #E8541F;
+  --rb-terracotta: var(--rb-orange);
+  --rb-cream: #FAF6F0;
+  --rb-brown: #220B08;
+  --rb-glow: rgba(232, 84, 31, .14);
+  /* accent (actions) */
+  --cv3-accent: #C9441A;
+  --cv3-accent-hover: #A93812;
+  --cv3-accent-ink: #ffffff;
+  --cv3-accent-soft: #FDECE3;
+  --cv3-accent-soft-ink: #9A3412;
+  /* neutrals — cream / brown instead of upstream blue-grey */
+  --cv3-surface-0: #FAF6F0;
+  --cv3-surface-1: #FFFDFA;
+  --cv3-surface-2: #F4ECE3;
+  --cv3-surface-3: #ECE1D5;
+  --cv3-ink: #2A140F;
+  --cv3-ink-2: #5E4A41;
+  --cv3-ink-3: #75625A;
+  --cv3-line: #EADDD1;
+  --cv3-line-strong: #DCC9BA;
+  --cv3-input-line: #9A8274;
+  --cv3-neutral: #8A7468;
+  --cv3-neutral-soft: #F3ECE6;
+  --cv3-neutral-ink: #5E4A41;
+  --cv3-shadow-1: 0 1px 0 rgba(42, 20, 15, .04), 0 1px 2px rgba(42, 20, 15, .07);
+  --cv3-shadow-2: 0 1px 0 rgba(42, 20, 15, .04), 0 12px 24px rgba(42, 20, 15, .10);
+  /* legacy app.css neutrals (most components still read these) */
+  --hof: #2A140F;
+  --foggy: #75625A;
+  --foggy-strong: #5E4A41;
+  --beach: #FAF6F0;
+  --slate: #EADDD1;
+  --elev: #F4ECE3;
+  --paper: #FFFDFA;
+  --arches: #E8541F;
+  --shadow-sm: 0 1px 2px rgba(42, 20, 15, .08);
+  --shadow-md: 0 6px 16px rgba(42, 20, 15, .12);
+  --shadow-lg: 0 8px 28px rgba(42, 20, 15, .18);
+  /* "Ask the docs" launcher — logo orange instead of blue/purple */
+  --fab-grad: linear-gradient(135deg, #F87830 0%, #E8541F 45%, #B8380F 100%);
+  --fab-glow: 0 6px 26px rgba(232, 84, 31, .42);
+  --fab-accent: #C9441A;
+  --fab-panel-bg: var(--paper);
+  --fab-panel-head: linear-gradient(180deg, rgba(232, 84, 31, .10), rgba(250, 246, 240, 0));
+  --fab-bubble-bot: #F4ECE3;
+  --fab-border: rgba(42, 20, 15, .12);
+  /* recovery views */
+  --rb-card: var(--paper);
+  --rb-muted: #5E4A41;
+  --rb-border: #EADDD1;
+  --rb-soft: var(--rb-cream);
+}
+/* Same selectors as the upstream sheets so the later sheet (this one) wins. */
+[data-theme="dark"],
+:root[data-theme="dark"] {
+  --rb-orange: #F26A2E;
+  --rb-glow: rgba(242, 106, 46, .16);
+  --cv3-accent: #F26A2E;
+  --cv3-accent-hover: #F8803E;
+  --cv3-accent-ink: #220B08;
+  --cv3-accent-soft: #3B1A10;
+  --cv3-accent-soft-ink: #FDBA8C;
+  /* neutrals — the logo's deep-brown night instead of blue-black */
+  --cv3-surface-0: #1A0A07;
+  --cv3-surface-1: #241310;
+  --cv3-surface-2: #301B15;
+  --cv3-surface-3: #3B231B;
+  --cv3-ink: #FAF1E8;
+  --cv3-ink-2: #D9C6B9;
+  --cv3-ink-3: #C2AD9F;
+  --cv3-line: #43291F;
+  --cv3-line-strong: #573629;
+  --cv3-input-line: #7E6052;
+  --cv3-neutral: #B49C8E;
+  --cv3-neutral-soft: #3A251E;
+  --cv3-neutral-ink: #D9C6B9;
+  --cv3-shadow-1: 0 0 0 1px rgba(250, 241, 232, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
+  --cv3-shadow-2: 0 0 0 1px rgba(250, 241, 232, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
+  --hof: #FAF1E8;
+  --foggy: #C2AD9F;
+  --foggy-strong: #D9C6B9;
+  --beach: #1A0A07;
+  --slate: #43291F;
+  --elev: #301B15;
+  --paper: #241310;
+  --arches: #F87830;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .45);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, .55);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, .7);
+  --fab-accent: #FDBA8C;
+  --fab-panel-bg: var(--paper);
+  --fab-panel-head: linear-gradient(180deg, rgba(242, 106, 46, .16), rgba(36, 19, 16, 0));
+  --fab-bubble-bot: #301B15;
+  --fab-border: rgba(250, 241, 232, .10);
+  --rb-card: var(--paper);
+  --rb-muted: #D9C6B9;
+  --rb-border: #43291F;
+  --rb-soft: #2E1A14;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --rb-orange: #F26A2E;
+    --rb-glow: rgba(242, 106, 46, .16);
+    --cv3-accent: #F26A2E;
+    --cv3-accent-hover: #F8803E;
+    --cv3-accent-ink: #220B08;
+    --cv3-accent-soft: #3B1A10;
+    --cv3-accent-soft-ink: #FDBA8C;
+    /* neutrals — the logo's deep-brown night instead of blue-black */
+    --cv3-surface-0: #1A0A07;
+    --cv3-surface-1: #241310;
+    --cv3-surface-2: #301B15;
+    --cv3-surface-3: #3B231B;
+    --cv3-ink: #FAF1E8;
+    --cv3-ink-2: #D9C6B9;
+    --cv3-ink-3: #C2AD9F;
+    --cv3-line: #43291F;
+    --cv3-line-strong: #573629;
+    --cv3-input-line: #7E6052;
+    --cv3-neutral: #B49C8E;
+    --cv3-neutral-soft: #3A251E;
+    --cv3-neutral-ink: #D9C6B9;
+    --cv3-shadow-1: 0 0 0 1px rgba(250, 241, 232, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
+    --cv3-shadow-2: 0 0 0 1px rgba(250, 241, 232, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
+    --hof: #FAF1E8;
+    --foggy: #C2AD9F;
+    --foggy-strong: #D9C6B9;
+    --beach: #1A0A07;
+    --slate: #43291F;
+    --elev: #301B15;
+    --paper: #241310;
+    --arches: #F87830;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .45);
+    --shadow-md: 0 6px 16px rgba(0, 0, 0, .55);
+    --shadow-lg: 0 8px 28px rgba(0, 0, 0, .7);
+    --fab-accent: #FDBA8C;
+    --fab-panel-bg: var(--paper);
+    --fab-panel-head: linear-gradient(180deg, rgba(242, 106, 46, .16), rgba(36, 19, 16, 0));
+    --fab-bubble-bot: #301B15;
+    --fab-border: rgba(250, 241, 232, .10);
+    --rb-card: var(--paper);
+    --rb-muted: #D9C6B9;
+    --rb-border: #43291F;
+    --rb-soft: #2E1A14;
+  }
+}
+
+/* ── brand accents on the ReboundOps shell ── the sidebar rail takes the
+   logo's own background (cream / deep brown); the active nav pill is logo
+   brown (light) and carries an orange icon. */
+.sidebar { background: var(--beach); }
+.nav-item.active .nav-ico { color: var(--rb-orange); }
+[data-theme="dark"] .nav-item.active .nav-ico { color: #C9441A; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .nav-item.active .nav-ico { color: #C9441A; }
+}
+/* Scan terminal: upstream hard-codes a blue-black console; use the logo's
+   deep brown with warm greys (meta #B49C8E on #1A0A07 = 7.6:1). */
+.scan-terminal { background: var(--rb-brown); border-color: rgba(250, 241, 232, .10); }
+.scan-terminal .console .meta { color: #B49C8E; }
+
+/* ── logo ── the R mark is a full-colour transparent PNG: show it whole,
+   not cover-cropped into the upstream accent circle. */
+.logo .logo-mark { border-radius: 0; background: transparent; object-fit: contain; }
+.logo-text .rb-ops { color: var(--rb-orange); }
+.rb-logo { display: block; width: min(240px, 70%); height: auto; margin: 0 0 18px; }
+.rb-logo--dark { display: none; }
+[data-theme="dark"] .rb-logo--light { display: none; }
+[data-theme="dark"] .rb-logo--dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .rb-logo--light { display: none; }
+  :root:not([data-theme="light"]) .rb-logo--dark { display: block; }
+}
+
+/* ── context strip (shown on ReboundOps views after a plan exists) ── */
+.rb-strip {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+  margin: 0 0 4px; padding: 8px 14px; border-radius: 10px;
+  background: var(--rb-soft); border: 1px solid var(--rb-border);
+  color: var(--hof); font-size: 13px; line-height: 1.4;
+}
+.rb-strip[hidden] { display: none; }
+.rb-strip__brand { font-weight: 700; color: var(--cv3-accent-soft-ink); }
+.rb-strip__item b { font-weight: 600; }
+.rb-strip a { margin-inline-start: auto; color: var(--cv3-accent-soft-ink); font-weight: 600; }
+
+/* ── recovery views ── */
+.rb-page { max-width: 1040px; }
+.rb-eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--cv3-accent-soft-ink); margin: 0 0 8px; }
+.rb-hero h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.15; margin: 0 0 10px; letter-spacing: -.02em; }
+.rb-lede { color: var(--rb-muted); font-size: 16px; max-width: 680px; margin: 0 0 14px; }
+.rb-card { background: var(--rb-card); border: 1px solid var(--rb-border); border-radius: 14px; padding: clamp(16px, 3vw, 28px); margin: 18px 0; }
+.rb-card h2 { margin: 0 0 6px; font-size: 21px; }
+.rb-goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 14px 0 6px; border: 0; padding: 0; }
+.rb-goal { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--rb-border); border-radius: 10px; cursor: pointer; min-height: 44px; }
+.rb-goal:has(input:checked) { border-color: var(--cv3-accent); background: var(--rb-soft); }
+.rb-goal input { margin-top: 3px; accent-color: var(--cv3-accent); }
+.rb-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+.rb-fields label, .rb-full { display: block; font-size: 13px; font-weight: 600; }
+.rb-full { grid-column: 1 / -1; }
+.rb-fields input, .rb-fields select, .rb-fields textarea {
+  display: block; width: 100%; margin-top: 6px; min-height: 40px; padding: 8px 10px;
+  border: 1px solid var(--rb-border); border-radius: 8px; background: var(--paper, #fff); color: var(--hof); font: inherit; font-weight: 400;
+}
+.rb-hint { display: block; font-weight: 400; color: var(--rb-muted); font-size: 12px; margin-top: 4px; }
+.rb-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
+.rb-note { border-inline-start: 4px solid var(--rb-terracotta); background: var(--rb-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 13px; color: var(--hof); margin: 12px 0; }
+.rb-alert { padding: 12px 14px; border-radius: 8px; margin: 12px 0; font-size: 14px; background: #fff0ee; color: #8a2f25; border: 1px solid #f0c3b8; }
+[data-theme="dark"] .rb-alert { background: #3a1f1a; color: #f6c2b6; border-color: #6a3a30; }
+.rb-alert[hidden], .rb-note[hidden] { display: none; }
+.rb-routes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.rb-route { border: 1px solid var(--rb-border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px; background: var(--rb-card); }
+.rb-route.is-selected { border: 2px solid var(--cv3-accent); background: var(--rb-soft); }
+.rb-route h3 { margin: 0; font-size: 16px; }
+.rb-route p { margin: 0; font-size: 13px; color: var(--rb-muted); }
+.rb-route p b { color: var(--hof); }
+.rb-route .btn { margin-top: auto; }
+.rb-badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; background: var(--cv3-accent-soft); color: var(--cv3-accent-soft-ink); align-self: flex-start; }
+.rb-plan { list-style: none; padding: 0; margin: 12px 0; }
+.rb-plan li { border-bottom: 1px solid var(--rb-border); }
+.rb-task { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; cursor: pointer; min-height: 44px; }
+.rb-task input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--cv3-accent); flex-shrink: 0; }
+.rb-task small { display: block; font-weight: 700; color: var(--cv3-accent-soft-ink); font-size: 12px; }
+.rb-task input:checked + span strong { text-decoration: line-through; color: var(--rb-muted); }
+.rb-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.rb-pill { font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 99px; background: var(--rb-soft); border: 1px solid var(--rb-border); }
+@media (max-width: 860px) { .rb-routes { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .rb-fields { grid-template-columns: 1fr; } .rb-strip a { margin-inline-start: 0; } }

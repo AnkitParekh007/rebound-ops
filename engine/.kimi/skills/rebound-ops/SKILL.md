@@ -1,0 +1,1 @@
+../../../.agents/skills/rebound-ops/SKILL.md

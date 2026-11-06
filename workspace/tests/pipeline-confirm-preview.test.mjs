@@ -1,0 +1,80 @@
+/**
+ * v1.48.0 (WS2 UX-audit #8/#22) — pipeline.js: focus-trapped
+ * UI.confirm() replaces native confirm() on all destructive/nav
+ * actions; the preview is a polite live region and a fetch failure is
+ * a distinct role=alert block, not disguised as preview body text.
+ * Browser-only view → asserted statically (router.test.mjs style).
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { legacyDictText } from './helpers/i18n-vm.mjs';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const R = (...p) => resolve(__dirname, '..', ...p);
+const PIPE = readFileSync(R('public', 'js', 'views', 'pipeline.js'), 'utf8');
+const DICT = legacyDictText();
+
+test('#8: no native confirm() left anywhere in pipeline.js', () => {
+  // strip UI.confirm( first, then any remaining `confirm(` is native.
+  const stripped = PIPE.replace(/UI\.confirm\(/g, '');
+  assert.ok(!/(?:^|[^.\w])confirm\(/m.test(stripped),
+    'pipeline.js still calls native confirm()');
+});
+
+test('#8: destructive + nav actions go through focus-trapped UI.confirm()', () => {
+  const calls = PIPE.match(/await UI\.confirm\(/g) || [];
+  // CAR-116 review round — the single-row deletes REGAINED their confirm
+  // (an undo bar is not a substitute for a danger dialog at 30k rows).
+  // Confirm sites: preview-pane delete, flat row delete, grouped card
+  // delete, the BULK discard (danger) and evaluate-first (nav).
+  assert.ok(calls.length >= 5, `expected ≥5 UI.confirm sites, found ${calls.length}`);
+  // the bulk discard is danger:true; evaluate-first is danger:false
+  assert.ok((PIPE.match(/danger:\s*true/g) || []).length >= 4, 'all delete confirms are danger:true');
+  assert.match(PIPE, /danger:\s*false/);
+  assert.match(PIPE, /t\('pipe\.confirmDelTitle'/, 'deletes reuse the remove-from-pipeline title');
+  assert.match(PIPE, /t\('pipe\.evaluateAllTitle'/);
+});
+
+test('#8b (CAR-116 review): single-row deletes confirm, then undo ONLY on success', () => {
+  // the row + preview-pane delete paths confirm, funnel through
+  // removeFromPipeline (which swallows errors and returns a boolean),
+  // and push the undo batch only when the boolean says it happened —
+  // the old shape pushed undo even when the DELETE failed.
+  const row = PIPE.slice(PIPE.indexOf('function urlRow'), PIPE.indexOf('// Virtualization state'));
+  assert.match(row, /await UI\.confirm\(/, 'flat row delete confirms');
+  assert.match(row, /if \(!removed\) return;/, 'a failed DELETE must not push undo');
+  assert.match(PIPE, /pushUndo\(\[url\]\);\s*\n\s*showUndoBar\(1\);/,
+    'single deletes push a one-URL undo batch after success');
+});
+
+test('#22: previewPane is a labelled polite live region', () => {
+  assert.match(PIPE, /id:\s*'pipe-preview'[\s\S]{0,120}role:\s*'region',\s*'aria-live':\s*'polite'/);
+  assert.match(PIPE, /'aria-label':\s*t\('pipe\.previewRegion'/);
+});
+
+test('#22: fetch failure is a distinct role=alert block, not preview body', () => {
+  assert.match(PIPE, /let previewError = ''/);
+  // catch sets previewError, NOT previewBody-with-parens. (CAR-21
+  // v1.243.0: the catch may carry the latest-wins token guard before the
+  // assignment — a superseded response must not write preview state.)
+  assert.match(PIPE, /catch \(e\) \{\s*(?:if \(token === selectToken\) )?previewError = e\.message \|\| 'fetch failed';/);
+  assert.ok(!/previewBody = '\(' \+ \(e\.message/.test(PIPE),
+    'old disguised-as-body error string must be gone');
+  assert.match(PIPE, /if \(previewError\) \{[\s\S]{0,200}role:\s*'alert'/);
+  // cleared on (re)select + on deleting the active row
+  assert.match(PIPE, /previewBody = '';\s*\n\s*previewError = '';/);
+  assert.match(PIPE, /previewBody = ''; previewError = ''; \}/);
+});
+
+test('i18n: 4 new pipe keys present with all 8 locales', () => {
+  for (const k of ['pipe.confirmDelTitle', 'pipe.previewError', 'pipe.evaluateAllTitle', 'pipe.previewRegion']) {
+    const line = DICT.split('\n').find((l) => l.includes(`'${k}'`));
+    assert.ok(line, `missing i18n key ${k}`);
+    for (const loc of ['en', 'es', "'pt-BR'", 'ko', 'ja', 'ru', "'zh-CN'", "'zh-TW'"]) {
+      assert.ok(line.includes(loc + ':'), `${k} missing locale ${loc}`);
+    }
+  }
+});

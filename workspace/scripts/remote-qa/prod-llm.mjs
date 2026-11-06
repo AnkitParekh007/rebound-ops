@@ -1,0 +1,261 @@
+#!/usr/bin/env node
+/**
+ * prod-llm.mjs — live LLM regression of a DEPLOYED web-ui, in every UI locale.
+ *
+ *   BASE_URL=https://<prod-host> BASIC_USER=… BASIC_PASS=… node scripts/remote-qa/prod-llm.mjs
+ *
+ * First one real scan via #/scan (SCAN=0 skips it). Then, per locale, driven
+ * through the UI exactly as a user would:
+ *   1. #/docs-assistant — click the first suggested question (already in that
+ *      language) → POST /api/docs-assistant/ask {run:true}.
+ *   2. #/evaluate — paste a fixed sample JD, leave "save" unchecked, click
+ *      Evaluate → POST /api/evaluate {save:false}.
+ * Each answer must come from a live provider (not manual mode), be non-trivial,
+ * be written in the locale's language, and the evaluation must pass the
+ * server's own A–G shape check (no `warnings`). The UI must render it.
+ *
+ * Nothing is written to the instance's data: the only POSTs allowed out of the
+ * browser are those two, /api/evaluate must carry save:false, and every other
+ * non-GET /api call and /api/stream/* is aborted. (The server's usage counter
+ * does tick — that is what a real run does.) LLM calls are paced under the
+ * server's 10/min limit and a 429 is waited out once.
+ *
+ * Output: locale, provider, timings, lengths, verdicts. Never answer text —
+ * evaluations quote the CV and this log is public.
+ */
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { makeRedactor } from './redact.mjs';
+import { languageOk, describe, headingSkeleton, splitWarnings } from './lang-check.mjs';
+import { discoverLocales, requireNonEmpty, httpCredentialsFor } from './targets.mjs';
+import { collectErrTexts, evalOutTokens, evalCachedTokens, scanSummaryBlock, summaryCell, mdEscape } from './summary-parts.mjs';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const require = createRequire(ROOT + '/package.json');
+const { chromium } = require('playwright');
+
+const BASE = (process.env.BASE_URL || '').replace(/\/+$/, '');
+if (!BASE) { console.error('BASE_URL is required'); process.exit(2); }
+// Pinned to the BASE origin — never offered to another host that answers 401.
+const httpCredentials = httpCredentialsFor(BASE, process.env.BASIC_USER, process.env.BASIC_PASS);
+const ONLY = (process.env.LOCALES || '').split(',').filter(Boolean);
+let LOCALES;
+try { LOCALES = requireNonEmpty('locales', discoverLocales(ROOT, ONLY)); }
+catch (e) { console.error(e.message + (ONLY.length ? ` (LOCALES=${ONLY.join(',')})` : '')); process.exit(2); }
+
+const SAMPLE_JD = `Senior Platform Engineer — Example Corp (remote, EU)
+We are looking for a Senior Platform Engineer to own our Kubernetes-based internal
+developer platform. You will design CI/CD pipelines, run AWS infrastructure with
+Terraform, improve observability (Prometheus, Grafana, OpenTelemetry) and mentor
+engineers. Requirements: 5+ years in SRE/platform roles, strong Go or Python,
+Kubernetes in production, infrastructure as code, on-call experience. Nice to have:
+service mesh, cost optimisation, PostgreSQL operations. Salary 90–120k EUR.`;
+
+// Language check lives in lang-check.mjs (tested in tests/remote-qa-lang-check.test.mjs).
+
+// ── run ───────────────────────────────────────────────────────────────────────
+const browser = await chromium.launch({ headless: true });
+const rows = [];
+const findings = [];
+// Redact the prod host before truncating: a cut mid-host would dodge the secret mask.
+const redact = makeRedactor(BASE);
+const add = (locale, step, msg) => findings.push({ locale, step, msg: redact(msg).slice(0, 160) });
+let lastLlm = 0;
+async function pace() {
+  const wait = lastLlm + 7000 - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastLlm = Date.now();
+}
+
+async function llmStep(page, locale, step, path, trigger) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await pace();
+    const t0 = Date.now();
+    const [resp] = await Promise.all([
+      page.waitForResponse((r) => new URL(r.url()).pathname === path && r.request().method() === 'POST', { timeout: 540_000 }), // must exceed the largest per-locale eval timeout (CAR-147: 480 s for token-dense ta/hi)
+      trigger(),
+    ]);
+    // v1.268.0 (CAR-229): /api/evaluate answers as SSE — the payload lives in
+    // the terminal `done` frame, not a JSON body. Plain-JSON routes keep the
+    // old path. ms is measured after the body completes: an SSE response
+    // STARTS when the headers flush (≈0 s), long before the render step ends.
+    let body = {};
+    try {
+      if ((resp.headers()['content-type'] || '').includes('text/event-stream')) {
+        const text = await resp.text();
+        let done = null;
+        for (const frame of text.split('\n\n')) {
+          const ev = (frame.match(/^event:\s*(.+)$/m) || [])[1];
+          const data = (frame.match(/^data:\s*([\s\S]+)$/m) || [])[1];
+          if (ev === 'done' && data) done = JSON.parse(data);
+        }
+        body = done || {};
+      } else {
+        body = await resp.json();
+      }
+    } catch { /* non-JSON */ }
+    const ms = Date.now() - t0;
+    if (resp.status() === 429 && attempt === 0) {
+      await new Promise((r) => setTimeout(r, (Number(body.retryAfter) || 60) * 1000 + 1000));
+      continue;
+    }
+    return { status: resp.status(), ms, body };
+  }
+  return { status: 429, ms: 0, body: {} };
+}
+
+// ── 0. one real scan through #/scan (the same run the hourly timer does) ──────
+let scan = null;
+if (process.env.SCAN !== '0') {
+  const ctx = await browser.newContext({ httpCredentials, viewport: { width: 1366, height: 900 } });
+  await ctx.addInitScript(() => { try { localStorage.setItem('rebound-ops-ui:lang', 'en'); } catch {} });
+  const page = await ctx.newPage();
+  const blocked = [];
+  await page.route('**/api/**', (route) => {
+    const req = route.request();
+    const path = new URL(req.url()).pathname;
+    if (req.method() === 'GET') return route.continue(); // includes /api/stream/scan
+    blocked.push(`${req.method()} ${path}`);
+    return route.abort('blockedbyclient');
+  });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  try {
+    await page.goto(`${BASE}/#/scan`, { waitUntil: 'domcontentloaded' });
+    const btn = page.locator('.scan-run-btn');
+    await btn.waitFor({ timeout: 20000 });
+    const before = await page.locator('#scan-results table tbody tr').count().catch(() => 0);
+    const t0 = Date.now();
+    // The server runs one scan at a time and answers SCAN_BUSY while another
+    // (the hourly timer, or its retry right after a deploy) is in flight.
+    // That refusal is correct behaviour, not a failed scan: wait and retry.
+    let text = '';
+    let busyWaits = 0;
+    for (;;) {
+      await btn.click();
+      await page.waitForFunction(() => document.querySelector('.scan-run-btn')?.getAttribute('aria-busy') === 'true', null, { timeout: 30000 }).catch(() => {});
+      await page.waitForFunction(() => document.querySelector('.scan-run-btn')?.getAttribute('aria-busy') === 'false', null, { timeout: 40 * 60_000, polling: 2000 });
+      await page.waitForTimeout(3000);
+      text = await page.locator('#scan-console').innerText();
+      if (!/a scan is already running/.test(text) || busyWaits >= 30) break;
+      busyWaits += 1;
+      await page.waitForTimeout(60_000);
+      await page.goto('about:blank');
+      await page.goto(`${BASE}/#/scan`, { waitUntil: 'domcontentloaded' });
+      await btn.waitFor({ timeout: 20000 });
+    }
+    if (busyWaits) console.error(`scan: server busy with another scan, waited ${busyWaits} min`);
+    const phases = [...text.matchAll(/✓ (ATS|Regional) done · NEW=(\d+)/g)].map((m) => `${m[1]} NEW=${m[2]}`);
+    const failed = [...text.matchAll(/✗ (\w+) error/g)].map((m) => m[1]);
+    const errLines = await page.locator('#scan-console span.err').count();
+    // CAR-175 — name the failures: up to 10 span.err texts, redacted before
+    // the 160-char cut (the makeRedactor contract), not just a count.
+    const errTexts = collectErrTexts(await page.locator('#scan-console span.err').allInnerTexts(), redact);
+    const after = await page.locator('#scan-results table tbody tr').count().catch(() => 0);
+    scan = { secs: Math.round((Date.now() - t0) / 1000), phases, failed, errLines, errTexts, before, after, busyWaits };
+    if (!phases.some((p) => p.startsWith('ATS'))) add('en', 'scan', 'ATS phase did not report done');
+    if (!phases.some((p) => p.startsWith('Regional'))) add('en', 'scan', 'Regional phase did not report done');
+    for (const f of failed) add('en', 'scan', `${f} phase ended in error`);
+    if (after === 0) add('en', 'scan', 'results table empty after the scan');
+  } catch (err) {
+    add('en', 'scan', err.message.split('\n')[0]);
+  }
+  for (const b of blocked) add('en', 'scan-write-blocked', b);
+  for (const m of errors) add('en', 'scan-js-exception', m);
+  await ctx.close();
+}
+
+for (const locale of LOCALES) {
+  const ctx = await browser.newContext({ httpCredentials, viewport: { width: 1366, height: 900 }, locale });
+  await ctx.addInitScript((l) => { try { localStorage.setItem('rebound-ops-ui:lang', l); } catch {} }, locale);
+  const page = await ctx.newPage();
+  const blocked = [];
+  await page.route('**/api/**', async (route) => {
+    const req = route.request();
+    const path = new URL(req.url()).pathname;
+    if (req.method() === 'GET' && !path.startsWith('/api/stream/')) return route.continue();
+    if (req.method() === 'POST' && path === '/api/docs-assistant/ask') return route.continue();
+    if (req.method() === 'POST' && path === '/api/evaluate') {
+      let b = {}; try { b = JSON.parse(req.postData() || '{}'); } catch {}
+      if (b.save === false) return route.continue();
+      blocked.push('POST /api/evaluate with save=' + b.save);
+      return route.abort('blockedbyclient');
+    }
+    blocked.push(`${req.method()} ${path}`);
+    return route.abort('blockedbyclient');
+  });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const row = { locale };
+  try {
+    // 1 — docs assistant
+    await page.goto(`${BASE}/#/docs-assistant`, { waitUntil: 'domcontentloaded' });
+    const chip = page.locator('main button.btn-ghost.btn-sm, #app button.btn-ghost.btn-sm').first();
+    await chip.waitFor({ timeout: 20000 });
+    const d = await llmStep(page, locale, 'docs', '/api/docs-assistant/ask', () => chip.click());
+    const answer = d.body.answer || '';
+    row.docs = { status: d.status, mode: d.body.mode, ms: d.ms, len: answer.length, lang: languageOk(answer, locale) };
+    if (d.status !== 200) add(locale, 'docs', `HTTP ${d.status} ${d.body.error || ''}`);
+    else if (!d.body.mode || d.body.mode === 'manual') add(locale, 'docs', `no live provider (mode=${d.body.mode})`);
+    else if (answer.length < 80) add(locale, 'docs', `answer only ${answer.length} chars`);
+    else if (!row.docs.lang) add(locale, 'docs', `answer not in ${locale} (${describe(answer, locale)})`);
+    if (d.status === 200) {
+      const rendered = await page.locator('.chat-log .md').last().innerText({ timeout: 10000 }).catch(() => '');
+      if (!rendered.trim()) add(locale, 'docs', 'answer not rendered in the chat log');
+    }
+
+    // 2 — evaluate (save unchecked)
+    await page.goto('about:blank');
+    await page.goto(`${BASE}/#/evaluate`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#eval-jd').waitFor({ timeout: 20000 });
+    await page.fill('#eval-jd', SAMPLE_JD);
+    if (await page.isChecked('#save-jd')) await page.uncheck('#save-jd');
+    const btn = page.locator('#eval-jd').locator('xpath=ancestor::*[.//button[contains(@class,"btn-primary")]][1]').locator('button.btn-primary').first();
+    const e = await llmStep(page, locale, 'evaluate', '/api/evaluate', () => btn.click());
+    const md = e.body.markdown || '';
+    // v1.251.1 — shape is judged ONLY by the block/summary codes; the
+    // language drift lives in its own flag and its own table column.
+    const { shape: shapeCodes } = splitWarnings(e.body.warnings);
+    // CAR-175 — surface the provider's own output-token counter when the
+    // response carries a usage object (in-process providers do; the Gemini
+    // subprocess does not → nothing is printed, never "tok ?").
+    row.eval = { status: e.status, mode: e.body.mode, ms: e.ms, len: md.length,
+      outTok: evalOutTokens(e.body.usage),
+      cacheTok: evalCachedTokens(e.body.usage),
+      shape: shapeCodes.length === 0, warnings: (e.body.warnings || []).map(String), lang: languageOk(md, locale) };
+    if (e.status !== 200) add(locale, 'evaluate', `HTTP ${e.status} ${e.body.error || ''}`);
+    else if (!e.body.mode || e.body.mode === 'manual') add(locale, 'evaluate', `no live provider (mode=${e.body.mode})`);
+    else if (md.length < 800) add(locale, 'evaluate', `report only ${md.length} chars`);
+    else {
+      // The server's warnings are fixed strings ("missing Block C", "SCORE_SUMMARY ROLE is required"),
+      // never report text, so they can be printed as they are.
+      if (!row.eval.shape) add(locale, 'evaluate', `A–G shape: ${shapeCodes.join('; ')}`);
+      if (!row.eval.shape) console.error(`${locale} evaluate heading skeleton — ${headingSkeleton(md)}`);
+      if (!row.eval.lang) add(locale, 'evaluate', `report not in ${locale} (${describe(md, locale)})`);
+    }
+    if (e.status === 200) {
+      const shown = await page.locator('#eval-out').innerText({ timeout: 15000 }).catch(() => '');
+      if (shown.trim().length < 200) add(locale, 'evaluate', 'report not rendered in #eval-out');
+    }
+  } catch (err) {
+    add(locale, 'crash', err.message.split('\n')[0]);
+  }
+  for (const b of blocked) add(locale, 'write-blocked', b);
+  for (const m of errors) add(locale, 'js-exception', m);
+  rows.push(row);
+  await ctx.close();
+}
+await browser.close();
+
+const md = mdEscape; // table-cell escaping lives in summary-parts.mjs (unit-tested)
+const lines = [
+  '## Live LLM regression', '',
+  scan ? scanSummaryBlock(scan) : '_Scan skipped (SCAN=0)._', '',
+  `${rows.length} locales × (docs assistant + evaluate, driven through the UI).`, '',
+  '| locale | docs assistant | evaluate (save=false) | warnings |', '|---|---|---|---|',
+  ...rows.map((r) => `| ${md(r.locale)} | ${md(summaryCell(r.docs))} | ${md(summaryCell(r.eval))} | ${(r.eval && r.eval.warnings || []).map(md).join('<br>') || '—'} |`), '',
+  findings.length ? '| locale | step | finding |\n|---|---|---|\n' + findings.map((f) => `| ${md(f.locale)} | ${md(f.step)} | ${md(f.msg)} |`).join('\n') : '**No findings.**',
+];
+console.log(redact(lines.join('\n')));
+process.exit(findings.length ? 1 : 0);

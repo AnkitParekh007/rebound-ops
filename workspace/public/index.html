@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ReboundOps — career recovery &amp; job search</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Sets data-theme on <html> BEFORE the stylesheet loads to avoid
+         a flash of the wrong colour scheme. -->
+    <script src="/js/lib/theme-bootstrap.js"></script>
+    <!-- v1.98.0 — error ring buffer for the in-app bug reporter. Loads first so
+         it captures failures from the very first paint (parent web-v0.2.0 parity). -->
+    <script src="/js/lib/logbuf.js"></script>
+    <!-- v1.131.2 — app.css was split into three ordered stylesheets (file-size
+         contract, no bundler). They MUST load in this exact order — the cascade
+         is byte-for-byte identical to the pre-split single file. -->
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/components.css" />
+    <link rel="stylesheet" href="/css/overlays.css" />
+    <!-- CAR-116 — #/pipeline v2 (enriched cards, groups, bulk + undo) -->
+    <link rel="stylesheet" href="/css/v2-pipeline.css" />
+    <!-- CAR-118 — #/reports v2 owns its stylesheet (loads after the base
+         cascade, before map.css; merge-trivial with any other v2 link). -->
+    <link rel="stylesheet" href="/css/v2-reports.css" />
+    <!-- CAR-119 — the shared AI-tool page template (12 LLM views via
+         js/lib/llm-page-kit.js) owns its stylesheet; merge-trivial with
+         any other v2 link. -->
+    <link rel="stylesheet" href="/css/v2-llm.css" />
+    <!-- CAR-122 — sidebar v2 (collapsible groups · favorites · Cmd+K
+         palette) owns its stylesheet; loads after the base three and the
+         v2 view sheets — cascade override lives in the file. -->
+    <link rel="stylesheet" href="/css/v2-nav.css" />
+    <link rel="stylesheet" href="/css/v2-dash.css" />
+    <link rel="stylesheet" href="/css/map.css" />
+    <!-- Phase 1/3 (Lovable design integration) — passive --cv3-* token sheet:
+         nothing consumes it yet. Loaded LAST of the app sheets so the phase-2
+         cascade override wins; vendor leaflet stays after it. -->
+    <link rel="stylesheet" href="/css/tokens-v3.css" />
+    <!-- ReboundOps Next demo — terracotta brand tokens + recovery views. After tokens-v3 (so the
+         accent override wins), before motion (which must stay the last app sheet). -->
+    <link rel="stylesheet" href="/css/reboundops.css" />
+    <link rel="stylesheet" href="/css/motion.css" />
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+    <!-- Emil motion audit — the motion layer (tokens, keyframes, press/
+         enter/exit, CAR-196/207 touch+lift overrides). Loads LAST of all
+         sheets on purpose: every rule is a cascade override, never a base
+         rule. Contracts: tests/ux-motion.test.mjs. -->
+    <!-- ReboundOps Next demo — ReboundOps logo assets in /brand/ (generated from the supplied
+         logo; see docs/INTEGRATION-DEMO.md › Branding). ReboundOps' own favicons stay on disk. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/brand/favicon-64.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/brand/apple-touch-icon.png" />
+  </head>
+  <body>
+    <!-- v1.18.0 — WCAG 2.4.1 (skip link). First focusable on every page;
+         lets keyboard users jump past the persistent sidebar to the
+         content. Visually hidden via .skip-link until it receives focus. -->
+    <a href="#content" class="skip-link" data-i18n="a11y.skipToContent">Skip to main content</a>
+    <!-- v1.243.0 (CAR-23) — the <aside> no longer carries role="navigation" +
+         the hard-coded English "Main navigation" label: the inner <nav>
+         below is THE single navigation landmark (two nav landmarks and an
+         untranslated name were both wrong; the landmark needs no label). -->
+    <aside class="sidebar" id="sidebar">
+      <!-- v1.78.1 — the brand logo links to the dashboard (home). A native
+           hash <a> is CSP-safe and keyboard-accessible; aria-label gives it a
+           clear name so it doesn't just read "rebound-ops-ui". -->
+      <a class="logo" href="#/dashboard" data-i18n-aria-label="nav.logoHome" aria-label="ReboundOps — Dashboard">
+        <img class="logo-mark" src="/brand/reboundops-mark.png" alt="" width="36" height="36" />
+        <span class="logo-text">Rebound<span class="rb-ops">Ops</span></span>
+      </a>
+
+      <!-- Owner UX batch — the mobile drawer had no in-drawer close control
+           (only backdrop / Escape / nav click); this ✕ sits at the drawer's
+           top edge. Hidden on desktop via app.css, shown ≤900px. -->
+      <button class="sidebar-close" id="sidebar-close" aria-label="Close menu" data-i18n-aria-label="nav.closeMenu" type="button">✕</button>
+
+      <!-- CAR-122 — sidebar v2: the 38 flat entries became 7 collapsible
+           groups (state persisted by js/lib/nav-v2.js in
+           `rebound-ops-ui:nav-v2`) + a Favorites/Recents pair rendered
+           dynamically at the top + the Cmd/Ctrl+K command palette.
+           Every <a class="nav-item"> below is byte-identical to the
+           pre-v2 markup — the router's .nav-item[data-route] highlight
+           contract and the locale-sweep sidebar pins are untouched. -->
+      <nav class="nav">
+        <button class="nav-v2-launch" id="nav-v2-launch" type="button" aria-haspopup="dialog" data-i18n-aria-label="nav.v2.palette" aria-label="Command menu">
+          <span aria-hidden="true">⌘</span>
+          <span data-i18n="nav.v2.paletteLabel">Jump to…</span>
+          <kbd class="nav-v2-kbd" aria-hidden="true">⌘K</kbd>
+        </button>
+
+        <!-- ReboundOps Next demo — Recovery is the first destination. -->
+        <a class="nav-item" href="#/recovery" data-route="recovery">
+          <span class="nav-ico">↗</span> <span>Recovery</span>
+        </a>
+        <a class="nav-item" href="#/dashboard" data-route="dashboard">
+          <span class="nav-ico">◆</span> <span data-i18n="nav.dashboard">Dashboard</span>
+        </a>
+
+        <section class="nav-v2-group" data-nav-group="sourcing">
+          <button class="nav-v2-toggle" type="button" aria-expanded="true" aria-controls="nav-v2-items-sourcing">
+            <span class="nav-v2-chev" aria-hidden="true">▸</span>
+            <span data-i18n="nav.group.sourcing">Sourcing</span>
+          </button>
+          <div class="nav-v2-items" id="nav-v2-items-sourcing">
+            <a class="nav-item" href="#/scan" data-route="scan">
+              <span class="nav-ico">◇</span> <span data-i18n="nav.scan">Scan</span>
+            </a>
+            <a class="nav-item" href="#/pipeline" data-route="pipeline">
+              <span class="nav-ico">▤</span> <span data-i18n="nav.pipeline">Pipeline</span>
+            </a>
+            <a class="nav-item" href="#/map" data-route="map">
+              <span class="nav-ico">⌖</span> <span data-i18n="nav.map">Map</span>
+            </a>
+            <a class="nav-item" href="#/auto" data-route="auto">
+              <span class="nav-ico">✨</span> <span data-i18n="nav.auto">Auto-pipeline</span>
+            </a>
+            <a class="nav-item" href="#/funded" data-route="funded">
+              <span class="nav-ico">💰</span> <span data-i18n="nav.funded">Funded companies</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="nav-v2-group" data-nav-group="decision">
+          <button class="nav-v2-toggle" type="button" aria-expanded="true" aria-controls="nav-v2-items-decision">
+            <span class="nav-v2-chev" aria-hidden="true">▸</span>
+            <span data-i18n="nav.group.decision">Decision</span>
+          </button>
+          <div class="nav-v2-items" id="nav-v2-items-decision">
+            <a class="nav-item" href="#/evaluate" data-route="evaluate">
+              <span class="nav-ico">▷</span> <span data-i18n="nav.evaluate">Evaluate</span>
+            </a>
+            <a class="nav-item" href="#/batch" data-route="batch">
+              <span class="nav-ico">⇶</span> <span data-i18n="nav.batch">Batch evaluate</span>
+            </a>
+            <a class="nav-item" href="#/deep" data-route="deep">
+              <span class="nav-ico">⌕</span> <span data-i18n="nav.deep">Deep research</span>
+            </a>
+            <a class="nav-item" href="#/networking" data-route="networking">
+              <span class="nav-ico">🤝</span> <span data-i18n="nav.networking">Networking</span>
+            </a>
+            <a class="nav-item" href="#/project" data-route="project">
+              <span class="nav-ico">✦</span> <span data-i18n="nav.project">Project</span>
+            </a>
+            <a class="nav-item" href="#/training" data-route="training">
+              <span class="nav-ico">▣</span> <span data-i18n="nav.training">Training</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="nav-v2-group" data-nav-group="application">
+          <button class="nav-v2-toggle" type="button" aria-expanded="true" aria-controls="nav-v2-items-application">
+            <span class="nav-v2-chev" aria-hidden="true">▸</span>
+            <span data-i18n="nav.group.application">Application</span>
+          </button>
+          <div class="nav-v2-items" id="nav-v2-items-application">
+            <a class="nav-item" href="#/apply" data-route="apply">
+              <span class="nav-ico">→</span> <span data-i18n="nav.apply">Apply checklist</span>
+            </a>
+            <a class="nav-item" href="#/cover" data-route="cover">
+              <span class="nav-ico">✍</span> <span data-i18n="nav.cover">Cover letter</span>
+            </a>
+            <a class="nav-item" href="#/tracker" data-route="tracker">
+              <span class="nav-ico">≡</span> <span data-i18n="nav.tracker">Tracker</span>
+            </a>
+            <a class="nav-item" href="#/followup" data-route="followup">
+              <span class="nav-ico">↻</span> <span data-i18n="nav.followup">Follow-up</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="nav-v2-group" data-nav-group="networking">
+          <button class="nav-v2-toggle" type="button" aria-expanded="true" aria-controls="nav-v2-items-networking">
+            <span class="nav-v2-chev" aria-hidden="true">▸</span>
+            <span data-i18n="nav.group.networking">Networking</span>
+          </button>
+          <div class="nav-v2-items" id="nav-v2-items-networking">
+            <a class="nav-item" href="#/contacto" data-route="contacto">
+              <span class="nav-ico">✉</span> <span data-i18n="nav.contacto">Outreach</span>
+            </a>
+            <a class="nav-item" href="#/interview-prep" data-route="interview-prep">
+              <span class="nav-ico">★</span> <span data-i18n="nav.interviewPrep">Interview prep</span>
+            </a>
+            <a class="nav-item" href="#/mock-interview" data-route="mock-interview">
+              <span class="nav-ico">🎤</span> <span data-i18n="nav.mockInterview">Mock interview</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="nav-v2-group" data-nav-group="analytics">
+          <button class="nav-v2-toggle" type="button" aria-expanded="true" aria-controls="nav-v2-items-analytics">
+            <span class="nav-v2-chev" aria-hidden="true">▸</span>
+            <span data-i18n="nav.group.analytics">Analytics</span>
+          </button>
+          <div class="nav-v2-items" id="nav-v2-items-analytics">
+            <a class="nav-item" href="#/stats" data-route="stats">
+              <span class="nav-ico">📊</span> <span data-i18n="nav.stats">Target-role stats</span>
+            </a>
+            <a class="nav-item" href="#/interview-digest" data-route="interview-digest">
+              <span class="nav-ico">📅</span> <span data-i18n="nav.interviewDigest">Interview digest</span>
+            </a>
+            <a class="nav-item" href="#/patterns" data-route="patterns">
+              <span class="nav-ico">▩</span> <span data-i18n="nav.patterns">Patterns</span>
+            </a>
+            <a class="nav-item" href="#/assessments" data-route="assessments">
+              <span class="nav-ico">🧪</span> <span data-i18n="nav.assessments">Skills log</span>
+            </a>
+            <a class="nav-item" href="#/reports" data-route="reports">
+              <span class="nav-ico">▦</span> <span data-i18n="nav.reports">Reports</span>
+            </a>
+            <a class="nav-item" href="#/activity" data-route="activity">
+              <span class="nav-ico">⌚</span> <span data-i18n="nav.activity">Activity</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="nav-v2-group" data-nav-group="growth">
+          <button class="nav-v2-toggle" type="button" aria-expanded="true" aria-controls="nav-v2-items-growth">
+            <span class="nav-v2-chev" aria-hidden="true">▸</span>
+            <span data-i18n="nav.group.growth">Growth</span>
+          </button>
+          <div class="nav-v2-items" id="nav-v2-items-growth">
+            <a class="nav-item" href="#/career-plan" data-route="career-plan">
+              <span class="nav-ico">🧭</span> <span data-i18n="nav.careerPlan">Career plan</span>
+            </a>
+            <a class="nav-item" href="#/orientation" data-route="orientation">
+              <span class="nav-ico">🧩</span> <span data-i18n="nav.orientation">Career orientation</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="nav-v2-group" data-nav-group="setup">
+          <button class="nav-v2-toggle" type="button" aria-expanded="true" aria-controls="nav-v2-items-setup">
+            <span class="nav-v2-chev" aria-hidden="true">▸</span>
+            <span data-i18n="nav.group.setup">Setup</span>
+          </button>
+          <div class="nav-v2-items" id="nav-v2-items-setup">
+            <a class="nav-item" href="#/cv" data-route="cv">
+              <span class="nav-ico">✎</span> <span data-i18n="nav.cv">CV</span>
+            </a>
+            <a class="nav-item" href="#/cv-studio" data-route="cv-studio">
+              <span class="nav-ico">🎨</span> <span data-i18n="nav.cvStudio">CV Studio</span>
+            </a>
+            <a class="nav-item" href="#/memory" data-route="memory">
+              <span class="nav-ico">🧠</span> <span data-i18n="nav.memory">Memory</span>
+            </a>
+            <a class="nav-item" href="#/profile" data-route="profile">
+              <span class="nav-ico">⚙</span> <span data-i18n="nav.profile">Profile</span>
+            </a>
+            <a class="nav-item" href="#/two-pager" data-route="two-pager">
+              <span class="nav-ico">🎯</span> <span data-i18n="nav.twoPager">Two-pager</span>
+            </a>
+            <a class="nav-item" href="#/config" data-route="config">
+              <span class="nav-ico">⚒</span> <span data-i18n="nav.config">App settings</span>
+            </a>
+            <a class="nav-item" href="#/portals" data-route="portals">
+              <span class="nav-ico">⛩</span> <span data-i18n="nav.portals">Portals</span>
+            </a>
+            <a class="nav-item" href="#/health" data-route="health">
+              <span class="nav-ico">❤</span> <span data-i18n="nav.health">Health</span>
+            </a>
+            <a class="nav-item" href="#/usage" data-route="usage">
+              <span class="nav-ico">💳</span> <span data-i18n="nav.usage">AI usage</span>
+            </a>
+            <a class="nav-item" href="#/help" data-route="help">
+              <span class="nav-ico">?</span> <span data-i18n="nav.help">Help</span>
+            </a>
+            <a class="nav-item" href="#/docs-assistant" data-route="docs-assistant">
+              <span class="nav-ico">💬</span> <span data-i18n="nav.docsAssistant">Ask the docs</span>
+            </a>
+          </div>
+        </section>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="lang-switcher" id="lang-switcher"></div>
+        <div class="version" id="footer-version">v…</div>
+        <div class="hint" data-i18n="top.langhint">Enter — search</div>
+        <!-- v1.120.0 — parent v1.20.0 parity: the ReboundOps Manifesto link,
+             mirroring the parent dashboard's footer link. Plain outbound
+             anchor (CSP governs resource loads, not navigations). -->
+        <a class="manifesto-link" href="https://github.com/AnkitParekh007/rebound-ops"
+          target="_blank" rel="noopener noreferrer" data-i18n="footer.manifesto">The ReboundOps Manifesto</a>
+        <!-- v1.237.0 — the agentic-coding pattern catalogue this project's own
+             workflow follows; see the wiki's Agentic Practices page. Same plain
+             outbound-anchor shape as the manifesto link above. -->
+        <a class="manifesto-link" href="https://mokevnin.github.io/agentic-coding-design-patterns/en/"
+          target="_blank" rel="noopener noreferrer" data-i18n="footer.patterns" data-i18n-href="footer.patternsUrl">Agentic Coding Design Patterns</a>
+      </div>
+    </aside>
+
+    <!-- CAR-235 (P1 UX) — resizable sidebar frame. A separator on the
+         sidebar's INLINE-END border: drag to resize (200–420px), double-click
+         to reset, ArrowLeft/ArrowRight ±16px, Home = reset. The width rides
+         the existing --sidebar-w var (js/lib/sidebar-resize.js persists it in
+         `rebound-ops-ui:sidebarW`); CSS in overlays.css positions the handle
+         with inset-inline-end so it mirrors under RTL with no mirror rule,
+         and hides it ≤900px where the mobile drawer contract applies. -->
+    <div class="sidebar-resize" id="sidebar-resize" role="separator" aria-orientation="vertical"
+         tabindex="0" aria-label="Resize sidebar" data-i18n-aria-label="nav.resizeSidebar"
+         aria-valuemin="200" aria-valuemax="420" aria-valuenow="256"></div>
+
+    <main class="main">
+      <div id="conn-banner" class="conn-banner" hidden role="status" aria-live="polite">
+        <span class="conn-msg" data-i18n="conn.down">Server is not responding.</span>
+        <button class="btn btn-sm btn-dark" id="conn-refresh-btn" data-i18n="common.refresh">Refresh</button>
+      </div>
+      <!-- v1.55.3 (UX-2) — 4-provider OR onboarding. Populated by
+           app.js from /api/status/providers: red banner when 0 keys,
+           subtle active-provider chip when ≥1. Hidden until resolved. -->
+      <div id="onboarding-banner" hidden role="status" aria-live="polite"></div>
+      <!-- v1.243.0 (CAR-23) — no role="banner": a banner landmark nested
+           inside <main> is invalid landmark structure; this is an app bar,
+           not a page banner. -->
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" data-i18n-aria-label="nav.toggleMenu" aria-label="Toggle menu" aria-controls="sidebar" aria-expanded="false" type="button">☰</button>
+        <div class="searchbar" role="search">
+          <label for="global-search" class="visually-hidden" data-i18n="top.search.label">Search companies, roles, or URLs</label>
+          <input
+            type="text"
+            id="global-search"
+            data-i18n-placeholder="top.search"
+            placeholder="Search or paste a URL"
+            autocomplete="off"
+            data-i18n-aria-label="top.search.aria"
+            aria-label="Global search — Cmd+K to focus, paste a URL and Enter for auto-pipeline"
+          />
+          <!-- v1.56.4 — UX-N2: visible, platform-aware shortcut hint.
+               aria-hidden: the input's aria-label already conveys it
+               to AT, so the badge must not double-announce. Text is
+               filled at boot by app.js from data-mac / data-other. -->
+          <kbd class="kbd-shortcut" aria-hidden="true" data-mac="Enter" data-other="Enter">Enter</kbd>
+        </div>
+        <div class="topbar-actions">
+          <!-- v1.231.3 — FIND-3. Making the actions icon-only put everything on
+               one row, but the searchbar was the only flexible item and was left
+               free to shrink to nothing: at 320px the input measured 8px, one
+               character of a 21-character placeholder. Four 36px actions plus the
+               menu simply do not leave a readable field on a 320px screen, so
+               below 420px the field collapses behind this magnifier and expands
+               over the whole bar on tap. A disclosure button keeps ONE accessible
+               name and reports state through aria-expanded, so there is no second
+               i18n key and no name that changes under the user. The icon swap is
+               pure CSS: JS never writes into this button, which is what broke
+               the Doctor button in this same release. -->
+          <button class="btn btn-ghost search-toggle" id="search-toggle" type="button"
+            aria-expanded="false" aria-controls="global-search"
+            data-i18n-aria-label="top.search.toggle" aria-label="Search"
+          ><span class="search-ico-open" aria-hidden="true">🔍</span><span class="search-ico-close" aria-hidden="true">✕</span></button>
+          <!-- v1.58.34 — notifications bell. Opens the right-slide
+               drawer that re-surfaces the in-memory toast journal
+               captured by U-13 (v1.58.33). aria-haspopup=dialog +
+               aria-controls binds the bell to the drawer element.
+               CAR-49 #3 (v1.247.0) — the emoji glyph became part of the
+               shared stroke-SVG icon language: same 17px grid,
+               currentColor, no OS-colored glyphs next to text buttons. -->
+          <button class="notif-bell" id="notif-bell" type="button"
+            aria-haspopup="dialog" aria-controls="notif-drawer" aria-expanded="false"
+            data-i18n-aria-label="notif.bellAria"
+            aria-label="Notifications"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="notif-badge" id="notif-badge" hidden>0</span></button>
+          <!-- CAR-49 #3 (v1.247.0) — the toggle ships BOTH sun and moon
+               strokes; CSS (components.css) shows the one matching the
+               resolved theme, so JS never writes into the button. -->
+          <button class="theme-toggle" id="theme-toggle" type="button" data-i18n-title="top.themeToggle" data-i18n-aria-label="top.themeToggle"><svg class="ico theme-ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="ico theme-ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+          <!-- v1.231.2 — the label carries `data-i18n`, not the button: applyI18n()
+               assigns el.textContent, which would wipe any sibling icon. With the
+               key on an inner span the icon survives every language change, and
+               the mobile rule hides only .btn-label so the button collapses to a
+               36px square like the bell and the theme toggle beside it.
+               aria-label is set unconditionally, because a display:none label is
+               removed from the accessible name computation. -->
+          <!-- CAR-49 #3 (v1.247.0) — the doctor glyph joins the same
+               stroke-SVG set (a pulse line reads "health check" without the
+               🩺 emoji's platform coloring). -->
+          <button class="btn btn-ghost" id="btn-doctor"
+            data-i18n-aria-label="top.doctor" aria-label="Doctor"
+          ><span class="btn-ico" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><span class="btn-label" data-i18n="top.doctor">Doctor</span></button>
+          <button class="btn btn-primary" id="btn-quick-scan"
+            data-i18n-aria-label="top.quickscan" aria-label="Open Scan"
+          ><span class="btn-ico" aria-hidden="true">⚡</span><span class="btn-label" data-i18n="top.quickscan">Open Scan</span></button>
+        </div>
+      </header>
+      <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
+
+      <!-- v1.243.0 (CAR-23) — no role="main" (the <main class="main"> element
+           is the single main landmark) and no aria-live="polite": the polite
+           region re-announced the ENTIRE view on every route render; route
+           changes already announce via router.js's managed-focus heading.
+           tabindex="-1" stays as the managed-focus/skip-link target. -->
+      <!-- ReboundOps Next demo — context strip, painted by js/views/recovery.js from the
+           in-memory handoff summary only (goal, direction, next action). -->
+      <div class="rb-strip" id="rb-strip" role="region" aria-label="ReboundOps recovery context" hidden></div>
+      <section class="content" id="content" tabindex="-1">
+        <div class="loading" data-i18n="common.loading">Loading…</div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" hidden role="status" aria-live="assertive"></div>
+    <!-- v1.58.34 — notifications drawer. Stores the in-memory toast
+         journal (up to 50 entries). aria-modal=false: drawer overlays
+         but does not trap focus globally; Esc + backdrop click close
+         it. Localized title + empty-state via notif.* i18n keys. -->
+    <aside id="notif-drawer" class="notif-drawer" role="dialog" aria-modal="false" aria-labelledby="notif-title" hidden>
+      <div class="notif-drawer__head">
+        <h2 id="notif-title" data-i18n="notif.title">Notifications</h2>
+        <!-- UX-A12 (v1.58.60) — Clear all button purges every entry in
+             UI.getToastHistory() and closes-out the unread badge. Hidden
+             via [hidden] when the list is empty (avoids a no-op CTA). -->
+        <button class="notif-drawer__clear-all" id="notif-clear-all" type="button"
+                data-i18n="notif.clearAll" data-i18n-aria-label="notif.clearAllAria"
+                aria-label="Clear all notifications" hidden>Clear all</button>
+        <!-- v1.98.0 (parent web-v0.2.0 parity) — in-app bug reporter: gathers a
+             privacy-floored diagnostic snapshot (versions, route, browser,
+             recent errors) + a dedupe fingerprint, previews it, then opens a
+             pre-filled GitHub issue. Nothing is auto-filed. -->
+        <button class="notif-drawer__report-bug" id="notif-report-bug" type="button"
+                data-i18n="bug.report" data-i18n-aria-label="bug.report"
+                aria-label="Report a bug">🐞 Report a bug</button>
+        <button class="notif-drawer__close" id="notif-close" type="button" data-i18n-aria-label="notif.closeAria" aria-label="Close notifications">×</button>
+      </div>
+      <ol class="notif-drawer__list" id="notif-list" role="list"></ol>
+      <p class="notif-drawer__empty" id="notif-empty" data-i18n="notif.empty">No notifications yet.</p>
+    </aside>
+    <div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-backdrop" data-close aria-hidden="true"></div>
+      <div class="modal-card">
+        <header class="modal-header">
+          <h3 id="modal-title"></h3>
+          <!-- CAR-23 (v1.243.0): "Close dialog" stays an English fallback — NO existing
+               i18n key fits ("fab.close" is the docs-FAB's, "notif.closeAria" is
+               drawer-specific) and new strings are out of scope here. HAND-OFF: add a
+               common.close key (×17 locales) + data-i18n-aria-label="common.close". -->
+          <button class="modal-close" data-close type="button" data-i18n-aria-label="common.closeDialog" aria-label="Close dialog">×</button>
+        </header>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- i18n: per-locale tables (I18N-SPLIT v1.60.0) load first, then the
+         aliases map, then i18n-dict.js assembles them into window.__I18N_DICT,
+         then i18n.js consumes it. All synchronous <script src> — no build,
+         no fetch. Order matters: the assembler reads these globals. -->
+    <script src="/js/lib/locales/i18n-dict.en.js"></script>
+    <script src="/js/lib/locales/i18n-dict.es.js"></script>
+    <script src="/js/lib/locales/i18n-dict.pt-BR.js"></script>
+    <script src="/js/lib/locales/i18n-dict.ko.js"></script>
+    <script src="/js/lib/locales/i18n-dict.ja.js"></script>
+    <script src="/js/lib/locales/i18n-dict.ru.js"></script>
+    <script src="/js/lib/locales/i18n-dict.zh-CN.js"></script>
+    <script src="/js/lib/locales/i18n-dict.zh-TW.js"></script>
+    <script src="/js/lib/locales/i18n-dict.fr.js"></script>
+    <script src="/js/lib/locales/i18n-dict.pl.js"></script>
+    <script src="/js/lib/locales/i18n-dict.uk.js"></script>
+    <script src="/js/lib/locales/i18n-dict.da.js"></script>
+    <script src="/js/lib/locales/i18n-dict.ar.js"></script>
+    <script src="/js/lib/locales/i18n-dict.de.js"></script>
+    <script src="/js/lib/locales/i18n-dict.it.js"></script>
+    <script src="/js/lib/locales/i18n-dict.tr.js"></script>
+    <script src="/js/lib/locales/i18n-dict.hi.js"></script>
+    <script src="/js/lib/locales/i18n-dict.ta.js"></script>
+    <script src="/js/lib/locales/i18n-dict.vi.js"></script>
+    <script src="/js/lib/locales/i18n-dict.aliases.js"></script>
+    <script src="/js/lib/i18n-dict.js"></script>
+    <script src="/js/lib/i18n.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/lib/provider-status.js"></script>
+    <script src="/js/lib/provider-logo.js"></script>
+    <script src="/js/lib/skills.js"></script>
+    <script src="/js/lib/countries.js"></script>
+    <script src="/js/lib/role-stats.js"></script>
+    <script src="/js/lib/fit-score.js"></script>
+    <script src="/js/lib/score-tone.js"></script>
+    <script src="/js/lib/url-key.js"></script>
+    <script src="/js/lib/job-facets.js"></script>
+    <script src="/js/lib/tracker-stages.js"></script>
+    <script src="/js/lib/tracker-import.js"></script>
+    <script src="/js/lib/focus-preserve.js"></script>
+    <script src="/js/lib/status-class.js"></script>
+    <script src="/js/lib/report-labels.js"></script>
+    <script src="/js/lib/report-ops.js"></script>
+    <script src="/js/lib/skeleton.js"></script>
+    <script src="/js/lib/a11y-dump.js"></script>
+    <script src="/js/lib/company-presentation.js"></script>
+    <script src="/js/lib/followup-view.js"></script>
+    <script src="/js/lib/company-logo.js"></script>
+    <script src="/js/lib/cv-diagnostics.js"></script>
+    <script src="/js/lib/cv-privacy.js"></script>
+    <script src="/js/lib/scan-prefs.js"></script>
+    <script src="/js/lib/map-prefs.js"></script>
+    <script src="/js/lib/scan-results.js"></script>
+    <script src="/js/lib/pdf-generate.js"></script>
+    <script src="/js/lib/report-export.js"></script>
+    <script src="/js/lib/llm-page-kit.js"></script>
+    <script src="/js/lib/bug-report.js"></script>
+    <script src="/js/lib/docs-fab.js"></script>
+    <script src="/js/lib/usage-hud.js"></script>
+    <script src="/js/lib/auto-pipeline.js"></script>
+    <script src="/js/lib/modes-form.js"></script>
+    <script src="/js/lib/help-hint.js"></script>
+    <!-- CAR-235 — resizable sidebar frame (pure helpers + wiring; app.js
+         calls SidebarResize.init() after boot). Must load before app.js. -->
+    <script src="/js/lib/sidebar-resize.js"></script>
+    <!-- CAR-122 — sidebar v2 libs: the pure core (state machine, fuzzy
+         matcher, palette assembly — unit-testable with no DOM) loads
+         first, then the wiring half. nav-v2.js MUST load BEFORE
+         router.js/app.js: its document-level Cmd/Ctrl+K handler
+         registers first and stopImmediatePropagation()s the chord, making
+         the palette the main entry while app.js's legacy search-focus
+         binding stays as the no-nav-v2 fallback. -->
+    <script src="/js/lib/nav-v2-core.js"></script>
+    <script src="/js/lib/nav-v2.js"></script>
+    <script src="/js/router.js"></script>
+    <script src="/js/lib/rebound-state.js"></script>
+    <script src="/js/views/recovery.js"></script>
+    <script src="/js/views/dashboard.js"></script>
+    <script src="/js/views/scan/filters.js"></script>
+    <script src="/js/views/scan/runner.js"></script>
+    <script src="/js/views/scan.js"></script>
+    <script src="/js/views/portals.js"></script>
+    <!-- CAR-116 — pure helpers for the pipeline v2 view (loads before it) -->
+    <script src="/js/lib/pipeline-view.js"></script>
+    <script src="/js/views/pipeline.js"></script>
+    <script src="/vendor/leaflet/leaflet.js"></script>
+    <script src="/js/views/map.js"></script>
+    <script src="/js/views/auto.js"></script>
+    <script src="/js/views/evaluate.js"></script>
+    <script src="/js/views/batch.js"></script>
+    <script src="/js/views/deep.js"></script>
+    <script src="/js/views/networking.js"></script>
+    <script src="/js/views/apply.js"></script>
+    <script src="/js/views/tracker.js"></script>
+    <script src="/js/views/reports.js"></script>
+    <script src="/js/views/cv.js"></script>
+    <script src="/js/views/cv-studio.js"></script>
+    <script src="/js/views/memory.js"></script>
+    <script src="/js/views/career-plan.js"></script>
+    <script src="/js/views/orientation.js"></script>
+    <script src="/js/views/settings.js"></script>
+    <script src="/js/views/health.js"></script>
+    <script src="/js/views/activity.js"></script>
+    <script src="/js/views/stats.js"></script>
+    <script src="/js/views/two-pager.js"></script>
+    <script src="/js/views/mock-interview.js"></script>
+    <script src="/js/views/funded.js"></script>
+    <script src="/js/views/interview-digest.js"></script>
+    <script src="/js/views/assessments.js"></script>
+    <script src="/js/views/mode-page.js"></script>
+    <script src="/js/views/help.js"></script>
+    <script src="/js/views/usage.js"></script>
+    <script src="/js/views/docs-assistant.js"></script>
+    <script src="/js/views/config/field-specs.js"></script>
+    <script src="/js/views/config/tab-controller.js"></script>
+    <script src="/js/views/config.js"></script>
+    <script src="/js/app.js"></script>
+  </body>
+</html>

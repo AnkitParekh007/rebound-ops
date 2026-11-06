@@ -1,0 +1,40 @@
+{
+  "name": "@reboundops/rebound-ops-engine-installer",
+  "version": "1.38.0",
+  "description": "One-command installer for rebound-ops — the AI-powered job search pipeline built on Claude Code.",
+  "bin": {
+    "rebound-ops": "bin/cli.mjs"
+  },
+  "type": "module",
+  "files": [
+    "bin/cli.mjs",
+    "bin/npm-command.mjs",
+    "bin/release-tag.mjs",
+    "bin/skill-entrypoints.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": "^22.13.0 || >=23.4.0"
+  },
+  "keywords": [
+    "rebound-ops",
+    "claude-code",
+    "job-search",
+    "scaffold",
+    "create",
+    "cli"
+  ],
+  "author": "Santiago Fernández de Valderrama <hi@santifer.io> (https://santifer.io)",
+  "homepage": "https://github.com/AnkitParekh007/rebound-ops#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnkitParekh007/rebound-ops.git",
+    "directory": "scaffolder"
+  },
+  "bugs": {
+    "url": "https://github.com/AnkitParekh007/rebound-ops/issues"
+  },
+  "license": "MIT",
+  "dependencies": {},
+  "private": true
+}

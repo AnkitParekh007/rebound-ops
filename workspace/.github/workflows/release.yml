@@ -1,0 +1,123 @@
+name: Release
+
+# Creates a GitHub Release whenever a tag matching `v*.*.*` is pushed.
+# Manual trigger:
+#   git tag v1.7.0
+#   git push origin v1.7.0
+#
+# The release notes are pulled directly from CHANGELOG.md so all 8
+# language variants stay the canonical source of truth.
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.7.0)'
+        required: true
+
+permissions:
+  contents: read   # raised per job below
+
+jobs:
+  release:
+    name: Publish ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the release (and its tag on a dispatch)
+      actions: write    # dispatch publish-package.yml (see the last step)
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # Checks out the triggering ref: the tag on a tag push, the
+          # dispatched branch (main) on workflow_dispatch. The next step
+          # switches to the tag when it already exists.
+
+      # A dispatch may name a tag that does not exist yet (tags cannot
+      # always be pushed from where the release is cut). Then the tree
+      # stays at the dispatched commit, the version check below guards
+      # it, and the release step creates the tag at that commit.
+      - name: Use the tag's tree when the tag exists
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::tag must look like v1.2.3"; exit 1; }
+          if git rev-parse --verify --quiet "refs/tags/$TAG^{commit}" >/dev/null; then
+            git checkout --quiet "$TAG"
+            echo "releasing existing tag $TAG"
+          else
+            echo "tag $TAG does not exist yet — it will be created at $GITHUB_SHA"
+          fi
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        env:
+          # `inputs.tag` is set only on workflow_dispatch, else the pushed tag.
+          # (The old `${GITHUB_REF_NAME:-…}` shell form never used the input —
+          # GITHUB_REF_NAME is "main", not empty, on dispatch.) Passed as an env
+          # VALUE, never spliced into the script, so a crafted tag name is data.
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          # Validated on BOTH paths: a pushed tag only has to match the `v*.*.*`
+          # glob, which also admits names this script must not trust.
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::tag must look like v1.2.3"; exit 1; }
+          version="${TAG#v}"
+          # Slice between "## [VERSION]" and the next "## [" — literal prefix
+          # match, so the dots in the version are not regex wildcards.
+          awk -v hdr="## [$version]" '
+            index($0, hdr) == 1 {flag=1; print; next}
+            flag && /^## \[/ {exit}
+            flag {print}
+          ' CHANGELOG.md > .release-notes.md
+          # A release with an empty body means the CHANGELOG entry is missing
+          # or misnamed — fail instead of publishing a blank release.
+          if ! grep -q '[^[:space:]]' <(tail -n +2 .release-notes.md); then
+            echo "::error::no CHANGELOG.md entry body for [$version]"; exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify package.json version matches tag
+        env:
+          VERSION: ${{ steps.notes.outputs.version }}
+        run: |
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$pkg" != "$VERSION" ]; then
+            echo "package.json says $pkg, tag says $VERSION"
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.notes.outputs.tag }}
+          tag_name: ${{ steps.notes.outputs.tag }}
+          # Used only when the tag does not exist yet (dispatch, see above).
+          target_commitish: ${{ github.sha }}
+          body_path: .release-notes.md
+          draft: false
+          prerelease: ${{ contains(steps.notes.outputs.tag, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # A release created with GITHUB_TOKEN does not fire `release: published`
+      # for other workflows, so publish-package.yml never ran for v1.238.1 /
+      # v1.238.2. workflow_dispatch is the one event GITHUB_TOKEN may trigger.
+      # Publishing is idempotent, so a second run from a UI-created release
+      # is a green no-op.
+      - name: Publish the npm package for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.notes.outputs.tag }}
+        run: |
+          # The tag was created moments ago by the release step; give the API
+          # a few seconds to see it before giving up.
+          for i in 1 2 3; do
+            gh workflow run publish-package.yml --ref "$TAG" --repo "$GITHUB_REPOSITORY" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1

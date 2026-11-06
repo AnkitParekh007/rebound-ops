@@ -1,0 +1,146 @@
+/**
+ * The live remote QA judges whether each AI answer is in the locale's
+ * language. The v1.238.3 run flagged a Hindi evaluation as "not in hi":
+ * counting letters let English terms, URLs and code outweigh Hindi prose
+ * (Devanagari vowel signs are not even \p{L}). Words are counted now, with
+ * code and URLs dropped, and findings print percentages instead of text.
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { languageOk, describe, prose, headingSkeleton, scriptShare } from '../scripts/remote-qa/lang-check.mjs';
+
+const HI = 'यह भूमिका प्लेटफ़ॉर्म टीम के लिए है और उम्मीदवार का अनुभव इसके अनुरूप है। ';
+const EN_TERMS = 'Kubernetes Terraform PostgreSQL AWS GCP Go gRPC Kafka ';
+
+test('Hindi prose with English tech terms, code and links is Hindi', () => {
+  const yaml = Array.from({ length: 40 }, (_, i) => `  containerPortName${i}: platformServiceDeployment${i}`).join('\n');
+  const text = (HI + EN_TERMS).repeat(10)
+    + '\n```yaml\n' + yaml + '\n```\n'
+    + 'https://example.org/a/very/long/path/that/is/all/latin/letters/and/more/letters\n';
+  // Counting letters over the whole text, as before, fails this report.
+  const letters = (text.match(/\p{L}/gu) || []).length;
+  const deva = (text.match(/[\u0900-\u097F]/g) || []).length;
+  assert.ok(deva / letters < 0.3, 'the old letter share would reject it');
+  assert.equal(languageOk(text, 'hi'), true, describe(text, 'hi'));
+});
+
+test('an English report is not Hindi, and the finding shows only percentages', () => {
+  const en = 'The candidate fits the platform role and the evidence supports it. '.repeat(20);
+  assert.equal(languageOk(en, 'hi'), false);
+  assert.match(describe(en, 'hi'), /^hi script \d+%$/);
+  assert.doesNotMatch(describe(en, 'hi'), /candidate/);
+});
+
+test('Japanese heavy in kanji passes; Chinese is not Japanese', () => {
+  const ja = '本ポジションは基盤チームの中核であり、候補者の経験は要件に合致しています。'.repeat(10);
+  const zh = '该职位是平台团队的核心，候选人的经验符合要求。'.repeat(10);
+  assert.equal(languageOk(ja, 'ja'), true, describe(ja, 'ja'));
+  assert.equal(languageOk(zh, 'ja'), false, describe(zh, 'ja'));
+  assert.equal(languageOk(zh, 'zh-CN'), true);
+});
+
+test('Russian is not Ukrainian; Latin-word locales still use stop words', () => {
+  const ru = 'Эта роль подходит кандидату, опыт соответствует требованиям. '.repeat(10);
+  assert.equal(languageOk(ru, 'ru'), true);
+  assert.equal(languageOk(ru, 'uk'), false);
+  assert.equal(languageOk('Der Kandidat ist für die Rolle geeignet und das ist nicht schlecht. '.repeat(5), 'de'), true);
+  assert.equal(prose('a `code` b ```x``` c https://x.y/z d').replace(/\s+/g, ' ').trim(), 'a b c d');
+});
+
+test('Arabic and Korean are measured in words; Latin locales report stop-word counts', () => {
+  const ar = 'هذا الدور مناسب للمرشح والخبرة تتوافق مع المتطلبات Kubernetes AWS. '.repeat(10);
+  const ko = '이 역할은 후보자에게 적합하며 경험이 요구 사항과 일치합니다 Kubernetes AWS. '.repeat(10);
+  assert.equal(languageOk(ar, 'ar'), true, describe(ar, 'ar'));
+  assert.equal(languageOk(ko, 'ko'), true, describe(ko, 'ko'));
+  assert.equal(languageOk('The role fits well. '.repeat(20), 'ko'), false);
+  assert.match(describe('Der Kandidat ist gut und die Rolle passt. The end.', 'de'), /^de stop words \d+, en \d+$/);
+});
+
+test('headingSkeleton masks every word but keeps a lone A–G letter and the markup', () => {
+  const report = '## الكتلة A — ملخص الدور\ntext Acme Corp secret\n## Bloque B — Resumen\n**Veredicto**\n## أ) ملخص\n';
+  const s = headingSkeleton(report);
+  assert.equal(s, '3 headings, 1 bold lines: "## ʷ A — ʷ ʷ" "## w B — w" "## ʷ) ʷ"');
+  assert.doesNotMatch(s, /Acme|secret|Resumen|الكتلة/);
+});
+
+test('a short list-shaped answer with three locale stop words and no English ones passes', () => {
+  // v1.239.3 live run: a German docs answer scored "de stop words 3, en 0".
+  const de = '- Öffne die Seite Scan\n- Wähle eine Quelle\n- Klicke auf Scannen und warte das Ergebnis ab\n';
+  assert.equal(languageOk(de, 'de'), true);
+  // Three German stop words drowned by English still fail.
+  assert.equal(languageOk(de + 'the and with for you your this that are is'.repeat(2), 'de'), false);
+});
+
+// 2026-10-07 prod QA: a real Hindi evaluation scored 30 % — it cites the
+// English JD / CV word for word. Quotes are evidence, not the report's prose.
+test('word-for-word quotes from the English CV/JD do not count against the locale', () => {
+  const quote = '"Designed and operated multi-region Kubernetes platform for high-traffic production services"';
+  const text = `${HI}${quote}\n`.repeat(12);
+  assert.equal(languageOk(text, 'hi'), true, describe(text, 'hi'));
+  const ja = 'この候補者はプラットフォームの役割に適合しています。'
+    + '「Built and operated the deployment pipeline for all backend services across regions」\n';
+  assert.equal(languageOk(ja.repeat(10), 'ja'), true, describe(ja.repeat(10), 'ja'));
+});
+
+test('an English report stays English even when it is full of quotes', () => {
+  const en = 'The candidate "fits the role" and the CV says "led the platform team". '.repeat(20);
+  assert.equal(languageOk(en, 'hi'), false);
+  assert.equal(languageOk(en, 'en'), true);
+});
+
+test('a stray quote (inches) or a one-word quote does not hide prose', () => {
+  const t = `a 27" monitor ${HI} and the "role" and more ${HI} until another " appears`;
+  assert.match(prose(t), /भूमिका/);
+  assert.match(prose(t), /"role"/);
+  assert.doesNotMatch(prose('x “one two three” y'), /one two three/);
+  assert.doesNotMatch(prose('x „eins zwei drei“ y'), /eins/);
+  assert.doesNotMatch(prose('x «un deux trois» y'), /deux/);
+});
+
+// v1.248.2 — Tamil (ta) is the 18th UI locale but had no entry in the SCRIPT
+// table, so a live ta evaluation fell through to the English stop-word table.
+test('Tamil prose passes the ta check; English is not Tamil', () => {
+  const ta = 'இந்தப் பணி வேட்பாளருக்கு மிகவும் பொருத்தமானது மற்றும் அவரது அனுபவம் தேவைகளுடன் ஒத்துப்போகிறது. ';
+  assert.ok(scriptShare(ta, 'ta').own > 0, 'own-words share above zero');
+  assert.equal(languageOk(ta.repeat(10), 'ta'), true, describe(ta.repeat(10), 'ta'));
+  assert.match(describe(ta.repeat(10), 'ta'), /^ta script \d+%$/);
+  assert.doesNotMatch(describe(ta.repeat(10), 'ta'), /பணி/); // numbers only, no text
+  const en = 'The candidate fits the platform role and the evidence supports it. '.repeat(20);
+  assert.equal(languageOk(en, 'ta'), false, describe(en, 'ta'));
+  // Tamil prose with Latin tech terms stays Tamil (same rule as hi/ar/ko).
+  assert.equal(languageOk((ta + 'Kubernetes AWS ').repeat(10), 'ta'), true);
+});
+
+
+// v1.248.8 (CAR-75) — the script share is a PROSE metric: a report whose
+// tables/summary are Latin is still on-language. A Japanese report with
+// Latin tables scored 26–27 % own-script under the old full-text share and
+// flaked against the 30 % gate.
+test('languageOk: ja report with Latin tables counts prose only', () => {
+  const ja = ['# Evaluation: Acme — バックエンドエンジニア', '## A) 概要', 'この企業は東京に本社を置くテクノロジー企業です。チームの規模と文化について評価します。', '## B) マッチ度', '候補者の経験はこの役割に適しています。GoとKubernetesの経験が必要です。', '| 項目 | 評価 |', '|---|---|', '| Salary | 90-120k EUR |', '| Stack | Go, K8s, AWS |', '## C) リスク', '給与範囲は市場水準です。', '## D) 給与', '年収 800万〜1000万円。', '## E) 質問', 'チームの構成を確認してください。', '## F) 信頼性', '投稿は正規のものです。', '## G) 判定', '応答を推奨します。'].join('\n');
+  assert.equal(languageOk(ja, 'ja'), true, describe(ja, 'ja'));
+});
+
+// v1.251.1 — remote-qa: shape is judged ONLY by block/summary codes; the
+// language drift is its own bucket (the ticket's stub: warnings
+// ['report not in ta'] must give A–G ✓ and the code in the language column).
+import { splitWarnings } from '../scripts/remote-qa/lang-check.mjs';
+test('splitWarnings: a language-only warning leaves the shape clean', () => {
+  const { shape, language } = splitWarnings(['report not in ta']);
+  assert.deepEqual(shape, [], 'no shape codes');
+  assert.deepEqual(language, ['report not in ta']);
+});
+
+test('splitWarnings: block and looping codes are shape', () => {
+  const { shape, language } = splitWarnings([
+    'missing Block D', 'missing SCORE_SUMMARY block', 'report looping: block B repeated', 'report not in ta',
+  ]);
+  assert.equal(shape.length, 3);
+  assert.deepEqual(language, ['report not in ta']);
+});
+
+test('splitWarnings: empty warnings → clean shape, no language', () => {
+  const { shape, language } = splitWarnings([]);
+  assert.deepEqual(shape, []);
+  assert.deepEqual(language, []);
+});

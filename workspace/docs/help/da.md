@@ -1,0 +1,2557 @@
+# Hjælp — rebound-ops-ui
+
+<p align="center"><img src="https://raw.githubusercontent.com/AnkitParekh007/rebound-ops/main/workspace/images/providers.png" alt="Works with 18 LLM providers — Anthropic, OpenAI, Gemini, Qwen, OpenRouter, GitHub, DeepSeek, Kimi, MiniMax, Mistral, Ollama and more" width="760"></p>
+
+En komplet gennemgang af hver side, fra det øjeblik du starter
+appen til du lander en jobsamtale. Hver `##`-overskrift nedenfor svarer til en
+post i sidebjælken eller en fase i arbejdsgangen. Læs oppefra og ned ved første
+kørsel; spring til en bestemt sektion senere via indholdsfortegnelsen i
+hjælpe-sidebjælken.
+
+> **Sådan finder du rundt (v2-skallen).** Sidebjælken er organiseret i
+> sammenklappelige grupper — **Sourcing**, **Beslutning**, **Ansøgning**,
+> **Netværk**, **Analyse**, **Opsætning** (`nav.group.*`) — som folder
+> sig ud, når du besøger en sektion, og bliver der, hvor du lod dem.
+> Giv en side en stjerne for at fastgøre den under **Favoritter**, og
+> tryk **Cmd/Ctrl+K** (eller **Kommandomenu**-knappen øverst i
+> sidebjælken, `nav.v2.palette`) for at springe med fuzzy-søgning til
+> enhver side hvorfra som helst. Hver side viser sin titel med det
+> samme og udfylder grå shimmer-rækker, mens dataene indlæses, så
+> navigationen aldrig føles tom. Og ingen side byder dig velkommen med
+> en bar tomhed: de fire, der starter tomme — **Auto-pipeline**,
+> **Ansøgningstjekliste**, **Batch** og **Funded companies** — viser et
+> gennemarbejdet eksempel plus den ene handling, der fylder dem
+> (`v2empty.exampleTag`).
+
+> **Målgruppe:** alle, der lige har lagt denne UI ind i et `rebound-ops`-
+> checkout og kørt `bash bin/start.sh`. Ingen forudgående rebound-ops-viden
+> antages.
+
+### Om rebound-ops
+
+[rebound-ops](https://github.com/AnkitParekh007/rebound-ops) er et open source-jobsøgningssystem,
+der kører som skråstreg-kommandoer inde i enhver AI-kodnings-CLI (Claude Code, Cursor, Codex, OpenCode, Antigravity CLI, Grok Build CLI, Qwen Code, Kimi, GitHub Copilot CLI, Gemini CLI (legacy) — andre Claude-kompatible CLI'er virker også via den samme skråstreg-kommandoflade). Modelagnostisk. Det
+evaluerer hvert opslag mod dit CV med en seks-dimensionel 0,0–5,0
+rubrik, genererer skræddersyede PDF-CV'er og sporer hver ansøgning
+lokalt på din maskine.
+
+**Kanonisk reference (læs disse i rækkefølge ved første installation):**
+
+- [What is rebound-ops](https://github.com/AnkitParekh007/rebound-ops)
+  — systemet, principperne og begrebsoversigten.
+- [Scan job portals](https://github.com/AnkitParekh007/rebound-ops)
+  — find ledige stillinger; udfyld Pipeline.
+- [Apply for a job](https://github.com/AnkitParekh007/rebound-ops)
+  — fuldt indsendelsesflow med Playwright-formularlæsning.
+- [Batch-evaluate offers](https://github.com/AnkitParekh007/rebound-ops)
+  — vurder 10+ JD'er på én gang via `batch-runner.sh`.
+- [Set up Playwright](https://github.com/AnkitParekh007/rebound-ops)
+  — installér Chromium + registrér MCP'en til PDF og formularudfyldning.
+- [Sådan scorer rebound-ops jobopslag](https://github.com/AnkitParekh007/rebound-ops)
+  — scoringsmetodologien: de fem dimensioner plus en holistisk samlet score, 4,0-ansøgningstærsklen,
+  og hvad systemet eksplicit nægter at gøre. Opsummeres også på
+  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) på dit sprog.
+
+**Definerende principper** (fra
+[github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):
+
+- **Open source, helt seriøst** — MIT, ingen betalt niveau, ingen venteliste, ingen
+  telemetri, ingen konti. Systemet fungerer uden betalte niveauer,
+  konti eller telemetri. Kodebidrag gennemgår community-review
+  før udgivelse.
+- **Datasuverænitet** — `cv.md`, `config/profile.yml`, `data/`,
+  `reports/`, `interview-prep/` forlader aldrig din laptop, medmindre du
+  eksplicit pusher dem. Du kører det lokalt på din maskine og bevarer
+  fuld datasuverænitet.
+- **AI-agnostisk arkitektur** — rebound-ops bundter IKKE en model.
+  Det fungerer som kommandoer inde i eksisterende AI-kodnings-CLI'er. Skift
+  udbyder (Anthropic ↔ Gemini ↔ OpenAI), og din evalueringshistorik
+  forbliver konsistent.
+- **Menneskestyrede indsendelser** — rebound-ops udarbejder svar og
+  åbner formularen, men **du klikker på Indsend**. Systemet
+  ansøger aldrig automatisk. Systemet leverer struktur og evaluering; mennesker
+  bevarer den endelige indsendelsesmyndighed.
+- **Struktureret søgning** — bygget til en aktiv, bevidst jobjagt
+  med mange ansøgninger; ikke et enkelt-indsendelsesværktøj, ikke en
+  anbefalingsmotor. Opsætning tager ~15 minutter og forudsætter, at du er
+  fortrolig med terminalen.
+
+**Hvad rebound-ops IKKE er** (eksplicitte ikke-mål):
+
+- Ikke en auto-ansøger. Den indsender ikke formularer for dig.
+- Ikke en CV-genopbygger. Den skræddersyr per JD; den opfinder ikke
+  erfaring.
+- Ikke en LinkedIn-optimerer. Din profil er din egen sag.
+- Ikke en regneark-erstatning, der gemmer sig bag en SaaS-UI. Dataene
+  er almindelig markdown på dit filsystem.
+
+**Nøglebegreber** (fuld oversigt — hver artefakt rebound-ops rører ved):
+
+| Begreb | Hvad det er |
+|---|---|
+| **Mode** | En promptskabelon under `modes/<slug>.md`. Indbygget: `oferta`, `deep`, `apply`, `pipeline`, `batch`, `contacto`, `followup`, `interview-prep`, `patterns`, `project`, `training`, `ofertas`, `auto-pipeline`, `pdf`, `latex`, `scan`, `tracker`. |
+| **Archetype** | En målrolle-profil i `config/profile.yml`. Rubrikken vægter færdighedsmatch mod den aktive arketype — **det enkeltvis vigtigste felt**. |
+| **Pipeline** | `data/pipeline.md` — indbakke af JD-URL'er, der venter på at blive evalueret. |
+| **Tracker** | `data/applications.md` — historisk GFM-tabel over hver evaluering + ansøgningsstatus. |
+| **Report** | `reports/<NNN>-<company>-<DATE>.md` — fuld A–F-evaluering per JD, med score + legitimitet i headeren. |
+| **Scan history** | `data/scan-history.tsv` — append-only log; forhindrer dubletter på tværs af scanninger. |
+| **Proof points** | STAR+R-evidensblokke udtrukket fra `cv.md`, genbrugt på tværs af evaluering, ansøgningssvar og samtaleforberedelse. |
+| **JD store** | `jds/jd-<date>-<ts>.txt` — ordrette jobopslag gemt under evaluering til revisionssporet. |
+| **Interview-prep** | `interview-prep/<company>-<role>.md` — dybe research-briefs og runde-onepagers. |
+| **Batch additions** | `batch/tracker-additions/*.tsv` — afventende rækker sat i kø af `batch-runner.sh` til fletning ind i trackeren. |
+
+### rebound-ops vs rebound-ops-ui (denne app)
+
+| | rebound-ops (CLI) | rebound-ops-ui (denne app) |
+|---|---|---|
+| Hvor det kører | inde i Claude Code / Cursor / Codex / OpenCode / Antigravity CLI / Grok Build CLI / Qwen Code / Kimi / GitHub Copilot CLI / Gemini CLI (legacy) | `http://127.0.0.1:4317` i din browser |
+| Flade | `/rebound-ops <mode>` skråstreg-kommandoer | sidebjælke med én side per arbejdsgang |
+| Formularudfyldning | ja, via Playwright MCP | nej — genererer tjeklisten, du afslutter i CLI'en |
+| PDF | `generate-pdf.mjs` | `📄 Generér PDF` på `#/cv`, `#/reports/:slug`, `#/evaluate`, `#/deep`, `#/interview-prep` |
+| Datafiler | delt med rebound-ops-ui | delt med rebound-ops |
+
+
+rebound-ops-ui er **rene tilføjelser**. Intet inde i `rebound-ops/`
+ændres. Begge flader deler de samme `cv.md`, `config/profile.yml`,
+`portals.yml`, `data/`, `reports/`, `interview-prep/`, `modes/`.
+
+### Handlingstærskler efter score
+
+Når en JD har en evaluering, bestemmer scoren, hvad du skal gøre
+næste gang (kanonisk tabel fra
+[github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):
+
+| Score | Næste skridt |
+|---|---|
+| **≥ 4.5** | Kør `/rebound-ops apply` — høj egnethed, push med det samme. |
+| **4.0 – 4.4** | Ansøg, eller `/rebound-ops contacto` for en varm introduktion først. |
+| **3.5 – 3.9** | Kør `/rebound-ops deep` — undersøg virksomheden / rollen, før du beslutter. |
+| **< 3.5** | Spring over, medmindre du har en specifik personlig grund. |
+
+
+rebound-ops-ui's `#/dashboard` og `#/tracker` fremhæver hver række på eller
+over 4.0, så du kan vælge handling uden at køre noget om igen.
+
+### Ekstern dokumentation
+
+Fuld reference for den underliggende rebound-ops-motor
+(scanning, evalueringsrubrik, batch-behandling, ansøgningsflow,
+Playwright-opsætning) findes på
+[github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops):
+
+- [What is rebound-ops](https://github.com/AnkitParekh007/rebound-ops)
+- [Scan job portals](https://github.com/AnkitParekh007/rebound-ops)
+- [Apply for a job](https://github.com/AnkitParekh007/rebound-ops)
+- [Batch-evaluate offers](https://github.com/AnkitParekh007/rebound-ops)
+- [Set up Playwright](https://github.com/AnkitParekh007/rebound-ops)
+
+---
+
+## 1. Hurtig start — fuld trin-for-trin fra "opret CV" til "ansøgt og kontaktet"
+
+Dette er den kanoniske, knap-for-knap-drejebog. Følg den i rækkefølge
+første gang. Hvert trin nævner den nøjagtige rute, den nøjagtige knap
+og hvad du vil se ved succes. Sektion 2–16 nedenfor dykker dybere ned i
+hver fase.
+
+**Spørg guiden.** Åbn **Spørg guiden 💬** (sidebjælke, under Hjælp) og skriv et spørgsmål — den svarer kun ud fra denne guide på dit sprog og læser aldrig dit CV. Den samme assistent er ét tryk væk fra hver side — en robot-chatknap svæver i nederste højre hjørne (nederste venstre i højre-mod-venstre-sprog); tryk for at spørge uden at forlade det, du er i gang med.
+
+> **Start og init med én kommando.** Fra en terminal kan du gøre hele
+> bootstrappen uden at røre UI'en:
+>
+> ```bash
+> rebound-ops-ui setup      # installér deps → doctor → kør serveren
+> rebound-ops-ui init       # vælg LLM-udbyder + indsæt dens nøgle (echo undertrykt)
+> rebound-ops-ui doctor     # genverificér når som helst (exit 0 ⇔ alt påkrævet grønt)
+> rebound-ops-ui run        # start bare serveren på http://127.0.0.1:4317
+> rebound-ops-ui open       # åbn + HÆV dashboard-fanen i din browser
+> ```
+>
+> Efter `setup`/`run` åbnes browser-fanen **og bringes i forgrunden**
+> automatisk (v1.43.0); `rebound-ops-ui open` gør det samme on
+> demand, så du aldrig skal lede efter dashboard-fanen. `NO_OPEN=1`
+> deaktiverer auto-åbning ved headless-/CI-starts.
+>
+> `setup` kører hele kæden selv. `init` skriver nøglen til den
+> overordnede `rebound-ops/.env` gennem den samme validerede sti, som
+> `#/config`-fanen API-nøgler bruger, og sætter `LLM_PROVIDER`
+> (`auto` | `claude` | `gemini`), som de live evaluate / deep / mode /
+> auto-pipeline-ruter respekterer. CI-form:
+> `rebound-ops-ui init --provider claude --anthropic-key sk-ant-… --yes`.
+> Foretrækker du UI'en? Fortsæt med trinene nedenfor.
+
+### A. Opsætning (gør disse én gang, ~5 minutter)
+
+**rebound-ops-ui skal ligge i `rebound-ops/web-ui/`** (indlejret i det overordnede rebound-ops-projekt). Den læser dit `cv.md`, `config/` og `data/` fra den overordnede mappe via `../` og fungerer ikke standalone. Hvis `rebound-ops-ui init` ikke findes efter en pull, kør `cd rebound-ops/web-ui && npm install && npx rebound-ops-ui init`.
+
+**Trin 1 — Åbn appen på `http://127.0.0.1:4317`.** Hvis den ikke
+kører, kør `bash bin/start.sh` fra repo-roden i en terminal.
+Dashboardet (`#/dashboard`) indlæses.
+
+**Trin 2 — Klik på `❤ Health` i venstre sidebjælke.** Hvert påkrævet
+tjek skal være grønt:
+
+- `cv.md`, `config/profile.yml`, `portals.yml` findes
+- API-nøgle sat (mindst en af `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`)
+- Playwright installeret (kun påkrævet hvis du vil bruge Generér PDF)
+
+Hvis noget er rødt, fortæller siden dig den nøjagtige fil eller env-var, der skal
+rettes. Fortsæt ikke, før Health er grøn.
+
+**Trin 3 — Klik på `⚒ App settings` i sidebjælken.** Du lander på
+fanen **API-nøgler og runtime**.
+- Indsæt `ANTHROPIC_API_KEY` (foretrukket — bedre long-form-scoring)
+  og/eller `GEMINI_API_KEY`. Hent nøgler fra
+  <https://console.anthropic.com/settings/keys> eller
+  <https://aistudio.google.com/apikey>.
+- Klik på **💾 Gem**. Klik derefter på **▶ Test Anthropic** (eller Gemini) — en
+  lille round-trip bekræfter, at nøglen virker.
+
+**Trin 4 — Skift til fanen `Profile` på samme side.** Dette er den
+direkte YAML-editor for `config/profile.yml`. Redigér som minimum:
+- `candidate.full_name` — erstat enhver placeholder ("Jane Smith") med
+  dit rigtige navn
+- `candidate.email`, `linkedin`, `github` — bruges i ansøgningsbreve
+- `target.roles` — de jobtitler, du vil ansøge til
+- `target.comp_total_min_usd` — minimum total kompensation; tilbud under dette
+  bliver flagget i sektion D af hver evaluering
+- `target.archetypes` — de karrieremønstre, du accepterer (det enkeltvis
+  mest virkningsfulde felt)
+
+Klik på **💾 Gem**. Serveren validerer YAML'en og stempler den kanoniske
+`# Rebound-Ops Profile Configuration`-header.
+
+### B. CV (gør dette én gang, ~10 minutter)
+
+**Trin 5 — Klik på `✎ CV` i sidebjælken.** To kolonner: editor til
+venstre, live preview til højre.
+
+**Trin 6 — Vælg én vej til at udfylde editoren:**
+- **Upload et eksisterende CV** — klik på **📁 Upload CV**, vælg en af
+  `.docx / .odt / .rtf / .pdf / .html / .txt / .md`. Serveren
+  konverterer til markdown via pandoc eller pdftotext, saniterer XSS
+  og lægger resultatet i editoren. **Gennemgå konverteringen** —
+  især PDF'er kan miste layouttroskab.
+- **Indsæt markdown direkte** — tekstfeltet er en markdown-editor;
+  højre rude er, hvad LLM'en (og din fremtidige rekrutterer) vil se.
+- **Tone-tips:** ét punkt = én bedrift med en metrik. Hold dig
+  under 1500 ord. Sektioner i denne rækkefølge: Summary, Experience,
+  Projects, Education, Skills.
+
+**Trin 7 — Klik på `💾 Gem` (øverst til højre på CV-siden).** Serveren
+saniterer (`<script>` / `javascript:` / inline-handlere fjernes) og
+skriver `cv.md`. Toast: *"Gemt"*.
+
+**Trin 8 (valgfrit) — Klik på `📄 Generér PDF`.** Kører
+`generate-pdf.mjs` i den overordnede (Playwright påkrævet) og
+**den nye PDF auto-downloades** til din browser, når den er færdig. Listen nederst
+på siden bevarer hver tidligere genereret fil.
+
+### C. Find ledige stillinger (~2 minutter per scan)
+
+**Trin 9 — Klik på `🌐 Scanning` i sidebjælken.** Bekræft, at `portals.yml`
+lister de boards, du bekymrer dig om (sektion 5 i denne hjælp). Tryk på
+knappen **🌐 Scan nu**. En live SSE-log streamer, mens scanneren
+gennemgår Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday (engelske boards) og hh.ru / Habr
+Career (russiske boards, hvis aktiveret).
+
+**Trin 10 — Når scanningen er færdig, gennemgå resultaterne.** Klik på en
+virksomhedstag for at filtrere; klik på ↗-ikonet for at åbne virksomhedens
+karriereside i en ny fane. Hver ledig stilling, der overlevede
+titelfilteret, er sat i kø i Pipeline. Hver resultatrække holder
+opslaget til to kompakte linjer — titlen øverst og en detaljelinje
+med små ikoner nedenunder (title-fit, senioritets-boost,
+match-score, kilde og dato) — og lange resultatlister pagineres.
+
+### D. Vurdér tilbuddene (~30 sekunder per JD)
+
+**Trin 11 — Klik på `Pipeline` i sidebjælken.** Du ser hver URL,
+scanneren satte i kø. Klik på en post for at forhåndsvise JD'en inline.
+
+**Trin 12 — Klik på `▶ Evaluate` ved siden af en JD.** Dette springer til
+`#/evaluate`. Med en API-nøgle sat kører den live; uden en
+får du en manuel prompt at indsætte i din egen LLM. Live-tilstand producerer en
+**0–5 score** mod dit CV på tværs af sektion A–G (Role / Company /
+Compensation / Risk / Stretch / Cultural fit / Verdict). Gem lander
+i `reports/<date>-<slug>.md`.
+
+**Trin 13 — Klik på `Reports` i sidebjælken** og gennemgå den seneste
+evaluering. Alt under dit `comp_total_min_usd` er flagget rødt
+i sektion D. Alt med `Verdict: pursue` er din shortlist.
+
+### E. Beslut og lav dybt research på den shortlistede virksomhed (~3 minutter)
+
+**Trin 14 — Vælg en stilling værd at forfølge. Klik på `Deep research` i sidebjælken.**
+Indtast virksomhedens navn og rolle. Modellen
+producerer et 7-sektions virksomhedsbrief (mission, seneste nyheder, tech-
+stack, ansættelsessignaler, kompensationsbenchmarks, risici, anbefalet vinkel).
+Gem lander i `interview-prep/<company>-<role>.md`.
+
+### F. Ansøg (~5 minutter per ansøgning)
+
+**Trin 15 — Klik på `Apply checklist` i sidebjælken.** Indsæt
+stillings-URL'en + JD'en. Hjælperen genererer en trin-for-trin
+indsendelsestjekliste:
+- Skræddersyet ansøgningsbrev-udkast (bruger dit `cv.md` + `profile.yml`)
+- Specifikke nøgleord at spejle fra JD'en
+- Filer at vedhæfte (CV PDF — se trin 8)
+- Hvor man ansøger (den kanoniske karriere-URL, ikke aggregator-
+  omdirigeringer)
+- Påmindelse: **ALDRIG auto-indsend** — endelig gennemgang og indsendelse er
+  altid manuel.
+
+**Trin 16 — Åbn karrieresiden i en ny fane.** Brug ansøgnings-
+tjeklisten som din to-do-liste. Indsend gennem virksomhedens faktiske
+formular. Vedhæft den PDF, du genererede i trin 8.
+
+**Trin 17 — Ræk ud til et rigtigt menneske.** Åbn **Outreach**-tilstanden
+(`#/contacto` i sidebjælken). Modellen udarbejder en kort LinkedIn- /
+e-mail-besked skræddersyet til virksomhedsbriefet fra trin 14. Personaliser
+indledningen (én specifik detalje fra dit dybe research-brief).
+Send den.
+
+### G. Spor og følg op (løbende)
+
+**Trin 18 — Klik på `Tracker` i sidebjælken** og tilføj en række for
+ansøgningen: virksomhed, rolle, score, status `Applied`, link til
+rapporten, link til det dybe research-brief. Datoen udfyldes automatisk.
+
+**Trin 19 — En uge senere: åbn `Follow-up`-tilstanden** (`#/followup`).
+Udarbejder en høflig opfølgnings-e-mail, der refererer til den oprindelige ansøgning.
+Send. Opdater tracker-status til `Followed up`.
+
+**Trin 20 — Når du får en samtaleinvitation, kør `Interview prep`-tilstanden** (`#/interview-prep`).
+Genererer målrettet forberedelse til den
+specifikke virksomhed + fase (system design / behavioral / coding).
+Trækker fra det dybe research-brief automatisk.
+
+**Trin 21 — Fik du tilbuddet? Opdater tracker-status til `Offer`** og
+genbesøg kompensationssektionen i din evalueringsrapport — dit minimums-
+accepttal står lige der.
+
+### TL;DR — sidebjælke-rækkefølgen matcher arbejdsgangen
+
+`Health → App settings → Profile → CV → Scan → Pipeline → Evaluate
+→ Reports → Deep research → Apply checklist → Outreach → Tracker
+→ Follow-up → Interview prep → Activity log`
+
+Sidebjælken grupperer de samme sider efter fase (**Sourcing** →
+**Beslutning** → **Ansøgning** → …), så arbejdsgangens rækkefølge og
+menuens rækkefølge altid er ens; **Cmd/Ctrl+K** åbner
+**Kommandomenuen** (`nav.v2.palette`), hvis du hellere vil taste tre
+bogstaver end at skanne listen. Det var det. 21 trin, knap-for-knap,
+fra nul til tilbud.
+
+### Auto-pipeline med ét klik (`#/auto`) — genvejen på 21 trin
+
+Hvis du bare vil score ét specifikt opslag hurtigt, så spring den manuelle
+gennemgang over. **Sidebjælke → ✨ Auto-pipeline** (eller ✨-knappen på
+Dashboardet) åbner en dedikeret skærm: indsæt job-URL'en, tryk på **Enter**
+eller klik på **Kør auto-pipeline** (`auto.run`), og serveren kører hele kæden
+i ét observerbart gennemløb:
+
+1. **Validerer URL** (`auto.step.validate`) — SSRF-sikkert tjek
+   (`isValidJobUrl`); afviser loopback / `file:` / private IP'er /
+   script-tegn.
+2. **Henter jobbeskrivelse** (`auto.step.fetch`) — `safeGet`
+   (DNS-pinned, redirect-revalideret) trækker + saniterer JD'en.
+3. **Vurderer mod dit CV** (`auto.step.evaluate`) — Anthropic
+   (foretrukket) → Gemini fallback → manuel prompt hvis ingen nøgle.
+4. **Gemmer rapport** (`auto.step.report`) — skriver `reports/<slug>.md`
+   med score + legitimitet i headeren.
+5. **Tilføjer til tracker** (`auto.step.tracker`) — føjer en række til
+   `data/applications.md`.
+
+Live feedback er en lodret **stepper** (hvert trin lyser op
+running → done / failed; `aria-current` markerer det aktive trin, og et
+høfligt skærmlæser live-område annoncerer hver overgang). Ved succes
+deep-linker resultatkortet direkte til den gemte rapport
+(**Vis rapport**, `auto.viewReport`) og **trackeren** (`auto.viewTracker`). Et
+fejlet trin markeres rødt med sin besked, og knappen genaktiveres, så du
+kan rette URL'en og prøve igen uden at genindlæse. At starte et nyt
+gennemløb, mens ét stadig kører, er sikkert: det ældre gennemløb markerer
+sig selv **Erstattet — en nyere kørsel blev anmodet** (`auto.superseded`)
+i stedet for at bruge dobbelt på et forældet svar.
+
+Den tomme side er ærlig omkring sit eneste felt: et **Eksempel**-tag og en
+**Prøv en eksempel-URL**-knap (`v2empty.auto.tryExample`) fylder inputfeltet
+med et eksempelopslag — **intet kører, før du trykker Kør**
+(`v2empty.auto.hint`), så at kigge koster ingenting.
+
+**Ingen API-nøgle?** Pipeline kører i **manuel tilstand**: trin 3–5
+kollapser, og du får et klar-til-indsæt promptkort (kopier ind i Claude
+Code / Anthropic / Gemini). Intet live LLM-kald, ingen omkostning.
+
+`#/auto` er linkbar: `#/auto?url=<encoded>&go=1` åbner skærmen og
+starter automatisk. Dashboardets ✨-knap og denne sidebjælke-post lander begge
+her (et enkelt sammenhængende flow — den transiente modal fra før 1.34 blev
+forfremmet til denne side).
+> **CLI (v1.38.0).** Én kommando kører kæden: `rebound-ops-ui setup` (bootstrap → installér → start). Standalone-verber: `rebound-ops-ui doctor` (env/nøgler/værktøjs-tjek — samme motor som Health-siden; exit 1 ved enhver påkrævet fejl), `rebound-ops-ui run`, `rebound-ops-ui init` (udbyder+nøgle-wizard, v1.39.0).
+> **Udbydere (v1.39.0).** API-nøgle-fanen tilføjer en `LLM_PROVIDER`-select (`auto` = Anthropic→Gemini standard · `claude` · `gemini`) og et `OPENAI_API_KEY`-felt (Codex/OpenCode CLI-siden). `rebound-ops-ui init` er en interaktiv wizard til det samme.
+>
+> **Udbydere (v1.57.0).** Headless live-eval spænder nu over **Anthropic → Gemini → OpenAI → Qwen → OpenRouter → GitHub Models → Hermes → DeepSeek → GLM (Z.ai) → Kimi (Moonshot) → MiniMax → Mistral → Grok (xAI) → Together → Fireworks → Ollama → BytePlus Ark → Volcengine Ark** (`auto`-rækkefølgen; `LLM_PROVIDER` fastlåser én). **OpenRouter** — én `OPENROUTER_API_KEY` fronter 300+ modeller; `OPENROUTER_MODEL`-dropdownen indlæser OpenRouters live-katalog (server-side proxy, kurateret offline-fallback). Også rettet: nøgler indsat med en efterstillet linjeskift / omgivende mellemrum trimmes nu før validering, så `/#/config` ikke længere viser "validation failed" for nogen udbyder.
+
+
+
+---
+
+## 2. App settings og API-nøgler (`#/config`)
+
+> **Nyt i v1.55 → v1.56.** Med **ingen** LLM-nøgle sat forklarer et rødt banner på hver skærm, at ⚡ Run-live er i manuel-prompt-tilstand og linker hertil; når en nøgle er sat, bliver det en stille chip, der navngiver den aktive udbyder. Før enhver ⚡ Run-live-knap (`#/auto`, `#/evaluate`, `#/deep`, modes) vises et ærligt omkostningsskøn (f.eks. "Estimeret omkostning: OpenAI gpt-5-codex · ~$0,04/eval", eller en ingen-API-omkostning-note i manuel tilstand). `#/scan` gemmer sekundære filtre bag en **Avancerede filtre**-foldning; `#/tracker` tilføjer klikbare tragt-chips + valgfri server-side-paginering; `#/pipeline` virtualiserer ud over 1000 rækker.
+
+**AI CLI-værktøjer.** Fanen **AI CLI-værktøjer** viser, hvilke agent-CLI'er (Claude Code, Cursor, Codex, Gemini, OpenCode, Copilot, Qwen, Antigravity, Kimi CLI, Grok Build CLI) der er installeret på serveren — en skrivebeskyttet PATH-scanning uden at køre dem. **Udseende → Vis firmalogoer** (fra som standard) viser hvert firmas favicon i scanningstabellen, hentet fra dets eget domæne (aldrig en tredjepartstjeneste).
+
+Tre faner:
+
+1. **API-nøgler og runtime** — struktureret feltformular over det overordnede
+   projekts `.env` (samme fil, som rebound-ops Node-scripts læser ved
+   opstart). Grupperet: API-nøgler / Runtime / Regionale kilder. Fanen
+   eksponerer også per-udbyder-modelvælgere — `OPENAI_MODEL`
+   (OpenAI/Codex) sammen med `ANTHROPIC_MODEL` og `GEMINI_MODEL`.
+2. **Profile** — **felt-for-felt-formular** over `config/profile.yml`
+   (web-ui 1.32.0). Gem **fletter** ind i filen — dine arketyper,
+   proof points og eventuelle brugerdefinerede nøgler bevares urørte.
+3. **Modes** — **struktureret feltformular** for `modes/_profile.md`
+   (web-ui 1.54.3), afledt af det dokumenterede skema. Liste-type-
+   sektioner — **Target Roles / Adaptive Framing / Comp Targets** —
+   gengives som gentagelige linjepost-inputs (tilføj/fjern rækker); prosa-
+   sektioner — **Exit Narrative / Location Policy** — gengives som
+   mærkede tekstfelter; enhver ukendt eller ikke-liste-sektion falder tilbage til
+   et mærket ordret tekstfelt. Gem **fletter stadig per sektion** —
+   indledningen, urørte sektioner og eventuelle brugerdefinerede sektioner
+   bevares byte-for-byte. En *Avanceret: rå markdown*-foldning
+   forbliver til fuld-fil-redigeringer — tilføjelse/fjernelse af sektioner eller redigering
+   af indledningen.
+
+Et gem i en hvilken som helst fane forplanter sig med det samme — ingen server-genstart.
+
+**Opsætning af din LLM-udbyder (trin for trin).** Web-UI'ens ⚡ live-evaluering kører *headless* og bruger én API-nøgle. Den virker via "ELLER" — sæt **en hvilken som helst** af disse, og det virker bare; med flere sat foretrækker `auto` dem i denne rækkefølge: Anthropic → Gemini → OpenAI → Qwen → OpenRouter → GitHub Models → Hermes → DeepSeek → GLM (Z.ai) → Kimi (Moonshot) → MiniMax → Mistral → Grok (xAI) → Together → Fireworks → Ollama → BytePlus Ark → Volcengine Ark. (rebound-ops selv er CLI-agnostisk — du kører den også inde i Claude Code, Cursor, Codex, Gemini, OpenCode, Antigravity, Grok Build, Qwen, Copilot eller Kimi; det er adskilt fra denne headless-nøgle.)
+
+1. Åbn `#/config` → fanen **API-nøgler og runtime**.
+2. Vælg din udbyder i **`LLM_PROVIDER`**: `auto` (brug hvilken nøgle der er sat), eller tving en med `claude` / `gemini` / `openai` / `qwen`.
+3. Udfyld nøglen + modellen for den udbyder, du valgte:
+   - **Anthropic** — sæt `ANTHROPIC_API_KEY` (console.anthropic.com), valgfrit `ANTHROPIC_MODEL` (standard `claude-sonnet-4-6`).
+   - **Gemini** — sæt `GEMINI_API_KEY` (aistudio.google.com/apikey), valgfrit `GEMINI_MODEL` (standard `gemini-3.6-flash`).
+   - **OpenAI** — sæt `OPENAI_API_KEY` (platform.openai.com), valgfrit `OPENAI_MODEL` (standard `gpt-5-codex`).
+   - **Qwen** — sæt `QWEN_API_KEY` (Alibaba Model Studio / DashScope, dashscope.console.aliyun.com), valgfrit `QWEN_MODEL` (standard `qwen-max`). For fastlands-CN-endpointet sæt `QWEN_BASE_URL` i den rå `.env`.
+4. Klik på **Gem**. Nøgler skrives til det overordnede projekts `.env`; ændringen træder i kraft med det samme — ingen server-genstart nødvendig.
+5. Verificér på `#/evaluate`: indsæt en job-URL/beskrivelse og tryk på **⚡ Kør live**. Resultatheaderen viser, hvilken udbyder der kørte (`anthropic` / `gemini` / `openai` / `qwen`). Ingen nøgle sat nogen steder → du får i stedet den kopier-indsæt manuelle prompt.
+
+Hemmeligheder maskeres efter gem og logges aldrig. Model-id-felter (`*_MODEL`) er ikke hemmelige.
+
+### Profile-fanen (feltformular — v1.32.0)
+
+Før v1.32.0 var denne fane et enkelt rå-YAML-tekstfelt, hvor hver
+indstilling levede i én udifferentieret klump. Det er nu en struktureret
+formular, felter grupperet i tre sammenfoldelige sektioner:
+
+- **Candidate** — Fulde navn (påkrævet), E-mail, Telefon, Lokation,
+  LinkedIn, GitHub, Portfolio-URL, X / Twitter.
+- **Narrative** — Headline, Exit-historie.
+- **Compensation** — Målinterval, Valuta, Walk-away-minimum,
+  Lokationsfleksibilitet.
+- **Strukturerede array-editorer** (web-ui 1.35.0) — tilføj/fjern-række-
+  editorer til de liste-formede felter, så selv disse ikke længere behøver
+  den rå YAML: **Target roles** + **Superpowers** (strenglister);
+  **Archetypes** (name / level / fit-rækker); **Proof points** (name /
+  url / hero-metric-rækker). Tomme rækker droppes; en tømt liste
+  fjerner nøglen rent. Samme flet-ikke-erstat-garanti — hvert
+  array, du ikke rører, overlever urørt.
+
+Sådan er gemningen sikker:
+
+- Formularen sender kun de 14 modellerede skalar-stier som
+  `{ fields: { "candidate.full_name": … } }`. Serveren
+  **læser den eksisterende `config/profile.yml`, sætter/rydder kun disse blade og re-serialiserer hele objektet**
+  — så indlejrede arrays, formularen
+  ikke modellerer (`target_roles.archetypes`, `narrative.proof_points`,
+  `narrative.superpowers`), og eventuelle brugerdefinerede nøgler, du tilføjede i hånden,
+  **overlever round-trippet urørt**. Rydning af et felt fjerner den
+  nøgle rent (intet `phone: ""`-restprodukt).
+- Validering kræver stadig et fuldt navn; `# Rebound-Ops Profile
+  Configuration`-headeren stemples automatisk.
+- En afvejning: et feltformular-gem
+  **re-serialiserer YAML'en, så inline `#`-kommentarer går tabt**. For at bevare kommentarer eller redigere indlejrede
+  arrays, brug **Avanceret: redigér rå YAML**-foldningen nederst
+  på fanen — det er pre-1.32-fuld-fil-editoren, uændret
+  (erstatter hele filen ved gem).
+- Den skrivebeskyttede oversigt på `#/profile` er den visuelle ledsager.
+
+### Genkendte nøgler
+
+De nøgler, man oftest har brug for. Dette er et udvalg, ikke registret — `#/config` viser **alle** genkendte nøgler, grupperet og med et hint til hver.
+
+| Nøgle | Hvad den gør | Hvor man får den |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Aktiverer live Anthropic SDK-kald. Foretrukket når både Anthropic + Gemini er sat — bedre long-form struktureret output til JD-scoring og dybt research. | <https://console.anthropic.com/settings/keys> |
+| `ANTHROPIC_MODEL` | Tilsidesæt standard `claude-sonnet-4-6`. Prøv `claude-opus-4-7` til hårdere reasoning, `claude-haiku-4-5-20251001` til billigt-og-hurtigt. | — |
+| `GEMINI_API_KEY` | Fallback når ingen Anthropic-nøgle. Bruges af `gemini-eval.mjs` til `oferta`-tilstand. Gratis-niveau virker til lav volumen. | <https://aistudio.google.com/apikey> |
+| `GEMINI_MODEL` | Tilsidesæt standard Gemini-model. | — |
+| `PORT` | Express bind-port. Standard 4317. | — |
+| `HOST` | Bind-adresse. Standard `127.0.0.1`. At sætte `0.0.0.0` eksponerer UI'en på LAN'et — **ingen auth-gate endnu**, se Production-readiness-dokumentet. | — |
+
+### Adfærd
+
+- **Læs** (`GET /api/config`) returnerer hver genkendt nøgle. Hemmelige
+  nøgler (`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) er **maskeret** — du ser
+  `sk-ant•••••••a1b2`, aldrig den fulde værdi.
+- **Gem** (`POST /api/config`) validerer hver værdi, skriver til
+  `<parent>/.env` og anvender den straks på den kørende proces.
+  Ingen genstart nødvendig.
+- **Tom værdi sletter** nøglen — indstillingen vender tilbage til *ikke sat*, og projektets standardværdi gælder igen.
+- **Rullelister begynder med »Brug standardværdien (…)«.** At vælge den betyder, at nøglen **ikke** står i `.env`: appen bruger projektets standard, og du får fortsat den nye, hver gang projektet ændrer den. Vælger du den samme værdi fra listen nedenfor, **låses** den — den bliver stående, også når standarden flytter sig.
+- **Et felt, du aldrig rører, bliver aldrig skrevet.** Et uindstillet felt viser standardværdien, så du kan se, hvad serveren bruger; den viste værdi gemmes ikke, medmindre du faktisk redigerer feltet.
+- **Gem melder, hvad der blev ændret.** Beskeden tæller både skrevne *og* fjernede nøgler, så et ryddet felt viser »· 1«, ikke »· 0«.
+
+### Smoke-test-knapper
+
+Efter gem, klik på **▶ Test Anthropic** eller **▶ Test Gemini** — begge
+affyrer en lille prompt (≤256 tokens output), så du bruger stort set
+intet, mens du bekræfter, at nøglen er korrekt forbundet. Returnerer en
+~200-tegns prøve ved succes.
+
+### Opsætningslæge — find et ufuldstændigt CV eller profil
+
+Fanen **Opsætningslæge** på `#/config` kører et skrivebeskyttet tjek af, om dine `cv.md` og `config/profile.yml` faktisk er udfyldt, og advarer, når der er efterladt eksempel- eller pladsholderdata, eller hardkodede måletal i dine promptfiler (`modes/_shared.md`, `modes/_writing.md`, `batch/batch-prompt.md`). Den adskiller **fejl** (noget, pipelinen har brug for, mangler, f.eks. intet `cv.md`) fra **advarsler** (eksempeldata er der stadig, et CV der ser for kort ud, et mistænkeligt måletal). Intet skrives, og intet sendes nogen steder hen — den læser og rapporterer kun. Tryk på **Tjek igen**, når du har redigeret de filer. På en selvstændig installation uden forældreprojektet viser fanen i stedet en dæmpet linje med "ikke tilgængelig".
+
+---
+
+## 3. Profile (`#/profile` — også tilgængelig som `#/settings`)
+
+En skrivebeskyttet oversigtskort-visning af `config/profile.yml`. **For at redigere**,
+gå til **App settings → Profile-fanen** (`#/config` → Profile) — siden
+web-ui 1.32.0 er det en felt-for-felt-formular (Candidate / Narrative /
+Compensation), ikke en rå-YAML-klump. Gemninger fletter ind i samme fil;
+denne side genparser ved genindlæsning.
+
+De felter, der betyder mest:
+
+- `candidate.full_name` — bruges i hver prompt.
+  **Erstat skabelonens `Jane Smith`**, før du scanner noget for alvor, ellers vil dine
+  genererede ansøgningsbreve gå ud under placeholder-navnet.
+- `candidate.email`, `linkedin`, `github` — refereret i ansøgningsbrev-
+  generering og ansøgningstjeklisten.
+- `target.roles` — accepterede jobtitler. Scannerens positive filter
+  bruger dette implicit (via `portals.yml::title_filter`).
+- `target.comp_total_min_usd` — minimum total kompensation. Sektion D af hver
+  evaluering flagger tilbud under dette.
+- `target.archetypes` — det *vigtigste felt*. Disse er de
+  karrieremønstre, du accepterer (f.eks. `Tech-Lead-Backend`,
+  `Founding-Engineer`, `Data-Platform`). Hver JD matches mod
+  dem, og den bedst egnede arketype lander i rapportheaderen.
+
+Health-siden viser et **Profile customized**-tjek, der fejler, så
+længe `full_name` matcher et kendt placeholder-navn.
+
+---
+
+## 4. CV (`#/cv`)
+
+Eneste sandhedskilde for hver evaluering, dybt research og ansøgnings-
+brev. Lever i `cv.md` i den overordnede projektrod.
+
+### Redigeringsmuligheder
+
+- **Indsæt det direkte** — tekstfeltet til venstre er en markdown-
+  editor. Højre rude spejler, hvad LLM'en (og din fremtidige
+  rekrutterer) ser.
+- **📁 Upload CV** — vælg en lokal fil i et af disse formater, og
+  serveren konverterer den til markdown for dig:
+  - **Tekstformater** — `.md`, `.markdown`, `.txt`, `.html`, `.htm`
+    sendes igennem (HTML går via pandoc → GFM markdown).
+  - **Office-formater** — `.docx`, `.odt`, `.rtf`
+    konverteres via **pandoc** (`brew install pandoc` på macOS,
+    `apt install pandoc` på Linux).
+  - **PDF** — `.pdf` udtrækkes via **pdftotext** fra Poppler
+    (`brew install poppler` / `apt install poppler-utils`).
+  - Den konverterede markdown lander i editoren; klik på **💾 Gem**
+    for at persistere. Resultatet saniteres (samme XSS-strip som indsæt).
+  - Hård grænse: **10 MB** per upload. Større filer → 413.
+- **Fra LinkedIn** — nemmeste vej: åbn Claude Code i det overordnede
+  projekt, kør `/rebound-ops`, indsæt din LinkedIn-URL og bed om
+  `extract my CV from this and write it to cv.md`.
+
+### Hvad bliver saniteret
+
+Server-side kører hver PUT til `/api/cv` gennem `stripDangerousMarkdown`:
+
+- `<script>`, `<iframe>`, `<object>`, `<embed>`, `<svg>`, `<style>`,
+  `<form>`-tags — fjernes fuldstændigt.
+- Inline event-handlere (`onclick=`, `onerror=`, osv.) — strippet.
+- `javascript:`, `vbscript:`, `data:text/html` URI-skemaer — neutraliseret.
+
+Svaret inkluderer `sanitized: true`, når noget af ovenstående blev
+fjernet, så du ved, om kilden havde noget ondsindet.
+
+Maks. body-størrelse: 1 MB. Alt større returnerer 413.
+
+### Andre knapper
+
+- **sync-check** — kører `cv-sync-check.mjs` i det overordnede projekt.
+  Flagger inkonsistenser: et projekt nævnt i dit CV, men ikke i
+  `data/applications.md`-arketyper, osv.
+- **📄 Generér PDF** — streamer `generate-pdf.mjs`. Output lander i
+  `output/*.pdf`. Kræver Playwright (Health-siden viser, om det er
+  installeret i den overordnedes `node_modules`). Når genereringen er færdig,
+  auto-downloades den **nyeste** PDF til din standard Downloads-
+  mappe; on-page-listen bevarer hver tidligere genereret fil.
+
+### Tone- / format-tips
+
+- Ét punkt = én bedrift med en metrik.
+  *"Reducerede p99-latens med 38%"* slår *"forbedrede performance"* for
+  hver evalueringsrubrik.
+- Sektioner i denne rækkefølge: **Summary** (3–5 linjer), **Experience**
+  (omvendt kronologisk), **Projects** (maks. 5), **Education**,
+  **Skills** (dedupliceret, ingen buzzword-suppe).
+- Hold det under 1500 ord. Scoring-rubrikken bruger tæt info; et
+  vidtløftigt CV bliver straffet for støj.
+
+---
+
+## 5. Portaler og kilder (`portals.yml`)
+
+Scanner-konfigurationen lever i `portals.yml` i den overordnede rod. Tre
+sektioner betyder noget. SPA'ens tre sektioner (nedenfor) matcher det kanoniske
+github.com/AnkitParekh007/rebound-ops-skema fra
+[scan-job-portals](https://github.com/AnkitParekh007/rebound-ops)
+1:1.
+
+> **Genvej:** `#/portals`-URL'en resolver nu direkte til **App settings**
+> og (når en regional kilde er konfigureret) springer til
+> **Regionale kilder**-gruppen — så et bogmærket eller indtastet `#/portals`-
+> link ikke længere giver 404 (v1.42.0).
+
+### `title_filter`
+
+```yaml
+title_filter:
+  positive: [backend, engineer, senior, tech lead, golang, php]
+  negative: [junior, intern, frontend, ios, android, java]
+  seniority_boost: [Senior, Staff, Lead, Principal]
+```
+
+En scannet stilling består, når dens titel indeholder **mindst ét positivt**
+nøgleord OG **ingen af de negative** nøgleord. Justér begge.
+Nøgleord er case-insensitive delstrenge.
+
+`seniority_boost` er den tredje title-filter-nøgle. Nøgleord listet
+her filtrerer ikke noget ud — de skubber matchende jobs højere op i
+resultaterne, så en "Senior Backend Engineer" lander over en "Engineer".
+Standard: `["Senior", "Staff", "Lead"]`. Justér til at matche, hvordan dine
+målroller er titulerede.
+
+Start med 3–5 positive nøgleord for klarhed; udvid senere.
+
+### `location_filter` (valgfrit — web-ui 1.33.0, parent #570)
+
+```yaml
+location_filter:
+  allow:
+    - "Remote"
+    - "United States"
+    - "Atlanta"
+  block:
+    - "India"
+    - "London"
+    - "Germany"
+```
+
+Filtrerer scannede stillinger efter deres **location**-streng (case-insensitive
+delstreng), anvendt af både ATS-sweepet og det regionale sweep.
+Semantik, identisk med den kanoniske rebound-ops `scan.mjs`:
+
+- Ingen `location_filter`-nøgle → hver location består (standard).
+- En stilling med en **tom/manglende** location → består (manglende data
+  straffes ikke).
+- Et `block`-nøgleordsmatch → **afvist** (block har forrang over
+  allow).
+- Et `always_allow`-match → **består**, selv når et `block`-match også rammer — ventilen til flernations-lokationsstrenge (v1.248.1).
+- Et `block_hard`-match → **afvist**, og `always_allow` kan ikke tilsidesætte det.
+- `allow` tom → består (block har allerede ryddet den).
+- `allow` ikke-tom → skal matche **mindst ét** nøgleord.
+
+Top-niveau-nøgle i `portals.yml` (et søskende til `title_filter`, ikke indlejret
+under `russian_portals`). Brug den til at droppe jobs, der overlevede
+titelfilteret, men er i en region, du ikke kan tage.
+
+Start med 3–5 positive nøgleord for klarhed; udvid senere.
+
+**`content_filter` (valgfrit — web-ui 1.75.0, parent #974).** Et top-niveau-
+søskende til `location_filter` med de samme `positive` / `negative`-nøgleord-
+lister, men matchet mod et opslags **beskrivelse / snippet**-tekst i stedet
+for dets location:
+
+```yaml
+content_filter:
+  positive: ["python", "machine learning"]
+  negative: ["security clearance", "on-site only"]
+```
+
+Identisk semantik med `location_filter`: ingen nøgle → alt består; et opslag
+med en **tom/manglende** beskrivelse består (manglende data straffes ikke); et
+`negative`-match → afvist; `positive` tom → består; `positive` ikke-tom →
+skal matche mindst ét nøgleord (case-insensitive delstreng). Anvendt af både
+ATS- og de regionale sweeps. Kun kilder, der leverer en beskrivelse/snippet
+(f.eks. RSS), påvirkes — hvert andet opslag består — så aktivering af det dropper aldrig
+stille rækker fra kilder, der ikke bærer en body. Brug den til at droppe et
+titel-bestående opslag, hvis body afslører en deal-breaker.
+
+**`trust_filter` (valgfrit — web-ui 1.76.0, parent rebound-ops v1.13.0).** En
+top-niveau-blok, der **annoterer** (aldrig dropper) hvert scannet opslag med en
+trust-score (0–100), et niveau (`high` / `medium` / `low`) og flag. Slået fra medmindre
+til stede og ikke deaktiveret:
+
+```yaml
+trust_filter:
+  enabled: true
+  suspicious_domains: ["bit.ly", "tinyurl.com"]   # valgfrit — tilsidesætter standard-shortener-listen
+  ats_allowlist: ["greenhouse.io", "ashbyhq.com"] # valgfrit — tilsidesætter standard-ATS-host-allowlisten
+```
+
+Heuristikker: manglende apply-URL (−40), ugyldig URL (−50), mistænkelig shortener-
+domæne (−25), virksomhed↔domæne-mismatch (−15, springes over for kendte ATS-hosts).
+Opslag under `high` får et sprogneutralt **⚠ score**-badge i `#/scan`-
+tabellen (tooltippet lister flag-koderne), så du kan øjne low-trust-rækker
+uden at noget bliver filtreret ud. Lad blokken være helt ude for at bevare den
+pre-1.76-adfærd (ingen annotering, ingen badge).
+
+### `years_min` (valgfrit — web-ui 1.262.0)
+
+```yaml
+years_min: 3
+```
+
+Springer opslag over, hvis beskrivelse angiver en mindste erfaring under din
+grænse. Parseren læser kun angivne krav — et opslag uden et angivet tal går
+altid igennem (aldrig droppet på et gæt). Sprungne rækker registreres i
+`data/scan-history.tsv` som `skipped_experience`, en observationsstatus, der
+aldrig fastgør en URL, så opslaget dukker op igen ved en senere scanning.
+
+### `search_queries`
+
+```yaml
+search_queries:
+  - name: "Greenhouse — Rails Engineer"
+    query: 'site:job-boards.greenhouse.io "Rails Engineer" OR "Ruby on Rails" remote'
+    enabled: true
+  - name: "Ashby — Senior Backend"
+    query: 'site:jobs.ashbyhq.com "Senior Backend" remote'
+    enabled: false
+```
+
+`search_queries` driver det AI-drevne Option B-scan (`/rebound-ops scan`
+inde i Claude Code / Cursor / Codex). De udføres IKKE af det in-process
+`npm run scan` (som kun rammer offentlige boards-API'er). Brug dem, når
+du vil opdage roller hos virksomheder, der endnu ikke er i
+`tracked_companies`. Sæt `enabled: false` for at beholde en post uden at
+køre den.
+
+### `tracked_companies`
+
+```yaml
+tracked_companies:
+  - { name: Stripe,     enabled: true, careers_url: https://job-boards.greenhouse.io/stripe }
+  - { name: Linear,     enabled: true, careers_url: https://jobs.ashbyhq.com/linear }
+  - { name: JetBrains,  enabled: true, careers_url: https://jobs.lever.co/jetbrains }
+```
+
+Påkrævede felter per post: `name` og `careers_url`. Valgfrit:
+`api` (eksplicit Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday
+endpoint), `enabled: true|false` for at inkludere/ekskludere uden at slette
+posten. ATS-scanneren detekterer ATS'en fra URL-mønsteret
+(`job-boards.greenhouse.io/<slug>` → Greenhouse, osv.) og henter hver
+virksomheds offentlige boards-api direkte. Virksomheder uden et genkendeligt
+ATS springes over (**Active Companies**-kortet på `/#/scan` viser dem
+i gråt med `○`).
+
+**Per-tenant ATS-udbydere (v1.76.0 — parent rebound-ops v1.13.0-paritet).** Seks
+flere ATS'er auto-detekterer direkte fra `careers_url` (eller et eksplicit `api:`), ingen
+`provider:` nødvendig:
+
+```yaml
+tracked_companies:
+  - { name: Acme,    enabled: true, careers_url: https://acme.bamboohr.com }          # BambooHR
+  - { name: Foo,     enabled: true, careers_url: https://foo.breezy.hr }              # Breezy HR
+  - { name: Bar,     enabled: true, careers_url: https://bar.jobs.personio.de }       # Personio (XML-feed)
+  - { name: Baz,     enabled: true, careers_url: https://baz.recruitee.com }          # Recruitee
+  - { name: SolidCo, enabled: true, careers_url: https://solid.jobs/public-api/offers/it }  # SolidJobs
+  # Comeet kræver den fulde careers-api-URL (uid + token er ikke på den brandede side):
+  - { name: ComeetCo, enabled: true, api: https://www.comeet.co/careers-api/2.0/company/<uid>/positions?token=<token> }
+```
+
+Hver fastlåser sin host med et anchored regex + `redirect:'error'` (SSRF-sikkert). Se
+`docs/portals-examples.md` for fyldigere copy-paste-poster.
+
+**Fastgørelse af en Personio-tenant (v1.237.0).** Mange virksomheder indlejrer deres
+Personio-board som et **iframe** på en brandet karriereside, så `careers_url` peger på
+virksomhedens eget domæne, mens feedet faktisk ligger på `<slug>.jobs.personio.de`.
+Uden en pin resolver sådanne boards til ingenting. Angiv tenant-sluggen eksplicit, og
+den vinder over `careers_url`:
+
+```yaml
+tracked_companies:
+  - { name: Acme, enabled: true, provider: personio, personio: acme, careers_url: https://acme.com/careers }
+```
+
+Sluggen er tegnsæt-begrænset (bogstaver, tal og bindestreger, må ikke starte med en
+bindestreg, højst 63 tegn), og den resulterende URL går stadig gennem den samme
+host-allowlist og HTTPS-tjek — en slug, der indeholder et punktum, skråstreg, `@` eller
+`:`, afvises, og posten falder tilbage til `careers_url`.
+
+**Visning af ansættelsestype i titlen (Jobstreet / SEEK, v1.237.0).** Slå det til med
+`appendWorkType`, og opslagets ansættelsestyper føjes til titlen, så titelfiltre og
+sortering kan se dem allerede ved scanningstidspunktet. Fra som standard:
+
+```yaml
+tracked_companies:
+  - name: Acme
+    enabled: true
+    provider: jobstreet
+    jobstreet: { siteKey: AU-Main, appendWorkType: true }   # → "Strategy Consultant [Part time]"
+```
+
+`siteKey` vælger markedet: `ID-Main` (id.jobstreet.com), `SG-Main`, `MY-Main`,
+`HK-Main` (hk.jobsdb.com), `AU-Main` (au.seek.com, www.seek.com.au) og `NZ-Main` (nz.seek.com, www.seek.co.nz).
+Joblinket bygges pr. marked — kun de indonesiske hosts bruger `/id/`-lokaleprefikset,
+så et link bygget til et hvilket som helst andet marked med det returnerer 404 (rettet
+i v1.237.0).
+
+### `rss` (RSS / Atom-boards)
+
+```yaml
+tracked_companies:
+  - { name: LaraJobs, enabled: true, provider: rss, rss: https://larajobs.com/feed }
+  - { name: WeWorkRemotely, enabled: true, provider: rss, rss: https://weworkremotely.com/remote-jobs.rss }
+```
+
+Peg scanneren mod et hvilket som helst jobboard, der publicerer et RSS/Atom-feed (LaraJobs, WeWorkRemotely, RemoteOK, golangprojects, …) ved at tilføje en post med `provider: rss` plus en `rss:` (eller `feed_url:`)-nøgle — **ingen kodeændringer**. RSS-adapteren parser hvert `<item>` (CDATA + HTML-entiteter, titler/virksomheder tag-strippet), normaliserer det til et job og kører samme `title_filter` / `location_filter` + dedup + pipeline-append-flow som ATS-kilder. **RSS** vises derefter som en valgbar kilde i `#/scan`-filter-dropdownen. (web-ui v1.62.x)
+
+
+### `telegram_channels` (offentlige Telegram-jobkanaler)
+
+```yaml
+telegram_channels:
+  enabled: true
+  max_posts: 100          # default cap per channel (hard cap 300)
+  channels:
+    - { name: "PHP jobs", channel: rabotaphp }
+    - { name: "Salary PM", channel: salary_pm, max_posts: 50 }
+```
+
+Scan enhver **offentlig** Telegram-kanal ved at angive den her — uden bot-token og uden API-nøgle. Hver kanal læses fra sin offentlige forhåndsvisning `https://t.me/s/<kanal>`, almindelig serverrenderet HTML. `channel:` accepterer enhver skrivemåde (`rabotaphp`, `@rabotaphp` eller et fuldt `t.me/…`-link); `max_posts:` begrænser, hvor mange nye opslag der læses (standard 100, hårdt loft 300). Kanaler bor i deres egen blok på øverste niveau frem for i `tracked_companies`, fordi en kanal ikke er en arbejdsgiver og ikke har en karriere-URL at genkende.
+
+**Et kanalopslag er prosa, ikke en jobpost** — der er ingen strukturerede felter. Kilden tager titlen fra første indholdsmæssige linje, læser firma / sted / løn kun fra udtrykkelige etiketter (`Компания:`, `Локация:`) og lader hele teksten stå i beskrivelsen. At skille rigtige opslag fra reklamer og digests er dit `title_filter`s opgave. En privat eller ikke-eksisterende kanal meldes som en **fejl**, aldrig som „ingen stillinger“. **Telegram** optræder derefter som valgbar kilde i `#/scan`-filteret. (web-ui v1.228.0)
+
+
+### `russian_portals`
+
+```yaml
+russian_portals:
+  sources: ["hh", "habr", "trudvsem", "getmatch", "geekjob"]      # eller bare én
+  area: 113                 # 1=Moskva, 2=SPb, 113=Rusland, 1001=remote
+  per_page: 50
+  only_remote: false
+  queries:
+    - "Senior PHP"
+    - "Senior Go"
+    - "Тимлид PHP"
+```
+
+`queries` er case-insensitive delstreng-match mod stillingstitler
+på hh.ru og Habr Career. **Vær forsigtig med overlap med den negative liste**
+— hvis `"Senior PHP"` er i `queries`, men `"php"` ender i
+`title_filter.negative`, vil scanningen returnere nul resultater, og
+konsollen vil advare dig om konflikten.
+
+
+### Konfiguration af russiske portaler — detaljeret opsætningsguide
+
+v1.29.0 leverer 5 russisksprogede adaptere. To behøver ikke andet end standard-UA'en (`habr-career`, HTML-scrape; `trudvsem`, statslig open-data-API — ingen nøgle, ingen IP-gate). To er HTML-scrapes af tech-boards (`getmatch`, `geekjob` — også ingen nøgle). En er den kanoniske hh.ru-API, som kan returnere 403 fra ikke-russiske IP'er, medmindre du sætter en `HH_USER_AGENT`-env-var via **App settings → API-nøgler og runtime** (eller kører serveren fra en russisk IP / VPN-exit-node).
+
+#### Kildeoversigt
+
+| Kilde-nøgle | Visningsetiket | Type | Auth | Geo-begrænsning |
+|---|---|---|---|---|
+| `hh` | hh.ru | JSON API | valgfri `HH_USER_AGENT` | ikke-RU IP'er kan give 403 |
+| `habr` | Habr Career | HTML | ingen | ingen |
+| `trudvsem` | Trudvsem | JSON API (open-data) | ingen | ingen |
+| `getmatch` | GetMatch | HTML | ingen | ingen |
+| `geekjob` | GeekJob | HTML | ingen | ingen |
+
+#### Trin 1 — Åbn `portals.yml`
+
+Filen lever i den overordnede `rebound-ops/`-rod (IKKE inde i `web-ui/`). Hvis den ikke findes endnu, kopiér eksemplet, der leveres med det overordnede projekt:
+
+```bash
+# fra den overordnede rebound-ops/-rod (IKKE web-ui/)
+cp templates/portals.example.yml portals.yml
+$EDITOR portals.yml
+```
+
+#### Trin 2 — Aktivér alle 5 kilder
+
+Tilføj eller opdater `russian_portals`-blokken til at liste hver kilde, du vil scanne. Rækkefølgen i arrayet er irrelevant; scanneren gennemgår dem i registry-rækkefølge.
+
+```yaml
+russian_portals:
+  sources: ["hh", "habr", "trudvsem", "getmatch", "geekjob"]
+  area: 113                  # 1=Moskva, 2=SPb, 113=Rusland, 1001=remote
+  per_page: 50               # hvor mange stillinger per query per kilde
+  only_remote: false         # sæt true for kun at beholde remote-opslag
+  queries:
+    - "Senior PHP"
+    - "Senior Go"
+    - "Backend Senior"
+    - "Тимлид PHP"
+```
+
+#### Trin 3 — Justér queries og filtre
+
+`queries` er de strenge, scanneren bruger til at søge i hver kilde. Hver query kører én gang på hver kilde — så 4 queries × 5 kilder = 20 kald per scan. Hold listen fokuseret (3–7 queries) for at holde scan-tiden under et minut. `area` er hh.ru-regionskoden (andre kilder ignorerer den). `per_page` begrænser, hvor mange stillinger hver kilde returnerer per query. `only_remote: true` filtrerer hvert resultat til remote-only på adapter-niveau (resultattabellen har stadig en separat Remote-chip).
+
+#### Almindelige faldgruber
+
+**Negativ-liste-kollision.** Hvis et ord fra en query (`"php"`, `"senior"`) også optræder i `title_filter.negative`, filtreres hvert resultat ud, før du ser det. Scanneren udsender en stderr-kollisionsadvarsel ved scan-tid — kig efter linjen `⚠ config: query "Senior PHP" contains "php" which is in the negative list`. Ret det ved at fjerne det kolliderende ord fra `negative`:
+
+```yaml
+title_filter:
+  positive: [backend, senior, lead, php, go, golang, python]
+  negative: [junior, intern, frontend, ios, android]
+russian_portals:
+  queries:
+    - "Senior PHP"     # OK — "php" er ikke længere i negative-listen
+    - "Senior Go"
+```
+
+#### Deaktivering af én kilde midlertidigt
+
+For at deaktivere en kilde uden at slette dens data, drop bare dens nøgle fra `sources`:
+
+```yaml
+russian_portals:
+  sources: ["hh", "habr", "trudvsem"]   # kun 3 af 5 kilder kører
+```
+
+#### Verificering af opsætningen
+
+Efter at have gemt `portals.yml`:
+
+```bash
+# 1. Gem portals.yml.
+# 2. I SPA'en, skift til #/scan.
+# 3. Klik 🌐 Scan nu.
+# 4. Hold øje med SSE-loggen for per-kilde-linjen per query:
+#       "Senior PHP"
+#         hh.ru    18
+#         habr     21
+#         trudvsem  3
+#         getmatch  0
+#         geekjob   2
+#    En værdi på 0 er normal for nogle queries — det betyder bare, at
+#    den kilde ikke havde nogen match. En "geo-blocked"- eller "timeout"-linje betyder,
+#    at adapteren nåede sitet, men ikke kunne læse resultater.
+```
+
+### CLI bootstrap-flow ([scan-job-portals](https://github.com/AnkitParekh007/rebound-ops))
+
+Den kanoniske rebound-ops-opsætning (kør fra den overordnede rod én gang):
+
+```bash
+cp templates/portals.example.yml portals.yml
+$EDITOR portals.yml
+```
+
+Det er hele bootstrappen. Redigér de tre sektioner (`title_filter`,
+`tracked_companies`, `search_queries`, valgfri `russian_portals`),
+gem, og du er klar til at scanne.
+
+### SPA bootstrap-adfærd
+
+Ved første kørsel føjer serveren en dokumenteret `russian_portals:`-blok
+til `portals.yml`, hvis den mangler — idempotent (anden boot er en no-op,
+fordi den bogstavelige `russian_portals:`-linje nu er der). De engelske
+sektioner auto-injiceres IKKE; de kommer fra den
+`templates/portals.example.yml`, du kopierede per den kanoniske bootstrap
+ovenfor.
+
+### Find en virksomheds ATS-opslagstavle
+
+Øverst på `#/portals` er der en **Find ATS-tavle**-boks. Skriv et virksomhedsnavn (for eksempel "Stripe"), og appen prober Greenhouse, Ashby og Lever for en offentlig jobtavle under det navn — skrivebeskyttet, ingen AI, ingen browser. For hver leverandør, der har en tavle *og* i øjeblikket viser mindst ét åbent job, får du et match, der viser leverandøren, karriere-URL'en og antallet af åbne job. Tryk på **Føj til sporede**, og den tavle føjes til `tracked_companies:` i din `portals.yml`, så scanneren begynder at holde øje med den fra næste scanning. Dubletter opdages (du ser "Allerede sporet"), og kun kendte ATS-værter kan tilføjes — vilkårlige URL'er afvises. Kun Greenhouse, Ashby og Lever probes; en virksomhed på en anden portal eller uden opslåede job lige nu vil ikke vise et match.
+
+---
+
+## 6. Health (`#/health`)
+
+Hver opsætnings-gate, i OK / OPTIONAL / FAIL-badges. Læs dette, før
+du opretter en "virker ikke"-sag.
+
+**AI-forbrug og -omkostning.** Siden **AI-forbrug** (💳, ved siden af Helbred) viser tokens for live AI-genereringer pr. udbyder over 24t/7d/30d/al tid, med en estimeret USD-omkostning fra en redigerbar pristabel (faktureres aldrig). En kompakt **FORBRUG**-måler er også fastgjort nederst i venstre sidebjælke på hver side — de samme 24t/7d/30d token-totaler og en estimeret 24-timers omkostning, opdateret live; menuen forbliver altid fri ovenover, og et klik på overskriften folder den sammen.
+
+### Påkrævede tjek (systemet kan ikke fungere uden disse)
+
+- `Node version` ≥ 18 — serveren bruger native `fetch` og
+  `node:test`.
+- `Project root` — at `REBOUND_OPS_ROOT` (env eller auto-detekteret)
+  findes.
+- `cv.md`, `config/profile.yml`, `portals.yml`,
+  `data/applications.md`, `data/pipeline.md`, `modes/oferta.md`.
+
+### Valgfrie tjek (kun advarsler)
+
+- `Profile customized` — `candidate.full_name` er ikke skabelon-
+  placeholderen.
+- `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` — sat i `.env`.
+- `Playwright (parent node_modules)` — påkrævet til PDF-generering
+  og `check-liveness.mjs`. Installér med
+  `cd $REBOUND_OPS_ROOT && npm install && npx playwright install chromium`.
+- `Parent project dependencies` — `cd $REBOUND_OPS_ROOT && npm install`
+  hvis manglende.
+- `data/`, `reports/`, `output/`, `jds/`-mapper — auto-oprettet ved
+  første skrivning.
+
+Når serveren er eksponeret ud over loopback (`HOST=0.0.0.0`) erstattes de
+absolutte stier og den nøjagtige Node-version med `"hidden"` i
+svaret, så en nysgerrig nabo ikke kan fingerprint'e din installation.
+
+### Kør-knapper
+
+- **Kør doctor** kører `node doctor.mjs` og viser outputtet i en modal.
+- **▶ Verify pipeline** kører `node verify-pipeline.mjs`.
+
+---
+
+## 7. Scan (`#/scan`)
+
+Scanneren gennemgår hvert aktiveret board, deduplikerer mod din
+historik og skriver hits ind i `data/last-scan.json` og
+`data/pipeline.md`.
+
+### Scan med ét klik (SPA)
+
+**🌐 Scan** kører hver aktiveret kilde i ét enkelt sweep:
+
+- Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday (ATS-sweepet) for hver virksomhed i
+  `tracked_companies` med en genkendelig ATS-URL.
+- v1.75.0-aggregatorerne for hver `tracked_companies`-post, der vælger en til: RemoteOK / Remotive / Working Nomads (board-brede remote-feeds, `provider: <slug>`) og IBM / Arbeitsagentur / Glints / Jobstreet · SEEK (config-drevet, per-post `<provider>:`-blok).
+- hh.ru API + Habr Career + Trudvsem + GetMatch + GeekJob for hver query i `russian_portals`.
+
+**To faser, ét klik (v1.29.2).** Den enkelte 🌐 Scan-knap driver BÅDE ATS-sweepet og det regionale sweep i én SSE-stream. Du vil se to fase-headere i loggen, i rækkefølge:
+
+1. `▶ ATS scan (Greenhouse + Ashby + Lever)` — EN ATS-boards.
+2. `▶ Regional scan (hh.ru + Habr Career)` — 5 RU-kilder fra registreringen.
+
+Hver fase slutter med en `✓ done · NEW=N`-opsummering. Hvis du kun ser ATS-fasen, er din stand på en pre-v1.29.2-build — opgradér. Pre-v1.29.2 lukkede SSE-klienten ved den første `done`-event, og den regionale fase blev stille droppet (`tests/scan-stream-multi-phase.test.mjs` er regression-nettet).
+
+Live SSE-log streamer til højre rude, mens scanningen kører. Klik
+**Stop** (eller naviger bare væk) for at afbryde — serveren annullerer
+in-flight HTTPS-anmodninger via `AbortController`.
+
+### Filtrering af resultater
+
+Under loggen gengiver resultattabellen rækker fra `data/last-scan.json`.
+Mens tabellen indlæses (og ved hver opdatering) ser du grå
+shimmer-rækker i stedet for en tom rude, og sidetitlen er der fra første
+billede — en langsom scanning ligner aldrig en død side.
+
+V2-resultatchromen holder styringerne synlige:
+
+- **Aktive filtre** (`scan.v2.activeFilters`) — hvert filter, du sætter, vises som en fjernbar chip over tabellen; klik på **✕** på en chip (**Fjern filter**, `scan.v2.removeFilter`) for at droppe lige netop den, eller **Nulstil alle** (`scan.v2.resetAll`) for at rydde dem alle.
+- **Sortér efter** (`scan.v2.sortBy`) — klik på en kolonneoverskrift
+  (virksomhed, rolle, løn, alder) for at sortere efter den; klik igen
+  for at vende retningen.
+- **Hurtig visning** (`scan.v2.quickView`) — klik på en række for at folle dens opslagsbeskrivelse ud på stedet (**Beskrivelse**, `scan.v2.description`) uden at forlade siden; opslag uden gemt brødtekst siger det (`scan.v2.noDescription`) i stedet for at vise et tomt kort.
+- **Log** (`scan.v2.log`) — kollaps/udfold den streamende scan-log for
+  at give tabellen hele bredden.
+
+Hver række har sine egne handlinger: **Vurdér** (`scan.v2.evaluate`)
+springer direkte til en scoret vurdering af det opslag, **Til pipeline**
+(`scan.v2.toPipeline`) sætter URL'en i kø (med en allerede-i-kø-toast,
+`scan.v2.pipelineDup`), **Åbn job ↗** (`scan.v2.openPosting`) åbner
+karrieresiden i en ny fane, og stjernen ☆ skifter favoritmarkeringen.
+
+**Søg + Udeluk.** Søgefeltet er dit «roller at finde»-filter — tast ét
+eller flere termer **adskilt af kommaer**, og en række vises, hvis den
+matcher **nogen** af dem (ELLER); et indledende `-ord` **ekskluderer**
+det pågældende term (`scan.v2.moreHint`). Det separate **Udeluk**-felt
+(`scan.lblExclude`) gør det samme for hele termer: kommaseparerede ord,
+der **skjuler** enhver række, hvis virksomhed / rolle / lokation
+indeholder dem (f.eks. udeluk `senior, staff, java`). Begge huskes af
+dine gemte søgninger sammen med filtrene fjernarbejde / kilde / land /
+alder / løn.
+
+> **v1.76.0 — ingen resultatgrænse.** Tidligere builds lagrede højst 2000 matchende rækker
+> per region (`MAX_STORED_RESULTS`), og skjulte stille halen af et stort sweep.
+> Den grænse er **væk**: hvert matchet opslag lagres, og tabellen
+> pager bare igennem dem (200 per side — brug pager-kontrollerne under tabellen).
+> Intet droppes; du vender bare sider.
+
+> **v1.78.1 — live auto-opdatering.** Resultattabellen opdateres nu automatisk, mens en scanning kører, og endnu en gang lige efter den er færdig — ingen manuel genindlæsning eller sideskift nødvendigt.
+
+> **v1.80.0 — Max per source & kildekarantæne.** Feltet **Max per source**
+> ved siden af Scan-knappen sætter loft over, hvor mange jobs hvert board bidrager med
+> (tomt/0 = ubegrænset, standarden) — praktisk, når ét kæmpe board ellers ville
+> dominere. Separat skrives enhver kilde, der returnerer en permanent **404 / 410**, til
+> `data/scan-quarantine.json` og springes over ved senere scanninger (selvhelende: prøves igen
+> efter 14 dage), så døde slugs holder op med at spamme loggen. Deaktivér med
+> `scan_quarantine: false` i `portals.yml`.
+
+Filtre (altid synlige: søgning, udeluk, type, kilde, land; alt andet
+ligger bag **Avancerede filtre**, `scan.advancedFilters` — hele panelet
+er grupperet under **Resultatfiltre**, `scan.filtersGroup`):
+
+- **Fritekst** — delstreng-match mod titel / virksomhed.
+- **Source**-dropdown — alle kilder, som registreringen kender (123 i
+  øjeblikket: 118 EN + 5 RU, **All sources** som standard). Den fyldes
+  live fra `GET /api/scan/sources`, så en nydroppet adapter dukker op
+  her uden nogen app-ændring — listen er aldrig hårdkodet.
+- **Remote / Hybrid / Onsite**-dropdown.
+- **Country**-dropdown — et geografifilter, der udfyldes fra de lande, der er registreret på tværs af de aktuelle resultater, hvert vist med sit flag-emoji og et antal (f.eks. `🇩🇪 Germany (12)`). Vælg ét for kun at beholde roller knyttet til det land. Registreringen mapper et opslags fritekst-lokation (landenavne/aliasser + ~100 store jobmarkedsbyer) til et land; den er konservativ og gætter aldrig, så et opslag, hvis lokation ikke kan opløses — eller et rent "Remote"-opslag — forbliver under **All countries**. Kombinér det med arbejdstype-dropdownen for at finde både landebundne *og* fjernroller.
+- **Posted within**-dropdown — et aldersfilter på klientsiden (Sidste 24 timer / 7 dage / 30 dage). Rækker, hvis `pubDate` er ældre, skjules; rækker med **ingen angivet dato består** (manglende data straffes ikke).
+- **Løn fra / Løn til** (`scan.salaryFrom` / `scan.salaryTo`) — rene talgrænser sammenlignet med beløb, der er parset fra opslagsteksten (valuta ignoreres, `scan.v2.salaryHint`); sæt flueben i **Medtag job uden løn** (`scan.v2.includeNoSalary`), så lønfilteret ikke dropper rækker, der slet ikke nævner et tal.
+- **Niveau**-dropdown (`scan.lblSeniority`) — Lead / Staff / Senior /
+  Mid / Junior / Intern, detekteret fra titlen.
+- **★ Favoritter** — klik på ☆ i en vilkårlig række for at markere et job med stjerne (gemt i `localStorage` efter URL); sæt flueben i **★ Favoritter** (`scan.favOnly`) i filterpanelet for kun at vise stjernemarkerede rækker. Stjerner overlever scanninger og genindlæsninger.
+- **Gemte søgninger** (`scan.savedSearches`) — navngiv det aktuelle filtersæt og **Gem søgning** (`scan.saveSearch`), og genanvend det derefter fra listen; gemte søgninger indlæses med ét klik (`scan.v2.loadSearch`), og sletning spørger først (`scan.v2.deleteSearchConfirm`). Gemt i `localStorage`; en korrupt/redigeret værdi nulstilles rent til tom.
+- **Stack-chips** (PHP / Go / Backend / Senior / …) — auto-detekteret
+  per række af `Skills.detectTech` og `Skills.detectLevel`. Multi-select
+  intersektion — at vælge `PHP + Senior` viser rækker, der har BEGGE.
+- **Dynamiske chips** under de statiske stack-chips — top-25 mest
+  hyppige kapitaliserede tokens fra titler, så UI'en tilpasser sig til
+  hvilke roller du faktisk scanner (marketing, design, finans…)
+  i stedet for at være låst til backend-engineer-vokabularet.
+
+### Active Companies-kort
+
+Et sammenfoldeligt kort, der opsummerer hver virksomhed i `portals.yml`,
+med overskriften **Aktive virksomheder** (`scan.activeCo`) og en live
+`N/M`-tæller — *N* er virksomhederne, der faktisk viste resultater i den
+sidste scanning, *M* de API-understøttede virksomheder, der er aktiveret
+lige nu, så begge tal altid beskriver samme univers (et run kun med
+russiske boards kan ikke puste tælleren op over ATS-nævneren).
+Værktøjstippet siger det samme i almindelige ord (`scan.activeCo.help`).
+Listen er opdelt i to grupper:
+
+- ✓ **Direkte API** (`scan.apiBacked`) — boardet hentes direkte fra dets
+  offentlige ATS-API (én af de 118 EN-adaptere, fra Greenhouse / Ashby /
+  Lever / Workable / SmartRecruiters / Workday og ned ad den lange hale).
+- ○ **Kun websøgning** (`scan.websearchBacked`) — ingen adapter matcher
+  URL'en, så CLI'ens AI-scan dækker den i stedet.
+
+**Klik på virksomhedsnavnet** → udfylder resultatfilteret ovenfor med det
+navn. **Klik på ↗-ikonet** → åbner virksomhedens `careers_url` i en
+ny fane.
+
+### CLI scan-flow ([scan-job-portals](https://github.com/AnkitParekh007/rebound-ops))
+
+To måder at scanne fra CLI-siden (begge deponerer URL'er til samme
+`data/pipeline.md`, som SPA'en læser):
+
+**Option A — direkte script (~30 s, nul AI-tokens):**
+
+```bash
+npm run scan                          # alle Greenhouse/Ashby/Lever-boards
+npm run scan -- --dry-run             # forhåndsvis uden at persistere
+npm run scan -- --company Anthropic   # begræns til én tracked company
+```
+
+Virker kun for Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday (genkendelige ATS-URL'er).
+Ingen AI-tokens forbruges — det rammer de offentlige boards-API'er direkte.
+
+**Option B — AI-drevet browser-scan:**
+
+```
+/rebound-ops scan
+```
+
+Inde i Claude Code / Cursor / Codex / OpenCode / Antigravity CLI / Grok Build CLI / Qwen Code / Kimi / GitHub Copilot CLI (Gemini CLI legacy). Bruger model-tokens.
+Besøger hver `tracked_companies`-side direkte og kan opdage ikke-API-
+boards (karrieresider, custom ATS, regionale portaler). Langsommere men
+bredere. Nyttig når et ATS-sweep ikke returnerer noget for et mål, du
+ved er i gang med at ansætte.
+
+**Output (begge veje)** — nye JD-URL'er føjet til `data/pipeline.md`,
+hver besøgt URL logget til `data/scan-history.tsv` (dedup på tværs af alle
+fremtidige scanninger), opsummering printet: virksomheder scannet · jobs fundet ·
+filtreret efter titel · dubletter sprunget over · nye tilbud tilføjet.
+
+**Handlingstærskler efter score** (anvend efter `/rebound-ops pipeline`
+batch-scorer de nye URL'er):
+
+| Score | Anbefalet næste skridt |
+|---|---|
+| **≥ 4.5** | `/rebound-ops apply` — høj egnethed, push med det samme |
+| **4.0 – 4.4** | ansøg, eller `/rebound-ops contacto` for varm introduktion |
+| **3.5 – 3.9** | `/rebound-ops deep` — undersøg først |
+| **< 3.5** | spring over, medmindre du har en specifik personlig grund |
+
+
+SPA'ens `#/dashboard` og `#/tracker` fremhæver hver række på eller
+over 4.0, så du kan vælge handling uden at køre noget om igen.
+
+### Opfølgningskommandoer
+
+Efter scoring er de kanoniske opfølgninger:
+
+- `/rebound-ops apply` — Udfyld ansøgning med skræddersyede svar
+- `/rebound-ops contacto` — Udarbejd LinkedIn- / e-mail-outreach
+- `/rebound-ops deep` — Undersøg virksomhed / rolle dybt
+- `/rebound-ops tracker` — Vis pipeline-status
+
+---
+### hh.ru — scannet fra websitet (kræver russisk IP siden juli 2026)
+
+hh.ru scannes ved at læse det offentlige søgewebsite (`hh.ru/search/vacancy`), på samme måde som Habr Career — uden nøgle og opsætning. **Siden juli 2026 svarer hh.ru dog med HTTP 451 (regional juridisk blokering) til IP'er uden for Rusland**, så scanningen virker kun fra en russisk IP — kør serveren fra Rusland eller via en VPN med russisk exit-node. Ved den første 451 (eller anti-bot 403) deaktiverer scanneren hh.ru for resten af kørslen og skriver det i loggen, så de øvrige russiske kilder stadig gennemføres. JSON-API'et (`api.hh.ru`) bruges bevidst *ikke*: det returnerer `403 forbidden` til enhver programmatisk klient uanset IP og User-Agent.
+
+Selv fra et netværk, der *ser* rigtigt ud, kan hh.ru markere egress-IP'en som VPN/proxy (enhver datacenter-/hosting-IP tæller) og omdirigere scanningen (302) til en interstitial `/vpncheeck` (“VPN мешает работе сайта”), der svarer HTTP 200 med **nul** vakancer. Scanneren opdager denne omdirigering, deaktiverer hh.ru for resten af kørslen og skriver det i loggen. Løsningen ligger på netværkssiden: sørg for, at trafikken reelt går ud via en residential IP — en systemdækkende VPN eller proxy er ofte stadig aktiv, selv når browser-kontakten er slået fra (tjek din reelle egress-IP, f.eks. på api.ipify.org).
+
+## 8. Pipeline (`#/pipeline`)
+
+Indbakke af URL'er, der venter på at blive evalueret. Lever i `data/pipeline.md`.
+
+**Overbliksstribe.** En kompakt stribe øverst viser din pipeline med ét blik — hvor mange URL'er er **i indbakken** (`pipe.ovInbox`), hvor mange rækker er **sporet** (`pipe.ovTracked`) og antallene for **Applied / Responded / Interview / Offer** trukket fra din tracker. Hver chip linker direkte til `#/tracker` (status-chips åbner den filtreret). Den degraderer til blot indbakke-antallet, hvis trackeren ikke kan læses.
+
+### Tilføjelse af URL'er
+
+Tre måder:
+
+- Skriv / indsæt en URL i inputtet + klik på **Tilføj URL** (`pipe.add`).
+- Brug **kommandomenuen**: **Cmd/Ctrl+K** (eller sidebjælkens **Kommandomenu**-knap, `nav.v2.palette`), indsæt et hvilket som helst `http(s)://…`-link, og menuen tilbyder **Auto-pipeline: {url}** (`nav.v2.evalUrl`) — Enter kører hele kæden på det. Taster du vilkårlig anden tekst og trykker Enter, springes der til `#/scan` med det udtryk forudfyldt.
+- Kør en Scan (se ovenfor) — friske hits går til pipeline
+  automatisk.
+
+Hver URL passerer gennem `isValidJobUrl()` server-side. Loopback
+(`localhost`, `127.0.0.1`), `file://`, `javascript:`, IP-literaler og
+strenge med template-tegn (`<`, `>`, `"`) giver alle 400.
+
+### Server-side preview-rude
+
+Klik på en hvilken som helst pipeline-række for at indlæse en preview til højre. De fleste ATS-boards
+sender ikke CORS-headere, så browseren ikke kan hente dem direkte; serveren
+proxyer anmodningen, stripper `<script>` / `<style>` / HTML-tags og
+returnerer op til 8 KB almindelig tekst.
+
+Preview-proxyen gennemgår omdirigeringer manuelt med **per-hop SSRF-validering**
+— hver `Location`-header kører gennem `isValidJobUrl()`
+igen, så et fjendtligt board ikke kan sende dig til loopback / privat IP
+/ `file://`. Begrænset til 3 hops, 15-sekunders timeout.
+
+### Rækkehandlinger
+
+- **▶** (`pipe.evaluateBtn`) — springer til `#/evaluate?url=…` med URL'en for-udfyldt.
+- **✕** — fjerner URL'en fra `data/pipeline.md` (spørger først, `pipe.confirmDel`).
+
+**Grupperet visning, bulk-sletning, tabsfri fortryd.** At rydde en stor
+indbakke efter en scanning er sidens v2-centrum:
+
+- **Grupperet** (`pipe.viewGrouped`) / **Kompakt liste** (`pipe.viewFlat`)
+  — værktøjsbjælken skifter mellem en flad liste og et
+  virksomhedsgrupperet board: opslag fra samme arbejdsgiver kollapser
+  under én udfolder (største gruppe først), så ét støjende board ikke
+  begraver resten. Ukendte virksomheder grupperes under deres host — men
+  en delt ATS-host (sig `jobs.lever.co`) låner kun et virksomhedsnavn,
+  når *alle* virksomhedsbærende poster på den host er enige.
+- **Skjul allerede vurderede** (`pipe.hideTracked`) — slået til som
+  standard; poster, hvis opslag allerede har en tracker-række, forsvinder
+  ud af visningen (og ud af bulk-markeringen), så du kun nogensinde
+  handler på friskt arbejde.
+- **Vælg** (`pipe.selectOne`) vilkårlige rækker, eller **Vælg alle viste** (`pipe.selectAllShown`) — markeringen følger altid de aktuelle filtre, aldrig usynlige rækker. Markeringsbjælken viser antallet (`pipe.selectedCount`) og tilbyder **✕ Fjern valgte (N)** (`pipe.bulkRemove`) plus **Vurdér den første valgte** (`pipe.evaluateSelected`) — bulk-sletning bekræftes én gang for hele sættet, ikke pr. række.
+
+Intet går tabt ved en fejl: hver sletning — enkeltvis eller i bulk —
+returnerer et uigennemsigtigt gendannelsestoken, og en bjælke i bunden af
+siden (**Slettet: N**, `pipe.deleted`) tilbyder **Fortryd** (`pipe.undo`)
+/ **Luk** (`pipe.undoDismiss`). Sletninger stables op til fem batcher
+(ældste droppes); **Fortryd** gendanner den nyeste ved at sende dens
+tokens til `POST /api/pipeline/restore`, som gensindsætter de nøjagtige
+originale linjer (checklist-metadata inkluderet — intet udledes eller
+tilføjes igen) og bekræfter med **Gendannet i pipelinen**
+(`pipe.undone`). Bjælken hænger uden for sidens egen markup, så en
+re-gengivelse (navigation, quick-add-flowet) ikke kan synke en ventende
+fortrydelse; hvis serveren ikke længere kender et token (genstart),
+gen-tilføjes den URL på den simple måde i stedet for at blive droppet.
+
+### Knapper øverst til højre
+
+- **⚡ Vurdér den første** (`pipe.evaluateAll`) — åbner den første køsatte URL på Evaluate-
+  siden, klar til at score (bekræfter først, da den afgør, hvilket opslag
+  du bruger en kørsel på).
+- **Jobsøgning** — tilbage til scanneren, hvis du vil have flere URL'er.
+
+---
+
+## 9. Evaluate (`#/evaluate`)
+
+Scorer en enkelt jobbeskrivelse mod `cv.md` og
+`config/profile.yml`. Returnerer en struktureret A–G-evaluering per
+`modes/oferta.md` plus en 0–5 score.
+
+### Input
+
+Indsæt JD'en i tekstfeltet, eller ankom her fra `#/pipeline` med
+`?url=<href>` — siden henter URL'en gennem samme SSRF-sikre
+proxy, der bruges til pipeline-previews, og for-udfylder tekstfeltet.
+
+Klik på **💾 Gem JD** for at persistere JD'en til `jds/jd-<date>-<ts>.txt`
+til revisionssporet (eller send `save: true` i API-kaldet — samme
+effekt).
+
+### Fallback-kæde
+
+1. **Anthropic** — foretrukket når `ANTHROPIC_API_KEY` er sat.
+   Serveren bundter `cv.md`, `config/profile.yml`, `modes/_shared.md`,
+   og `modes/oferta.md` ind i en `<project_context>`-blok før
+   prompten (grænser pr. filtype — cv 64 KB, mode-filer 128 KB, andre 32 KB — fuld prompt soft-capped ved 256 KB). Returnerer grundet markdown direkte til siden.
+2. **Gemini** — når kun `GEMINI_API_KEY` er sat. Serveren spawner
+   `gemini-eval.mjs` med JD'en som en temp-fil. Gratis-niveau-model
+   (`gemini-3.6-flash`) er fin til rutinescoring.
+3. **Manuel** — ingen nøgle sat. Siden returnerer en fuldt formet prompt,
+   du kan indsætte i Claude Code, ChatGPT eller en hvilken som helst anden LLM.
+
+### Output-sektioner (kanoniske github.com/AnkitParekh007/rebound-ops A-F)
+
+> **v1.15.0-omjustering.** Block-bogstaver matcher nu det
+> [kanoniske github.com/AnkitParekh007/rebound-ops-skema](https://github.com/AnkitParekh007/rebound-ops).
+> Pre-v1.15-rapporter brugte A–G (med `C=Risks`, `F=Verdict`,
+> `G=Legitimacy`); vi gengiver dem stadig som de er for baglæns
+> kompatibilitet, men nye rapporter udsender A–F med den kanoniske
+> semantik nedenfor. Score og Legitimacy lever nu i rapport-
+> headeren (`score: 4.2/5`, `legitimacy: High|Medium|Low`).
+
+A. **Role Summary** — 3-punkts genopsummering (risici nævnt inline).
+B. **CV Match** — top 3 færdigheds-hits + top 3 manglende.
+C. **Strategy** — anbefaling: ansøg nu / contacto først /
+deep først / spring over. Var `Risks` før v1.15.
+D. **Compensation** — relativt til dit
+`target.comp_total_min_usd` (legacy) eller `compensation.target_range`
+(kanonisk).
+E. **Personalization** — vinkel at lede med, framing per arketype,
+hooks at nævne i ansøgningsbrev / outreach. Var `Application
+Strategy` før v1.15.
+F. **STAR stories** — 1–3 klar-til-indsæt S-T-A-R-blokke skræddersyet
+til rollen. Var `Verdict` (rå score) før v1.15; score vises nu
+i rapportheaderen sammen med `legitimacy`.
+
+### Gemning af rapporten
+
+Klik på **💾 Gem rapport** (eller brug gem-toggle i API-kaldet) for at
+persistere markdownen til `reports/<date>-<company>-<role>.md`. 
+Rapportens parsede header (Score / Legitimacy / URL) vises på
+**Reports**-siden og **Dashboardet**.
+
+### Batch-evaluér når du har 10+ JD'er
+
+For en enkelt JD er denne `#/evaluate`-side det rigtige værktøj. For 10+
+URL'er køsat i pipeline er den per-JD click-through upraktisk
+— spring til §14's **Batch evaluate**-underafsnit (kørsel af
+`./batch/batch-runner.sh` fra den overordnede), lad den arbejde sig igennem
+natten over, og kom så tilbage til `#/reports` / `#/tracker` for
+resultaterne. Fuldt flow:
+[batch-evaluate-offers](https://github.com/AnkitParekh007/rebound-ops).
+
+---
+
+## 10. Reports (`#/reports`)
+
+Gennemse hver gemt evaluering. Siden åbner i en **Kort**-visning
+(`rep2.viewCards`) — ét kort per rapport: dets visningstitel, dato,
+legitimitetsbadge og en farvekodet score-pille (grøn ≥ 4.0, gul ≥ 3.0,
+rød under, med en dæmpet «Score ikke fundet»-pille, når headeren ikke
+bærer en parserbar score) — og kan skifte til en tæt **Tabel**-visning
+(`rep2.viewTable`), når du hellere vil skanne rækker. Hvert kort og hver
+tabellrække nævner også det **foreslåede næste trin** for sit
+scoreinterval: **Søg nu — godt match** (`rep2.actApply`),
+**Søg, eller find først en kontakt** (`rep2.actContact`),
+**Undersøg virksomheden først** (`rep2.actResearch`) eller
+**Spring over, medmindre personlig grund** (`rep2.actLow`) — hver især et link direkte til den rigtige
+side. Et kort uden score viser den dæmpede **Score ikke fundet**-pille
+(`rep.scoreUnparsed`) med et værktøjstip, der peger på selve rapporten.
+
+**Find den rigtige rapport.** En filterrække sidder over listen, og alt
+kombineres:
+
+- **Søg rapporter** (`rep2.searchLabel`) — fritekst matchet mod hver
+  rapports virksomhed, rolle og visningstitel.
+- **Virksomhed** (`rep2.companyLabel`) — vælg én arbejdsgiver fra
+  dropdownen.
+- **Scoreinterval** (`rep2.bandLabel`) — **Høj (4.5+)** / **God (4.0+)** / **Mellem (3.5+)** / **Under 3,5** (`rep2.bandHigh` … `rep2.bandLow`), plus en spand til rapporter, hvis header ikke bærer en parserbar score.
+- **Fra dato / Til dato** (`rep2.dateFrom` / `rep2.dateTo`) — afgræns
+  listen til en periode.
+- **Sortér efter** (`rep2.sortLabel`) — **Dato** / **Score** / **Virksomhed** (`rep2.sortDate` …), stigende eller faldende (`rep2.sortDirAsc` / `rep2.sortDirDesc`).
+- Et **scorefordelingshistogram** (`rep2.histogramLabel`) — klik på en
+  søjle for at filtrere til det interval og se din pipelines form med
+  ét blik.
+- **Nulstil filtre** (`rep2.reset`) rydder alt; når intet matcher, siger siden det (`rep2.noMatches`) i stedet for at vise et tomt gitter.
+
+Klik på et kort (eller en tabellrække) for at læse den fulde markdown.
+Paginering: 20 per side; kontroller nederst; hver filterændring snapper
+dig tilbage til side 1.
+
+Enkelt-rapport-visningen har også:
+
+- **← Alle rapporter** — tilbage til gitteret.
+- **🔗 Åbn JD** — åbner det oprindelige jobopslag i en ny fane.
+
+### Eksportér en rapport til PDF
+
+Åbn en gemt rapport, og klik på **📄 Generér PDF**. Den kører
+`generate-pdf.mjs` i forældre-projektet og skriver filen til `output/*.pdf`
+(kræver Playwright; Health-siden viser, om den er installeret). Intet sendes
+nogen steder: gennemgå PDF'en, før du vedhæfter den til en ansøgning.
+
+---
+
+### Posting guard — JD-integritetstjek (v1.262.0)
+
+På en rapportside, hvis slug bærer et rapportnummer, har handlingsrækken i
+sidehovedet en **Posting guard**-knap. Den kører forældre-projektets
+deterministiske zero-LLM integritetsgate over rapportens arkiverede JD
+(`jds/`-optagelsen) og viser fundene inline — dom, tjek og årsager. Gaten er
+lokal: ingen model, ingen skrivninger. Indtil forældre-checkout'en leverer
+`posting-guard.mjs`-scriptet, svarer knappen med en ærlig
+"script not found"-note i stedet for en fejl.
+
+## 11. Tracker (`#/tracker`)
+
+CRM'en. Én række per ansøgning; lever i `data/applications.md` som en
+GitHub-Flavored Markdown-tabel.
+
+Hver rækkes status-badge er også en **select** — vælg et stadie, og det gemmes med det samme: serveren videresender til den kanoniske `set-status.mjs`, og rækken opdateres på stedet; en fejlet gemning tilbagefører værdien og viser en toast. Rækker med en håndredigeret eller ukendt status samt backfill-rækker nummereret `N/A` viser i stedet et skrivebeskyttet badge.
+
+### Statusflow
+
+`Evaluated` → `Applied` → `Responded` → `Interview` → `Offer` /
+`Hired` / `Rejected` / `Discarded` / `SKIP`.
+
+`Hired` (v1.118.0) er den lykkelige slutstatus — tilbuddet blev accepteret. Trackeren markerer den med et festligt badge og byder den velkommen med et «jobbet er i hus»-banner.
+
+**Fanebladstavle for stadier (v1.131.0).** Over tabellen lader en **fanebladsstrimmel** dig gå gennem tragten: en **Alle**-fane plus én fane pr. kanonisk status, hver med et live optalt tal for hele historikken — **inklusive nul-tælling-stadier**, så hele pipelinen altid er synlig på et øjekast. Klik på et stadie for at filtrere tabellen til det; klik på det igen for at vende tilbage til **Alle**. Fanerne (og tællingernes foldning af lokaliserede/legacy statusaliasser) kommer fra `GET /api/tracker/stages`, som læser den samme `templates/states.yml`, som serveren bruger — så fanesættet automatisk holder sig synkront med forælderens statusordforråd, uden en hardkodet liste på siden. Søgning, score-filtret, sorterbare kolonner og de rækkevise rapport-/PDF-/legitimitets-muligheder er uændret; med logoer aktiveret viser hver rækkes firma et brandmærke.
+
+**Kanban-visning (v2).** Det samme board kan også læses som et
+træk-og-slip-**kanban**: én kolonne pr. kanonisk status (boardtitlen
+annonceret som *Ansøgninger efter status*, `track.kanbanBoardAria`), ét
+kort per ansøgning. Træk et kort til en anden kolonne — eller fokusér det
+og tryk **Flyt** — og ændringen **forhåndsvises, før noget skrives**
+(`track.kanbanMoveHint`); et bekræftet flyt registrerer en post i
+resultatjournalen og omskriver `data/applications.md`, og kortet fortæller
+dig det (`track.moveJournal`) — for at skifte en status tilbage bruges
+rækkens **Resultat**-knap. Kolonner, som pipelinen selv styrer (og
+`Discarded`, hvis semantik kun du kan vælge), renderes skrivebeskyttede
+(`track.kanbanReadOnly`) og afviser drops. Hvis forældreprojektets
+resultatoptager mangler, deaktiveres statusflyt med en ærlig note
+(`track.kanbanMovesOff`). Mens boardet indlæses, viser det de samme
+shimmer-rækker som resten af appen, og et tomt board siger
+**Ingen ansøgninger** (`track.kanbanEmpty`) med en henvisning til pipelinen
+(`track.emptyBody`).
+
+Status-whitelisten håndhæves server-side; at sende noget andet i
+en `POST /api/tracker` defaulter til `Evaluated`. Den kanoniske
+`Evaluated → Applied`-overgang er automatisk, når du bekræfter
+`Submitted.` i slutningen af `/rebound-ops apply` (se §14).
+
+### Kolonnelayout
+
+| Kolonne | Hvad det er |
+|---|---|
+| `#` | Auto-nummereret, nul-padded (`001`, `002`, …). |
+| `Date` | ISO-dato (`YYYY-MM-DD`). Defaulter til i dag. |
+| `Company` | Fritekst. **Pipes () og linjeskift escapes automatisk.** |
+| `Role` | Samme. |
+| `Score` | `N/5`-format (f.eks. `4.2/5`). |
+| `Status` | Whitelistet enum. |
+| `PDF` | ✅ når `generate-pdf.mjs` lykkedes for denne række. |
+| `Report` | Markdown-link til det matchende `reports/*.md`. |
+| `Notes` | Fritekst, begrænset til 200 tegn. |
+
+### Filtre
+
+- **Status**-dropdown.
+- **Score**-dropdown — `≥ 4.0` (høj), `≥ 3.0` (mid), `< 3.0` (lav).
+- **Søg** — delstreng-match på tværs af virksomhed + rolle.
+
+Hvert filter nulstiller paginatoren til side 1. 25 rækker per side.
+
+### Vedligeholdelsesknapper
+
+- **▶ Normalize** kører `normalize-statuses.mjs` — re-kanoniserer
+  status-stavemåder (`applied` → `Applied`, `interview` → `Interview`).
+- **▶ Dedup** kører `dedup-tracker.mjs` — fjerner case-insensitive
+  dubletter efter `(company, role)`.
+- **▶ Merge** kører `merge-tracker.mjs` — trækker afventende poster ind fra
+  `batch/tracker-additions/*.tsv` (hvor den overordnedes batch-flow dropper
+  ansøgninger indsendt via Apply-hjælperen). Deduplikerer og
+  arkiverer behandlede filer til `batch/tracker-additions/merged/`. Se
+  [batch-evaluate-offers](https://github.com/AnkitParekh007/rebound-ops)
+  for upstream-batch-flowet.
+
+### Tilføjelse af rækker
+
+`POST /api/tracker` — body `{ company, role, score?, status?, url?,
+reportSlug?, notes?, date? }`. Dedup efter `(company, role)`
+case-insensitive. Fra UI'en tilbyder Evaluate-siden en "Add to
+tracker"-knap efter en vellykket score.
+
+### Importér en anden trackers CSV (v1.262.0)
+
+Værktøjsbjælkens **Importér CSV**-knap tager en anden trackers CSV-eksport
+(company/role/status/date/url — kolonnealiasser genkendes,
+RFC-4180-anførselstegn understøttes), forhåndsviser hver række med dens udfald
+(import, dublet efter opslags-URL, sprunget over) og skriver først, når du
+bekræfter. Ukendte stadier lander som Evaluated med en note; datoer accepterer
+ISO-, dag-først- og månedsnavne-former.
+
+### "Stadig aktiv?" — tjek, om et ATS-opslag stadig er åbent
+
+Hver sporet række, der linker til et ATS-hostet opslag (Greenhouse, Lever, Ashby, Workday eller SmartRecruiters), får en lille **Stadig aktiv?**-knap. Klik, og appen spørger det pågældende ATS' eget offentlige JSON-endpoint, om opslaget stadig står — ingen browser, ingen AI-tokens, intet gemmes. Du får et af tre badges:
+
+- **Aktiv** — opslaget er stadig på listen.
+- **Udløbet** — ATS'et returnerede et definitivt "væk" (HTTP 404/410), så jobbet blev trukket.
+- **Ukendt** — tjekket var ikke entydigt (URL'en er ikke et genkendt ATS-opslag, eller API'et var rate-begrænset, fik timeout eller svarede tvetydigt).
+
+Tjekket er bevidst konservativt: det siger kun **Udløbet** ved et klart 404/410, aldrig på et gæt, så det vil aldrig skræmme dig væk fra et job, der reelt stadig er åbent. Levers offentlige API behandles som ikke-autoritativt (det skjuler nogle fortrolige opslag), så de tilfælde ender som **Ukendt** i stedet for Udløbet.
+
+### Registrér et udfald
+
+Når en ansøgning når sin ende — du fik tilbuddet, tog jobbet, blev afvist eller hørte simpelthen aldrig noget — klik på knappen **Udfald** i den række i trackeren for at logge det. Et lille vindue med forhåndsvisning og bekræftelse åbnes:
+
+- **Vælg, hvad der skete** — Afvist, Tilbud modtaget, Ansat / accepteret, Tilbud afslået, Intet svar / ghostet, eller Gik videre til samtale.
+- **Note (valgfri)** — en kort linje til dig selv.
+- **Forhåndsvis** — appen viser præcis, hvad den vil gøre (f.eks. *„Sætter #12 Acme → Afvist"*), og skriver endnu ikke noget.
+- **Registrér udfald** — bekræfter det.
+
+Registrering gør tre ting på én gang: tilføjer resultatet til en append-only udfaldsjournal, arkiverer det CV og den ansøgning, du sendte, i den ansøgnings udfaldsmappe, og synkroniserer rækkens kanoniske **Status** — så et **Ansat** eller **Afvist** dukker op i trackeren og statistikken, uden at du redigerer tabellen i hånden. Som de andre trackerværktøjer forbliver den skrivebeskyttet, indtil du trykker **Registrér udfald**, og den kræver det overordnede rebound-ops-projekt ved siden af appen (knappen skjules, når det projekt ikke er til stede).
+
+---
+
+## 12. Deep research (`#/deep`)
+
+Generér et struktureret virksomhedsbrief: snapshot, engineering-kultur,
+seneste nyheder, Glassdoor-sentiment, samtaleproces, forhandlings-
+løftestænger, tre smarte spørgsmål at stille rekrutteren.
+
+### Input
+
+To felter — virksomhedsnavn og (valgfri) rolle. Mode-skabelonen
+(`modes/deep.md`) er det, der former strukturen.
+
+### Output-stier
+
+Samme fallback-kæde som Evaluate:
+
+1. **Anthropic live** (foretrukket) — `bundleProjectContext` inliner
+   cv + profil + `_shared.md` + `deep.md`. Output: 10–30 KB
+   grundet markdown gemt til
+   `interview-prep/<company>-<role>.md`.
+2. **Gemini live** — `gemini-eval.mjs`-invokation. Samme gem-mål.
+3. **Manuel prompt** — siden giver dig en klar prompt til Claude
+   Code (som har WebFetch + WebSearch og kan lave rigtigt research).
+
+### Tips
+
+- Anthropic på `claude-sonnet-4-6` returnerer typisk ~13 KB nyttig
+  tekst på 1–3 minutter per kald.
+- Anthropic SDK'en har ingen indbygget websøgning. For roller hvor du
+  har brug for friske nyheder + Glassdoor-sentiment, indsæt den manuelle prompt i
+  Claude Code og lad den bruge sit WebFetch-værktøj.
+- Live-kørsler faktureres; ét Sonnet 4.6 deep-research-kald koster ≈
+  $0,30–0,50.
+
+---
+
+## 13. Mode-prompts (de syv `/#/<mode>`-sider)
+
+**Kadencetavle (v1.117.0).** Opfølgningssiden åbner nu med en deterministisk **kadencetavle** drevet af forælderens `followup-cadence.mjs`: hastighed pr. ansøgning (🔴 akut / 🟠 forsinket / 🟡 venter / 🔵 kold) med dage til næste skridt, plus en **Så opfølgningsdatoer**-knap, der fastgør en første dato for hver Applied-række (`followup-seed.mjs --backfill`). Uden forælderens scripts viser tavlen ærligt "ikke tilgængelig".
+
+Syv prompt-byggere: **Project**-idéer, **Training**-planer,
+**Follow-up**-e-mails, **Batch**-evalueringer, **Outreach** til
+rekrutterere, **Interview prep**-onepagers og **Patterns**-
+retrospektiver. Hver enkelt indkapsler en specifik `modes/<slug>.md`-skabelon:
+
+| Side | Slug | Formål |
+|---|---|---|
+| `#/project` | `project` | Skræddersy et porteføljeprojekt til en målrolle. |
+| `#/training` | `training` | Færdighedsgab-analyse → curriculum. |
+| `#/followup` | `followup` | Efter-samtale-e-mail-udkast. |
+| `#/batch` | `batch` | Multi-JD batch-evaluerings-prompt. |
+| `#/contacto` | `contacto` | Outreach-besked til en rekrutterer / henvisning. |
+| `#/interview-prep` | `interview-prep` | Onepager-forberedelse til en specifik samtalerunde. |
+| `#/patterns` | `patterns` | "Hvilke mønstre gjorde mig succesfuld?"-reflekterende analyse. |
+
+### Fælles form
+
+Hver side har en lille formular (felterne er mode-specifikke), en
+**▶ Generér prompt**-knap (manuel), og — når en Anthropic- eller Gemini-
+nøgle er til stede — en **⚡ Kør live**-knap, der forfremmes til primær.
+
+At klikke på **▶ Generér prompt** returnerer den samlede prompt med dine
+formularværdier JSON-strengificeret ind i en `User-supplied context:`-blok,
+efterfulgt af den ordrette `modes/<slug>.md`-skabelon. Kopier og indsæt
+i din LLM efter eget valg.
+
+At klikke på **⚡ Kør live** sender den samme prompt til Anthropic (eller
+Gemini), med `cv.md` + `profile.yml` + `_shared.md` inlinet via
+`bundleProjectContext`. Resultatet gengives på siden, kan kopieres og
+downloades som `.md`.
+
+De syv sider er en eksplicit allowlist — modes der har en
+dedikeret rute (`oferta` → Evaluate, `deep` → Deep research) og
+modes det overordnede projekt kun understøtter inde i Claude Code (`apply`,
+`scan`, `pipeline`, `tracker`, `pdf`, `latex`, `ofertas`,
+`auto-pipeline`) holder sig bevidst uden for denne UI.
+
+---
+
+## 14. Apply checklist (`#/apply`)
+
+Når du har besluttet at ansøge, genererer denne Apply-hjælperside en
+indsendelsestjekliste til det faktiske ansøgningstrin. Den auto-udfylder **IKKE**
+formularer — det flow forbliver i `/rebound-ops apply` inde i Claude Code,
+som bruger Playwright i det overordnede projekt.
+
+### SPA-tjeklistetilstand (`#/apply`)
+
+SPA'ens tjekliste er til brugere, der foretrækker at udfylde formularen i hånden
+uden at invokere Playwright. En tom side lader dig ikke gætte: den viser
+**Generer en ansøgnings-checkliste** med et gennemarbejdet eksempel
+(`v2empty.apply.emptyTitle` / `v2empty.apply.emptyBody`) og, hvis du
+allerede har vurderet opslaget, en genvej til at
+**vælge en vurderet rapport** (`v2empty.apply.pickReport`), så tjeklisten starter fra den
+rapports data. Den dækker:
+
+0. Kør `/rebound-ops apply <url>` i Claude Code for at læse formularen via
+   Playwright (spring dette trin over, hvis du udfylder i hånden).
+1. Verificér, at opslaget stadig er live (`check-liveness.mjs`).
+2. Bekræft, at CV'et er det nyeste (`cv-sync-check.mjs`, derefter PDF hvis score ≥ 4.0).
+3. Skræddersy ansøgningsbrevet / "Why us?"-svaret ved hjælp af STAR+R proof
+   points fra `cv.md`.
+4. Besvar EEO- / sponsorship- / startdato-spørgsmål sandfærdigt.
+5. Gem udfyldte svar til
+   `interview-prep/{company}-{role}.md` før indsendelse.
+6. **ALDRIG auto-indsend** — du (mennesket) klikker på den endelige knap.
+7. Efter indsendelse: tilføj række til `data/applications.md` (eller skriv TSV til
+   `batch/tracker-additions/`).
+
+### Manuel udfyldning vs Playwright-assisteret
+
+To veje til den faktiske indsendelse:
+
+- **Manuel** — åbn karrieresiden i en normal browser-fane, følg
+  SPA-tjeklisten ovenfor, kopier/indsæt svar. Ingen Playwright nødvendig.
+  Brug når formularen er kort, eller du ikke har Chromium installeret.
+- **Playwright-assisteret** — kør `/rebound-ops apply <company>` i
+  Claude Code (overordnet projekt). Playwright åbner sin egen browser,
+  læser hvert formularfelt, returnerer nummererede udkast-svar. Du klikker stadig
+  på Indsend. Brug når formularen er lang, dynamisk, eller du vil have
+  revisionssporet over hvilke spørgsmål, der havde hvilke svar.
+
+### Fuldt CLI apply-flow ([apply-for-a-job](https://github.com/AnkitParekh007/rebound-ops))
+
+**Forudsætninger:**
+
+1. Kør `/rebound-ops pipeline` først, så JD'en har en evalueringsrapport
+   under `reports/`. Apply-kommandoen afhænger af en eksisterende
+   evaluering; uden en, kør pipeline indledningsvist.
+2. Hav rapporten og profilen indlæst.
+3. **Anbefalet:** Playwright installeret
+   (`npx playwright install chromium` — se Playwright-opsætning nedenfor).
+   Falder tilbage til WebFetch (kun-tekst formular-preview, ingen click-fill) når
+   manglende.
+
+**Nummereret flow** (kanoniske 8 trin):
+
+1. **Kør kommandoen** med virksomhedsnavnet:
+
+   ```
+   /rebound-ops apply <company>
+   ```
+
+   Eksempel: `/rebound-ops apply Anthropic`. Uden et argument, lever
+   et screenshot af formularen, formularteksten indsat eller ansøgnings-
+   URL'en i næste tur.
+
+2. **Find rapporten.** Systemet finder den matchende evaluering i
+   `reports/` (den oprettet af `/rebound-ops pipeline` eller
+   `#/evaluate` tidligere).
+
+3. **Åbn formularen.** Playwright starter et browser-vindue
+   **automatisk** — du åbner det IKKE selv.
+
+4. **Læs felterne.** Systemet læser og parser hvert formularfelt
+   (label, type, required, options for selects).
+
+5. **Generér svar.** rebound-ops opretter skræddersyede svar for hvert
+   felt baseret på din profil, proof points og rollen.
+
+6. **Returnér nummereret liste.** Du modtager svar ordnet til at matche
+   formularlayoutet — simple felter (navn, e-mail) først, fritekst-felter
+   (ansøgningsbrev, "Why us?") sidst. Flaggede poster peger på ting,
+   der kræver menneskelig opmærksomhed — løn-anker, manglende CV-detaljer,
+   valgfrie spørgsmål.
+
+7. **Manuel udfyldning.** Du kopierer og indsætter hvert svar i det
+   tilsvarende felt. Dette trin er manuelt, ikke automatiseret. Du
+   gennemgår hvert svar først.
+
+8. **Bruger indsender.** Du klikker på Indsend selv. rebound-ops klikker
+   **aldrig** på Indsend. Bekræft færdiggørelse ved at skrive i chatten:
+
+   ```
+   Submitted.
+   ```
+
+**Automatiske opdateringer ved `Submitted.`:**
+
+- Status skifter `Evaluated → Applied` i `data/applications.md`.
+- De udfyldte svar persisterer i Section G af rapporten til fremtidig
+  reference.
+
+**Overdragelse til tracker:**
+
+```
+/rebound-ops tracker
+```
+
+Overvåg hele din pipelines status, uanset rolle-score.
+
+### Batch evaluate ([batch-evaluate-offers](https://github.com/AnkitParekh007/rebound-ops))
+
+Når du har 10+ JD'er at score på én gang (SPA'ens en-ad-gangen
+`#/evaluate` er upraktisk til den volumen), brug batch-runneren
+fra CLI'en. Siden `#/batch` møder dig med samme ærlighed: dens tomme
+tilstand viser **Start med en liste over stillinger**
+(`v2empty.batch.emptyTitle`) og en **Indsæt URL-liste**-hjælper
+(`v2empty.batch.pasteList`), der løfter rene http(s)-URL'er fra dit
+udklipsholder direkte ind i inputfeltet (`v2empty.batch.pasteAdded`), så
+opbygningen af rækker svarende til `batch-input.tsv` tager sekunder, før
+du skifter til CLI-runneren.
+
+**Inputfil — `batch/batch-input.tsv`** (tab-separeret):
+
+| Kolonne | Formål |
+|---|---|
+| `id` | Unikt sekventielt nummer |
+| `url` | Fuldt jobopslag-link |
+| `source` | Oprindelsesplatform (LinkedIn, Greenhouse, osv.) |
+| `notes` | Valgfri kontekstuel detalje |
+
+
+Eksempelrække:
+
+```
+1<TAB>https://jobs.example.com/senior<TAB>LinkedIn<TAB>
+```
+
+**`./batch/batch-runner.sh`-flag:**
+
+- `--dry-run` — Forhåndsvis afventende tilbud uden evaluering. Kør altid
+  dette først for at validere TSV'en.
+- `--parallel N` — Kør N workers samtidigt (1, 2 eller 3
+  anbefalet).
+- `--min-score X.X` — Spring persistering af tilbud, der scorer under
+  tærsklen. Nyttigt til kun at beholde rapporter for høj-egnethed-roller.
+- `--retry-failed` — Genbehandl kun de tilbud, der fejlede i den
+  forrige kørsel (netværksfejl, rate limits).
+- `--max-retries N` — Forsøg fejlede tilbud op til N gange (standard: 2).
+- `--model NAME` — Claude-model sendt til `claude -p --model` (parent rebound-ops 1.8.0, #504). Usat = din Claude Max-abonnementsstandard. Brug en billigere model til store batches, f.eks. `claude-sonnet-4-6`. Vist i `#/batch` som **Model**-inputtet (web-ui 1.31.0).
+- `--start-from N` — Spring tilbuds-ID'er under N over (genoptag en delvist behandlet batch). Vist i `#/batch` som **Start from #**-inputtet (web-ui 1.31.0).
+
+**Standardsekvens:**
+
+1. **Redigér** `batch/batch-input.tsv` — én række per JD.
+
+2. **Dry-run** (anbefalet først):
+
+   ```bash
+   ./batch/batch-runner.sh --dry-run
+   ```
+
+3. **Kør** — sekventielt eller parallelt:
+
+   ```bash
+   ./batch/batch-runner.sh                       # én ad gangen
+   ./batch/batch-runner.sh --parallel 2          # to samtidige
+   ./batch/batch-runner.sh --parallel 3          # tre samtidige
+   ./batch/batch-runner.sh --parallel 2 --min-score 4.0  # persistér kun høj-egnethed
+   ```
+
+4. **Genforsøg fejl** (netværk / rate-limit):
+
+   ```bash
+   ./batch/batch-runner.sh --retry-failed --max-retries 3
+   ```
+
+5. **Rapporter** lander i `reports/` som
+   `{id}-{company}-{YYYY-MM-DD}.md`. Opsummeringsrækker føjes til
+   `batch/tracker-additions/`.
+
+6. **Flet ind i tracker:**
+
+   ```bash
+   node merge-tracker.mjs                 # anvend batch-tilføjelserne
+   node merge-tracker.mjs --dry-run       # forhåndsvis fletningen
+   ```
+
+   Flet-kommandoen deduplikerer poster og arkiverer behandlede filer
+   til `batch/tracker-additions/merged/`.
+
+SPA'en viser de resulterende rapporter under `#/reports` (pagineret,
+score-pille-farvet) og tracker-rækkerne under `#/tracker` — nøjagtigt
+som hvis du havde tilføjet hver enkelt gennem `#/evaluate`. Par med
+**▶ Merge**-vedligeholdelsesknappen på `#/tracker`, hvis du foretrækker ikke at
+falde ned til CLI'en.
+
+### Playwright-opsætning ([set-up-playwright](https://github.com/AnkitParekh007/rebound-ops))
+
+Påkrævet til to rebound-ops-funktioner:
+
+- **Formularudfyldning** i `/rebound-ops apply` (trin 3 ovenfor — Playwright
+  åbner browseren, læser feltlabels, foreslår svar).
+- **PDF-generering** via `/rebound-ops pdf` og SPA'ens
+  **📄 Generér PDF**-knap på `#/cv` / `#/reports/:slug` /
+  `#/evaluate` / `#/deep` / `#/interview-prep`.
+
+**Fallback når Playwright mangler:** apply-flowet falder tilbage til
+WebFetch (kun-tekst formular-preview, ingen click-fill). PDF-generering
+fejler simpelthen.
+
+**Kerneopsætning (kør fra rebound-ops-overordnet-roden):**
+
+```bash
+# Installér Chromium til Playwright
+npm install
+npx playwright install chromium
+
+# Registrér Playwright MCP'en, så Claude Code kan drive formularer
+claude mcp add playwright npx @playwright/mcp@latest
+
+# Verificér alle tre komponenter (Chromium, Playwright-lib, MCP)
+npm run doctor
+```
+
+**Alternativ MCP-registrering** — tilføj til
+`.claude/settings.local.json`:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+**Adfærdsnoter:**
+
+- **Headless som standard.** Playwright opererer lydløst. For at se
+  browseren i aktion, fortæl Claude `open up with playwright the browser
+  and fill out the entire form.`
+- **Tre roller i én pakke** — Playwright npm-installationen giver dig
+  browser-automatiserings-biblioteket, PDF-renderingsmotoren til
+  `/rebound-ops pdf` og (via MCP'en) formularudfyldnings-workflowet inde i
+  Claude Code.
+- **Verificér før du stoler på det** — `npm run doctor` bekræfter, at alle
+  tre er operationelle. SPA'ens Health-side viser et
+  `Playwright (parent node_modules)`-tjek, der fejler hurtigt, hvis det mangler.
+
+---
+
+## 15. Forberedelse til jobsamtale
+
+Dette er post-research, præ-samtale-fasen. Tre artefakter i
+denne app konvergerer:
+
+1. **Gemte deep-research-filer** under `interview-prep/`, en per
+   virksomhed-rolle-par du kørte. Gennemse fra **Deep research**-siden
+   eller direkte via `/api/interview-prep`.
+2. **Patterns-tilstand** (`#/patterns`) — genererer en selvreflekterende
+   prompt: "på tværs af mine sidste N samtaler / tilbud / afslag, hvilke
+   mønstre holder?" Nyttig når du har akkumuleret 5+ tracker-rækker.
+3. **Interview-prep-tilstand** (`#/interview-prep`) — for-udfylder en
+   onepager til en specifik kommende runde (behavioral, technical,
+   system design). Output går ind i samme `interview-prep/`-
+   mappe.
+
+### Anbefalet workflow
+
+For hver samtale du har i kalenderen:
+
+1. **Kør Deep igen** (eller åbn den gemte fil) dagen før.
+2. **`#/interview-prep`** — generér en onepager til den specifikke
+   runde. Indsæt i dine noter.
+3. **System design / coding-runder** — åbn `#/training` og bed om
+   en 30-minutters målrettet genopfriskning af det specifikke delsystem, JD'en
+   fremhæver.
+4. **Kompensationsrunder** — åbn deep-research-filen, spring til
+   "Negotiation leverage points". Medbring 2–3 specifikke datapunkter
+   (Glassdoor-bånd, seneste funding, sammenligneligt tilbud hos en anden
+   virksomhed).
+5. **Behavioral-runder** — træk STAR+R-historier fra dit `cv.md`, der
+   lander i sektion B af den oprindelige Evaluate-rapport.
+
+Efter samtalen, med det samme:
+
+1. Opdater tracker-rækken: status → `Responded` (derefter `Interview`,
+   `Offer`, osv.).
+2. Kør `#/followup` for at udarbejde tak-e-mailen.
+3. Hvis du fik ny intel (kompensationsinterval, team-sammensætning, tech-stack-
+   overraskelse), redigér den gemte `interview-prep/<company>-<role>.md`
+   med `## Post-round notes`, så fremtids-dig har det.
+
+---
+
+## 16. Activity log + Fejlfinding
+
+### Activity log (`#/activity`)
+
+Revisionsspor over hver tilstandsændrende anmodning, der rammer serveren.
+Registrerer: pipeline-tilføjelser, tracker-skrivninger, CV-gemninger, JD-gemninger, evaluate-
+kørsler, deep-research-kørsler, scan-kørsler, config-ændringer, mode-kørsler.
+
+Hemmeligheder (`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) redigeres på
+vej ind; du vil aldrig se en rigtig nøgleværdi i `data/activity.jsonl`.
+
+Filtrér efter handlingspræfiks (`pipeline.`, `cv.`, `evaluate`, `scan.`,
+osv.). 25 rækker per side; serveren returnerer op til 500 nyeste
+events.
+
+### Fejlfinding
+
+| Symptom | Sandsynlig årsag | Løsning |
+|---|---|---|
+| Health-side rød på `cv.md` | Første kørsel, filen findes ikke endnu | `touch $REBOUND_OPS_ROOT/cv.md` derefter genindlæs. |
+| Health rød på `Profile customized` | `candidate.full_name` siger stadig `Jane Smith` | Redigér `config/profile.yml`. |
+| `hh.ru: HTTP 451` eller `403` i scan-loggen | Udgående IP er uden for Rusland, eller hh.ru har markeret den som VPN/datacenter | Kør fra en russisk **privat** IP. Der findes hverken en nøgle eller en User-Agent-indstilling — scanneren sender selv en browser-UA. |
+| `gemini-eval.mjs: ERR_MODULE_NOT_FOUND` | Overordnet projekts deps ikke installeret | `cd $REBOUND_OPS_ROOT && npm install`. |
+| Generér PDF fejler | Playwright ikke installeret i den overordnede | `cd $REBOUND_OPS_ROOT && npx playwright install chromium`. |
+| `/rebound-ops apply` siger "no report found" | Pipeline scorede aldrig denne JD | Kør `/rebound-ops pipeline` (eller `#/evaluate`) først; se §14-forudsætninger. |
+| `batch-runner.sh: no such file` | Kører fra forkert mappe | `cd $REBOUND_OPS_ROOT` før du invokerer `./batch/batch-runner.sh`. |
+| Serveren rapporterer `EADDRINUSE: 4317` | Gammel instans kører stadig | `pkill -f 'node server/index.mjs'` derefter genstart. |
+| Live LLM-kald hænger > 2 min | Prompt enorm eller Anthropic langsom | Tjek `/api/health` Anthropic-flag; serveren soft-capper prompts ved 256 KB og returnerer 413. |
+| Pipeline-preview viser `(unsafe redirect)` | Opslag omdirigerede til en privat IP / loopback | Dette er en sikkerhedsfunktion (REVIEW-B1). Redirect-målet afvises, og den oprindelige URL er uændret. |
+| Tracker-rækketekst bryder tabellen | Pipe i virksomhedsnavn pre-v1.9.1 | Opdater til v1.9.1+ — pipes escapes end-to-end (BF-1). |
+| `npm test` fejler på frisk clone | Tests antager overordnet projektlayout | Brug `REBOUND_OPS_ROOT=$(mktemp -d)` og bootstrap fixtures. |
+
+
+For dybere diagnostik: kør **Kør doctor** på Health-siden, kopier
+outputtet, og søg i issue-trackeren på
+<https://github.com/AnkitParekh007/rebound-ops/issues>.
+
+
+---
+
+## 17. Sådan tilføjer du en ny jobportal-kilde
+
+rebound-ops-ui behandler hvert jobboard som en **adapter** — en enkelt fil under [`server/lib/sources/<slug>.mjs`](../../server/lib/sources/), der ved, hvordan man henter + normaliserer ét boards resultater. I dag leverer `server/lib/sources/`-registreringen **129** kilder — **124 engelske + 5 russiske** boards. Det engelske sæt spænder over de store ATS'er (Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday), board-brede aggregatorer valgt af en eksplicit `provider:` (RemoteOK, Remotive, We Work Remotely, NoDesk, Get on Board, Amazon, …) og per-tenant-ATS'er auto-detekteret fra en `careers_url`-host eller en eksplicit `api:`-URL (BambooHR, Personio, Recruitee, Teamtailor, Avature, SAP SuccessFactors, …). Boards på **Deel**-jobplatformen (`jobs.deel.com/<slug>` — multi-tenant-boardet, hvor Klarna og andre publicerer) genkendes automatisk fra URL’en — et board er to linjer i portals.yml. **Den komplette liste behøver aldrig at blive talt manuelt her — den auto-opdages fra `server/lib/sources/` og vises live i Source-dropdownen på `#/scan`.** Se §5 for YAML'en og `docs/portals-examples.md` for copy-paste-poster.
+
+> **v1.69.0 (P-14) — drop-in auto-discovery.** At tilføje en 12. kilde er nu
+> et **rent fil-drop**. Registreringen
+> ([`server/lib/sources/registry.mjs`](../../server/lib/sources/registry.mjs))
+> holder ikke længere en håndvedligeholdt liste — ved boot scanner den denne mappe
+> (`readdirSync` + dynamisk `import()`) og indsamler `export const meta`-
+> blokken fra hver `*.mjs`. Skriv adapteren, deklarér dens `meta`, og den er
+> straks synlig for scanneren, `#/scan`-filter-dropdownen og RU-
+> dispatcheren — **ingen redigering af `registry.mjs` påkrævet**. (RU-kilder behøver stadig
+> én linje i den overordnedes `portals.yml`; se Trin 5.)
+
+### Trin 1 — Skriv adapteren
+
+Opret `server/lib/sources/<slug>.mjs`. To mønstre virker afhængigt af,
+om kilden har en JSON-API eller kun renderer HTML:
+
+**API-baseret kilde** (reneste — brug denne hver gang sitet har et
+åbent data-endpoint):
+
+```js
+// server/lib/sources/example.mjs
+const ENDPOINT = 'https://example.com/api/v1/vacancies';
+const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ...';
+
+// v1.69.0 (P-14) — selvbeskrivende metadata. Registreringen auto-opdager
+// denne blok ved boot; DETTE er det, der registrerer kilden (se Trin 2).
+export const meta = {
+  value: 'example',          // ← skal være lig med job.source skrevet nedenfor
+  label: 'Example.com',      // ← vist i #/scan-filter-dropdownen
+  region: 'ru',              // ← 'en' (ATS-sweep) | 'ru' (regional dispatcher)
+  configKey: 'example',      // ← kun RU; nøglen brugt i portals.yml
+};
+
+export async function searchExample(query, opts = {}) {
+  const { onlyRemote = false, fetchImpl = fetch, signal } = opts;
+  const res = await fetchImpl(`${ENDPOINT}?text=${encodeURIComponent(query)}`, {
+    signal,
+    headers: { 'User-Agent': UA, Accept: 'application/json' },
+  });
+  if (!res.ok) {
+    const err = new Error(`Example: HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  const data = await res.json();
+  return (data.items || []).map(normalizeExample);
+}
+
+function normalizeExample(item) {
+  return {
+    id: `example-${item.id}`,
+    title: item.title || '',
+    company: item.company?.name || '',
+    url: item.url || '',
+    salary: item.salary || '',
+    location: item.location || '',
+    isRemote: !!item.remote,
+    workplaceType: item.remote ? 'Remote' : 'Onsite',
+    relocates: false,
+    date: item.posted_at || '',
+    snippet: (item.description || '').slice(0, 240),
+    source: 'example',           // ← skal matche registreringens `value` nøjagtigt
+  };
+}
+```
+
+**HTML-scrape-kilde** (når der ingen API er — se
+[`getmatch.mjs`](../../server/lib/sources/getmatch.mjs) og
+[`geekjob.mjs`](../../server/lib/sources/geekjob.mjs) for fulde eksempler):
+
+```js
+const BASE = 'https://example.com';
+
+export async function searchExample(query, opts = {}) {
+  const { fetchImpl = fetch, signal } = opts;
+  const res = await fetchImpl(`${BASE}/vacancies?q=${encodeURIComponent(query)}`, {
+    signal,
+    headers: { 'User-Agent': UA, Accept: 'text/html' },
+  });
+  if (!res.ok) {
+    throw Object.assign(new Error(`Example: HTTP ${res.status}`), { status: res.status });
+  }
+  return parseExampleCards(await res.text());
+}
+
+export function parseExampleCards(html) {
+  // …regex-baseret kort-ekstraktion. Returnér [] ved parse-fejl (KAST IKKE):
+  // en sund 200 uden parsebare kort er "ingen resultater", ikke "fejl",
+  // så multi-source-scanneren kan fortsætte.
+}
+```
+
+Tre kontrakter hver adapter SKAL overholde:
+
+- **Eksportér en gyldig `meta`-blok** (se Trin 2). Uden den springer registreringen
+  filen stille over (én `console.warn` ved boot), og kilden
+  vises aldrig.
+- **Accepter `{ onlyRemote, fetchImpl, signal }` i `opts`.** `fetchImpl`
+  er det, der gør adaptere testbare uden netværk; `signal` er påkrævet
+  til client-disconnect-propagering (REVIEW-B3).
+- **Returnér records med den fælles form** —
+  `{ id, title, company, url, salary, location, isRemote, workplaceType,
+  relocates, date, snippet, source }`, hvor `source` matcher
+  `meta.value`.
+
+### Trin 2 — Deklarér adapterens `meta` (auto-registrering)
+
+Dette er hele registreringstrinet. **Du redigerer ikke `registry.mjs`.**
+Sørg bare for, at adapteren eksporterer en `meta`-blok — registreringen
+auto-opdager den ved boot:
+
+```js
+// øverst i server/lib/sources/example.mjs
+export const meta = {
+  value: 'example',          // job.source-værdi OG #/scan option.value
+  label: 'Example.com',      // visningsetiket i dropdownen
+  region: 'ru',              // 'en' | 'ru'
+  configKey: 'example',      // kun RU — nøgle i portals.yml::russian_portals.sources
+};
+```
+
+Hvordan discovery validerer den (en fil, der fejler en regel, springes over, med én
+`[sources/registry]`-advarsel, så en halvmigreret branch forbliver diagnosticerbar):
+
+- `value` — ikke-tom streng. SKAL matche `job.source` fra din adapter.
+- `label` — ikke-tom streng.
+- `region` — nøjagtigt `'en'` eller `'ru'`; alt andet afvises.
+- `configKey` — **påkrævet** for `region: 'ru'`, ignoreret for `'en'`.
+
+`region: 'en'` slutter sig til ATS-sweepet (auto-opdager fra `tracked_companies`-
+URL-mønstre); `region: 'ru'` slutter sig til den regionale dispatcher. Den offentlige API
+(`SOURCES`, `SOURCES_BY_REGION`, `RU_CONFIG_KEYS`, `getRegionalSources`)
+genopbygges fra hver opdaget `meta`, ordnet `en` først derefter `ru`,
+alfabetisk efter label inden for hver region — så dropdown-rækkefølgen forbliver
+stabil for brugere.
+
+### Trin 3 — Forbind til dispatcheren (kun RU)
+
+EN ATS-kilder auto-opdager fra `tracked_companies`-URL-mønstre —
+ingen yderligere forbindelse nødvendig. For RU-kilder, åbn
+[`server/lib/ru-scanner.mjs`](../../server/lib/ru-scanner.mjs), find
+`RU_DISPATCH`-tabellen, og tilføj en række:
+
+```js
+import { searchExample } from './sources/example.mjs';
+// …
+const RU_DISPATCH = {
+  // …eksisterende…
+  example: { label: 'example.com', search: searchExample },
+};
+```
+
+Dispatcher-loopet kalder `entry.search(query, opts)` for hver nøgle,
+der er til stede i `cfg.sources`. Ingen yderligere kodeændring nødvendig.
+
+### Trin 4 — Test (mocket, aldrig live)
+
+Drop en fil under `tests/sources-<slug>.test.mjs`. Rigtigt netværk er
+**forbudt** i tests (CI-isolerings-kontrakt):
+
+```js
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { searchExample } from '../server/lib/sources/example.mjs';
+
+test('searchExample normalizes one record', async () => {
+  const fetchImpl = async () =>
+    new Response(
+      JSON.stringify({ items: [{ id: 1, title: 'Backend Engineer' }] }),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    );
+  const out = await searchExample('q', { fetchImpl });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].source, 'example');
+});
+```
+
+### Trin 5 — Aktivér i din `portals.yml`
+
+Det overordnede projekts `portals.yml` er den brugerejede konfiguration. Tilføj den
+nye kildes `configKey` til arrayet:
+
+```yaml
+russian_portals:
+  sources: ["hh", "habr", "trudvsem", "getmatch", "geekjob", "example"]
+  area: 113
+  per_page: 50
+  only_remote: false
+  queries:
+    - "Senior PHP"
+    - "Senior Go"
+```
+
+Genindlæs `#/scan` i browseren. Kilde-filter-dropdownen samler den
+nye post op automatisk (eneste sandhedskilde via
+[`GET /api/scan/sources`](../../server/lib/routes/scan.mjs) →
+[`registry.mjs`](../../server/lib/sources/registry.mjs)). 
+🌐 Scan-knappen inkluderer nu den nye kilde på hvert regionalt sweep.
+
+### Referenceadaptere (spejl disse for nye kilder)
+
+| Adapter-fil | Type | Noter |
+|---|---|---|
+| [`hh.mjs`](../../server/lib/sources/hh.mjs) | JSON API | Kanonisk RU API-adapter; geo-bevidst UA-fallback. |
+| [`trudvsem.mjs`](../../server/lib/sources/trudvsem.mjs) | JSON API | Russisk statslig open-data; ingen IP-gate. |
+| [`habr.mjs`](../../server/lib/sources/habr.mjs) | HTML scrape | Russisk tech-board; regex-baseret kort-parser. |
+| [`getmatch.mjs`](../../server/lib/sources/getmatch.mjs) | HTML scrape | Defensiv parser, `[]` ved parse-miss. |
+| [`geekjob.mjs`](../../server/lib/sources/geekjob.mjs) | HTML scrape | Samme defensive stil som GetMatch. |
+| [`greenhouse.mjs`](../../server/lib/sources/greenhouse.mjs) | JSON API | Kanonisk EN ATS-adapter; bruger `tracked_companies`-URL-mønster. |
+
+### Almindelige faldgruber
+
+- **At glemme `meta`-eksporten.** Siden v1.69.0 er `meta`-blokken det
+  *eneste*, der registrerer en kilde. Ingen `meta` (eller en misdannet) =
+  filen springes stille over ved boot med en enkelt
+  `[sources/registry] <file> has no valid \`export const meta\` — skipped`-
+  advarsel, og kilden når aldrig dropdownen. Tjek server-loggen,
+  hvis en helt ny adapter ikke dukker op.
+- **`source`-felt-mismatch.** Strengen skrevet af din adapter SKAL
+  matche `meta.value` nøjagtigt. Hvis de driver fra hinanden, vil
+  `#/scan`-filter-dropdownen vise kilden, men at vælge den vil
+  filtrere hver række ud (fordi lighedstjekket er `r.source === fs`).
+- **At kaste ved parse-fejl.** HTML-scrapere SKAL returnere `[]` ved en
+  sund 200 uden parsebare kort. At kaste bryder multi-source-
+  dispatcher-loopet — én dårlig HTML-struktur dræber hver anden kilde for
+  den samme query.
+- **At glemme `fetchImpl` / `signal`.** Uden dem kan din adapter
+  ikke unit-testes uden at ramme live-netværk, og client-
+  disconnects propagerer ikke (baggrunds-fetch forbliver i live efter
+  brugeren lukker fanen).
+- **At stole på `tracked_companies` for RU.** Den liste er for EN ATS-
+  kilder kun. RU-adaptere driver sig selv fra
+  `russian_portals.queries` i stedet — ingen per-virksomheds-poster.
+
+---
+
+## 18. Notifikationer (🔔 i topbjælken)
+
+> v1.58.34 — hver toast, der vises i nederste højre hjørne, fanges også
+> ind i en in-memory journal (grænse 50, ældste droppet). Klik på 🔔-klokken i
+> topbjælken for at åbne den højre-glidende **Notifikationer**-skuffe og genlæse alt,
+> du gik glip af. Journalen er per-fane, per-session — at lukke fanen rydder den.
+
+Skuffen **åbnes kun, når du klikker på klokken** (eller aktiverer den med Enter /
+Mellemrum, når den er keyboard-fokuseret). Den vises aldrig af sig selv. Det røde badge på
+klokken tæller poster, du ikke har set siden sidste åbning; at åbne skuffen
+rydder badget.
+
+### Notifikationskategorier
+
+| Kategori | Hvornår den udløses | Visuelt signal |
+|---|---|---|
+| **Success** | `Gemt`, `Kopieret`, `Genopfrisket`, scan færdig, CV importeret, apply-tjekliste-handlinger ("Kopieret ukrydset", "Nulstil"), profil gemt, pipeline-URL tilføjet | grøn venstre kant i skuffen; grøn toast-baggrund |
+| **Error** | URL-valideringsfejl (skal starte med `http://` / `https://`, ingen script-/template-tegn), API-fejl med `(METHOD /path · HTTP NNN)`-postfikset, netværksfejl (server nede), pipeline-400-dubletter, doctor / verify-pipeline ikke-nul exit | rød venstre kant; rød toast-baggrund; teknisk postfiks tucket ind i `Details`-`<details>`-blokken (U-4 / v1.58.24) |
+| **Info / progress** | `Running doctor.mjs…`, `Running verify-pipeline.mjs…`, `Refreshing…`, `Loading…`, `Generating prompt…`, scan-progress-linjer | grå venstre kant; standard toast-baggrund |
+
+
+Hver skuffe-post viser:
+
+- **Tidsstempel** (`HH:MM:SS` lokaliseret til det aktive SPA-sprog).
+- **Besked** (den menneskelige sætning, med det tekniske postfiks strippet fra overskriften per U-4).
+- **Details** (når til stede — API-kaldets `(METHOD /path · HTTP NNN)`-postfiks eller enhver anden teknisk bemærkning, monospace).
+
+### Hvad der IKKE er en notifikation
+
+- Doctor / verify-pipeline-**resultatmodalen** (fuld stdout / stderr) — det er en modal, ikke en toast, og ikke journaliseret.
+- SSE-log-linjer på `#/scan` og `#/auto` — de streamer ind i sidens body, ikke ind i toast-pipelinen.
+- Spinner-kun loading-tilstande (de bruger `UI.withSpinner` uden en toast).
+
+### Tastatur
+
+- **Klik** eller fokus + **Enter / Mellemrum** på klokken → åbner skuffen.
+- **Esc**, klik på **×**-lukkeknappen, eller klik på klokken igen → lukker skuffen; fokus vender tilbage til klokken.
+- **Tab** mens skuffen er åben → bevæger sig gennem lukkeknappen og eventuelle fokuserbare details indeni; skuffen er `aria-modal="false"`, så Tab fanger ikke (du kan stadig nå resten af siden).
+
+
+## 19. Lokalisering af appen til dit sprog
+
+Grænsefladen leveres på 19 sprog (English, Español, Français, Português, 한국어, 日本語, Русский, 简体中文, 繁體中文, Polski, Українська, Dansk, العربية, Deutsch, Italiano, Türkçe, हिन्दी, தமிழ், Tiếng Việt). Hver skærm-label kommer fra en oversættelsesordbog, og du kan tilføje eller rette et sprog uden at røre app-logikken.
+
+**Hvor oversættelserne lever.** Siden v1.60.0 er hvert sprog sin egen fil under `public/js/lib/locales/` — `i18n-dict.en.js`, `i18n-dict.es.js`, `i18n-dict.ru.js` osv. — en simpel liste af `'key': 'text'`-par. En delt `i18n-dict.aliases.js` lader nøgler, der altid skal læse identisk (en sidebjælke-label og dens sidetitel), pege på én oversættelse. `i18n-dict.js` fletter dem alle ved sideindlæsning; du redigerer den aldrig.
+
+**Ret eller tilføj en frase.** Åbn filen for dit sprog, find nøglen (f.eks. `'nav.scan'`) og redigér teksten. For at tilføje en helt ny label, tilføj den samme nøgle til **alle 19** sprogfiler med den oversatte værdi, og referér den derefter i siden via `t('your.key')`. Kør `npm test` — den fejler, hvis et sprog mangler nøglen, så intet leveres halvt-oversat.
+
+**Tilføj et helt nyt sprog.** Kopier `i18n-dict.en.js` til `i18n-dict.<code>.js`, oversæt hver værdi, og registrér derefter koden i `i18n.js` (sproglisten + browser-auto-detektering), i `i18n-dict.js`-assembleren, og tilføj en `<script>`-linje i `index.html`. Den fulde tjekliste — inklusive test-snapshottet og hjælpe- / README-ledsagerfilerne — er i `docs/LOCALIZATION.md`.
+
+**Godt at vide.** Sprog-vælgeren er i sidebjælke-footeren; dit valg huskes per browser. Server-diagnostiske beskeder forbliver bevidst på engelsk (så logs læses konsistent) — kun den skærm-baserede grænseflade er oversat.
+
+Se **`docs/LOCALIZATION.md`** i repositoriet for den komplette, trin-for-trin lokaliseringsguide.
+
+## 20. Statistik efter målroller (`#/stats`)
+
+Siden **Analytics → Statistik for målroller** forvandler de sparsomme data, som dine scanninger allerede indsamler, til et markedsbillede for de roller, du reelt sigter efter: antal stillinger og lønniveauer pr. land plus en tendens, du kan følge over tid. Intet er opdigtet: den aggregerer kun det, scannerne fandt, og er ærlig om, hvor tynd stikprøven er.
+
+### Hvor tallene kommer fra
+
+- **Målroller** læses fra din Profil (`config/profile.yml` → target roles) — aldrig hårdkodet. Angiv dem først på `#/profile`; uden roller viser siden en "angiv dine målroller"-besked i stedet for tomme diagrammer.
+- **Opslagene** kommer fra din seneste scanning (kør en først på `#/scan`). Hvert jobs placering knyttes til et land (samme detektor som landefilteret i scanningen), og dets lønstreng parses og normaliseres til **USD** via en omtrentlig valutakurstabel.
+- Alt aggregeres **i din browser** — ingen data forlader din maskine, og det eneste, siden nogensinde skriver, er et øjebliksbillede, du udtrykkeligt gemmer.
+
+### At læse diagrammerne
+
+- **Stillinger pr. land** — hvor mange matchende opslag der ligger i hvert land. Brug **Rolle**- og **Land**-filtrene øverst til at indsnævre til én målrolle eller ét land.
+- **Medianløn pr. land (USD)** — den midterste parsede løn pr. land. Kun opslag med en løn, der kan parses, tælles med; stikprøvestørrelsen vises ved siden af diagrammet, og beløbene omregnes til grove kurser, så læs det som *vejledende*, ikke præcist. Et blot `¥` (tvetydigt mellem japanske yen og kinesiske yuan) droppes i stedet for at blive gættet, for at undgå en stor FX-forvrængning.
+- Når den aktuelle scanning ikke har lønninger, der kan parses, siger løndiagrammet det i stedet for at opfinde tal.
+
+### Gem øjebliksbilleder, og følg tendensen
+
+- Klik på **Gem øjebliksbillede** for at føje det aktuelle aggregat til `data/role-stats.jsonl`. Hvert øjebliksbillede tidsstemples på serveren; øjebliksbilleder er det eneste, denne side skriver, og de rører aldrig dit CV eller din profil.
+- **Tendens**-diagrammet plotter antal stillinger på tværs af dine gemte øjebliksbilleder — gem ét jævnligt (for eksempel efter hver ugentlig scanning) for at se, hvordan markedet for dine målroller bevæger sig over tid.
+
+## 21. Din two-pager — kandidatens markedstilpasning (`#/two-pager`)
+
+Det meste af rebound-ops-ui spørger "matcher dette job mit CV?". **Two-pager'en** besvarer den anden halvdel: "matcher dette job det, *jeg faktisk vil have*?". Den er modelleret efter **"Mnookin two-pager"** fra *Never Search Alone* — en kort førstepersonserklæring om, hvad der giver dig energi, hvad du kræver, og hvad du ikke vil acceptere. Åbn den fra **Opsætning → Two-pager 🎯**.
+
+**AI-autoudfyldning + eksport (v1.100).** "✨ AI-udfyldningsassistenten" udfylder nu alle felter live fra dit CV (gennemgå, og gem); **👁 Forhåndsvis og eksportér** gengiver two-pageren og eksporterer den til Markdown, PDF eller DOCX.
+
+### Hvad du udfylder
+
+- **Hvem jeg er** — et par førstepersonssætninger om din erfaring og den slags rolle, du trives i.
+- **Målmiljø** — den virksomhedsstørrelse, det stadie og den kultur, du ønsker.
+- Fem chip-lister — skriv og tryk **Enter** (eller komma) for at tilføje hvert punkt, klik **×** for at fjerne det:
+  - **Hvad jeg elsker** — energigivere (remote, ejerskab, greenfield, mentoring…).
+  - **Skal-haves** — hårde krav (et lønloft, et land, en stak…).
+  - **Hvad jeg hader** — energidræn (on-call, endeløse møder, kun legacy…).
+  - **Deal-breakers** — absolutte nej'er (kun on-site, ingen sponsorering, under et beløb…).
+  - **Ikke til forhandling** — grænser (lokation, remote, lønloft…).
+
+Klik **Gem two-pager** for at gemme den. Den skrives til dit **overordnede rebound-ops-projekts brugerlag** i `config/two-pager.yml`, så — ligesom dit CV og din profil — bliver den **aldrig** overskrevet, når du opdaterer systemet.
+
+### AI-udfyldningsassistenten
+
+Usikker på formuleringen? Klik **{{t:twoPager.aiFill}}**. Den bygger en klar-til-brug-prompt (Mnookin-formatet, med dit CV og din profil indlejret) og viser den i en dialog. Kør den prompt i en hvilken som helst LLM, og indsæt derefter de resulterende YAML-felter tilbage i formularen. Assistenten bruger kun **dit eget** CV og din egen profil — den opfinder aldrig fakta om dig, og der foretages ingen live API-kald fra denne knap.
+
+### Fit-to-what-you-want-scoren
+
+Når du har gemt en two-pager, får hvert opslag på **`#/scan`** et lille **`◎ N`**-badge (0–100). Det sammenligner hvert jobs **arbejdstype** (remote/hybrid/on-site), **land**, **lønbund** og **flytning** med din two-pager — et grønt badge betyder stærk match, rødt betyder, at en deal-breaker blev udløst. Hold musen over for detaljerne (✓ hvad der matchede, ✗ hvad en deal-breaker overtrådte).
+
+Den er bevidst ærlig: når et opslag ikke giver **noget sammenligneligt signal** (for eksempel er dine præferencer ren fritekst, som en scanningsrække ikke kan bekræfte), **vises der slet intet badge** — systemet opfinder aldrig et tal. En hård **deal-breaker**-overtrædelse vejer tungere end en blød **hate** af det samme. Ud over badget indlejres din gemte two-pager i hver LLM-**evaluering**, så dine angivne præferencer også former den skrevne vurdering, ikke kun CV-vs-JD-matchet.
+
+## 22. Prøvesamtale (`#/mock-interview`)
+
+At læse interviewforberedelse er én ting; at *sige svarene højt* er noget helt andet. Siden **Prøvesamtale** (åbn den fra **Interview prep → Mock interview 🎤** i sidebjælken) kører en tur-for-tur-øvelse mod en bestemt rolle, forankret i dit eget CV, din profil, din two-pager og dit historiebank. Det er ikke en færdig spørgeliste — intervieweren reagerer på det, du faktisk siger.
+
+### At starte en session
+
+- Indtast en **målrolle** (og eventuelt en **virksomhed**). Indsæt også **jobbeskrivelsen**, hvis du har den — spørgsmålene bliver mærkbart skarpere.
+- Klik **Start interview**. Intervieweren åbner med ét fokuseret spørgsmål tilpasset rollen og din baggrund.
+- Skriv dit svar og klik **Send answer**. Gentag så længe du vil — det er en samtale, ikke en fast quiz.
+
+### Hvad hver tur giver dig
+
+Efter hvert svar svarer intervieweren med tre dele:
+
+- **Feedback** — hvad der ramte plet (styrker), og hvad der manglede, formuleret i **STAR+R**-termer (Situation, Task, Action, Result, Reflection). Den navngiver præcis den dimension, du sprang over.
+- **Score** — en hurtig `N/5` med en enkelt linjes begrundelse, så du kan mærke fremgang gennem en session.
+- **Næste spørgsmål** — et opfølgende spørgsmål, der bevidst borer i den svageste del af dit sidste svar.
+
+Alt er forankret i dine rigtige materialer: `cv.md`, `config/profile.yml`, `config/two-pager.yml` og dit STAR+R-historiebank (`interview-prep/story-bank.md`) indlejres alle i prompten. Intervieweren vil presse på reelle huller, men opfinder aldrig erfaring, du ikke har. Hvis der ikke er sat en LLM-nøgle, giver siden dig en klar-til-brug-prompt til at indsætte i en hvilken som helst assistent — den samme ærlige nødløsning, der bruges andre steder i appen.
+
+### At gemme og vende tilbage til sessioner
+
+Klik **Save transcript** for at beholde en færdig øvelse. Den skrives til dit overordnede projekts brugerlag i `interview-prep/mock-{company}-{role}-{date}.md`, så den ligger sammen med dine øvrige interviewforberedelsesnoter og bliver aldrig overskrevet af systemopdateringer. Listen **Saved sessions** nederst på siden lader dig genåbne enhver udskrift eller slette den. Brug **New interview** for at starte forfra med en anden rolle.
+
+## 23. Networking & dybdegående virksomhedsresearch (`#/networking`)
+
+At ansøge ad fordøren er kun halvdelen af spillet — den anden halvdel handler om at *kende nogen*, eller i det mindste at vide, hvem man skal kontakte, og hvad man skal sige. Siden **Networking** (åbn den fra **Dybdegående research → Networking 🤝** i sidepanelet) forvandler en virksomhed til en konkret plan for at få en samtale, forankret i dit eget CV, din profil og din two-pager.
+
+### At bygge en plan
+
+- Indtast en **virksomhed** (påkrævet) og eventuelt en **rolle** og **jobbeskrivelsen**. Jobbeskrivelsen skærper "hvorfor jeg passer"-krogene.
+- Klik på **Byg plan**. Med en LLM-nøgle kører den live og gengiver planen direkte på siden; uden nøgle giver den dig en klar prompt til at indsætte i en vilkårlig assistent (den samme ærlige reserveløsning, der bruges i hele appen — intet opdigtes).
+
+### Hvad planen indeholder
+
+Planen kommer tilbage i fire sektioner:
+
+- **Virksomhedsdossier** — en stram briefing om, hvad virksomheden laver, nylige signaler værd at citere, og to eller tre "hvorfor jeg passer"-kroge hentet fra din reelle baggrund.
+- **Hvem man skal kontakte** — tre til fem målpersonaer (teamets hiring manager, en intern rekrutterer, en senioringeniør i teamet, en varm kontakt eller alumni-forbindelse) med en konkret **LinkedIn-søgestreng** til at finde hver enkelt. Den opdigter aldrig rigtige navne — den fortæller dig, hvordan du finder de rette personer.
+- **Varmeste introvej** — den ene mest realistiske varme rute ind for *din* baggrund: en fælles arbejdsgiver, skole eller fællesskab; en forbindelse i anden grad; eller en kold besked med højt signal, når det oprigtigt er den bedste mulighed.
+- **Kontaktudkast** — korte, konkrete beskeder (tre til fem sætninger, ingen fyld) til dine vigtigste personaer, forankret i dine reelle beviser, så de ikke virker generiske.
+
+### At gemme og vende tilbage til planer
+
+Klik på **Gem plan** for at beholde en. Den skrives til dit overordnede projekts brugerlag på `networking/net-{company}-{role}-{date}.md` — din egen fil, aldrig overskrevet af systemopdateringer. Listen **Gemte planer** nederst på siden lader dig genåbne eller slette enhver plan. Da udkastene og personaerne kun er forankret i dine reelle materialer, skal du behandle dem som et stærkt første udkast til at personliggøre — ikke som et manuskript, du sender i blinde.
+
+## 24. CV Studio (`#/cv-studio`)
+
+**Føj til CV (v1.117.0).** Et nyt kort forvandler et projekt, en publikation eller en portefølje-side (URL eller indsat tekst) til ATS-klare punkter, der KUN bygger på den kilde — målinger, arbejdsgivere eller datoer, der ikke findes i kilden, udelades og opdigtes aldrig. Du gennemgår forslagene og indsætter selv de accepterede i CV-editoren; intet skrives automatisk, og URL'er går gennem den samme anti-SSRF-validator som pipelinen.
+
+Siden `#/cv` er der, hvor du *skriver* dit CV; **CV Studio** (åbn det via **Setup → CV Studio 🎨** i sidepanelet) er der, hvor du *skærper* det. Det giver din `cv.md` tre ærlige værktøjer, hvoraf de to aldrig forlader din browser.
+
+**Tilpas til et job (v1.101).** Indsæt en jobbeskrivelse, og CV Studio laver et tilpasset CV plus en matchende ansøgning, kørt gennem en rekrutterings-checkliste-gate (fejl blokerer, advarsler rådgiver), kun baseret på dine materialer.
+
+### CV-diagnostik
+
+I det øjeblik du åbner siden, giver den dit CV en score op til 100 og lister fund pr. kontrol, hver med en kort forklaring, så *du* selv bestemmer, hvad der skal ændres (den omskriver aldrig i stilhed):
+
+- **Længde** — ligger CV'et i et sundt spænd på en til to sider?
+- **Kvantificeret effekt** — hvor stor en andel af dine punkter indeholder et rigtigt tal eller en metrik? Rekrutterere skimmer efter dem.
+- **Stærke handlingsverber** — markerer svage formuleringer som "ansvarlig for" eller "hjalp med".
+- **Buzzwords** — markerer tomme klichéer ("resultatorienteret", "holdspiller").
+- **Kerneafsnit** — tjekker for Resumé, Erfaring, Uddannelse og Kompetencer.
+- **Kontaktoplysninger** — sikrer, at der er en e-mail.
+
+Det hele kører udelukkende i din browser uden nogen LLM — tallene er deterministiske, og intet bliver opdigtet.
+
+### Privatlivsmaske
+
+Før du deler dit CV som en skriveprøve eller et skærmbillede, skjuler **Privatlivsmasken** personhenførbare data: e-mail, telefon, links/handles og gadeadresse samt dit **navn → initialer**, hvis du slår det til og indtaster det. Slå hver kategori til/fra, kopiér den maskerede version, og del den sikkert. Det hele foregår udelukkende i browseren, rapporterer præcist, hvor mange elementer den skjulte, og gemmer eller sender aldrig originalen.
+
+### Gør det menneskeligt (stemmematch)
+
+Indsæt en stiv linje eller et afsnit — den slags generiske AI-formulering, der læses som standardtekst — og **Gør det menneskeligt** omskriver det i *din* stemme. Omskrivningen er forankret på serversiden i din `voice-dna.md` (hvordan din skrift læses) og dine `writing-samples/` (din faktiske prosa). Den hårde regel: den må omordne, stramme op og justere stemmen, men den vil **aldrig** indføre et faktum, en metrik eller en præstation, der ikke allerede står i den tekst, du indsatte. Med en LLM-nøgle omskriver den live; uden nøgle giver den dig en klar prompt til at indsætte i en hvilken som helst assistent. Rediger derefter dit CV på siden `#/cv` som sædvanligt — CV Studio foreslår, du bestemmer.
+
+### Stemmetjek (v1.262.0)
+
+**Stemmetjek**-kortet gennemgår den indsatte tekst mod 27 slidte
+CV-formuleringer ("passionate about", "proven track record", "leveraged",
+"spearheaded", …) og fremhæver de præcise træffere — et årsinterval som
+2022–2024 er en dato, ikke et vidnesbyrd, mens `20–30%` er det.
+Skrivebeskyttet: intet skrives nogen steder. Tailor-tjeklisten behandler slidte
+formuleringer som en sjette invariant.
+
+### "Genbrug et tidligere CV?"-tip
+
+Når du vælger en gemt jobbeskrivelse i CV Studio, fortæller et dæmpet tip på én linje, om du allerede har skræddersyet et CV til en lignende rolle. Appen sammenligner den valgte beskrivelse med dine andre gemte beskrivelser (en deterministisk ord-overlaps-score plus et senioritetstjek — ingen AI, intet gemmes) og fremhæver det ene bedste match som en af tre domme:
+
+- **genbrug** — meget lig en gemt beskrivelse; du kan sandsynligvis genbruge det CV, som det er.
+- **genbrug med rettelser** — lignende; genbrug det CV, men pynt på det.
+- **regenerér** — ingen tæt lignende gemt beskrivelse, så skræddersy et friskt CV.
+
+Tippet vises automatisk, når du har mindst to gemte beskrivelser, og opdateres, når du skifter den valgte beskrivelse. Det er kun et puf — det ændrer aldrig dit CV eller dine beskrivelser.
+
+## 25. Hukommelse (`#/memory`)
+
+Alle andre sider starter forfra hver gang. **Hukommelse** (åbn den fra **Opsætning → Hukommelse 🧠** i sidebjælken) er det ene sted, hvor du fortæller assistenten noget *én gang* og får det til at blive hængende. Den rummer en kort, redigerbar "husk dette om mig"-note, som fødes ind i **hver** AI-forespørgsel.
+
+### Hvad den er til for
+
+Brug den til varige præferencer og arbejdsstil, for eksempel:
+
+- De typer roller og virksomheder, du sigter efter (og dem, du aldrig vil se).
+- Hvordan du kan lide, at svar skrives — kortfattet eller detaljeret, senior tone, uden fyld.
+- Hårde krav, der er værd at gentage — kun remote, en lønbund, ingen vagt.
+
+Hold den til præferencer og styring. Det er **ikke** stedet til fakta om din erfaring — dine kompetencer, arbejdsgivere og resultater bor i dit CV, din profil og dit to-siders resumé, som forbliver de eneste kilder til alt, hvad der optræder i dine CV'er og ansøgninger. Hukommelsesnoten former, *hvordan* assistenten arbejder med dig, aldrig *hvad* den påstår om dig.
+
+### Hvordan den når ud til alt
+
+Når du klikker på **Gem hukommelse**, skrives noten til dit overordnede projekts brugerlag i `config/memory.md` og indlejres i den delte projektkontekst. Det betyder, at den automatisk rejser med **hver** AI-forespørgsel — evalueringer, øvelsessamtaler, netværksplaner, omskrivninger i CV Studio — og på tværs af **hver** udbyder, du har konfigureret. Skriv den én gang; du behøver ikke gentage dig selv på hver side. Ligesom dine andre brugerlagsfiler bliver den aldrig overskrevet, når du opdaterer systemet, og den forlader kun din maskine inde i de LLM-prompts, du vælger at køre.
+
+### Foreslå ud fra dine data
+
+Ikke sikker på, hvad du skal skrive? **✨ Foreslå ud fra mine data** læser din ansøgningstracker og udkaster et sæt adfærdsmæssige punkter — mønstrene i, hvad du forfølger, accepterer og afviser. Kør den prompt, den giver dig, i en hvilken som helst LLM, gennemgå forslagene, og indsæt en redigeret version i noten. Den henter kun fra din egen tracker og opfinder aldrig fakta; du gennemgår altid, før noget gemmes.
+
+## 26. Statistik (`#/stats`)
+
+**Fanen afvisningsmønstre (v1.117.0).** En fjerde fane kører forælderens `analyze-patterns.mjs` (skrivebeskyttet) og viser udfaldsmiks, handlingsrettede anbefalinger og avanceringsraten pr. ATS-leverandør (signalet om "algoritmisk monokultur" — Bommasani et al., FAccT 2026). Leverandører under minimumsstikprøven markeres med stjerne; uden forælderprojektet siger fanen det ærligt.
+
+Siden **Statistik** samler tre visninger under én sektion: en AI-genereret markedsrapport, analyser af din egen pipeline og tendensen i antallet af ledige stillinger for dine målroller ud fra dine scanninger. Skift mellem dem med fanerne øverst.
+
+### Markedsrapport
+
+Fanen **Markedsrapport** beder modellen om en løn- og arbejdsmarkedsanalyse af *dine* målroller — den læser dit CV og din profil for at vide, hvilke roller og hvilket senioritetsniveau der skal dækkes. Skriv en **Region / marked** (for eksempel `Russia`, `EU-remote`, `US` eller `Germany`), vælg en **Valuta**, og klik på **Generér markedsrapport**. Du får en struktureret rapport med et ledelsesresumé, løn efter niveau (median plus P10/P25/P75/P92), de største arbejdsgivere, en tabel over efterspurgte kompetencer, hyppigheden af goder, fordelingen mellem kontor/hybrid/remote, tendenser over 12-24 måneder inklusive AI's indvirkning og vejledning til forhandling. Hvert tal er et **retningsangivende skøn ud fra modellens træningsviden** — ikke skrabet eller live data — og det siger rapporten selv; behandl tallene som intervaller, ikke som citater. Uden en API-nøgle sat får du i stedet en kopier-og-indsæt-prompt frem for en opdigtet rapport. Brug **Download .md**, **Gem som PDF** eller **Kopiér** for at få rapporten ud af appen.
+
+### Min pipeline
+
+Fanen **Min pipeline** tegner din egen ansøgningstracker — intet eksternt. Den viser, hvor mange roller du har fulgt, din scorefordeling, statustragten, dine største virksomheder og roller, ansøgninger over tid og konverteringsrater (hvor stor en andel af ansøgningerne når frem til Ansøgt, Besvaret, Interview og Tilbud). Det er det ærlige spejl af din søgning: den afspejler kun det, der allerede står i `data/applications.md`.
+
+### Tendens for målroller
+
+Fanen **Tendens for målroller** er den oprindelige visning: antal ledige stillinger og medianløn pr. land for dine målroller, samlet fra din seneste scanning, med en valutavælger og et overblik over **Opslag efter målrolle**. **Gem snapshot** registrerer den aktuelle aggregering, så du kan følge, hvordan antallet af ledige stillinger bevæger sig over tid, og tendenslinjen læser disse snapshots tilbage. Sparsomme data er forventet og mærkes som vejledende — de bliver aldrig fyldt ud med opdigtede tal.
+
+### Samlet og løn
+
+Fanen **Samlet** (v1.118.0) relæer skrivebeskyttet to forældre-scripts uden token-omkostning: `stats.mjs` — din samlede tracker-oversigt, akkumulerede tragtrater (svar / samtale / tilbud), scannertal og portaldækning — og `salary-gap.mjs` — ønsket vs annonceret vs faktisk løn pr. ansøgning, samlet fra rapporternes Machine Summary og `data/salary-observations.tsv`. Små stikprøver markeres som vejledende; uden forældre-projektet viser fanen en ærlig note.
+
+### Log for selv-vurdering af færdigheder (`#/assessments`)
+
+`#/assessments` er en simpel log over de færdighedsvurderinger, du tager — en kodetest på en virksomheds platform, en hjemmeopgave, en certificeringsquiz. Registrér én hændelse — **virksomheden**, **platformen**, **færdigheden**, en valgfri **tærskel %** for bestået og din **score %**, plus en fritekstnote — og den føjes, én række pr. hændelse, til `data/assessments.tsv` i forældreprojektet. Siden viser også alt, hvad du har logget, og opsummerer det pr. platform, så du kan se, hvordan det går over tid. Det er en eksplicit skrivning, du udløser; når forældreprojektet ikke er til stede, viser siden en dæmpet linje med "ikke tilgængelig".
+
+## 27. Karriereplan (`#/career-plan`)
+
+Siden **Karriereplan** forvandler dit CV og din profil til en konkret, personlig udviklingsplan — den slags, du ville bygge sammen med en karrierecoach, men genereret ud fra dine egne materialer og din at redigere.
+
+### Generér en plan
+
+Vælg en **Horisont** (6, 12 eller 24 måneder), skriv eventuelt et **Fokus** (for eksempel "gå over i ledelse", "arbejde remote" eller "skifte til Go"), og klik på **Generér plan**. Modellen læser dit CV, din profil, din two-pager og din hukommelsesnote (via den delte projektkontekst) og skriver en struktureret plan: et ærligt øjebliksbillede af dit udgangspunkt, en SWOT over styrker og vækstområder, mål udtrykt som SMART / OKR / WOOP, alternative karrierespor med deres afvejninger, en plan for hårde og bløde kompetencer, en måned-for-måned-køreplan for din valgte horisont, hvordan du følger fremskridt, sandsynlige faldgruber og støttende træk. Hver anbefaling er forankret i det, dine materialer faktisk viser — den planlægger fremad, den opfinder aldrig fakta om din historik. Uden en API-nøgle sat får du i stedet en prompt til at kopiere og indsætte.
+
+### Redigering og gemning
+
+Planen lander i et redigerbart tekstfelt — juster hvad som helst, og klik derefter på **Gem plan**. Den skrives til dit overordnede projekts brugerlag i `config/career-plan.md`, så den overlever systemopdateringer og kun sendes inde i de LLM-prompts, du vælger at køre. **Forhåndsvisning** gengiver din Markdown, så du kan læse den formateret, før du gemmer.
+
+### Eksport
+
+Brug **Download .md**, **Gem som PDF** eller **Kopiér** for at tage planen ud af appen — de samme eksportknapper, der bruges på tværs af appens AI-rapporter. PDF'en går gennem den eksisterende inline-PDF-generator; Markdown er en direkte download.
+
+## 28. Karriereorientering (`#/orientation`)
+
+Siden **Karriereorientering** besvarer "hvilke retninger passer faktisk til mig?" — den slags læsning, du ville få af en erhvervstest, men udledt af dit eget CV og din profil frem for et spørgeskema.
+
+### Hvad den producerer
+
+Klik på **Generér profil**, og modellen læser dit CV, din profil, din two-pager og din hukommelsesnote og skriver en karriereorienteringsprofil: dine **bedst passende karrierevektorer** (hvilke af de otte arketyper — Funktionalist, Administrator, Kommunikator, Specialist, Analytiker, Innovator, Leder, Iværksætter — der passer bedst, med belæg fra dit CV), en **karrieretype-tendens**, et sæt **anbefalede roller**, dine **professionelle styrker** knyttet til det, CV'et viser, **arbejdsstilstendenser** ("hvordan dit CV læses" på nogle få akser) og **udviklingsanbefalinger** til at udvide din pasform.
+
+### Hvordan den genereres
+
+Den er en **AI-refleksion af, hvordan dit CV læses — ikke en psykometrisk test.** Prompten er fuldt ud forankret i dine egne materialer: den opfinder ikke resultater, og den rapporterer aldrig numeriske testresultater, som om de var målt. Uden en API-nøgle sat får du en kopiér-indsæt-prompt at køre i en vilkårlig LLM i stedet for en live profil. Intet skrives til disk — profilen genereres på ny hver gang.
+
+### Eksport
+
+Brug **Download .md**, **Gem som PDF** eller **Kopiér** for at beholde profilen — de samme eksportknapper, der bruges på tværs af appens AI-rapporter. PDF'en går gennem den eksisterende inline-PDF-generator; Markdown er en direkte download.
+
+## 29. ReboundOps-manifestet
+
+rebound-ops — moderprojektet, som denne app sætter en brugerflade på — er den første referenceimplementering af [ReboundOps-manifestet](https://github.com/AnkitParekh007/rebound-ops) (forælder v1.20.0). Manifestet navngiver den praksis, som hele dette værktøjssæt findes for: at drive en jobsøgning på samme måde, som ingeniører driver produktion — med evidens, med disciplin og med værktøjer på kandidatens side af bordet.
+
+### Hvad det siger
+
+Seks principper — "ansøg bedre, til færre", "signal frem for volumen", "evidens frem for nøgleord", "et menneske beslutter", "lokal-først", "værdighed på begge sider af bordet" — plus en rettighedserklæring for kandidater i en tidsalder med AI-medieret rekruttering: du er usynlig som standard, ingen foreslår dig uden dit ja, dit ja er menneskeligt og kan ikke uddelegeres til en agent, du betaler aldrig, dine data er dine egne. Appen følger disse regler ved design: intet bliver nogensinde indsendt automatisk, alt kører lokalt, og enhver påstand i et genereret CV kan spores tilbage til dine egne materialer.
+
+### Læsning og underskrivelse
+
+Linket i sidebjælke-footeren åbner manifest-siden. Du kan også læse `MANIFESTO.md` i moderprojektet eller køre `npm run manifesto` der for at åbne underskriftssiden. At underskrive er valgfrit og tager ti sekunder — din underskrift bliver et offentligt commit i moderprojektets `SIGNATURES.md`-register. Intet i appen afhænger af, om du underskriver.
+
+**Sådan er selve appen bygget.** Manifestet handler om, hvordan man driver en jobsøgning; softwaren, der sætter en brugerflade på det, er bygget med kodningsagenter, og den praksis har sit eget katalog: [Agentic Coding Design Patterns](https://mokevnin.github.io/agentic-coding-design-patterns/en/) af Kirill Mokevnin ([russisk udgave](https://mokevnin.github.io/agentic-coding-design-patterns/ru/)). rebound-ops-ui følger det bevidst — eksekverbare autoværn i en committed pre-commit-hook, pakkede workflows som skills, isolerede parallelle fan-outs, en domæneordbog, ADR'er, en fremdriftslog og workflow-evalueringer. Hvad der rent faktisk er implementeret, og hvad der ikke er, revideres på projektets wiki-side *Agentic Practices*.
+
+## 30. Hermes & Telegram
+
+**Hermes fra Nous Research** er en åben, autonom agent — tool-calling, skills og mere end 20 beskedkanaler, heriblandt Telegram. **Fra v1.151.0 er Hermes en tilsluttet LLM-udbyder:** kør dens OpenAI-kompatible API Server (`hermes gateway`), sæt `HERMES_API_KEY` i **App-indstillinger**, og rebound-ops-ui kører sine live-evalueringer via din lokale Hermes. Dette afsnit dækker også at køre appen på en cloud-server og at bygge bro fra dens events til Telegram via Hermes — de to dele er vejledning til operatører, ikke app-funktioner. Den fulde guide er `docs/integrations/HERMES.md`, og `hermes-bridge`-skillen gennemgår trinnene.
+
+### Hvad Hermes er
+
+Hermes er en agent-runtime, der forbinder til dine egne LLM-udbydere — og den eksponerer også en **OpenAI-kompatibel API Server**: `hermes gateway` serverer `POST /v1/chat/completions` på `http://127.0.0.1:8642/v1` med en Bearer-nøgle (dens `API_SERVER_KEY`). Derfor behandler rebound-ops-ui den som endnu en udbyder («Shape A»-vejen i guiden): appen POST’er til det lokale endpoint præcis som for OpenAI eller Qwen, og Hermes ruter forespørgslen til den model, du har konfigureret indeni. Den ligger **sidst** i auto-rækkefølgen, så den tilsidesætter aldrig en eksisterende Anthropic/Gemini/OpenAI/Qwen-opsætning.
+
+### Kørsel på en cloud-server
+
+rebound-ops-ui binder til `127.0.0.1` som standard. For at nå en Hermes-agent, der lever på en server, forlader du loopback — forsigtigt. Hold appen bundet til loopback, og sæt en reverse proxy (nginx eller Caddy) foran, der terminerer HTTPS; kør den under systemd eller pm2 som en ikke-root-bruger; og hold den skrivebeskyttede kontrakt med parent-projektet rebound-ops intakt på den headless maskine. Sikkerhedsrammen skal overleve flytningen: en Content-Security-Policy uden inline-scripts, SSRF-værnet på hver hentning af en brugerangivet URL, markdown/XSS-grænsen og ingen hemmeligheder i logs. Guiden har den fulde tjekliste — eksponér aldrig `0.0.0.0` direkte mod internettet.
+
+### Telegram via Hermes
+
+Broen får appens events — en afsluttet scanning, en ny rapport, en opfølgning der lige er blevet akut — frem til en Telegram-chat via Hermes. Telegram-bottens token lever i Hermes' egen config, aldrig i rebound-ops-ui. Send kun det nyttige minimum: "Scanning afsluttet — 12 nye match" plus et link, du selv åbner. **Send aldrig** CV-tekst, lønbeløb, rapportindhold, API-nøgler eller interne URL'er til kanalen — guidens trusselsmodel-liste "hvad man IKKE skal eksponere" er reglen. Denne side kan nås fra `#/help`, og den indbyggede dokumentationsassistent besvarer spørgsmål ud fra den.
+
+## 31. Kør hele stakken i skyen
+
+De fleste kører rebound-ops på deres egen laptop. Men pipelinen er bedst, når den er **altid tændt** — den scanner jobopslag, mens du sover, holder trackeren opdateret, og er klar i en browser fra enhver enhed. Dette afsnit er den samlede opskrift fra start til slut på at sætte **hele stakken** på en lille cloud-server: den overordnede **rebound-ops**-pipeline, denne **rebound-ops-ui**-viewer, og den **motor**, der kører AI'en — enten dit **Claude-abonnement** (via Claude Code CLI'en) eller en lokal **Hermes**-gateway. Det bygger videre på Hermes cloud-noterne i §30; den fulde operatør-tjekliste er `docs/integrations/HERMES.md`.
+
+### De tre bevægelige dele
+
+Stakken er tre dele, der samarbejder, og det hjælper at holde dem klart adskilt. **rebound-ops** (parent) er AI-jobsøgningspipelinen — den ejer din `cv.md`, `config/`, `reports/` og `portals.yml`, og den drives af en **agent-CLI**. **rebound-ops-ui** (denne app) er en primært skrivebeskyttet web-viewer, der ligger *inde i* rebound-ops som `web-ui/` og viser de samme filer i en browser; den skriver kun tilbage ved eksplicitte handlinger. **Motoren** er det, der rent faktisk besvarer AI-prompterne. To af de tre dele er de samme på en server som på din laptop — kun valget af motor og netværkseksponeringen ændrer sig.
+
+### Provisionér og installér
+
+Lej en lille VPS (1 vCPU / 1 GB RAM er rigeligt til viewer'en), der kører en aktuel Linux, og installér **Node ≥ 18** (22.5+ anbefales — det aktiverer parent-projektets SQLite-tracker-indeks). Installér `git`. Gør derefter præcis det, en lokal installation gør: klon parent-projektet `rebound-ops`, og klon dette repo inde i det som `rebound-ops/web-ui/`. Læg provider-nøgler i parent-projektets `.env` (commit den aldrig — `.env` / `.env.*` er i gitignore; start fra `.env.example`). Kør viewer'en med `npm start` — men hold den bundet til `127.0.0.1`; du vil eksponere den via en proxy, ikke direkte (se nedenfor).
+
+### Vælg din motor
+
+rebound-ops er CLI-agnostisk, så du har tre reelle muligheder for AI'en. **Dit Claude-abonnement** — installér **Claude Code**-CLI'en på maskinen, og kør `claude login` med din Pro/Max-plan; parent-projektets agent bruger så dit abonnement uden per-token API-regning. **Hermes** — kør `hermes gateway` på samme maskine (den eksponerer en OpenAI-kompatibel API på `http://127.0.0.1:8642/v1`) og sæt `HERMES_API_KEY` i **App-indstillinger**; rebound-ops-uis live-evalueringer går gennem den (sidst i den automatiske provider-rækkefølge). **API-nøgler** — sæt `ANTHROPIC_API_KEY` (eller en af de syv providere: Anthropic → Gemini → OpenAI → Qwen → OpenRouter → GitHub Models → Hermes → DeepSeek → GLM (Z.ai) → Kimi (Moonshot) → MiniMax → Mistral → Grok (xAI) → Together → Fireworks → Ollama → BytePlus Ark → Volcengine Ark) i parent-projektets `.env`, og de ⚡ live-handlinger fungerer uden opsyn. Du kan blande dem: et Claude-abonnement til parent-projektets tunge agentarbejde, og en billig eller lokal provider til viewer'ens hurtige evalueringer.
+
+### Eksponér den sikkert
+
+At flytte væk fra `127.0.0.1` betyder, at den sikkerhed, loopback gav gratis, nu skal bygges eksplicit — **koden er identisk; kun eksponeringen ændrer sig.** Hold appen bundet til loopback, og sæt en reverse proxy (**nginx** eller **Caddy**) foran, der terminerer **HTTPS** (Let's Encrypt / automatisk TLS) og videresender til `127.0.0.1:4317`; kør den under **systemd** eller `pm2` som en dedikeret **ikke-root**-bruger med `Restart=on-failure`. Sæt **autentificering** foran — appen har ikke sit eget login, så det er proxyen (basic-auth, en SSO-forward-auth, eller et privat netværk / VPN), der holder fremmede ude. Når du sætter `HOST=0.0.0.0`, så proxyen kan nå den, slår den indbyggede hardening, der var en no-op på loopback, til og bliver bærende: LLM-rate-limiten, `safeGet`s DNS-rebinding-forsvar, og sti-navns-sanering. Fire invarianter skal overleve flytningen, og du må ikke svække dem: **CSP'en** (ingen inline-scripts, `frame-ancestors 'none'` — proxyen må ikke fjerne disse headers), **SSRF-værnet** på hver brugerangivet URL-hentning, **markdown/XSS-grænsen** (`stripDangerousMarkdown()` server-side + escape-first `UI.md()` client-side), og **ingen hemmeligheder i logs**. Parent-projektets skrivebeskyttede kontrakt gælder stadig på den headless maskine — serveren læser kun din `cv.md` / `config/` / `reports/` og skriver ved eksplicitte handlinger.
+
+## 32. Kør den fra OpenWorker (AI-kollega)
+
+Foretrækker du en AI-kollega på skrivebordet frem for browseren? **[rebound-ops-coworker](https://github.com/AnkitParekh007/rebound-ops)** er en **[OpenWorker](https://github.com/andrewyng/openworker)**-kollega (Andrew Ngs open source, local-first AI-kollega-app), der driver hele denne pipeline for dig — scanner jobopslag, scorer match mod dit CV, skræddersyr et velfunderet CV + følgebrev, holder styr på ansøgninger, udarbejder opfølgninger — og den kan **starte dette dashboard** på anmodning. Det er en enkelt, kodefri Markdown-"persona"; OpenWorker kører intet af det som et program — instruktionerne styrer blot agenten. Dens guide leveres på alle 19 sprog.
+
+### Hvad kollegaen gør
+
+Kollegaen arbejder inde i din `rebound-ops`-projektmappe og kører de samme trin som pipelinen: den scanner jobopslagene i din `portals.yml` (nul tokens), vurderer hvert opslag 0–5 mod din `cv.md` + `config/profile.yml`, og — på anmodning — skræddersyr et rollespecifikt CV + følgebrev, der **kun** er funderet i fakta, som allerede findes i dit CV (den opfinder aldrig en arbejdsgiver, dato eller et nøgletal). Den opdaterer `data/applications.md`, udarbejder opfølgnings-e-mails og kan placere interview-tidspunkter — hvor hver afsendelse eller skrivning **kræver godkendelse**, præcis som rebound-ops' egen doktrin. For at åbne denne viewer kører den `bash web-ui/bin/start.sh` (eller `npm start`) og giver dig `http://127.0.0.1:4317`.
+
+### Installér og start
+
+Installer OpenWorker og tilføj en modelnøgle (Anthropic / OpenAI / Google, eller en lokal Ollama). Hurtigst er **én kommando** — den sætter `rebound-ops`-pipelinen op, som coworkeren driver, og er idempotent: den genbruger et eksisterende `rebound-ops` / `web-ui` uden at overskrive dine data:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AnkitParekh007/rebound-ops/main/install.sh | bash
+```
+
+Tilføj derefter coworkeren i OpenWorkers **Install a coworker**-panel — via **GitHub URL** (`https://github.com/AnkitParekh007/rebound-ops`), via **.zip** (fra [Releases](https://github.com/AnkitParekh007/rebound-ops/releases)) eller ved at **importere** `rebound-ops.md`. Åbn en **Job-Search Coworker**-session, vælg din `rebound-ops`-mappe, og bed om noget konkret — *"scan mine boards og giv mig ugens top 5 match"* eller *"åbn dashboardet."* Connectors (Gmail, Google Calendar, GitHub) og den fulde guide er i repoets [hjælpeguide](https://github.com/AnkitParekh007/rebound-ops/tree/main/help). Verificeret installerbar mod OpenWorkers loader og dens repo-installer.
+
+## 33. Jobkort (`#/map`)
+
+Kortet viser scanresultater, den ventende pipeline og din tracker på et OpenStreetMap-kort. En **udfyldt prik** er en evalueringsscore (tracker); en **ring** er et hint om titelmatch for et opslag, du endnu ikke har evalueret (pipeline, scan). Et **tal** samler nærliggende opslag; zoom ind for at sprede dem. 📍 markerer en arbejdsgiveradresse fundet i OpenStreetMap, ellers sidder prikken i stedets centrum. Lagvælgeren slår scan, pipeline og tracker til og fra.
+
+### Sådan bruger du kortet
+
+<p align="center"><img src="https://raw.githubusercontent.com/AnkitParekh007/rebound-ops/main/workspace/images/job-map-da.png" alt="Jobkort: scanresultater, pipeline og trackerens opslag på et OpenStreetMap-kort" width="760"></p>
+
+1. **Kør først en scanning** (`#/scan`) — kortet tegner det, som den seneste scanning, pipelinen og trackeren indeholder; et tomt projekt giver et tomt kort.
+2. **Åbn `#/map`.** Linjen under titlen viser fremdriften: *Steder fundet: N/M* vokser, efterhånden som stederne slås op (cachede steder vises med det samme), og *Uden sted* tæller opslag, der ikke nævner noget sted (kun remote, "Anywhere").
+3. **Læs farverne.** Udfyldt = din evalueringsscore (grøn god · gul okay · blå middel · rød svag). Ring = titelmatch før evaluering (samme farver, grå = intet match-signal).
+4. **Zoom ind** på et tal for at dele en gruppe; på gadeniveau spredes opslag på samme sted, så hvert kan klikkes.
+5. **Klik på en prik** for at åbne opslaget, eller evalueringsrapporten for en tracker-post.
+6. **Skift lag** (øverst til højre) for fx kun at sammenligne trackeren med friske scanresultater.
+
+Et opslag med flere steder ("Berlin Office · Berlin · Germany · Bosnia · …", "Berlin; Munich", "Remote U.S. · Toronto") placeres på sit **første egentlige sted**; "Remote …"-led, "(HQ)" og et afsluttende "Office" springes over. Kortet viser det område, hvor de fleste opslag ligger, så et par fjerntliggende ikke krymper udsnittet — zoom ud for at se dem.
+
+### Data og privatliv
+
+Kortet er den eneste visning, der kontakter eksterne tjenester, og kun mens det er åbent: browseren henter kortfliser fra tile-serveren, og serveren sender hvert opslags **sted og firmanavn** (aldrig dit CV eller din profil) til geokoderen Nominatim. Svar caches i `web-ui/.cache/geocode.json`, så hvert sted slås kun op én gang. Vil du holde forespørgslerne på din egen infrastruktur, så peg variablerne nedenfor på selvhostede servere.
+
+### Konfiguration
+
+| Variabel | Standard | Formål |
+|---|---|---|
+| `NOMINATIM_URL` | `https://nominatim.openstreetmap.org` | Geokoderens basis-URL (selvhostet Nominatim) |
+| `NOMINATIM_EMAIL` | — | Kontaktadresse sendt til den offentlige Nominatim, som dens brugspolitik beder om |
+| `NOMINATIM_GAP_MS` | `1100` | Mindste pause mellem opslag på den offentlige vært (hæv den, når flere instanser deler én IP) |
+| `MAP_TILE_URL` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Leaflet-fliseskabelon; dens vært føjes til CSP'ens `img-src` |
+| `MAP_TILE_ATTRIBUTION` | OpenStreetMap | Kildeangivelse vist for egne fliser |

@@ -1,0 +1,354 @@
+/* global Router, API, UI, I18n, HelpHint */
+/**
+ * #/two-pager — Candidate market fit: the two-pager (v1.89.0, Epic 14).
+ *
+ * A guided builder for the "Mnookin two-pager" (from *Never Search Alone*):
+ * who I am, what I love, my must-haves, what I hate, my deal-breakers, my
+ * non-negotiables, and my target environment. It is USER career-framing
+ * content — persisted to the parent's user layer (`config/two-pager.yml`) via
+ * PUT /api/two-pager and inlined into every evaluation prompt server-side.
+ *
+ * Two assists:
+ *   • "AI fill assistant" (POST /api/two-pager/draft) returns a ready-to-run
+ *     Mnookin prompt with the user's CV + profile inlined. We show it in a
+ *     modal to copy/paste into any provider — no fabricated content, no
+ *     silent live call.
+ *   • The saved two-pager powers a "fit-to-what-you-want" badge on scan cards
+ *     (see scan.js + window.FitScore).
+ */
+Router.register('two-pager', async () => {
+  const c = UI.el;
+  const t = (k, f) => I18n.t(k, f);
+
+  const root = c('div');
+  root.appendChild(HelpHint.title(t('twoPager.title', 'Your two-pager'), 'help.hint.twoPager'));
+  root.appendChild(c('p', { className: 'page-subtitle' },
+    t('twoPager.subtitle', 'What YOU actually want from your next role. Feeds every evaluation and powers a fit-to-what-you-want score on each posting.')));
+
+  // Load the saved two-pager (empty-safe). v1.243.0 (views-3) — a FAILED load
+  // used to fall into the same `{ …empty }` shape as "no two-pager yet": the
+  // blank form was indistinguishable from a first run, and clicking Save
+  // silently overwrote config/two-pager.yml with all-empty fields. Remember
+  // the failure: surface it (existing common.error key + the server's own
+  // message) and hold Save disabled until the user actually edits a field —
+  // a deliberate edit makes the on-screen content intentional, so saving is
+  // then allowed.
+  // (Discriminated result object — CodeQL js/trivial-conditional clean.)
+  const load = await API.get('/api/two-pager')
+    .then(({ twoPager }) => ({ twoPager }))
+    .catch((e) => ({ error: e }));
+  const loadErr = load.error || null;
+  // CAR-94 (3) — the failure is recoverable: a later successful GET (page
+  // reload, or any code path that re-reads the file) flips this and the
+  // overwrite confirm is no longer needed.
+  let loadRecovered = false;
+  let data = load.twoPager || { who_i_am: '', loves: [], must_haves: [], hates: [], deal_breakers: [], non_negotiables: [], target_environment: '' };
+
+  // ── free-text blocks ──
+  const whoField = textareaField('twoPager.whoLabel', 'Who I am',
+    'twoPager.whoPh', 'A few first-person sentences: your track record, what you optimize for, the shape of role you thrive in.',
+    data.who_i_am, 5);
+  const envField = textareaField('twoPager.envLabel', 'Target environment',
+    'twoPager.envPh', 'The company size, stage, and culture you want (e.g. "Series A–B product company, remote-first, small autonomous teams").',
+    data.target_environment, 3);
+
+  function textareaField(labelKey, labelFb, phKey, phFb, value, rows) {
+    const ta = c('textarea', { className: 'input', rows: String(rows), 'data-i18n-placeholder': phKey });
+    ta.placeholder = t(phKey, phFb);
+    ta.value = value || '';
+    const wrap = c('label', { className: 'field', style: { display: 'block', margin: '0 0 18px' } }, [
+      c('span', { className: 'field-label', style: { display: 'block', fontWeight: '600', margin: '0 0 6px' } }, t(labelKey, labelFb)),
+      ta,
+    ]);
+    return { wrap, get: () => ta.value, set: (v) => { ta.value = v || ''; } };
+  }
+
+  // ── tag-list editors (loves / must_haves / hates / deal_breakers / non_negotiables) ──
+  const lists = [
+    { key: 'loves', labelKey: 'twoPager.loves', labelFb: 'What I love', hintKey: 'twoPager.lovesHint', hintFb: 'Energizers — remote, ownership, greenfield, mentoring…', tone: 'pos' },
+    { key: 'must_haves', labelKey: 'twoPager.mustHaves', labelFb: 'Must-haves', hintKey: 'twoPager.mustHavesHint', hintFb: 'Required — comp floor, a country, a stack…', tone: 'pos' },
+    { key: 'hates', labelKey: 'twoPager.hates', labelFb: 'What I hate', hintKey: 'twoPager.hatesHint', hintFb: 'Drainers — on-call, endless meetings, legacy-only…', tone: 'neg' },
+    { key: 'deal_breakers', labelKey: 'twoPager.dealBreakers', labelFb: 'Deal-breakers', hintKey: 'twoPager.dealBreakersHint', hintFb: 'Hard nos — onsite only, no sponsorship, sub-$X…', tone: 'neg' },
+    { key: 'non_negotiables', labelKey: 'twoPager.nonNegotiables', labelFb: 'Non-negotiables', hintKey: 'twoPager.nonNegotiablesHint', hintFb: 'Boundaries — location, remote, comp floor…', tone: 'pos' },
+  ];
+
+  // FULL-M6 — chip add/remove fires no native input event, so the debounced
+  // live preview never re-ran after one (type → pause past the debounce →
+  // press Enter: the preview stayed on the pre-chip content until the next
+  // keystroke or AI fill). The editors call schedulePreviewRender on every
+  // mutation, so chip edits ride the SAME 150 ms debounce as typing.
+  // prod-QA (CAR-170) — tagEditor notifies during CONSTRUCTION for every
+  // saved chip, so the scheduler — and the `previewTimer` its body reads —
+  // must exist before the editors are built: hoisting the FUNCTION did not
+  // hoist the let-BINDING, and a saved two-pager with at least one tag
+  // threw `ReferenceError: Cannot access 'previewTimer' before
+  // initialization`, killing the whole route render.
+  let previewTimer = null;
+  function schedulePreviewRender() {
+    if (previewTimer) clearTimeout(previewTimer);
+    previewTimer = setTimeout(renderLivePreview, 150);
+  }
+  const editors = {};
+  const getters = {};
+  const grid = c('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', margin: '0 0 18px' } });
+  for (const spec of lists) {
+    const editor = tagEditor(Array.isArray(data[spec.key]) ? data[spec.key] : [], spec, t, c, () => schedulePreviewRender());
+    editors[spec.key] = editor;
+    getters[spec.key] = editor.get;
+    grid.appendChild(editor.node);
+  }
+
+  root.appendChild(whoField.wrap);
+  root.appendChild(grid);
+  root.appendChild(envField.wrap);
+
+  // ── actions ──
+  const draftBtn = c('button', { className: 'btn btn-ghost', type: 'button' }, t('twoPager.aiFill', '✨ AI fill assistant'));
+  const previewBtn = c('button', { className: 'btn btn-ghost', type: 'button' }, t('twoPager.preview', '👁 Preview & export'));
+  const saveBtn = c('button', { className: 'btn btn-primary', type: 'button' }, t('twoPager.save', 'Save two-pager'));
+  // v1.243.0 (views-3) — failed-load guard: Save stays disabled until a
+  // deliberate edit. The tooltip carries the server's own error message
+  // (no new UI copy); the first 'input' anywhere in the form re-enables it.
+  if (loadErr) {
+    saveBtn.disabled = true;
+    saveBtn.title = (loadErr && loadErr.message) || t('twoPager.saveFailed', 'Could not save the two-pager');
+  }
+  // P4-ETA (v1.170.0) — honest duration hint next to the ✨ AI-fill generation.
+  const draftEta = c('span', { className: 'eta-hint', title: t('common.etaTitle', 'Typical generation time') },
+    '⏱ ' + t('common.eta', '~{n}s').replace('{n}', '20'));
+  const actions = c('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', margin: '4px 0 8px' } }, [saveBtn, draftBtn, draftEta, previewBtn]);
+  if (loadErr) {
+    // role=alert banner above the actions: the failed GET must be visible,
+    // not look like "no two-pager yet". Existing keys only — 'common.error'
+    // plus the server's message (dynamic server text, not new UI copy).
+    root.appendChild(c('div', {
+      role: 'alert',
+      className: 'card',
+      style: { padding: '10px 14px', margin: '0 0 12px', borderColor: 'var(--danger, #d9534f)' },
+    }, [
+      c('strong', null, t('common.error', 'Error')),
+      c('span', { style: { marginInlineStart: '8px', color: 'var(--foggy)' } },
+        String((loadErr && loadErr.message) || '')),
+    ]));
+  }
+  root.appendChild(actions);
+  // First deliberate edit re-enables Save (input events bubble to root).
+  if (loadErr) root.addEventListener('input', () => { saveBtn.disabled = false; });
+
+  // CAR-119 — the shared AI-page template: the editor is the form column;
+  // the result column carries the run panel + a LIVE preview (the modal
+  // preview stays for the export flow). The layout lands between the failed-
+  // load banner and the actions row — the actions still belong to the editor.
+  // // CAR-119 i18n: no new dictionary keys — the kit's `llm2.*` strings ship
+  // as I18n.t EN fallbacks inside public/js/lib/llm-page-kit.js.
+  const runHost = c('div');
+  const previewPane = c('div');
+  function renderLivePreview() {
+    previewPane.replaceChildren(c('div', { className: 'card md', html: UI.md(buildMarkdown()), style: { padding: '16px' } }));
+  }
+  const twoPagerPage = window.LlmPageKit.layout({
+    form: c('div', null, [whoField.wrap, grid, envField.wrap]),
+    result: c('div', null, [runHost, previewPane]),
+  });
+  root.insertBefore(twoPagerPage.root, actions);
+  // Review #10 — programmatic .value (AI fill) fires no input event, so
+  // the fill path re-renders explicitly; typing debounces at ~150 ms so a
+  // full buildMarkdown+UI.md pass does not run on every keystroke.
+  // (The scheduler is declared above the editor construction — the editors
+  // fire it while being built.)
+  root.addEventListener('input', schedulePreviewRender);
+  renderLivePreview();
+
+  root.appendChild(c('p', { style: { color: 'var(--foggy)', fontSize: '12px', margin: '0 0 24px' } },
+    t('twoPager.privacyNote', 'Stored in your parent project’s user layer (config/two-pager.yml) — never sent anywhere except the LLM prompts you run.')));
+
+  function collect() {
+    return {
+      who_i_am: whoField.get(),
+      target_environment: envField.get(),
+      loves: getters.loves(),
+      must_haves: getters.must_haves(),
+      hates: getters.hates(),
+      deal_breakers: getters.deal_breakers(),
+      non_negotiables: getters.non_negotiables(),
+    };
+  }
+
+  // Render the current fields as a formatted two-pager document (for preview + export).
+  function buildMarkdown() {
+    const d = collect();
+    const lines = ['# ' + t('twoPager.title', 'Your two-pager'), ''];
+    if (d.who_i_am && d.who_i_am.trim()) lines.push('## ' + t('twoPager.whoLabel', 'Who I am'), d.who_i_am.trim(), '');
+    const sec = (label, arr) => {
+      if (Array.isArray(arr) && arr.length) { lines.push('## ' + label); arr.forEach((x) => lines.push('- ' + x)); lines.push(''); }
+    };
+    sec(t('twoPager.loves', 'What I love'), d.loves);
+    sec(t('twoPager.mustHaves', 'Must-haves'), d.must_haves);
+    sec(t('twoPager.hates', 'What I hate'), d.hates);
+    sec(t('twoPager.dealBreakers', 'Deal-breakers'), d.deal_breakers);
+    sec(t('twoPager.nonNegotiables', 'Non-negotiables'), d.non_negotiables);
+    if (d.target_environment && d.target_environment.trim()) lines.push('## ' + t('twoPager.envLabel', 'Target environment'), d.target_environment.trim(), '');
+    return lines.join('\n');
+  }
+
+  previewBtn.addEventListener('click', () => {
+    const md = buildMarkdown();
+    const body = c('div', null, [
+      c('div', { className: 'card md', html: UI.md(md), style: { padding: '16px', maxHeight: '50vh', overflow: 'auto' } }),
+      window.ReportExport ? ReportExport.actionsBar(() => buildMarkdown(), () => t('twoPager.title', 'Your two-pager'), t) : null,
+    ]);
+    UI.modal(t('twoPager.preview', 'Preview & export'), body);
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    // CAR-94 (3) — after a failed load the form is NOT the file's real
+    // content, and one keystroke used to re-enable Save: a click then PUT a
+    // near-empty form over config/two-pager.yml. A deliberate edit (or an
+    // AI fill) may still arm the button, but while the failed load has not
+    // been recovered the destructive save itself requires an explicit
+    // danger confirm.
+    if (loadErr && !loadRecovered) {
+      const ok = await UI.confirm(
+        t('twoPager.save', 'Save two-pager'),
+        t('twoPager.overwriteWarn',
+          'The saved two-pager could not be loaded, so the form may not show your saved data. Saving now overwrites config/two-pager.yml with what the form shows.'),
+        { danger: true },
+      );
+      if (!ok) return;
+    }
+    saveBtn.disabled = true;
+    try {
+      await API.put('/api/two-pager', collect());
+      UI.toast(t('twoPager.saved', 'Two-pager saved'), 'success');
+    } catch (err) {
+      UI.toast((err && err.message) || t('twoPager.saveFailed', 'Could not save the two-pager'), 'error');
+    } finally { saveBtn.disabled = false; }
+  });
+
+  // Apply a live-generated (or pasted) two-pager onto the form editors.
+  function applyFields(f) {
+    if (!f || typeof f !== 'object') return;
+    if ('who_i_am' in f) whoField.set(f.who_i_am);
+    if ('target_environment' in f) envField.set(f.target_environment);
+    for (const spec of lists) {
+      const ed = editors[spec.key];
+      if (ed && Array.isArray(f[spec.key])) ed.set(f[spec.key]);
+    }
+  }
+
+  function showManualPrompt(prompt) {
+    const dump = c('textarea', { className: 'input', rows: '16', readonly: 'readonly', style: { width: '100%', fontFamily: 'monospace', fontSize: '12px' } }, prompt);
+    A11yDump.label(dump, t('a11y.readonlyOutput', 'Generated result — read only'));
+    const body = c('div', null, [
+      c('p', { style: { margin: '0 0 10px', color: 'var(--foggy)' } },
+        t('twoPager.aiFillHelp', 'Run this in any LLM, then paste the YAML fields back into the form above. It uses only your CV and profile — nothing is invented.')),
+      dump,
+    ]);
+    UI.modal(t('twoPager.aiFill', '✨ AI fill assistant'), body);
+  }
+
+  draftBtn.addEventListener('click', async () => {
+    draftBtn.disabled = true;
+    draftBtn.textContent = t('twoPager.aiFilling', '✨ Filling…');
+    // CAR-119 — the shared run panel (live elapsed/ETA + Cancel) rides the
+    // result column while the fill runs.
+    const runCtrl = window.LlmPageKit.createRun({ etaSeconds: 20, onBegin: () => twoPagerPage.show('result') }).mount(runHost);
+    try {
+      // Ask the server to run it live; it falls back to a manual prompt when no
+      // provider is configured. Auto-fill only ever populates editable fields —
+      // the user still reviews and clicks Save.
+      const res = await window.LlmPageKit.run({
+        run: runCtrl,
+        failText: t('twoPager.aiFillFailed', 'Could not draft the two-pager'),
+        request: (signal) => window.LlmPageKit.postJSON('/api/two-pager/draft', { run: true }, signal),
+      });
+      if (runCtrl.cancelled || runCtrl.signal.aborted) return; // a cancelled run paints nothing more
+      if (res && res.fields) {
+        applyFields(res.fields);
+        renderLivePreview(); // review #10 — programmatic fills fire no input event
+        // v1.243.0 (views-3) — an AI fill is also a deliberate edit: re-enable
+        // Save even after a failed initial load (it fills on-screen content).
+        if (loadErr) saveBtn.disabled = false;
+        UI.toast(t('twoPager.aiFilled', 'Fields drafted from your CV — review, then Save'), 'success');
+      } else if (res && res.prompt) {
+        showManualPrompt(res.prompt);
+      }
+    } catch {
+      // CAR-119 review #4 — the kit's fail panel announces the failure.
+    } finally {
+      draftBtn.disabled = false;
+      draftBtn.textContent = t('twoPager.aiFill', '✨ AI fill assistant');
+    }
+  });
+
+  return root;
+});
+
+/**
+ * A small chip-list editor: type + Enter (or comma) to add a tag, click × to
+ * remove. Returns { node, get } where get() yields the current string[].
+ * CSP-safe: all handlers via addEventListener, no inline markup from input.
+ * `onChange` (FULL-M6) fires after every add/remove — a chip
+ * mutation fires no native input event, so the caller's debounced live
+ * preview needs the explicit notify.
+ */
+function tagEditor(initial, spec, t, c, onChange) {
+  const notify = () => onChange();
+  const chips = c('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '0 0 8px' } });
+  const items = [];
+  const toneColor = spec.tone === 'neg' ? 'var(--danger, #d9534f)' : 'var(--accent, #4c8bf5)';
+
+  function addChip(text) {
+    const value = String(text || '').trim();
+    if (!value || items.includes(value)) return;
+    items.push(value);
+    notify();
+    const chip = c('span', {
+      className: 'chip',
+      style: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 8px', borderRadius: '12px', fontSize: '13px', background: 'var(--panel-2, #eef1f6)', border: `1px solid ${toneColor}` },
+    }, [
+      c('span', null, value),
+      c('button', {
+        type: 'button', className: 'chip-x', 'aria-label': t('twoPager.removeTag', 'Remove'),
+        style: { border: 'none', background: 'none', cursor: 'pointer', color: 'var(--foggy)', fontSize: '15px', lineHeight: '1', padding: '0' },
+      }, '×'),
+    ]);
+    chip.querySelector('.chip-x').addEventListener('click', () => {
+      const i = items.indexOf(value);
+      if (i > -1) items.splice(i, 1);
+      chip.remove();
+      notify();
+    });
+    chips.appendChild(chip);
+  }
+
+  const input = c('input', { type: 'text', className: 'input', 'data-i18n-placeholder': 'twoPager.addTagPh', 'data-i18n-aria-label': 'twoPager.addTagPh' });
+  input.placeholder = t('twoPager.addTagPh', 'Type and press Enter…');
+  input.setAttribute('aria-label', input.placeholder);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addChip(input.value);
+      input.value = '';
+    }
+  });
+  input.addEventListener('blur', () => { if (input.value.trim()) { addChip(input.value); input.value = ''; } });
+
+  (Array.isArray(initial) ? initial : []).forEach(addChip);
+
+  const node = c('div', { className: 'card', style: { padding: '14px' } }, [
+    c('div', { style: { fontWeight: '600', margin: '0 0 2px' } }, t(spec.labelKey, spec.labelFb)),
+    c('div', { style: { color: 'var(--foggy)', fontSize: '12px', margin: '0 0 10px' } }, t(spec.hintKey, spec.hintFb)),
+    chips,
+    input,
+  ]);
+
+  function set(newItems) {
+    items.length = 0;
+    while (chips.firstChild) chips.removeChild(chips.firstChild);
+    (Array.isArray(newItems) ? newItems : []).forEach(addChip);
+    notify();
+  }
+
+  return { node, get: () => items.slice(), set };
+}

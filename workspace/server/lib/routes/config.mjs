@@ -1,0 +1,183 @@
+/**
+ * App-settings routes — reads and writes the parent project's .env so
+ * rebound-ops Node scripts AND web-ui's dotenv loader pick up the same
+ * source.
+ *
+ *   GET  /api/config → { envFile, keys, secretKeys, values }
+ *   POST /api/config → writes KNOWN_KEYS only, applies live to process.env
+ *
+ * Secret keys are masked on read. Empty string deletes a key. Validation
+ * via env-config.validateConfig — unknown keys are silently dropped to
+ * prevent attacker-supplied env vars.
+ */
+import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { homedir } from 'node:os';
+import { PATHS } from '../paths.mjs';
+import { withFileLock } from '../file-lock.mjs';
+import { writeRateLimit } from '../rate-limit.mjs';
+import yaml from 'js-yaml';
+import {
+  KNOWN_KEYS,
+  KEY_GROUPS,
+  SECRET_KEYS,
+  parseEnv,
+  maskSecret,
+  validateConfig,
+  normalizeConfigValue,
+  updateEnvFile,
+} from '../env-config.mjs';
+
+/**
+ * F-013 — Is at least one regional source configured in portals.yml?
+ * If not, the SPA hides the "Regional sources" group entirely. Read fresh
+ * on every /api/config request so the user adding a regional source
+ * doesn't require a restart.
+ */
+function regionalSourcesPresent() {
+  try {
+    if (!existsSync(PATHS.portals)) return false;
+    const data = yaml.load(readFileSync(PATHS.portals, 'utf8')) || {};
+    const rp = data.russian_portals;
+    if (!rp || rp.enabled === false) return false;
+    const sources = Array.isArray(rp.sources) ? rp.sources : [];
+    return sources.length > 0;
+  } catch { return false; }
+}
+
+/**
+ * CAR-56 (v1.247.0) — display form of the .env path. The UI prints this in
+ * the settings subtitle, and the raw absolute path leaked the username
+ * ("Saved to /Users/<name>/…"). Shorten a path under the home directory to
+ * its `~/…` form; anything else shows the bare file name (never a full
+ * machine path). Server-side, because only the server knows $HOME.
+ */
+export function displayPath(p) {
+  const s = String(p || '');
+  const home = homedir();
+  if (home && home !== '/' && (s === home || s.startsWith(home + '/'))) {
+    return '~' + s.slice(home.length);
+  }
+  const base = s.split(/[\\/]/).pop();
+  return base || s;
+}
+
+export function registerConfigRoutes(app) {
+  app.get('/api/config', (_req, res) => {
+    let parsed = {};
+    if (existsSync(PATHS.envFile)) {
+      try { parsed = parseEnv(readFileSync(PATHS.envFile, 'utf8')); } catch {}
+    }
+    const out = {};
+    for (const k of KNOWN_KEYS) {
+      const live = process.env[k];
+      // Prefer the on-disk value (what the user just saved); fall back
+      // to whatever's currently in process.env (set via shell).
+      const v = parsed[k] !== undefined ? parsed[k] : live;
+      out[k] = SECRET_KEYS.has(k) ? maskSecret(v) : (v || '');
+    }
+    res.json({
+      // Display form (`~/…` or bare name) — never the absolute machine path.
+      envFile: displayPath(PATHS.envFile),
+      keys: KNOWN_KEYS,
+      secretKeys: [...SECRET_KEYS],
+      groups: KEY_GROUPS,
+      regionalActive: regionalSourcesPresent(),
+      values: out,
+    });
+  });
+
+  // writeRateLimit — this route writes the .env file (API keys, provider
+  // selection): the most sensitive mutation the app exposes. Unconditional
+  // (review LOW #3): unlike the loopback-gated llmRateLimit, the guard holds
+  // on every bind — 60 req/min per route × IP.
+  app.post('/api/config', writeRateLimit(), async (req, res) => {
+    // v1.57.2 — the SPA's API client (public/js/api.js) auto-attaches a
+    // `lang` field to EVERY JSON POST body so LLM-bound routes can pick
+    // up the UI locale. /api/config is NOT an LLM route and `lang` is
+    // not a config key, but validateConfig's (correct, security-relevant)
+    // unknown-key rejection then 400'd every Save with
+    // "validation failed — lang: not a known config key". That was the
+    // real, browser-only "validation failed" users hit (curl/fetch
+    // repros never sent `lang`, so it stayed hidden). `lang` is a
+    // transport concern — strip it here BEFORE validating; the
+    // KNOWN_KEYS write-filter below already drops anything unknown, so
+    // the attacker-injection guard is unchanged for genuine stray keys.
+    const body = { ...(req.body || {}) };
+    delete body.lang;
+    // CONFIG-1 — the current on-disk values, so validateConfig can grandfather
+    // a closed-domain value the user already has. Without this the form, which
+    // resends every non-secret field on every Save, would be permanently
+    // unsaveable for anyone whose .env predates the domain check.
+    let currentValues = {};
+    if (existsSync(PATHS.envFile)) {
+      try { currentValues = parseEnv(readFileSync(PATHS.envFile, 'utf8')); } catch { /* unreadable → validate strictly */ }
+    }
+    const v = validateConfig(body, currentValues);
+    if (!v.ok) return res.status(400).json({ error: 'validation failed', details: v.errors });
+    // Filter to known keys only — never write attacker-supplied env
+    // vars. Normalize (trim) every value so a key pasted with a
+    // trailing newline / stray spaces is stored clean and authenticates
+    // at runtime (v1.57.0 BF).
+    const safe = {};
+    for (const k of KNOWN_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(body, k)) {
+        safe[k] = normalizeConfigValue(body[k]);
+      }
+    }
+    try {
+      mkdirSync(dirname(PATHS.envFile), { recursive: true });
+    } catch {}
+    // BF-2 — wrap updateEnvFile so a permission-denied or read-only
+    // filesystem returns a clean 500 with a useful message instead of
+    // an unhandled rejection bubbling to the default Express handler.
+    let written;
+    try {
+      // FULL-M1 — .env is read by the parent CLI on every run and rewritten
+      // here from a request body: the read→rewrite inside updateEnvFile
+      // runs under the file lock so two concurrent Saves can't interleave.
+      // (The write itself stays a direct fd write inside env-config.mjs —
+      // its 0600 mode-on-create contract moves with it if .env ever gains
+      // temp-then-rename; that file is outside this change's ownership.)
+      written = await withFileLock(PATHS.envFile, () => updateEnvFile(PATHS.envFile, safe));
+    } catch (e) {
+      return res.status(500).json({
+        error: 'failed to write parent .env',
+        details: [e.message],
+      });
+    }
+    // Apply to the running process so the change takes effect immediately
+    // (no restart needed). Every key in `safe` came from KNOWN_KEYS, and
+    // empty-string requests are included on purpose so they delete the
+    // corresponding process.env var — updateEnvFile reports those as
+    // "deleted" rather than "written", so iterating `written` would miss them.
+    //
+    // v1.233.2 — iterate KNOWN_KEYS rather than `Object.entries(safe)`. Both
+    // are equally safe at runtime, because `safe` is only ever populated from
+    // KNOWN_KEYS twenty lines above. But taken alone this loop reads as
+    // "assign to a property whose name came out of an object built from the
+    // request body", which is what CodeQL's js/remote-property-injection saw:
+    // it cannot follow the constraint across the two loops. Iterating the
+    // constant array makes the property name provably a module-level literal,
+    // so the invariant is structural instead of asserted — and the explicit
+    // __proto__ / constructor / prototype guard the old form needed is gone
+    // with it, since a hardcoded list of SCREAMING_SNAKE names cannot contain
+    // one.
+    for (const k of KNOWN_KEYS) {
+      if (!Object.prototype.hasOwnProperty.call(safe, k)) continue;
+      const val = safe[k];
+      if (val === '' || val == null) delete process.env[k];
+      else process.env[k] = val;
+    }
+    // ADJACENT-1 (v1.233.0) — report deletions as well as writes. An empty
+    // value removes a key, but `updateEnvFile` only ever returned what it
+    // wrote, so the UI had nothing to count and a removal surfaced as "· 0".
+    // Computed against the pre-write snapshot, so it names keys that really
+    // were present, not merely those the request asked to clear.
+    const removed = Object.entries(safe)
+      .filter(([k, val]) => (val === '' || val == null)
+        && currentValues[k] !== undefined && currentValues[k] !== '')
+      .map(([k]) => k);
+    res.json({ ok: true, written, removed });
+  });
+}

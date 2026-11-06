@@ -1,0 +1,271 @@
+/* global window */
+/**
+ * countries.js — geography helper for the #/scan results filter (v1.78.0).
+ *
+ * A scanned job's `location` is free text ("Berlin, Germany", "London",
+ * "San Francisco, CA, USA", "Remote — EU", "Москва"…). This module turns that
+ * into a best-effort {code, name, flag} country so the Scan page can offer a
+ * **country dropdown with flags** and let the user keep only roles tied to a
+ * given country — alongside the existing Remote/Hybrid/Onsite work-type filter,
+ * so you can search both country-bound AND remote work.
+ *
+ * Browser classic script (like skills.js): exposes `window.Countries`.
+ * Structured-data fixture: exempt from the 400-LOC file-size rule.
+ *
+ * Detection is intentionally conservative — it never guesses. A location it
+ * can't confidently map returns `null` (the row then only shows under
+ * "All countries"). It is NOT a geocoder; it covers the countries and major
+ * cities that actually appear in tech/job-board postings.
+ */
+(function () {
+  // code = ISO-3166 alpha-2 (lowercased). flag = regional-indicator emoji.
+  // aliases = lowercased names/abbreviations that may appear in a location.
+  const COUNTRIES = [
+    { code: 'us', name: 'United States', flag: '🇺🇸', aliases: ['united states', 'united states of america', 'usa', 'u.s.a', 'u.s.', 'estados unidos'] },
+    { code: 'gb', name: 'United Kingdom', flag: '🇬🇧', aliases: ['united kingdom', 'uk', 'u.k.', 'great britain', 'britain', 'england', 'scotland', 'northern ireland'] },
+    { code: 'de', name: 'Germany', flag: '🇩🇪', aliases: ['germany', 'deutschland', 'alemania', 'allemagne'] },
+    { code: 'fr', name: 'France', flag: '🇫🇷', aliases: ['france', 'frankreich'] },
+    { code: 'es', name: 'Spain', flag: '🇪🇸', aliases: ['spain', 'españa', 'espana', 'espagne'] },
+    { code: 'it', name: 'Italy', flag: '🇮🇹', aliases: ['italy', 'italia', 'italie'] },
+    { code: 'pt', name: 'Portugal', flag: '🇵🇹', aliases: ['portugal'] },
+    { code: 'nl', name: 'Netherlands', flag: '🇳🇱', aliases: ['netherlands', 'the netherlands', 'holland', 'nederland', 'pays-bas'] },
+    { code: 'be', name: 'Belgium', flag: '🇧🇪', aliases: ['belgium', 'belgique', 'belgië', 'belgie'] },
+    { code: 'ch', name: 'Switzerland', flag: '🇨🇭', aliases: ['switzerland', 'schweiz', 'suisse', 'svizzera'] },
+    { code: 'at', name: 'Austria', flag: '🇦🇹', aliases: ['austria', 'österreich', 'osterreich'] },
+    { code: 'ie', name: 'Ireland', flag: '🇮🇪', aliases: ['ireland', 'éire', 'eire'] },
+    { code: 'dk', name: 'Denmark', flag: '🇩🇰', aliases: ['denmark', 'danmark'] },
+    { code: 'se', name: 'Sweden', flag: '🇸🇪', aliases: ['sweden', 'sverige'] },
+    { code: 'no', name: 'Norway', flag: '🇳🇴', aliases: ['norway', 'norge'] },
+    { code: 'fi', name: 'Finland', flag: '🇫🇮', aliases: ['finland', 'suomi'] },
+    { code: 'pl', name: 'Poland', flag: '🇵🇱', aliases: ['poland', 'polska'] },
+    { code: 'cz', name: 'Czechia', flag: '🇨🇿', aliases: ['czechia', 'czech republic', 'česko', 'cesko'] },
+    { code: 'ro', name: 'Romania', flag: '🇷🇴', aliases: ['romania', 'românia'] },
+    { code: 'ua', name: 'Ukraine', flag: '🇺🇦', aliases: ['ukraine', 'україна', 'ukraina'] },
+    { code: 'ru', name: 'Russia', flag: '🇷🇺', aliases: ['russia', 'russian federation', 'россия', 'rossiya'] },
+    { code: 'tr', name: 'Türkiye', flag: '🇹🇷', aliases: ['türkiye', 'turkiye', 'turkey'] },
+    { code: 'gr', name: 'Greece', flag: '🇬🇷', aliases: ['greece', 'hellas', 'ελλάδα'] },
+    { code: 'hu', name: 'Hungary', flag: '🇭🇺', aliases: ['hungary', 'magyarország'] },
+    { code: 'ca', name: 'Canada', flag: '🇨🇦', aliases: ['canada'] },
+    { code: 'mx', name: 'Mexico', flag: '🇲🇽', aliases: ['mexico', 'méxico'] },
+    { code: 'br', name: 'Brazil', flag: '🇧🇷', aliases: ['brazil', 'brasil'] },
+    { code: 'ar', name: 'Argentina', flag: '🇦🇷', aliases: ['argentina'] },
+    { code: 'cl', name: 'Chile', flag: '🇨🇱', aliases: ['chile'] },
+    { code: 'co', name: 'Colombia', flag: '🇨🇴', aliases: ['colombia'] },
+    { code: 'au', name: 'Australia', flag: '🇦🇺', aliases: ['australia'] },
+    { code: 'nz', name: 'New Zealand', flag: '🇳🇿', aliases: ['new zealand', 'aotearoa'] },
+    { code: 'in', name: 'India', flag: '🇮🇳', aliases: ['india', 'bhārat'] },
+    { code: 'sg', name: 'Singapore', flag: '🇸🇬', aliases: ['singapore'] },
+    { code: 'jp', name: 'Japan', flag: '🇯🇵', aliases: ['japan', '日本', 'nippon'] },
+    { code: 'kr', name: 'South Korea', flag: '🇰🇷', aliases: ['south korea', 'korea', '대한민국', '한국'] },
+    { code: 'cn', name: 'China', flag: '🇨🇳', aliases: ['china', '中国', '中國'] },
+    { code: 'tw', name: 'Taiwan', flag: '🇹🇼', aliases: ['taiwan', '台灣', '臺灣'] },
+    { code: 'hk', name: 'Hong Kong', flag: '🇭🇰', aliases: ['hong kong', '香港'] },
+    { code: 'id', name: 'Indonesia', flag: '🇮🇩', aliases: ['indonesia'] },
+    { code: 'my', name: 'Malaysia', flag: '🇲🇾', aliases: ['malaysia'] },
+    { code: 'ph', name: 'Philippines', flag: '🇵🇭', aliases: ['philippines'] },
+    { code: 'th', name: 'Thailand', flag: '🇹🇭', aliases: ['thailand'] },
+    { code: 'vn', name: 'Vietnam', flag: '🇻🇳', aliases: ['vietnam', 'viet nam'] },
+    { code: 'ae', name: 'United Arab Emirates', flag: '🇦🇪', aliases: ['united arab emirates', 'uae', 'u.a.e'] },
+    { code: 'sa', name: 'Saudi Arabia', flag: '🇸🇦', aliases: ['saudi arabia', 'ksa'] },
+    { code: 'il', name: 'Israel', flag: '🇮🇱', aliases: ['israel'] },
+    { code: 'za', name: 'South Africa', flag: '🇿🇦', aliases: ['south africa'] },
+    { code: 'eg', name: 'Egypt', flag: '🇪🇬', aliases: ['egypt'] },
+    { code: 'ng', name: 'Nigeria', flag: '🇳🇬', aliases: ['nigeria'] },
+    { code: 'ke', name: 'Kenya', flag: '🇰🇪', aliases: ['kenya'] },
+  ];
+
+  const BY_CODE = Object.fromEntries(COUNTRIES.map((c) => [c.code, c]));
+
+  // Major job-market cities → country code. Lowercased. Only well-known,
+  // low-ambiguity cities (so "San Francisco" → us without a country token).
+  const CITIES = {
+    // US
+    'san francisco': 'us', 'new york': 'us', 'nyc': 'us', 'los angeles': 'us', 'seattle': 'us',
+    'austin': 'us', 'boston': 'us', 'chicago': 'us', 'denver': 'us', 'atlanta': 'us',
+    'mountain view': 'us', 'palo alto': 'us', 'san jose': 'us', 'washington': 'us', 'miami': 'us',
+    // UK
+    london: 'gb', manchester: 'gb', edinburgh: 'gb', bristol: 'gb', glasgow: 'gb',
+    // ('cambridge' deliberately absent — Cambridge MA vs Cambridge UK is not
+    // resolvable from a location string; the row stays under "All countries"
+    // and an explicit 'United Kingdom'/'UK' segment still resolves.)
+    // DE
+    berlin: 'de', munich: 'de', münchen: 'de', hamburg: 'de', frankfurt: 'de', cologne: 'de', köln: 'de', stuttgart: 'de',
+    // FR
+    paris: 'fr', lyon: 'fr', toulouse: 'fr', nantes: 'fr',
+    // ES
+    madrid: 'es', barcelona: 'es', valencia: 'es',
+    // NL/BE/CH/AT/IE
+    amsterdam: 'nl', rotterdam: 'nl', utrecht: 'nl', brussels: 'be', bruxelles: 'be',
+    zurich: 'ch', zürich: 'ch', geneva: 'ch', genève: 'ch', vienna: 'at', wien: 'at', dublin: 'ie',
+    // Nordics
+    copenhagen: 'dk', københavn: 'dk', stockholm: 'se', oslo: 'no', helsinki: 'fi',
+    // CEE
+    warsaw: 'pl', warszawa: 'pl', krakow: 'pl', kraków: 'pl', wrocław: 'pl', wroclaw: 'pl',
+    prague: 'cz', praha: 'cz', bucharest: 'ro', budapest: 'hu',
+    kyiv: 'ua', kiev: 'ua', lviv: 'ua', moscow: 'ru', москва: 'ru', 'saint petersburg': 'ru', 'st petersburg': 'ru',
+    istanbul: 'tr', ankara: 'tr', athens: 'gr',
+    // Americas
+    toronto: 'ca', vancouver: 'ca', montreal: 'ca', montréal: 'ca',
+    'mexico city': 'mx', 'são paulo': 'br', 'sao paulo': 'br', 'rio de janeiro': 'br',
+    'buenos aires': 'ar', bogotá: 'co', bogota: 'co',
+    // ('santiago' deliberately absent — Santiago de Chile vs Santiago de
+    // Compostela (ES) is not resolvable from a location string; an explicit
+    // 'Chile' segment still resolves.)
+    // APAC / MENA / Africa
+    sydney: 'au', melbourne: 'au', auckland: 'nz', bangalore: 'in', bengaluru: 'in', mumbai: 'in',
+    delhi: 'in', hyderabad: 'in', pune: 'in', tokyo: 'jp', osaka: 'jp', seoul: 'kr',
+    beijing: 'cn', shanghai: 'cn', shenzhen: 'cn', taipei: 'tw', jakarta: 'id', 'kuala lumpur': 'my',
+    // v1.125.x — Chinese tech-board sources (Alibaba/Meituan/Tencent) emit
+    // more mainland cities, often in CJK. Alibaba HQ is Hangzhou.
+    hangzhou: 'cn', guangzhou: 'cn', chengdu: 'cn', nanjing: 'cn', wuhan: 'cn',
+    suzhou: 'cn', xiamen: 'cn', hefei: 'cn',
+    '北京': 'cn', '上海': 'cn', '深圳': 'cn', '杭州': 'cn', '广州': 'cn',
+    '成都': 'cn', '南京': 'cn', '武汉': 'cn', '苏州': 'cn',
+    manila: 'ph', bangkok: 'th', hanoi: 'vn', 'ho chi minh': 'vn', dubai: 'ae', 'abu dhabi': 'ae',
+    riyadh: 'sa', 'tel aviv': 'il', cairo: 'eg', lagos: 'ng', nairobi: 'ke',
+    'cape town': 'za', johannesburg: 'za',
+  };
+
+  // FULL-R5 (review 4) — the alias/city patterns are compiled ONCE at module
+  // load. detectCountry runs several times per row on every SR.render()
+  // (countriesIn, rowInCountry, splitTitleCountry's isPlace, FitScore,
+  // RoleStats); constructing ~200 alias + ~150 city RegExps per call made a
+  // chip toggle on a 5k-row scan compile millions of regexes (~6.7 s per 5k
+  // cached calls). detectCountry itself is memoized by input string in a
+  // bounded map (location strings are immutable inputs — a memo never goes
+  // stale; the bound keeps memory flat), and resetCache() lets the scan
+  // view drop the memo when lastResults changes.
+  const DOTTED = Symbol('dotted'); // dotted aliases (u.s.) fall back to substring
+
+  function compile(alias) {
+    if (/[.]/.test(alias)) return DOTTED;
+    // Escape regex specials in the alias, then word-boundary it (so "us"
+    // won't match "Austin" and "uk" won't match "Paducah").
+    const esc = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(^|[^\\p{L}])${esc}([^\\p{L}]|$)`, 'u');
+  }
+  const ALIAS_RES = new Map();
+  for (const c of COUNTRIES) {
+    for (const a of c.aliases) ALIAS_RES.set(a, compile(a));
+  }
+  const CITY_RES = new Map();
+  for (const city of Object.keys(CITIES)) CITY_RES.set(city, compile(city));
+
+  // Match a lowercased alias as a whole word/phrase against the
+  // precompiled table (unchanged semantics — one shared RegExp per alias
+  // instead of a fresh one per call).
+  function aliasHit(haystack, alias) {
+    if (!alias) return false;
+    const re = ALIAS_RES.get(alias) ?? compile(alias);
+    if (re === DOTTED) return haystack.includes(alias);
+    return re.test(haystack);
+  }
+
+  function cityHit(haystack, city) {
+    const re = CITY_RES.get(city) ?? compile(city);
+    if (re === DOTTED) return haystack.includes(city);
+    return re.test(haystack);
+  }
+
+  // Sub-national geography that CONTAINS a country-name substring but is NOT
+  // a country mention ("New Mexico" ⊃ "Mexico", "New South Wales" ⊃ "Wales",
+  // "Latin America" ⊃ "America"). Stripped before alias/city matching so the
+  // longest-phrase pass can't misfire on it. (v1.243.0, CAR-18)
+  const NOT_COUNTRY = [
+    'new mexico', 'new south wales', 'latin america', 'santiago de compostela',
+  ];
+
+  /**
+   * Best-effort country for a free-text location. Returns {code,name,flag} or null.
+   * Memoized by input string (FULL-R5) — location strings repeat heavily
+   * across renders, and the result for a given string never changes.
+   * @param {string} location
+   */
+  const DETECT_CACHE_CAP = 4096;
+  const detectCache = new Map();
+  function detectCountryUncached(location) {
+    if (typeof location !== 'string') return null;
+    const s = location.toLowerCase().trim();
+    if (!s) return null;
+    const guarded = NOT_COUNTRY.reduce((acc, p) => acc.split(p).join(' '), s);
+
+    // 1) A comma segment that IS a country name/alias is the strongest
+    //    signal ('San Francisco, CA, USA' → usa, 'Berlin, Germany' → de).
+    for (const seg of s.split(',')) {
+      const segTrim = seg.trim();
+      if (!segTrim) continue;
+      for (const c of COUNTRIES) {
+        if (c.aliases.includes(segTrim)) return { code: c.code, name: c.name, flag: c.flag };
+      }
+    }
+    // 2) Longest matching country phrase anywhere in the string — longest
+    //    wins so a whole country name ('…, Australia') beats a fragment it
+    //    happens to contain ('New South Wales'). Previously the FIRST alias
+    //    in array order won, which let 'wales'/'america'/'mexico' impersonate
+    //    a country from inside sub-national geography. When two or more
+    //    DISTINCT countries are mentioned the string is ambiguous prose
+    //    ("relocation to Netherlands ok") → conservative null (the module
+    //    never guesses; the row stays under "All countries").
+    const bestByCountry = new Map();
+    for (const c of COUNTRIES) {
+      for (const a of c.aliases) {
+        if (!aliasHit(guarded, a)) continue;
+        const prev = bestByCountry.get(c.code);
+        if (!prev || a.length > prev.alias.length) bestByCountry.set(c.code, { c, alias: a });
+      }
+    }
+    if (bestByCountry.size === 1) {
+      const only = [...bestByCountry.values()][0].c;
+      return { code: only.code, name: only.name, flag: only.flag };
+    }
+    if (bestByCountry.size > 1) return null;
+    // 3) a known city token
+    for (const city of Object.keys(CITIES)) {
+      if (cityHit(guarded, city)) {
+        const c = BY_CODE[CITIES[city]];
+        if (c) return { code: c.code, name: c.name, flag: c.flag };
+      }
+    }
+    return null;
+  }
+  function detectCountry(location) {
+    if (typeof location !== 'string') return null;
+    const hit = detectCache.get(location);
+    if (hit !== undefined) return hit;
+    // FULL-R5 review r2 (finding 8) — cached results are frozen: a caller
+    // that decorates the returned object (a count, a tag) used to poison
+    // every later lookup of the same location string.
+    const result = Object.freeze(detectCountryUncached(location));
+    if (detectCache.size >= DETECT_CACHE_CAP) detectCache.clear();
+    detectCache.set(location, result);
+    return result;
+  }
+  /** Drop the memo (the scan view calls this when lastResults changes). */
+  function resetCache() { detectCache.clear(); }
+
+  /**
+   * Distinct countries present across a set of job rows, sorted by name.
+   * Each entry: {code, name, flag, count}.
+   * @param {Array<{location?: string}>} rows
+   */
+  function countriesIn(rows) {
+    const acc = new Map();
+    for (const r of (rows || [])) {
+      const c = detectCountry(r && r.location);
+      if (!c) continue;
+      const prev = acc.get(c.code);
+      if (prev) prev.count += 1;
+      else acc.set(c.code, { ...c, count: 1 });
+    }
+    return [...acc.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /** True if a row's location resolves to the given country code. */
+  function rowInCountry(row, code) {
+    if (!code) return true;
+    const c = detectCountry(row && row.location);
+    return !!c && c.code === code;
+  }
+
+  window.Countries = { COUNTRIES, detectCountry, countriesIn, rowInCountry, flagFor: (code) => (BY_CODE[code] || {}).flag || '', resetCache };
+})();

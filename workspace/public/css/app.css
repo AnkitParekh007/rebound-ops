@@ -1,0 +1,799 @@
+/* ───────────────────────── a11y utilities (v1.17.0+) ───────────────────────── */
+/* Visually hide an element but keep it discoverable by screen readers
+   and keyboard nav. Used for input labels in the topbar searchbar etc. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* WCAG 2.4.1 — skip link. Hidden off-screen until it receives focus
+   (Tab from page load), then snaps into the top-left corner of the
+   viewport. Lets keyboard users bypass the persistent sidebar +
+   topbar to land directly on the content. */
+.skip-link {
+  position: absolute; top: -100px; inset-inline-start: 8px; z-index: var(--z-skiplink);
+  padding: 12px 20px; background: #222; color: #fff; font-weight: 600;
+  text-decoration: none; border-radius: 0 0 8px 8px;
+  transition: top var(--transition);
+  /* WCAG 2.5.5 target-size: 44×44 minimum for touch interactions. */
+  min-width: 44px; min-height: 44px;
+  display: inline-flex; align-items: center;
+}
+.skip-link:focus { top: 0; outline: 3px solid var(--accent-c); outline-offset: 2px; }
+
+/* WCAG 2.4.7 — visible focus indicators. Every interactive element gets a clearly visible
+   focus ring; :focus-visible keeps mouse-click rings off but keyboard-Tab rings on.
+   Phase-2 v3 — the cv3 focus ring shape (surface gap + accent ring): 2px outline in the
+   pure accent + 2px offset IS that shape in outline form (surface shows through the gap). */
+*:focus-visible { outline: 2px solid var(--accent-c, var(--rausch, #ff385c)); outline-offset: 2px; }
+/* Managed route-change focus (see public/js/router.js): on every
+   client navigation the destination view's heading is given
+   tabindex="-1" and .focus()'d so screen readers announce the new
+   page. A tabindex="-1" element is NEVER keyboard-reachable, so the
+   brand ring above is spurious on it — Chromium's focus-visible
+   heuristic still painted it as a red box around every view's <h1>
+   (and baked that into the dashboard screenshots). Suppress the ring
+   for these programmatic targets only; genuine keyboard focus on real
+   controls keeps *:focus-visible. WAI-ARIA APG managed-focus pattern. */
+[tabindex="-1"]:focus,
+[tabindex="-1"]:focus-visible { outline: none; }
+/* Modal close × needs higher-contrast focus since it sits on the
+   modal-header background. */
+.modal-close:focus-visible { outline: 3px solid var(--accent-c, var(--rausch, #ff385c)); outline-offset: 2px; }
+
+/* ───────────────────────── design tokens — light theme (default) ─────────────────────────
+   Phase 2 of the Lovable design integration: the values are now ACTIVE cv3 indirections
+   (--cv3-* lives in tokens-v3.css, loaded last). Names never changed, so every consumer
+   follows automatically; flipping the palette back is a 5-line edit in tokens-v3.css.
+   The indirection resolves per element, so ONE :root declaration follows both themes —
+   no dark re-declaration needed (unlike the literal blocks below). */
+:root {
+  /* accent topology (v3 phase 2): the rausch family carries the pure ACCENT (crimson
+     red, hue 15 — owner request, logo-coherent); --rausch-text moved to the cv3 DANGER
+     ink so the --err/--error/--danger aliases below keep red danger semantics. Contrast:
+     --rausch-dark/--paper 7.37/8.95:1, --rausch-text/--paper 7.47/10.60:1 (light/dark). */
+  --rausch: var(--cv3-accent);
+  --rausch-dark: var(--cv3-accent-hover);
+  --rausch-text: var(--cv3-danger-ink);
+  /* theme-INVARIANT danger fill for white-text buttons (the cv3-danger light value):
+     #fff on it is 5.80:1 and it keeps ≥3:1 against the dark canvas (WCAG 1.4.11). */
+  --rausch-fill: oklch(0.53 0.19 25);
+  /* the INDEPENDENT accent family (crimson red; .btn-primary paints flat --accent-c/--accent-ink
+     cv3-style — white fails dark at 2.46:1, the cv3 ink flips to near-black instead). */
+  --accent-c: var(--cv3-accent);
+  --accent-hover: var(--cv3-accent-hover);
+  --accent-ink: var(--cv3-accent-ink);
+  --accent-soft: var(--cv3-accent-soft);
+  --accent-soft-ink: var(--cv3-accent-soft-ink);
+  --babu: #00a699;            /* teal accent — for fills/borders, NOT text */
+  --babu-text: #00665e;       /* AA-passing variant for text on light (v1.19.0) */
+  --arches: #fc642d;           /* warm orange */
+  --hof: #222222;              /* primary text */
+  --foggy: #717171;            /* secondary text */
+  --foggy-strong: #5f5f5f;     /* AA secondary text on --elev surfaces (v1.248.2: plain --foggy was 4.31:1 on --elev light) */
+  --beach: #f7f7f7;            /* canvas */
+  --slate: #ebebeb;            /* divider / hairline */
+  --elev: #eef1f6;             /* D-3 (v1.167.0): raised surface, distinct from the --slate hairline so an elevated panel/chip separates from a bordered card */
+  --paper: #ffffff;            /* card / surface */
+  --kazan: #008a05;            /* success green — for fills/borders */
+  --kazan-text: #066507;      /* AA-passing variant for text on light (v1.19.0) */
+  --darjeeling: #ffb400;       /* warning amber — for fills/borders */
+  --darjeeling-text: #7a5800; /* AA-passing variant for text on light (v1.19.0) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .08);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, .12);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, .18);
+  /* CAR-23 v1.243.0 — qa-tile referenced these aliases undefined (shadow/ring lost). */
+  --shadow-1: var(--shadow-sm); --shadow-2: var(--shadow-md);
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --space-1: 4px; --space-2: 8px;
+  --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px;
+  --space-7: 48px; --space-8: 64px;
+  --sidebar-w: 256px;
+  --topbar-h: 80px;
+  --transition: 180ms cubic-bezier(.2, .8, .2, 1);
+  --ease-out: cubic-bezier(.2, 0, 0, 1); /* v3 phase 3 — the bare cv3 house curve; --cv3-motion couples it with 120ms */
+  /* D-4 (v1.171.0) — type scale (base = Inter 15px) + z-index layers: the ramp
+     names existing sizes; z-index is theme-invariant → defined here only. */
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-base: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px; --font-size-2xl: 28px;
+  --z-topbar: 5;
+  --z-sidebar: 10;   /* backdrop sits one below via calc(var(--z-sidebar) - 1) */
+  --z-hud: 11;
+  --z-banner: 50;    /* onboarding banner one below via calc(var(--z-banner) - 1) */
+  --z-map-control: 70; --z-map-sheet: 80;
+  --z-modal: 200;
+  --z-popover: 950;
+  --z-toast: 1000;
+  --z-fab: 1150;
+  --z-drawer: 9999;
+  --z-skiplink: 10000;
+  /* v1.137.0 — alias tokens that several views referenced WITHOUT a definition
+     (`--fg`, `--panel`, `--panel-2`, `--surface-elev1`, `--line`). Undefined,
+     they silently fell back to hardcoded LIGHT/BLACK literals — so text went
+     white-on-white (#/pipeline overview chips) or black-on-black (#/stats
+     active tab) in dark mode, plus chat bubbles / two-pager chips. Aliased to
+     the real theme-aware tokens; because `--hof`/`--paper`/`--slate` are
+     re-declared in the dark blocks, these follow the theme with no per-block
+     override of their own. */
+  --fg: var(--hof);
+  --panel: var(--paper);
+  --panel-2: var(--elev);
+  --surface-elev1: var(--elev);
+  --line: var(--slate);
+  /* Semantic text/surface aliases, same story: these were referenced as text
+     colors (`--ok` the "✓ set" green, `--err`/`--danger` reds, `--muted`/`--ink`)
+     or surfaces (`--card`/`--border`) with hardcoded fallbacks that only work on
+     a light background. All are text/surface-role (no `background: var(--danger)`
+     anywhere), so aliasing to the AA-tuned theme-aware tokens is safe. */
+  --ok: var(--kazan-text);
+  --go: var(--kazan-text);
+  --err: var(--rausch-text);
+  --error: var(--rausch-text);
+  --danger: var(--rausch-text);
+  --warn: var(--darjeeling-text);
+  --muted: var(--foggy);
+  --ink: var(--hof);
+  --card: var(--paper);
+  --border: var(--slate);
+  /* CAR-123 R3 — `--accent` was referenced by the v2-stats / v2-llm / map rules
+     but never defined. Since v3 phase 2 it resolves to the INDEPENDENT accent
+     family above (map focus rings / v2 active indicators ride the crimson accent
+     and follow the theme; AA 1.4.11 — every use is outline/border/indicator). */
+  --accent: var(--accent-c);
+  /* CAR-123 R3 hand-offs closed on the cv3 sheet (phase 2): the subtle wash and
+     the .brief-warning warn pair resolve theme-aware via the cv3 soft/ink values. */
+  --bg-subtle: var(--cv3-surface-2);
+  --danger-soft: var(--cv3-danger-soft); /* v3 phase 3 — the danger wash (ink side: --rausch-text) */
+  --warn-bg: var(--cv3-warn-soft); --warn-border: var(--cv3-warn); --warn-fg: var(--cv3-warn-ink);
+  /* Phase-2 v3 — score-band chip pairs for components.css score-* / v2-reports
+     score-good (ink on its wash ≥4.5:1 in both themes; the sheet keeps the full A–G set). */
+  --band-a-ink: var(--cv3-band-a-ink); --band-a-bg: var(--cv3-band-a-bg);
+  --band-b-ink: var(--cv3-band-b-ink); --band-b-bg: var(--cv3-band-b-bg);
+  --band-d-ink: var(--cv3-band-d-ink); --band-d-bg: var(--cv3-band-d-bg);
+  --band-g-ink: var(--cv3-band-g-ink); --band-g-bg: var(--cv3-band-g-bg);
+  color-scheme: light;
+}
+
+/* v1.12.0 — dark theme overlay. SPA writes data-theme="dark" on <html>
+   when the user picks the toggle (persisted to localStorage). Every
+   component below reads from var(--*) so the theme swap is one place. */
+[data-theme="dark"] {
+  /* rausch/accent follow the theme via the :root cv3 indirections above —
+     no literal re-declaration here (a literal would freeze the light value). */
+  --babu: #2dd4bf; --babu-text: #5eead4; --arches: #fb923c;
+  --hof: #f3f4f6; --foggy: #9ca3af;
+  --foggy-strong: #9ca3af;  /* dark AA on --elev (#1e232e) ≈ 6.2:1 */
+  --beach: #0f1115; --slate: #2a2f3a; --elev: #1e232e; --paper: #161a22;
+  --kazan: #34d399; --kazan-text: #6ee7b7;    /* WCAG AA on dark surfaces (v1.19.0) */
+  --darjeeling: #fbbf24; --darjeeling-text: #fcd34d; /* WCAG AA on dark surfaces (v1.19.0) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow-md: 0 6px 16px rgba(0, 0, 0, .55);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --babu: #2dd4bf; --babu-text: #5eead4; --arches: #fb923c;
+    --hof: #f3f4f6; --foggy: #9ca3af;
+    --foggy-strong: #9ca3af; /* dark AA on --elev (#1e232e) ≈ 6.2:1 */
+    --beach: #0f1115; --slate: #2a2f3a; --elev: #1e232e; --paper: #161a22;
+    --kazan: #34d399; --kazan-text: #6ee7b7;
+    --darjeeling: #fbbf24; --darjeeling-text: #fcd34d;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow-md: 0 6px 16px rgba(0, 0, 0, .55);
+    --shadow-lg: 0 8px 28px rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+}
+
+/* Theme toggle button in the top bar. */
+.theme-toggle {
+  background: var(--paper);
+  border: 1px solid var(--slate);
+  color: var(--hof);
+  border-radius: var(--radius-pill);
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), border-color var(--transition);
+}
+.theme-toggle:hover { border-color: var(--hof); }
+
+* { box-sizing: border-box; }
+
+/* CAR-23 v1.243.0 — WCAG 2.4.11: focus/anchor scrolling lands BELOW the sticky topbar.
+   CAR-49 (v1.246.0) — …and clear of the bottom: anchored scroll targets keep a
+   FAB-sized gap so the chat launcher never sits on the scrolled-to control. */
+html { scroll-padding-top: calc(var(--topbar-h) + 16px); scroll-padding-bottom: 96px; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--hof);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  font-size: var(--font-size-base);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: var(--hof); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ───────────────────────── sidebar ───────────────────────── */
+.sidebar {
+  position: fixed;
+  /* Logical edges: the rail sits at the inline-start edge and its divider
+   * faces the content (inline-end) — the whole rail mirrors under [dir="rtl"]
+   * with no duplicate mirror rules (RTL deep sweep, v1.261.x). */
+  top: 0; bottom: 0; inset-inline-start: 0;
+  width: var(--sidebar-w);
+  border-inline-end: 1px solid var(--slate);
+  background: var(--paper);
+  padding: var(--space-5) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  z-index: var(--z-sidebar);
+  /* Allow vertical scroll when content (18 nav items + 6 group headers
+     + footer) is taller than the viewport. The footer stays at the
+     bottom on tall windows because the inner column is min-h-full. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin; scrollbar-color: var(--slate) transparent;
+}
+/* Hint scrollbar when needed but stay quiet on Macs that hide it. */
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--slate);
+  border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover { background: var(--foggy); }
+
+/* Hamburger button — visible only on small screens */
+.sidebar-toggle {
+  display: none; background: transparent; border: 1px solid var(--slate); border-radius: var(--radius);
+  width: 40px; height: 40px; font-size: 20px; line-height: 1; cursor: pointer; color: var(--hof); flex-shrink: 0;
+}
+.sidebar-toggle:active { transform: scale(.95); } .sidebar-close { display: none; } /* .sidebar-close = in-drawer ✕ (owner UX batch): desktop-hidden; the ≤900px block below pins it to the drawer's top edge */
+
+/* Dim everything-but-sidebar when open on mobile */
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: calc(var(--z-sidebar) - 1); }
+body.sidebar-open .sidebar-backdrop { display: block; }
+
+/* Mobile breakpoint — anything narrower than a typical iPad portrait. */
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--transition), visibility var(--transition);
+    box-shadow: 0 0 24px rgba(0,0,0,.18);
+    /* CAR-23 v1.243.0 — transform alone left ~40 invisible tab stops; visibility fixes it. */
+    visibility: hidden;
+  }
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
+    visibility: visible;
+  }
+  .sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; }
+  /* In-drawer ✕ — absolute at the drawer's top edge (.sidebar is position:fixed, so this anchors to it); 36px hit target. */
+  .sidebar-close { display: inline-flex; position: absolute; top: 16px; inset-inline-end: 12px; min-width: 36px; min-height: 36px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); cursor: pointer; }
+  .main { margin-inline-start: 0 !important; padding-left: 12px; padding-right: 12px; }
+  /* ONE row: [☰ · search · 🔔 🌙 🩺 ⚡], actions icon-only. v1.208.2: at ~565-640px
+     long RU labels made `space-between` distribute NEGATIVE space (bell on the pill).
+     Cannot recur: every action is a fixed 36px square (`flex: 0 0 auto`), the searchbar
+     is the only flexible item and may shrink to nothing. SPECIFICITY, not a typo: the
+     desktop `.topbar`/`.topbar-actions` rules sit LOWER, so these equal-specificity
+     gaps (8px/6px) must stay here or they silently revert to 24px/12px and overflow 320px. */
+  header.topbar {
+    gap: 8px;
+    flex-wrap: nowrap;
+    height: var(--topbar-h);
+    min-height: var(--topbar-h);
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .searchbar { min-width: 0; }
+  /* Let the input itself shrink too (its default intrinsic width would otherwise
+     keep the searchbar from collapsing and could push row one past the viewport). */
+  .searchbar input { min-width: 0; }
+  /* The decorative ⌘K/Enter hint (flex:0 0 auto, white-space:nowrap) would
+     stick out of the now-shrinkable searchbar and nudge the page ~a scrollbar
+     past the viewport; it has no room on a phone, so hide it and let the input
+     keep the space. */
+  .kbd-shortcut { display: none; }
+  /* Hiding the label (not the button) keeps the click target, id and handler;
+     aria-label carries the name, since display:none drops it from the name. */
+  .topbar .topbar-actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  /* Same trap: the desktop `.btn-ico { display:none }` sits lower. */
+  .topbar .topbar-actions .btn-label { display: none; }
+  .topbar .topbar-actions .btn-ico { display: inline; line-height: 1; }
+  .topbar .topbar-actions .btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+}
+
+.logo { display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-3); text-decoration: none !important; }
+.logo-mark {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--rausch);
+  color: white;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: -0.5px;
+  /* v1.78.0 — logo-mark is now an <img> (radar icon); cover-crop into the
+     existing 36px circle so the sidebar layout is unchanged. */
+  object-fit: cover;
+  overflow: hidden;
+}
+.logo-text { font-weight: 700; font-size: 17px; color: var(--hof); }
+
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-group {
+  margin: 14px 12px 4px; font-size: var(--font-size-xs); font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--foggy);
+}
+.nav-group:first-of-type { margin-top: 18px; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* WCAG 2.5.5 (v1.20.0): bumped padding so the click box stays ≥ 44 px
+     even with the smallest font-size override. Previous 10px+14px landed
+     around 40 px; nudging to 12px+14px puts it comfortably over. */
+  padding: 12px 14px;
+  min-height: 44px;
+  box-sizing: border-box;
+  border-radius: var(--radius);
+  color: var(--hof);
+  font-weight: 500;
+  font-size: 14.5px;
+  transition: background var(--transition), color var(--transition);
+  text-decoration: none !important;
+}
+.nav-item:hover { background: var(--beach); }
+.nav-item.active { background: var(--hof); color: var(--paper); }
+.nav-ico {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  opacity: .85;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: var(--space-3);
+  border-top: 1px solid var(--slate);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.sidebar-footer .version { font-weight: 600; font-size: var(--font-size-md); color: var(--foggy); }
+.sidebar-footer .hint { font-size: var(--font-size-sm); color: var(--foggy); }
+.sidebar-footer .manifesto-link {
+  font-size: var(--font-size-sm);
+  color: var(--foggy);
+  text-decoration: none;
+}
+.sidebar-footer .manifesto-link:hover { color: var(--ink); text-decoration: underline; }
+
+/* ───────────────────────── main ───────────────────────── */
+.main { margin-inline-start: var(--sidebar-w); min-height: 100vh; background: var(--paper); }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  /* min-height (not a fixed height) so the bar GROWS to fit its content when
+     the action buttons wrap to a second row on a phone — a fixed height let the
+     wrapped row spill out and overlap the page header (v1.208.1). Desktop is
+     unchanged: one row always fits within --topbar-h. */
+  min-height: var(--topbar-h);
+  background: var(--paper);
+  border-bottom: 1px solid var(--slate);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  gap: var(--space-5);
+  z-index: var(--z-topbar);
+}
+
+.searchbar {
+  flex: 1;
+  max-width: 540px;
+  background: var(--paper);
+  border: 1px solid var(--cv3-input-line, var(--slate));
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-pill);
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+.searchbar:focus-within { box-shadow: var(--shadow-md); border-color: var(--hof); }
+.searchbar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14.5px;
+}
+/* v1.56.4 — UX-N2: visible platform-aware ⌘K / Ctrl K hint. A flex
+   child at the end of the (flex) .searchbar pill — no wrapper /
+   absolute positioning needed since the input is flex:1. Muted, not
+   interactive, never selected; matches the token vocabulary. */
+.kbd-shortcut {
+  flex: 0 0 auto;
+  margin-inline-start: 8px;
+  font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--foggy);
+  background: var(--bg-subtle, rgba(0, 0, 0, .04));
+  border: 1px solid var(--slate);
+  border-radius: 4px;
+  padding: 3px 6px;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.topbar-actions { display: flex; gap: var(--space-3); align-items: center; }
+/* Glyph is for the mobile icon-only form only; the desktop label carries it. */
+.topbar-actions .btn-ico { display: none; }
+
+/* ───────────────────────── buttons ───────────────────────── */
+/* .btn sets an author display:, which beats the UA's [hidden]{display:none}
+ * at any specificity — so any button toggled via the hidden attribute
+ * (e.g. the #/scan Stop button) stays visible without this override. */
+.btn[hidden] { display: none; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  /* v3 phase 3 — control density: block padding derives from --cv3-control-h (30px ≥ WCAG 2.5.8's 24px). */
+  padding: calc((var(--cv3-control-h) - 1.2em - 2px) / 2) 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  /* v1.58.16 — `filter` rides the SAME transition: a gradient↔solid swap can't interpolate. */
+  transition: background var(--transition), border-color var(--transition), transform var(--transition), filter var(--transition);
+  white-space: nowrap;
+  /* v3 phase 3 (was the v1.26.1 44px 2.5.5 floor) — flex-shrink: 0 keeps parent
+   * rows from squashing the button below its min-height. */
+  min-height: var(--cv3-control-h);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.is-loading { opacity: .7; cursor: wait; pointer-events: none; }
+
+/* Phase-2 v3 (Lovable) — flat accent button: --accent-c fill + --accent-ink text
+   (light 6.01:1, dark 7.65:1 — literal white fails dark at 2.46:1, hence the ink
+   flip to near-black). Solid↔solid backgrounds interpolate; no filter-dim needed. */
+.btn-primary {
+  background: var(--accent-c);
+  color: var(--accent-ink);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-ghost { background: transparent; color: var(--hof); border: 1px solid var(--slate); }
+.btn-ghost:hover { background: var(--beach); border-color: var(--hof); }
+
+.btn-dark {
+  background: var(--hof);
+  /* CAR-23 — `white` on dark's near-white --hof was 1.10:1; --paper flips with the theme (≈16:1 both ways). */
+  color: var(--paper);
+}
+.btn-dark:hover { filter: brightness(0.92); }
+
+/* v1.55.4 — UX-6: destructive/stop action. Filled, high-contrast so
+   the Stop button is unmistakable during a multi-minute scan.
+   Phase-2 v3 — the gradient rides the theme-INVARIANT danger red
+   (--rausch-fill: white 5.80:1, deep end 7.76:1); the border is the same
+   deepened mix (a decorative darker edge — --rausch-dark is accent now). */
+.btn-danger {
+  background: linear-gradient(135deg, var(--rausch-fill) 0%, color-mix(in srgb, var(--rausch-fill) 82%, #000) 100%);
+  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--rausch-fill) 82%, #000);
+  font-weight: 600;
+}
+/* v1.58.16 — same gradient↔solid flicker as .btn-primary; apply the
+   same filter-based dim so .btn-danger doesn't flash on hover either. */
+.btn-danger:hover { filter: brightness(0.92); }
+
+/* v1.55.4 — UX-6: honest "~1–2 min" ETA chip next to #/auto Run.
+   UX-D-J (v1.58.42) — the same chip shape on the other advisor pages
+   (Evaluate / Deep / mode pages). Same styling, different copy
+   (~30s for fast advisors; auto stays at ~1–2 min because it's the
+   only multi-step SSE pipeline). */
+.auto-eta,
+.advisor-eta,
+.eta-hint {
+  font-size: var(--font-size-sm);
+  color: var(--foggy);
+  white-space: nowrap;
+  align-self: center;
+}
+
+/* WCAG 2.5.5 / 2.5.8 — touch target size. v3 phase 3: buttons inherit the 30px
+   control floor from .btn (var(--cv3-control-h), ≥ 2.5.8's 24px); .btn-sm keeps
+   the same floor with a smaller footprint for dense table-row controls. */
+.btn-sm { padding: 6px 12px; font-size: var(--font-size-md); min-height: var(--cv3-control-h); }
+
+/* M-4 (v1.58.11) — saved-research / saved-prep card: structural flex `gap`
+   so the title↔date space can't collapse (`software-engineer-generaltoday`).
+   CAR-146 — the card caps at its row (max-width: 100%); each child owns its
+   own white-space and shrink: the title grows and wraps break-anywhere
+   (zeroing the flex content-based minimum), the date never wraps or shrinks. */
+.saved-card {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2, 8px);
+  max-width: 100%;
+}
+.saved-card__title {
+  font-weight: 500;
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.saved-card__date { color: var(--foggy); flex-shrink: 0; font-size: 0.85em; white-space: nowrap; }
+
+/* UX-A1 (v1.58.54) — Defensive Deep-brief structure warning. When a
+   saved brief lacks ≥3 of the 6 canonical H2 sections (Company snapshot
+   / Engineering culture / Recent news / Glassdoor / Interview process
+   / Negotiation leverage), the renderer prepends a non-blocking warning
+   card with a link to the docs. Styled as a soft alert so it doesn't
+   look like a hard error. */
+.brief-warning {
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--warn-bg, #fff7e6);
+  border-inline-start: 3px solid var(--warn-border, #f0a020);
+  color: var(--warn-fg, #663d00);
+  font-size: 0.92em;
+  line-height: 1.5;
+}
+.brief-warning strong { display: block; margin-bottom: 4px; }
+.brief-warning p { margin: 0 0 6px; }
+.brief-warning a { color: inherit; text-decoration: underline; }
+
+/* UX-A3 (v1.58.55) — Dashboard active-provider chip. Pill below the
+   hero CTAs. Soft surface, rounded, inline-flex with icon + label so
+   the user knows whether they're in live-eval mode or manual-prompt
+   fallback without having to visit Health.
+   CAR-49 #6 (v1.247.0) — the provider tile + ⚡ used to collide with the
+   label in ru/ar (long text, no shrink rules): icons are non-shrinking,
+   the label may wrap inside the pill instead of overlapping.
+   v1.248.2 (QA) — DOUBLED-CLASS selector, deliberately: the plain
+   `.dash-chip` base in components.css (loaded AFTER app.css) has the same
+   specificity and `display: inline-block` + its own padding/background, so
+   it silently overrode this variant's inline-flex + gap — the pill rendered
+   without ANY icon↔label spacing. (0,2,0) beats (0,1,0) at any load order;
+   `gap` (not a physical margin) keeps the spacing correct under [dir="rtl"]. */
+.dash-chip.dash-chip--provider {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-top: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--surface-elev1, #f3f4f6);
+  border: 1px solid var(--border, #e5e7eb);
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+.dash-chip.dash-chip--provider[hidden] { display: none; }
+.leaflet-bottom.leaflet-right { bottom: 96px; } /* v1.248.3 — docs FAB covered the Leaflet attribution (OSM licence) */
+.dash-chip--manual { color: var(--foggy-strong); } /* v1.248.3: --muted was 4.31:1 */
+.dash-chip__icon { font-size: 1.05em; flex: 0 0 auto; }
+.dash-chip__label { min-width: 0; overflow-wrap: anywhere; }
+
+/* M-8 (v1.58.13) — interactive Apply checklist. The pre-fix view
+   rendered the checklist as a plain <pre> block; users couldn't tick
+   anything. Now each item is a real checkbox+label row, persisted per
+   URL in localStorage. Label is the full row so click target ≥44 px
+   (WCAG 2.5.5), with a gap that survives long lines. */
+.apply-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.apply-checklist > li {
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--slate);
+}
+.apply-checklist > li:last-child { border-bottom: 0; }
+.apply-checklist label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2, 8px);
+  cursor: pointer;
+  line-height: 1.5;
+  min-height: 32px;
+}
+.apply-checklist input[type="checkbox"] {
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.apply-checklist input[type="checkbox"]:checked + span {
+  text-decoration: line-through;
+  color: var(--foggy);
+}
+.apply-checklist__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  margin-top: 12px;
+}
+
+/* FIX-9 / D-2 (v1.168.0) — WCAG 2.5.8 Target Size (Minimum): a <label> that
+   wraps a checkbox/radio IS the clickable target. Native/18px boxes left the
+   row band ~22px (2px under the 24px floor) on #/scan, #/config, #/evaluate,
+   #/cv-studio. Guarantee ≥24px via min-height only — every such label in the
+   app is already flex/inline-flex (`.flex`, inline-flex, etc.), so this only
+   grows the band when it's below 24px and shifts nothing; a plain inline label
+   would ignore min-height and keep its prior size. `.apply-checklist` rows are
+   already 32px and unaffected. */
+label:has(> input[type="checkbox"]),
+label:has(> input[type="radio"]) {
+  min-height: 24px;
+  align-items: center;
+}
+
+/* ───────────────────────── content shell ───────────────────────── */
+.content {
+  /* CAR-49 (v1.246.0) — the extra bottom padding keeps the last interactive element of every
+     page clear of the fixed chat FAB (56px + 24px offset) at scroll-end. */
+  padding: var(--space-7) var(--space-6) calc(var(--space-7) + 88px); max-width: 1280px; margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+}
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin: 0;
+  /* A long unbreakable token in a title/subtitle (e.g. the resolved project
+     PATH shown on #/config) must wrap instead of overflowing the header — and
+     the page — sideways on a phone. */
+  overflow-wrap: anywhere;
+}
+.page-subtitle {
+  color: var(--foggy);
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-base);
+  overflow-wrap: anywhere;
+}
+/* CAR-51 #1 (v1.247.0) — the ONE time/cost meta line: ⏱ ETA chip + cost hint
+   under the view title on every advisor view (UI.pageMeta). */
+.page-meta {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px 14px; margin: var(--space-2) 0 0;
+}
+/* U-14 (v1.58.33) — safety-net rule for any page that uses raw <h1>+<p>
+   without the .page-subtitle class. Mirrors the canonical spacing so
+   future page-header authors don't have to remember the class name. */
+.page-header h1 + p { margin-block-start: var(--space-2); color: var(--foggy); overflow-wrap: anywhere; }
+
+
+/* ───────────── CAR-115 — #/scan v2: live filter chips, windowed results, quick view ───────────── */
+.v2-scan-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 10px; }
+.v2-scan-bar > .input { flex: 1 1 200px; min-width: 160px; max-width: 340px; min-height: 36px; } /* direct children only: the old `.v2-scan-bar .input` also matched the popover inputs, where the popover's column flex turned the 200px flex-basis into a ~200px height (owner report) */
+.v2-scan-pop .input, .v2-scan-pop .select { flex: 0 0 auto; width: 100%; max-width: none; min-height: 36px; } /* protective mirror: in a column flex container flex-grow/basis would resize HEIGHT, not width */
+.v2-scan-anchor { position: relative; display: inline-flex; }
+.v2-scan-chip-btn { cursor: pointer; white-space: nowrap; }
+.v2-scan-chip-btn.is-on { border-color: var(--rausch); color: var(--accent-soft-ink); } /* v3 phase 2: active chip = accent text + accent border (accent-soft-ink on paper 8.38/8.63:1) */
+.v2-scan-chip-btn.is-on::before { content: '● '; font-size: 9px; vertical-align: 2px; }
+.v2-scan-chip-val { font-weight: 700; }
+.v2-scan-pop { position: absolute; top: calc(100% + 6px); inset-inline-start: 0; z-index: var(--z-popover); min-width: 270px; max-width: min(92vw, 360px); background: var(--paper); border: 1px solid var(--slate); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.v2-scan-pop[hidden] { display: none; }
+.v2-scan-pop .field-hint { margin: 0; font-size: var(--font-size-sm); color: var(--foggy); }
+.v2-scan-check { display: flex; align-items: center; gap: 8px; min-height: 32px; cursor: pointer; }
+@media (max-width: 900px) { .v2-scan-pop { position: fixed; top: auto; inset-inline: 12px; min-width: 0; max-width: none; } }
+.v2-scan-active { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 8px; }
+.v2-scan-active:empty { display: none; }
+.v2-scan-x { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; padding: 0 2px; line-height: 1; }
+.v2-scan-x:hover { color: var(--rausch-text); }
+.v2-scan-presets-wrap:not(:empty) { margin: 0 0 10px; }
+.v2-scan-presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.v2-scan-preset { display: inline-flex; align-items: center; gap: 2px; }
+.v2-scan-preset > span[role='button'] { cursor: pointer; }
+.v2-scan-preset-name { max-width: 220px; min-height: 32px; }
+.v2-scan-facets { display: flex; flex-direction: column; gap: 8px; margin: 0 0 10px; }
+.v2-scan-facets:empty { display: none; }
+.table-wrap.v2-scan-viewport { max-height: 65vh; overflow: auto; overscroll-behavior: contain; }
+table.scan-tbl thead th { position: sticky; top: 0; z-index: calc(var(--z-topbar) - 4); } /* z-index 1, NOT var(--z-topbar): equal value + later DOM let this sticky header paint over the topbar searchbar once scrolled under it; sticky already lifts it above the row backgrounds (precedent: .reposts-body .tbl th) */
+.v2-scan-sort { display: flex; width: 100%; align-items: center; gap: 4px; background: none; border: 0; color: inherit; font: inherit; font-weight: 700; text-align: start; cursor: pointer; padding: 0; }
+.v2-scan-sort:hover { color: var(--hof); }
+.v2-scan-sort-ind { font-size: 10px; opacity: .7; }
+table.scan-tbl.v2-scan-compact th, table.scan-tbl.v2-scan-compact td { padding-top: 3px; padding-bottom: 3px; }
+table.scan-tbl tr.v2-scan-pad > td { padding: 0; border-bottom: 0; background: transparent; }
+tr.v2-scan-rowbtn { cursor: pointer; }
+tr.v2-scan-rowbtn:hover .scan-posting-title { text-decoration: underline; }
+tr.v2-scan-isnew > td { animation: v2scan-in 150ms var(--ease-out); }
+@keyframes v2scan-in { from { opacity: 0; transform: translateY(4px); } }
+.scan-icon--score.v2-scan-score-hi { color: var(--kazan-text, var(--kazan)); font-weight: 700; }
+.scan-icon--score.v2-scan-score-mid { color: var(--darjeeling-text, var(--darjeeling)); }
+.scan-icon--score.v2-scan-score-lo { color: var(--rausch-text, var(--rausch)); }
+.scan-terminal:not(.v2-scan-log-open) .console { max-height: 1.6em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } /* CAR-211 — the ready line never wraps in the collapsed strip */
+.v2-scan-logbtn { flex: 0 0 auto; margin-inline-start: auto; color: #6f7781; }
+.v2-scan-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: var(--z-modal); opacity: 0; visibility: hidden; transition: opacity var(--transition), visibility var(--transition); }
+.v2-scan-backdrop.is-open { opacity: 1; visibility: visible; }
+.v2-scan-panel { position: fixed; top: 0; inset-inline-end: 0; bottom: 0; width: min(440px, 94vw); background: var(--paper); border-inline-start: 1px solid var(--slate); box-shadow: var(--shadow-lg); z-index: calc(var(--z-modal) + 1); padding: 20px; overflow-y: auto; transform: translateX(102%); visibility: hidden; transition: transform var(--transition), visibility var(--transition); }
+[dir='rtl'] .v2-scan-panel { transform: translateX(-102%); }
+.v2-scan-panel.is-open { transform: none; visibility: visible; }
+.v2-scan-qv-head { padding-inline-end: 52px; } /* CAR-238 — title container reserves the corner ✕'s room (logical, RTL-safe); the ✕ below stays absolute+compact */
+.v2-scan-qv-title { margin: 0 0 6px; font-size: var(--font-size-lg); overflow-wrap: anywhere; min-width: 0; }
+.v2-scan-qv-meta { margin: 0 0 10px; font-size: var(--font-size-md); }
+.v2-scan-qv-salary { margin: 0 0 10px; font-weight: 600; }
+.v2-scan-qv-desc { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; max-height: 46vh; overflow-y: auto; border-top: 1px solid var(--slate); padding-top: 10px; margin: 0 0 14px; }
+.v2-scan-qv-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.v2-scan-qv-close { position: absolute; top: 12px; inset-inline-end: 12px; width: 32px; height: 32px; min-height: 32px; padding: 0; }
