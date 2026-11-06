@@ -18,7 +18,7 @@ test('pilot feedback is disabled without consent and downloads without API calls
   await expect(downloadButton).toBeDisabled();
 
   await page.getByLabel('Anonymous participant code (optional; not a name)').fill('P01');
-  await page.getByLabel('Were the Return / Shift / Bridge directions understandable?').selectOption('partly');
+  await page.getByLabel(/Were the three options .* easy to understand\?/).selectOption('partly');
   await page.getByLabel('Was it clear what stays on your computer and what could be sent to AI?').selectOption('no');
   await page.getByLabel('What, if anything, was most useful?').fill('Three routes were easy to compare.');
   await page.getByLabel('What was confusing, unhelpful or broken?').fill('Could not find the next step.');
@@ -40,7 +40,7 @@ test('pilot feedback is disabled without consent and downloads without API calls
   const report = await readFile(await file.path(), 'utf8');
 
   expect(report).toContain('Anonymous participant code: P01');
-  expect(report).toContain('Direction options understandable: partly');
+  expect(report).toContain('Three options (similar work / new kind of work / stepping-stone role) understandable: partly');
   expect(report).toContain('Privacy/data sharing understandable: no');
   expect(report).toContain('Most useful: Three routes were easy to compare.');
   expect(report).toContain('Confusing or not working: Could not find the next step.');
@@ -63,7 +63,7 @@ test('pilot responses are not saved in session backups and are cleared between s
   await useFullForm(page);
   await page.getByRole('button', { name: /Create recovery session/i }).click();
   await openStep(page, 'Your options');
-  await page.getByRole('button', { name: 'Test Return' }).click();
+  await page.getByRole('button', { name: 'Choose similar work to before' }).click();
   await openStep(page, 'Tell us how it went');
 
   await page.getByLabel('Anonymous participant code (optional; not a name)').fill('P07');

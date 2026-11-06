@@ -20,7 +20,7 @@
 | Consequential shared problem independently stated | — / — | — | — |
 | Existing alternatives and why they fell short | — | — | — |
 | Privacy objection expressed | — | — | — |
-| Return/Shift/Bridge framing found understandable | — / — | — | — |
+| Three options (similar work / new kind of work / stepping-stone role) found understandable | — / — | — | — |
 
 ## Completed action metrics
 
@@ -31,7 +31,7 @@
 | First-action completion | Participant reports completing the concrete action within seven days | — / — |
 | Evidence correction | Participant knowingly edits or rejects a misleading claim | — / — |
 | Plan respected time budget | Programmatic plan plus observed participant constraints | — / — |
-| Return/Shift/Bridge choice changed by new evidence | Participant explicitly says evidence influenced direction | — / — |
+| Choice of option changed by new evidence | Participant explicitly says evidence influenced direction | — / — |
 | AI consent comprehension | Participant can identify what leaves their device; AI remains disabled in pilot | — / — |
 
 ## Qualitative evidence

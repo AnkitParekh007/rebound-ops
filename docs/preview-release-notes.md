@@ -11,7 +11,7 @@ ReboundOps is a local, open-source prototype for experienced software profession
 - Angular interface and localhost Fastify service on one port.
 - Editable and confirmed/unverified/rejected claims, exact citations, correction history and dependent requirement-link revocation.
 - Manually pasted job requirements with supported/gap/unreviewed classification.
-- Return, Shift and Bridge options with deterministic seven-day plans within the stated time budget.
+- Three options (similar work to before, a new kind of work, a stepping-stone role; internally Return, Shift and Bridge) with deterministic seven-day plans within the stated time budget.
 - Mock action tracking, check-in notes, Markdown export, user-directed private JSON backup/restore, and session deletion.
 - Optional opt-in local disk snapshots (not encrypted).
 - Optional browser-memory-only research feedback and respondent-controlled download.

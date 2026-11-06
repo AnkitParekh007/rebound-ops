@@ -28,7 +28,7 @@ In development, Angular proxies `/api` requests to the Fastify service. The API 
 
 - Enter 1–15 user-reported achievements with explicitly **unverified** sources.
 - Confirm/reject claims manually; confirmation is not third-party validation.
-- Compare Return / Shift / Bridge hypotheses, including missing proof and next tests.
+- Compare three options (similar work to before, a new kind of work, a stepping-stone role; internal IDs `return`, `shift`, `bridge`), including missing proof and next tests.
 - Paste job requirements and manually link participant-confirmed evidence; revoke support when evidence is rejected.
 - Select a route and generate a time-budgeted, deterministic plan.
 - Complete actions and record outcomes.

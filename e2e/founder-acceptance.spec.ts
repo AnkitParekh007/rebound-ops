@@ -3,13 +3,13 @@ import { openStep, useFullForm } from './steps';
 import { readFile } from 'node:fs/promises';
 
 const scenarios = [
-  { id: 'return', title: 'Return', role: 'Fictional Senior Frontend Developer',
+  { id: 'return', title: 'Return', plain: 'Similar work to before', button: 'Choose similar work to before', role: 'Fictional Senior Frontend Developer',
     shift: 'Fictional DevOps engineer', bridge: 'Fictional UI contractor',
     target: 'Fictional Staff Frontend Engineer' },
-  { id: 'shift', title: 'Shift', role: 'Fictional UI Platform Engineer',
+  { id: 'shift', title: 'Shift', plain: 'A new kind of work', button: 'Choose a new kind of work', role: 'Fictional UI Platform Engineer',
     shift: 'Fictional Accessibility Specialist', bridge: 'Fictional audit contractor',
     target: 'Fictional Accessibility Engineer' },
-  { id: 'bridge', title: 'Bridge', role: 'Fictional Software Team Lead',
+  { id: 'bridge', title: 'Bridge', plain: 'A stepping-stone role', button: 'Choose a stepping-stone role', role: 'Fictional Software Team Lead',
     shift: 'Fictional Platform Engineer', bridge: 'Fictional component-library consulting',
     target: 'Fictional short-term UI consultant' }
 ] as const;
@@ -63,7 +63,7 @@ for (const scenario of scenarios) {
     await expect(page.getByText('gap', { exact: true })).toBeVisible();
 
     await openStep(page, 'Your options');
-    await page.getByRole('button', { name: 'Test ' + scenario.title }).click();
+    await page.getByRole('button', { name: scenario.button }).click();
     await expect(page.getByRole('heading', { name: 'Make progress manageable' })).toBeVisible();
     const budgetLabel = await page.locator('.time-pill').innerText();
     const [planned, available] = budgetLabel.match(/\d+/g)!.map(Number);
@@ -88,7 +88,7 @@ for (const scenario of scenarios) {
     expect(markdown).toContain('Corrections (user-supplied)');
     expect(markdown).toContain('[supported] Build reusable accessible components');
     expect(markdown).toContain('[gap] Demonstrate a production accessibility audit');
-    expect(markdown).toContain('- ' + scenario.title + ':');
+    expect(markdown).toContain('- ' + scenario.plain + ':');
     expect(markdown).toContain(note);
     expect(markdown).toContain('[x] Day 1');
 
@@ -130,7 +130,7 @@ for (const scenario of scenarios) {
     await page.getByLabel('Available hours per week').fill('1');
     await page.getByRole('button', { name: /Create recovery session/i }).click();
     await openStep(page, 'Your options');
-    await page.getByRole('button', { name: 'Test ' + scenario.title }).click();
+    await page.getByRole('button', { name: scenario.button }).click();
     const budgetLabel = await page.locator('.time-pill').innerText();
     const [planned, available] = budgetLabel.match(/\d+/g)!.map(Number);
     expect(available).toBe(60);

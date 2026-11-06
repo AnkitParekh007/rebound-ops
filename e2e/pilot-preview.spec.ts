@@ -9,7 +9,7 @@ test('small-screen recovery flow does not require horizontal scrolling', async (
   await page.getByRole('button', { name: /Create recovery session/i }).click();
   await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
   await openStep(page, 'Your options');
-  await page.getByRole('button', { name: 'Test Return' }).click();
+  await page.getByRole('button', { name: 'Choose similar work to before' }).click();
   await expect(page.getByRole('heading', { name: 'Make progress manageable' })).toBeVisible();
   const widthOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth

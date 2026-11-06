@@ -1,4 +1,4 @@
-import type { Intake, RouteId } from '@reboundops/contracts';
+import { ROUTE_TITLES, type Intake, type RouteId } from '@reboundops/contracts';
 import { evidenceFromLines } from '../../core/intake-mapping';
 
 /*
@@ -238,11 +238,10 @@ export function suggestedRoute(a: Answers): RouteId | null {
   return a.direction && a.direction !== 'unsure' ? a.direction : null;
 }
 
-export const ROUTE_WORDS: Record<RouteId, string> = {
-  return: 'similar work to before',
-  shift: 'a new kind of work',
-  bridge: 'a stepping-stone role'
-};
+/** The same plain names as "Your options", in lower case for use mid-sentence. */
+export const ROUTE_WORDS = Object.fromEntries(
+  Object.entries(ROUTE_TITLES).map(([id, title]) => [id, title.charAt(0).toLowerCase() + title.slice(1)])
+) as Record<RouteId, string>;
 
 /** "Rather not say" picks a gentle default: no pressure for people already under pressure. */
 function urgency(a: Answers): Intake['urgency'] {

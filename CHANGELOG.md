@@ -3,6 +3,7 @@
 ## Unreleased — Phase 2 typed MVP
 
 ### Added
+- Plain-language option names: Return / Shift / Bridge are now shown as "Similar work to before", "A new kind of work" and "A stepping-stone role" in the options step, the Markdown export, the guided questions and the pilot feedback question, with plainer card wording. Stored route IDs and labels are unchanged, so existing sessions and backups load as before.
 - One-command local start: `npm run dev` builds the contracts and runs the API and the Angular UI together (via `concurrently`, a development-only dependency), with prefixed logs and one Ctrl+C to stop both.
 - Guided first visit, now the default first screen: a short welcome, then one empathetic question at a time that branches on the user's situation (recently lost a job, changing careers, returning after a break, a better job in the same field, something else), ending with a "Here's what I heard" summary where any answer can be changed before anything is saved. Scripted in advance with no AI; answers stay in memory until confirmed. The full form is one click away ([guide](docs/onboarding.md)). Draft wording for pilot testing.
 - Step-by-step wizard UI: one step at a time with a numbered step list, plain-language step names, done/optional/locked states with reasons, Back/Continue buttons, URL-hash navigation (browser Back works), focus moved to each step heading, and a collapsible step list on phones. Unsaved drafts are kept when moving between steps.

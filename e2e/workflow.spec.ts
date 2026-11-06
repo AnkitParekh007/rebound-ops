@@ -25,7 +25,7 @@ test('guided recovery journey, manual job comparison, backup and restore', async
   await expect(page.getByText('supported', { exact: true })).toBeVisible();
 
   await openStep(page, 'Your options');
-  await page.getByRole('button', { name: 'Test Return' }).click();
+  await page.getByRole('button', { name: 'Choose similar work to before' }).click();
   await expect(page.getByRole('heading', { name: 'Make progress manageable' })).toBeVisible();
   await page.locator('input[type=checkbox]').first().check();
   await expect(page.getByText('1 of 5 actions completed')).toBeVisible();

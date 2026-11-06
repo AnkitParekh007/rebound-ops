@@ -155,7 +155,7 @@ export class SessionStore {
       return current
         ? this.api.replaceIntake(current.id, current.revision, intake)
         : this.api.create(intake);
-    }, 'Career intake recorded locally. Review your evidence and choose a route.');
+    }, 'Your answers are recorded in the app on this computer. Next, check the things you did, then choose an option to try.');
   }
 
   resumeSaved(id: string): Promise<Session | null> {
@@ -272,7 +272,7 @@ export class SessionStore {
 
   chooseRoute(routeId: RouteId): Promise<Session | null> {
     return this.mutate((id, rev) => this.api.selectRoute(id, rev, routeId),
-      'Direction selected. The plan is a set of experiments, not a prediction.');
+      'Option chosen. Your 7-day plan is a set of small things to try, not a prediction.');
   }
 
   setActionCompleted(actionId: string, completed: boolean): Promise<Session | null> {

@@ -57,7 +57,7 @@ export function exportPilotFeedback(
     '- Route selected in current session: ' + route,
     '- Permission to export: explicitly checked by respondent (not permission to publish)', '',
     '## Responses', '',
-    '- Direction options understandable: ' + (input.clarity || '(skipped)'),
+    '- Three options (similar work / new kind of work / stepping-stone role) understandable: ' + (input.clarity || '(skipped)'),
     '- Privacy/data sharing understandable: ' + (input.privacyUnderstanding || '(skipped)'),
     '- Most useful: ' + safeOneLine(input.useful, 600),
     '- Confusing or not working: ' + safeOneLine(input.confusing, 600),

@@ -19,7 +19,7 @@
 - [ ] Install using npm ci --omit=dev --ignore-scripts and start the service on 127.0.0.1:4174.
 - [ ] Confirm memory-only and AI-disabled defaults; no credentials or personal data needed.
 - [ ] Complete a fictional evidence/citation/correction, requirement-gap and plan journey.
-- [ ] Test Return, Shift and Bridge on both one-hour and six-hour budgets.
+- [ ] Choose each of the three options (similar work, a new kind of work, a stepping-stone role) on both one-hour and six-hour budgets.
 - [ ] Test simulated action check-ins, Markdown/JSON exports, delete and restore.
 - [ ] Confirm no unapproved persistence or automatic external AI transfer.
 - [ ] Keyboard-only flow, visible focus and logical heading/control order.

@@ -18,7 +18,7 @@ Validate whether a recovering software professional can move from uncertainty to
 
 **5–10 minutes: Recover evidence.** Ask for three accomplishments, where they can be verified and what remains uncertain. Mark any unsupported claim as unverified; never fill gaps with invented achievements.
 
-**10–17 minutes: Compare choices.** Review Return, Shift and Bridge as hypotheses. Invite the participant to name an actual target role or project, identify supporting evidence, articulate one gap and choose a first test. Use two or three real job descriptions if available, but do not pretend the pilot automatically analyzes them.
+**10–17 minutes: Compare choices.** Review the three options (similar work to before, a new kind of work, a stepping-stone role; called Return, Shift and Bridge in earlier notes) as things to try, not predictions. Invite the participant to name an actual target role or project, identify supporting evidence, articulate one gap and choose a first test. Use two or three real job descriptions if available, but do not pretend the pilot automatically analyzes them.
 
 **17–25 minutes: Make a plan.** Check estimated time against declared capacity. Revise wording with the participant and choose the smallest first step. The pilot exports an initial plan; manual edits to the Markdown are expected.
 

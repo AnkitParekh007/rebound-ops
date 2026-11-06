@@ -22,6 +22,17 @@ export const ROUTE_META: Record<RouteId, { label: string; uncertainty: string; n
   }
 };
 
+/**
+ * Plain-language names shown to people and used in exports. `ROUTE_META.label`
+ * (Return / Shift / Bridge) stays as stored session data and an internal
+ * short name, so existing sessions and backups load unchanged.
+ */
+export const ROUTE_TITLES: Record<RouteId, string> = {
+  return: 'Similar work to before',
+  shift: 'A new kind of work',
+  bridge: 'A stepping-stone role'
+};
+
 const TASKS: Record<RouteId, ReadonlyArray<readonly [string, number]>> = {
   return: [
     ['Identify three achievements and verify their sources', 30],
@@ -331,7 +342,7 @@ export function exportMarkdown(session: Session): string {
     }
   }
   const route = session.routes.find(r => r.id === plan.routeId);
-  lines.push('', '## Direction to test', '- ' + route?.label + ': ' + safe(route?.target ?? ''), '- Uncertainty: ' + route?.uncertainty, '- Next test: ' + route?.nextTest, '',
+  lines.push('', '## Direction to test', '- ' + (route ? ROUTE_TITLES[route.id] : '') + ': ' + safe(route?.target ?? ''), '- Uncertainty: ' + route?.uncertainty, '- Next test: ' + route?.nextTest, '',
     '## Seven-day actions', 'Budget: ' + plan.plannedMinutes + ' / ' + plan.budgetMinutes + ' minutes.');
   for (const task of plan.actions) lines.push('- [' + (task.completed ? 'x' : ' ') + '] Day ' + task.day + ': ' + safe(task.title) + ' (' + task.minutes + ' min)');
   lines.push('', '## Check-in', safe(session.reviewNotes) || 'No outcome recorded.', '', 'This document is user-controlled and has not been professionally verified.');

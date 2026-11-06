@@ -14,9 +14,9 @@ The MVP should answer: What have I demonstrated? What is still unverified? Which
 
 ## Routes
 
-- **Return:** roles similar to demonstrated recent work.
-- **Shift:** adjacent roles, with specific unknown requirements to test.
-- **Bridge:** scoped, temporary or contract work.
+- **Similar work to before** (Return): roles similar to demonstrated recent work.
+- **A new kind of work** (Shift): adjacent roles, with specific unknown requirements to test.
+- **A stepping-stone role** (Bridge): scoped, temporary or contract work.
 
 These are hypotheses, not rankings, earnings predictions or vacancy claims.
 

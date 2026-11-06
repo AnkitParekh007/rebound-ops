@@ -27,7 +27,7 @@ Immediately after each interview, record one participant-stated consequential pr
 
 ## Assisted end-to-end journey (30–45 minutes)
 
-1. Explain Return/Shift/Bridge as hypotheses, not job-fit predictions.
+1. Explain the three options (similar work, a new kind of work, a stepping-stone role; formerly labelled Return/Shift/Bridge) as things to try, not job-fit predictions.
 2. Start with fictional data or user-approved redacted notes.
 3. Have the participant correct one claim and identify whether a source can substantiate it.
 4. Paste a non-confidential job requirement; mark support/gap/unreviewed explicitly.

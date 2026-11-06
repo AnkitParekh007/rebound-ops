@@ -66,7 +66,7 @@ The archive and SHA-256 sidecar appear under dist/preview. Successful `main` run
 1. Either answer the guided questions with fictional answers, or select **I'd rather fill in one form**, then **Use fictional example**, then create a recovery session.
 2. Confirm a fictional achievement and optionally attach an exact quotation from fictional source text.
 3. Paste a fictional job requirement and manually mark supported, unreviewed or gap.
-4. Compare Return, Shift and Bridge and select one route with a seven-day time-limited plan.
+4. Compare the three options (similar work to before, a new kind of work, a stepping-stone role) and choose one with a seven-day time-limited plan.
 5. Mark a simulated task complete, add a fictional check-in and export Markdown and JSON.
 6. Delete and restore the session to rehearse recovery. A checked box is not independent proof of an actual career action.
 

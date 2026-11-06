@@ -22,7 +22,7 @@ The original Phase 1 pilot remains in `src/`, `tests/`, `index.html` and `styles
 - **Source documents:** at most three user-pasted résumé/project-note excerpts, immutable within a session, each capped at 10,000 characters. Evidence citations store a document ID and exact UTF-16 start/end offsets.
 - **Corrections:** reasoned, timestamped edits to a claim/source preserving the evidence ID but resetting it to unverified and revoking linked requirement support. At most 50 corrections per session.
 - **Intake:** work preference, 1–20 available hours per week, urgency, target routes and 0–15 evidence items.
-- **Routes:** Return / Shift / Bridge; candidate evidence IDs only, explicit unknowns and next tests. No fit scores.
+- **Routes:** shown as "Similar work to before", "A new kind of work" and "A stepping-stone role" (`ROUTE_TITLES`; stored IDs and labels remain `return`/Return, `shift`/Shift, `bridge`/Bridge); candidate evidence IDs only, explicit unknowns and next tests. No fit scores.
 - **Plan:** up to seven actions within budget; user-selected route, explicit checkbox progress.
 - **Job targets:** 0–3 manually pasted job descriptions, with 1–12 requirements each and explicit unreviewed/supported/gap states.
 - **Session:** versioned schema (currently v1) with forward-only migrations for saved files and backups ([schema migrations](schema-migrations.md)), unique ID, optimistic revision, timestamps, notes, requirement review.

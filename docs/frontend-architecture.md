@@ -23,7 +23,7 @@ apps/web/src/
       evidence/                02 source documents, confirm/reject, cited corrections, history
       job-targets/             02b manual job requirements reviewed against confirmed evidence
       ai-review/               optional AI: exact payload preview → consent → non-applied suggestions
-      routes/                  03 Return / Shift / Bridge hypotheses
+      routes/                  "Your options": similar work / a new kind of work / a stepping-stone role
       plan/                    04 seven-day plan, check-in notes, Markdown export
       pilot-feedback/          private questionnaire (component-local state only) + model
       data-controls/           opt-in disk saving, JSON backup, delete

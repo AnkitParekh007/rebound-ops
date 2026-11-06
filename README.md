@@ -41,7 +41,7 @@ For a production-local build, run `npm run build` followed by `npm run start -w 
 1. Answer a few guided questions about your situation (or use one full form): experience, practical constraints and 1–15 achievement claims with self-reported provenance. See [guided first visit](docs/onboarding.md).
 2. Paste up to three private résumé/project-note excerpts and correct individual claims with exact, uniquely matched source quotations (or leave them manually sourced).
 3. Confirm, reject or leave each claim unverified. Corrections reset confirmation and revoke dependent job-requirement links.
-4. Compare **Return**, **Shift** and **Bridge** as hypotheses, with their unknowns stated explicitly.
+4. Compare three kinds of next step: **similar work to before**, **a new kind of work** and **a stepping-stone role** (internally Return, Shift and Bridge), as options to try rather than predictions, with their unknowns stated plainly.
 5. Paste up to three real job targets and review their requirements against participant-confirmed achievements.
 6. Choose a direction and get a seven-day plan bounded by your available hours.
 7. Mark actions complete, record feedback and export a Markdown summary with evidence quotations and correction history.

@@ -49,7 +49,7 @@ describe('SessionStore', () => {
   it('creates a session, then replaces the intake with the current revision', async () => {
     await withSession();
     expect(store.session()).toEqual(session);
-    expect(store.notice()).toMatch(/Career intake recorded/);
+    expect(store.notice()).toMatch(/Your answers are recorded/);
 
     const next = { ...session, revision: 1 };
     api.replaceIntake.mockResolvedValueOnce(next);

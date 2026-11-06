@@ -10,7 +10,7 @@ The ReboundOps repository is public source code, but this kit does **not** autho
 
 **35–50 seconds — Requirements.** Paste one fictional example of a job requirement. Mark missing proof as unreviewed or a gap; never pretend the match has been independently verified.
 
-**50–70 seconds — Career paths.** Show Return / Shift / Bridge hypotheses, choose one and explain its uncertainty. Point to a seven-day plan within the participant’s time budget.
+**50–70 seconds — Career paths.** Show the three options (similar work, a new kind of work, a stepping-stone role), choose one and explain its uncertainty. Point to a seven-day plan within the participant’s time budget.
 
 **70–85 seconds — Progress and privacy.** Complete one mock action, export Markdown, and explain opt-in local storage and deletion. Optional AI requires a separate payload preview, explicit consent and provider setup.
 
