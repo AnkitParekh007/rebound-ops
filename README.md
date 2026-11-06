@@ -20,20 +20,19 @@ The original **Phase 1 prototype**, feature-tested by its solo maintainer but no
 git clone https://github.com/AnkitParekh007/rebound-ops.git
 cd rebound-ops
 npm ci
-npm run build:contracts
 ```
 
-Open two terminals:
+Start everything with one command:
 
 ```sh
-# Terminal 1: typed API at http://127.0.0.1:4174
-npm run dev:api
-
-# Terminal 2: Angular UI at http://127.0.0.1:4200
-npm run dev:web
+npm run dev
 ```
 
+This builds the shared contracts, then runs the typed API (http://127.0.0.1:4174) and the Angular UI (http://127.0.0.1:4200) together. Their logs appear in one terminal, prefixed `[api]` and `[web]`. Press **Ctrl+C** once to stop both.
+
 Visit **http://127.0.0.1:4200**.
+
+To run them separately (for example, to restart only the API), use `npm run dev:api` and `npm run dev:web` in two terminals after `npm run build:contracts`.
 
 For a production-local build, run `npm run build` followed by `npm run start -w @reboundops/api`. The Fastify process serves the compiled Angular site and API at **http://127.0.0.1:4174**.
 
@@ -56,7 +55,7 @@ Sessions are **memory-only by default**. With a configured private REBOUNDOPS_DA
 With the API stopped, configure a private directory outside the repository:
 
 ~~~sh
-REBOUNDOPS_DATA_DIR="$HOME/.reboundops/sessions" npm run dev:api
+REBOUNDOPS_DATA_DIR="$HOME/.reboundops/sessions" npm run dev
 ~~~
 
 Then select **Enable local disk saving for this session** in the UI. Only explicitly selected sessions survive restarts. Resume them from the intake page. Deleting a saved session removes its disk file; downloaded backups remain separate. Files are **not encrypted**.

@@ -7,10 +7,10 @@ ReboundOps remains memory-only by default. Saving requires **two separate opt-in
 Start the API using a private, non-synced directory outside your Git checkout:
 
 ~~~sh
-REBOUNDOPS_DATA_DIR="$HOME/.reboundops/sessions" npm run dev:api
+REBOUNDOPS_DATA_DIR="$HOME/.reboundops/sessions" npm run dev
 ~~~
 
-Then open the Angular frontend and explicitly enable saving for the current session. After restarting the API, click **Resume session** on the intake screen to reopen an opted-in session. Sessions not opted in are lost on restart. **Importing a JSON backup always starts a memory-only session**.
+`npm run dev` starts the API and the Angular frontend together (use `npm run dev:api` to start only the API). Then open the Angular frontend and explicitly enable saving for the current session. After restarting the API, click **Resume session** on the intake screen to reopen an opted-in session. Sessions not opted in are lost on restart. **Importing a JSON backup always starts a memory-only session**.
 
 ## Privacy and file safety
 

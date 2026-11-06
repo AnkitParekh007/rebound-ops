@@ -7,7 +7,7 @@
   "workspaces": ["packages/*", "apps/*"],
   "description": "Evidence-led career recovery: Angular app, localhost API and typed contracts",
   "scripts": {
-    "dev": "npm run dev:web",
+    "dev": "npm run build:contracts && concurrently --names api,web --prefix-colors cyan,magenta --kill-others-on-fail \"npm:dev:api\" \"npm:dev:web\"",
     "dev:web": "npm run start -w @reboundops/web",
     "test:e2e": "playwright test",
     "dev:api": "npm run dev -w @reboundops/api",
@@ -26,9 +26,10 @@
     "eval:ai:live": "node evals/ai-review/run.mjs --mode live"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "@playwright/test": "^1.58.0",
     "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^24.0.0",
+    "concurrently": "^10.0.6",
     "typescript": "~6.0.0"
   },
   "engines": {

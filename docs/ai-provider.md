@@ -16,10 +16,10 @@ The API reports `enabled: false` at `GET /api/ai/status`. Every core workflow (i
 export REBOUNDOPS_AI_ENABLED=true
 export ANTHROPIC_API_KEY='your-private-server-side-key'
 export REBOUNDOPS_ANTHROPIC_MODEL='claude-sonnet-5-5'
-npm run dev:api
+npm run dev
 ```
 
-4. Start the Angular frontend separately with `npm run dev:web`.
+4. `npm run dev` starts the API and the Angular frontend together; both processes inherit the variables, but only the API reads them; the Angular dev server does not put them into the browser bundle. (To run them separately: `npm run dev:api` in this terminal and `npm run dev:web` in another.)
 5. Add a job target, preview the exact payload in the UI, then make an explicit consent decision.
 
 The provider configuration and model name may change with upstream availability. Official reference: https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript and https://platform.claude.com/docs/en/build-with-claude/structured-outputs
