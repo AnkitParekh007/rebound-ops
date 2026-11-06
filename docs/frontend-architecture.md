@@ -8,7 +8,7 @@
 apps/web/src/
   main.ts                      zoneless bootstrap + HttpClient
   app/
-    app.component.*            shell: header, hero, step navigation, global messages, composition
+    app.component.*            shell: header, step navigation, global messages, composition
     core/
       wizard.ts                WizardStore: step list, statuses, locking, URL-hash sync
       session-api.service.ts   typed, stateless HTTP gateway: one method per API endpoint
@@ -17,7 +17,9 @@ apps/web/src/
       error-messages.ts        pure HTTP-failure → user-message mapping
       download.ts              local file download helper (nothing leaves the device)
     features/
-      intake/                  01 intake form, saved-session resume, backup restore
+      onboarding/              first-visit guided questions (default "About you"); see docs/onboarding.md
+      intake/                  "About you" as one full form (starts blank; reloads from the active session)
+      resume/                  open a saved session or restore a backup ("Coming back?")
       evidence/                02 source documents, confirm/reject, cited corrections, history
       job-targets/             02b manual job requirements reviewed against confirmed evidence
       ai-review/               optional AI: exact payload preview → consent → non-applied suggestions
@@ -45,6 +47,9 @@ The app shows one step at a time instead of one long page. Main steps: **About y
 - Inactive steps stay **mounted but hidden** (`[hidden]`, enforced globally with `display: none !important`), so unsaved drafts survive moving between steps. Features are still keyed by session ID (rule 4).
 - Each user-driven step change moves focus to the step's `<h2>` and updates `document.title` ("Step 2 of 5: Things you did – ReboundOps").
 - On narrow screens the step list collapses behind a toggle with `aria-expanded`.
+- Before a session exists, "About you" shows the **guided questions** (`rb-onboarding`) by default, or the full form (`rb-intake`) if the user asks for it; the step list and Back/Continue buttons appear once the session exists. The guided flow keeps answers in component memory and creates the session with one `submitIntake` call from its summary ([details](onboarding.md)).
+- The full form starts blank (the fictional example loads only on request) and reloads from the active session whenever its id changes, so "Update intake" always edits the real answers.
+- The global notice is a `role="status"` element that is always rendered, so new text is announced.
 - Navigation never changes the session. Successful intents may advance the wizard (intake → Things you did; choosing an option → Your 7-day plan; resume/restore → the plan if one exists).
 
 ## Rules

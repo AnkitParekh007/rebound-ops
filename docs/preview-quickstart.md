@@ -63,7 +63,7 @@ The archive and SHA-256 sidecar appear under dist/preview. Successful `main` run
 
 ## Fictional demonstration
 
-1. Select Use fictional example, then create a recovery session.
+1. Either answer the guided questions with fictional answers, or select **I'd rather fill in one form**, then **Use fictional example**, then create a recovery session.
 2. Confirm a fictional achievement and optionally attach an exact quotation from fictional source text.
 3. Paste a fictional job requirement and manually mark supported, unreviewed or gap.
 4. Compare Return, Shift and Bridge and select one route with a seven-day time-limited plan.

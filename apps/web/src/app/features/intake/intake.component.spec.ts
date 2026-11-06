@@ -35,7 +35,10 @@ describe('IntakeComponent (typed form on IntakeSchema)', () => {
     expect(IntakeSchema.shape.evidence.safeParse(items(MAX_EVIDENCE_LINES + 1)).success).toBe(false);
   });
 
-  it('starts from the fictional example, which is contract-valid', () => {
+  it('starts blank, so fictional data is never submitted by accident; the example loads on request', () => {
+    expect(component.form.controls.role.value).toBe('');
+    expect(component.form.valid).toBe(false);
+    component.demo();
     expect(component.form.valid).toBe(true);
     expect(IntakeSchema.safeParse(component.toIntake()).success).toBe(true);
   });
@@ -66,12 +69,13 @@ describe('IntakeComponent (typed form on IntakeSchema)', () => {
     ]);
   });
 
-  it('clear() empties the form; resuming a session refills it from that session', async () => {
+  it('clear() empties the form; a new active session (guided answers, resume, restore) refills it', () => {
+    component.demo();
     component.clear();
     expect(component.form.controls.role.value).toBe('');
     const session = fictionalSession();
-    store.resumeSaved.mockResolvedValueOnce(session);
-    await component.resumeSaved(session.id);
+    store.session.set(session as never);
+    TestBed.tick();
     expect(component.form.controls.role.value).toBe(session.intake.role);
     expect(component.form.controls.evidenceText.value).toBe('Led a fictional component migration');
   });

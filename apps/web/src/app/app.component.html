@@ -4,19 +4,10 @@
 </header>
 
 <main class="shell">
-  @if (!store.session() && wizard.current() === 'start') {
-    <section class="hero" aria-labelledby="hero-title">
-      <p class="eyebrow">A better way forward</p>
-      <h1 id="hero-title">Your experience matters.<br><em>So does your next step.</em></h1>
-      <p class="lede">Compare career directions using user-controlled evidence. Choose one path to test and get a seven-day plan that respects your time.</p>
-      <div class="disclosure"><strong>What this version does:</strong> Structured intake, manual evidence confirmation, route hypotheses, time-budgeted plans, local progress tracking and export.
-        <strong> What it does not do automatically:</strong> AI analysis, job matching, salary predictions or external provider calls. Optional AI requests require exact-payload preview and explicit consent. Sessions are memory-only by default; saving across restarts requires a private local directory and a separate per-session opt-in.</div>
-    </section>
-  } @else {
-    <h1 class="visually-hidden">ReboundOps</h1>
-  }
+  <h1 class="visually-hidden">ReboundOps</h1>
 
-  <div class="wizard">
+  <div class="wizard" [class.solo]="!store.session()">
+    @if (store.session()) {
     <nav class="wizard-nav" aria-label="Recovery workflow">
       @let step = wizard.currentStep();
       <button type="button" class="wizard-toggle" [attr.aria-expanded]="menuOpen()" aria-controls="wizard-steps" (click)="menuOpen.set(!menuOpen())">
@@ -40,6 +31,7 @@
         <p class="wizard-saved">{{ savedLabel() }}</p>
       </div>
     </nav>
+    }
 
     <ng-template #stepButton let-item let-number="number">
       <button type="button" [class]="'wizard-step is-' + item.status"
@@ -59,11 +51,18 @@
       @if (store.error()) {
         <div class="message error" role="alert">{{ store.error() }}</div>
       }
-      @if (store.notice()) {
-        <div class="message success" role="status">{{ store.notice() }}</div>
-      }
+      <!-- Always rendered, so screen readers announce new text (a live region
+           created together with its text is often not announced). -->
+      <div role="status" [class]="store.notice() ? 'message success' : ''">{{ store.notice() }}</div>
 
-      <div [hidden]="wizard.current() !== 'start'"><rb-intake /></div>
+      <div [hidden]="wizard.current() !== 'start'">
+        <!-- First visit: guided questions by default; the full form is one click away. -->
+        @if (!store.session() && startMode() === 'guided') {
+          <rb-onboarding (fullForm)="startMode.set('form')" />
+        } @else {
+          <rb-intake (guided)="startMode.set('guided')" />
+        }
+      </div>
 
       <!-- Keyed by session ID: switching sessions recreates every feature, so
            per-session drafts and private pilot answers never carry over.
@@ -80,7 +79,7 @@
         <div [hidden]="wizard.current() !== 'data'"><rb-data-controls [session]="current" /></div>
       }
 
-      @if (wizard.previous() || wizard.next()) {
+      @if (store.session() && (wizard.previous() || wizard.next())) {
         <nav class="wizard-pager" aria-label="Step navigation">
           @if (wizard.previous(); as prev) {
             <button type="button" class="minimal" (click)="open(prev.id)"><span aria-hidden="true">←</span> Back to {{ prev.label }}</button>

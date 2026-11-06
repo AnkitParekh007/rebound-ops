@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { useFullForm } from './steps';
 import AxeBuilder from '@axe-core/playwright';
 
 test('contract validation blocks invalid intake locally with accessible inline errors', async ({ page }) => {
@@ -7,6 +8,7 @@ test('contract validation blocks invalid intake locally with accessible inline e
     if (request.method() === 'POST' && request.url().endsWith('/api/sessions')) created.push(request.url());
   });
   await page.goto('/');
+  await useFullForm(page, { example: false });
   await page.getByRole('button', { name: 'Clear form' }).click();
   await page.getByLabel('Available hours per week').fill('25');
   await page.getByRole('button', { name: /Create recovery session/i }).click();

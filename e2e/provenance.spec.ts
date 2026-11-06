@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { openStep } from './steps';
+import { openStep, useFullForm } from './steps';
 
 test('exact source citation, user correction and dependent job review revocation', async ({ page }) => {
   await page.goto('/');
+  await useFullForm(page);
   await page.getByRole('button', { name: /Create recovery session/i }).click();
   await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
 

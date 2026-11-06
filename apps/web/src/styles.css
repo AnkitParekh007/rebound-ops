@@ -100,3 +100,61 @@ footer{color:#52695c}
   .wizard-steps:not(.open){display:none}
   .wizard-steps.open{margin-top:10px}
 }
+
+/* First visit: no step list yet, one centred column. */
+.wizard.solo{grid-template-columns:minmax(0,1fr);max-width:760px;margin-left:auto;margin-right:auto}
+.intake-switch{margin:-4px 0 0;color:#405f51}
+
+/* Guided questions: one large question card at a time. */
+.ob{margin-top:12px}
+.ob-card{background:#fff;border:1px solid #e1e9e5;border-radius:22px;padding:clamp(24px,5vw,48px);box-shadow:0 10px 40px rgba(15,70,57,.06);animation:ob-in .22s ease-out}
+@keyframes ob-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ob-mark{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#147260;color:#fff;font-weight:800;margin-bottom:18px}
+.ob h2{font-size:clamp(1.45rem,3.4vw,2.1rem);line-height:1.25;margin:0 0 12px}
+.ob h2:focus{outline:none}
+.ob-lead{display:block;font-size:1rem;font-weight:500;letter-spacing:0;color:#2f5f50;margin-bottom:10px;line-height:1.5}
+.ob-lede{font-size:1.1rem;color:#3d5650;max-width:600px}
+.ob-honest{font-size:.86rem;color:#405f51;background:#eef6f2;border-radius:10px;padding:11px 14px;max-width:600px}
+.ob-why{font-size:.86rem;color:#405f51;margin:0 0 18px}.ob-why span{font-weight:750}
+.ob-progress-row{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.ob-progress{margin:0;font-size:.8rem;font-weight:750;color:#105f4c;white-space:nowrap}
+.ob-bar{flex:1;height:6px;border-radius:6px;background:#e3ece7;overflow:hidden}
+.ob-bar span{display:block;height:100%;background:#166d5b;border-radius:6px;transition:width .25s ease}
+.ob fieldset{border:0;margin:0;padding:0;display:grid;gap:10px}
+.ob .hint{margin:0 0 6px}
+.ob-option{display:flex;align-items:center;gap:14px;margin:0;padding:15px 18px;border:2px solid #dce8e1;border-radius:14px;background:#fbfdfc;font-size:1rem;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s}
+.ob-option:hover{border-color:#9cc9b6}
+.ob-option:has(input:checked){border-color:#166d5b;background:#e8f4ee}
+.ob-option:has(input:focus-visible){outline:3px solid #e0a744;outline-offset:2px}
+.ob-option input{width:20px;height:20px;margin:0;flex-shrink:0;accent-color:#166d5b}
+.ob-option small{display:block;font-weight:450;color:#4e6359;font-size:.84rem}
+.ob-answers input[type=text],.ob-answers textarea{font-size:1.05rem;min-height:52px;border-width:2px;border-radius:12px}
+.ob-answers #ob-hint{margin:8px 0 0}
+.ob-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:26px}
+.ob-actions .primary{margin-left:auto}
+.ob-big{padding:14px 26px;font-size:1.02rem;border-radius:12px}
+.ob-more{margin-top:14px;border-top:1px solid #e4ece7;padding-top:12px}
+.ob-more summary{cursor:pointer;font-weight:700;color:#1d5f4f}
+.ob-more p{font-size:.9rem;color:#3d5650;margin:10px 0 0}
+.ob-sofar{margin:0 0 12px;font-size:.88rem;color:#3d5650}
+.ob-sofar summary{cursor:pointer;font-weight:700;color:#1d5f4f}
+.ob-sofar ul{list-style:none;padding:8px 0 0;margin:0;display:grid;gap:6px}
+.ob-escape{text-align:center;margin:14px 0 0}
+.link{background:none;border:0;padding:0 4px;color:#166d5b;text-decoration:underline;font-weight:700}
+.ob-review{margin:0 0 20px}
+.ob-review-row{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:6px 16px;padding:13px 0;border-bottom:1px solid #e4ece7}
+.ob-review dt{font-weight:700;color:#405f51;font-size:.88rem}
+.ob-review dd{margin:0;overflow-wrap:anywhere}
+.ob-review dd small{display:block;color:#4e6359;font-size:.78rem}
+.ob-suggest{background:#eef6f2;border-radius:14px;padding:16px 18px}
+.ob-suggest p{margin:0 0 8px;font-size:.94rem}.ob-suggest p:last-child{margin:0}
+@media(max-width:650px){
+  .ob-review-row{grid-template-columns:1fr auto}.ob-review dt{grid-column:1/-1}
+  .ob-actions .primary{margin-left:0;width:100%}
+}
+
+/* Respect the "reduce motion" setting (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+}
+.ob-welcome .ob-actions .primary{margin-left:0}

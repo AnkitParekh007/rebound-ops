@@ -3,6 +3,7 @@
 ## Unreleased — Phase 2 typed MVP
 
 ### Added
+- Guided first visit, now the default first screen: a short welcome, then one empathetic question at a time that branches on the user's situation (recently lost a job, changing careers, returning after a break, a better job in the same field, something else), ending with a "Here's what I heard" summary where any answer can be changed before anything is saved. Scripted in advance with no AI; answers stay in memory until confirmed. The full form is one click away ([guide](docs/onboarding.md)). Draft wording for pilot testing.
 - Step-by-step wizard UI: one step at a time with a numbered step list, plain-language step names, done/optional/locked states with reasons, Back/Continue buttons, URL-hash navigation (browser Back works), focus moved to each step heading, and a collapsible step list on phones. Unsaved drafts are kept when moving between steps.
 - Dependabot ignore rules for TypeScript major/minor updates (Angular compiler compatibility) and `@types/node` major updates (oldest supported Node runtime), so update PRs that cannot pass are no longer opened.
 - Documentation brought in line with the code (B0): `architecture.md` status table and updated diagram, `phase-2.md` endpoints/persistence/AI/testing corrected, release checklist and README gates updated; future work now lives only in the roadmap.
@@ -28,6 +29,10 @@
 - Voluntary, browser-memory-only private pilot feedback panel with consent-controlled Markdown download and no automatic telemetry.
 - Cross-browser CI (Chromium/Firefox/WebKit), defense-in-depth localhost requests, fail-closed local snapshot updates and release hygiene auditing.
 - Unpublished preview archive builder, per-file integrity manifest and SHA-256 sidecar, clean extracted runtime smoke test and Windows/macOS build verification; owner publication approval remains a separate gate.
+
+### Fixed
+- The intake form no longer starts filled with fictional data, which could be submitted by accident or overwrite real answers later; the example loads only on request, and the form reloads from the active session.
+- Status messages are announced reliably by screen readers, and animations are removed when the user asks for reduced motion.
 
 ### Preserved
 - Original zero-dependency browser pilot remains at repository root.

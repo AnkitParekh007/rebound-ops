@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openStep } from './steps';
+import { openStep, useFullForm } from './steps';
 import { readFile } from 'node:fs/promises';
 
 const scenarios = [
@@ -17,6 +17,7 @@ const scenarios = [
 for (const scenario of scenarios) {
   test('founder acceptance: full ' + scenario.title + ' journey, source, action, export and restore', async ({ page }) => {
     await page.goto('/');
+    await useFullForm(page);
     await page.getByLabel('Recent role').fill(scenario.role);
     await page.getByLabel('Available hours per week').fill('6');
     await page.getByLabel('Location or work preference').fill('Fictional remote-only');
@@ -125,6 +126,7 @@ for (const scenario of scenarios) {
 for (const scenario of scenarios) {
   test('founder acceptance: ' + scenario.title + ' keeps a one-hour weekly budget', async ({ page }) => {
     await page.goto('/');
+    await useFullForm(page);
     await page.getByLabel('Available hours per week').fill('1');
     await page.getByRole('button', { name: /Create recovery session/i }).click();
     await openStep(page, 'Your options');
@@ -140,6 +142,7 @@ for (const scenario of scenarios) {
 
 test('founder acceptance: no external AI request or local disk saving is enabled by default', async ({ page }) => {
   await page.goto('/');
+  await useFullForm(page);
   await page.getByLabel('Location or work preference').fill('PRIVATE_TEST_LOCATION');
   await page.getByLabel('Priorities and constraints').fill('PRIVATE_TEST_NOTES');
   await page.getByLabel('Demonstrated achievements — one per line').fill(
@@ -170,6 +173,7 @@ test('founder acceptance: no external AI request or local disk saving is enabled
 
 test('founder acceptance: incorrect source quote is rejected without changing the claim', async ({ page }) => {
   await page.goto('/');
+  await useFullForm(page);
   await page.getByRole('button', { name: /Create recovery session/i }).click();
   await page.getByLabel('Source title').fill('Fictional project note');
   await page.getByLabel('Source text (pasted locally, maximum 10,000 characters)')

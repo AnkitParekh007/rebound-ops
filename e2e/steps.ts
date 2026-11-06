@@ -11,3 +11,13 @@ export async function openStep(page: Page, label: StepLabel): Promise<void> {
   if (await toggle.isVisible() && (await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
   await nav.getByRole('button', { name: new RegExp('^' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*,') }).click();
 }
+
+/**
+ * From the guided welcome screen, switches to the single full form and loads
+ * the fictional example (the form starts blank so fiction is never submitted
+ * by accident).
+ */
+export async function useFullForm(page: Page, options: { example?: boolean } = {}): Promise<void> {
+  await page.getByRole('button', { name: "I'd rather fill in one form" }).click();
+  if (options.example !== false) await page.getByRole('button', { name: 'Use fictional example' }).click();
+}

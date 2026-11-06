@@ -53,25 +53,8 @@
         <button class="minimal" type="button" (click)="clear()">Clear form</button>
       </div>
     </form>
-    @if (store.persistenceStatus()?.available && store.savedSessions().length > 0) {
-      <div class="saved-session-list">
-        <h3>Resume a saved session on this computer</h3>
-        <p class="muted">Only sessions you explicitly opted into saving are shown here.</p>
-        @for (saved of store.savedSessions(); track saved.id) {
-          <div class="saved-session-entry">
-            <div><strong>{{ saved.role }}</strong><small>Last updated {{ saved.updatedAt }} · revision {{ saved.revision }}</small></div>
-            <button type="button" class="secondary" [disabled]="store.busy()" (click)="resumeSaved(saved.id)">Resume session</button>
-          </div>
-        }
-      </div>
+    @if (!store.session()) {
+      <p class="intake-switch">Prefer to be guided? <button type="button" class="minimal" (click)="guided.emit()">Answer a few questions instead</button></p>
+      <rb-resume />
     }
-    @if (store.persistenceStatus()?.warnings?.length) {
-      <p class="message error" role="status">Some saved files could not be loaded. They were left untouched in your local data folder. See your local persistence documentation before modifying them.</p>
-    }
-    <div class="restore-control">
-      <label>Resume a previous local backup
-        <input type="file" accept=".json,application/json" (change)="restoreFile($event)" [disabled]="store.busy() || !store.apiAvailable()">
-      </label>
-      <p class="hint">Only files you deliberately select are read. The JSON is sent to your localhost API, not to an AI service or cloud account.</p>
-    </div>
   </section>

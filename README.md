@@ -39,7 +39,7 @@ For a production-local build, run `npm run build` followed by `npm run start -w 
 
 ### What you can do
 
-1. Enter experience, practical constraints and 1–15 achievement claims with self-reported provenance.
+1. Answer a few guided questions about your situation (or use one full form): experience, practical constraints and 1–15 achievement claims with self-reported provenance. See [guided first visit](docs/onboarding.md).
 2. Paste up to three private résumé/project-note excerpts and correct individual claims with exact, uniquely matched source quotations (or leave them manually sourced).
 3. Confirm, reject or leave each claim unverified. Corrections reset confirmation and revoke dependent job-requirement links.
 4. Compare **Return**, **Shift** and **Bridge** as hypotheses, with their unknowns stated explicitly.

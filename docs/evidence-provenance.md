@@ -4,7 +4,7 @@ ReboundOps treats career achievements as **participant claims**, not independent
 
 ## How to cite a claim
 
-1. Start a recovery session with a fictional example or your own data.
+1. Start a recovery session by answering the guided questions, or with the full form's fictional example.
 2. Under **Private source documents**, paste a short résumé or project-note excerpt (maximum 10,000 characters per document, up to three documents).
 3. Select **Correct & cite** on an evidence line.
 4. Adjust the claim, record why it changed, and select the relevant pasted document.

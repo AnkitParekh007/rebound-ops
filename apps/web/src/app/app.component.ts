@@ -5,6 +5,7 @@ import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import { SessionStore } from './core/session-store';
 import { type StepId, type StepStatus, WizardStore } from './core/wizard';
 import { IntakeComponent } from './features/intake/intake.component';
+import { OnboardingComponent } from './features/onboarding/onboarding.component';
 import { EvidenceComponent } from './features/evidence/evidence.component';
 import { JobTargetsComponent } from './features/job-targets/job-targets.component';
 import { RoutesComponent } from './features/routes/routes.component';
@@ -16,7 +17,7 @@ import { DataControlsComponent } from './features/data-controls/data-controls.co
 @Component({
   selector: 'rb-root',
   imports: [
-    NgTemplateOutlet, IntakeComponent, EvidenceComponent, JobTargetsComponent, RoutesComponent,
+    NgTemplateOutlet, IntakeComponent, OnboardingComponent, EvidenceComponent, JobTargetsComponent, RoutesComponent,
     PlanComponent, PilotFeedbackComponent, DataControlsComponent
   ],
   templateUrl: './app.component.html',
@@ -27,6 +28,9 @@ export class AppComponent implements OnInit {
   protected readonly wizard = inject(WizardStore);
   private readonly document = inject(DOCUMENT);
   private readonly injector = inject(Injector);
+
+  /** "About you" before a session exists: guided questions (default) or the full form. Not stored anywhere. */
+  protected readonly startMode = signal<'guided' | 'form'>('guided');
 
   /** Small screens collapse the step list behind a "Step N of M" toggle. */
   protected readonly menuOpen = signal(false);

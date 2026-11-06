@@ -1,0 +1,143 @@
+<section class="ob" aria-label="Getting started">
+  <p class="visually-hidden" role="status">{{ status() }}</p>
+
+  @switch (screen()) {
+    @case ('welcome') {
+      <div class="ob-card ob-welcome">
+        <span class="ob-mark" aria-hidden="true">↗</span>
+        <h2 id="intake-heading" tabindex="-1">Hi, welcome. Let's work out your next step together.</h2>
+        <p class="ob-lede">I'll ask a few short questions, one at a time. It takes about 2 minutes, and you can go back or change any answer.</p>
+        <p class="ob-honest">These questions are written in advance: no AI is used, and nothing is saved until you check your answers at the end. Everything stays on this computer.</p>
+        <div class="ob-actions">
+          <button type="button" class="primary ob-big" (click)="start()">Let's start <span aria-hidden="true">→</span></button>
+          <button type="button" class="minimal" (click)="fullForm.emit()">I'd rather fill in one form</button>
+        </div>
+
+        <details class="ob-more">
+          <summary>Coming back? Open your saved work</summary>
+          <rb-resume />
+        </details>
+        <details class="ob-more">
+          <summary>What does ReboundOps do?</summary>
+          <p>It helps you compare three kinds of next step (similar work, a new kind of work, or a stepping-stone role), check the things you have done, and build a 7-day plan that fits the time you have.</p>
+          <p>It does not apply for jobs, predict salaries or contact anyone. AI is off unless you turn it on, and even then nothing is sent until you see exactly what would be sent and agree.</p>
+        </details>
+        <details class="ob-more">
+          <summary>Need support beyond work?</summary>
+          <p>Losing work can affect money, health and wellbeing. If you need someone to talk to, <a href="https://findahelpline.com/" target="_blank" rel="noopener noreferrer">Find A Helpline<span class="visually-hidden"> (opens in a new tab)</span></a> lists free, confidential helplines in many countries. Local advice services can help with money or benefits questions.</p>
+        </details>
+      </div>
+    }
+
+    @case ('review') {
+      <div class="ob-card">
+        <p class="ob-progress">Last step</p>
+        <h2 id="intake-heading" tabindex="-1">Here's what I heard. Did I get it right?</h2>
+        <dl class="ob-review">
+          @for (item of soFar(); track item.id) {
+            <div class="ob-review-row">
+              <dt>{{ item.label }}</dt>
+              <dd>
+                <span class="ob-answer">{{ item.answer }}</span>
+                @if (!item.saved) { <small>Only used to choose your questions. Not saved.</small> }
+              </dd>
+              <dd class="ob-change"><button type="button" class="link" (click)="change(item.id)">Change<span class="visually-hidden"> {{ item.label }}</span></button></dd>
+            </div>
+          }
+        </dl>
+        <div class="ob-suggest">
+          @if (route(); as id) {
+            <p><strong>A good place to start might be {{ routeWords[id] }}.</strong> You will still see all three kinds of options and can choose.</p>
+          } @else {
+            <p><strong>Next, you can compare three kinds of options</strong>: similar work to before, a new kind of work, and a stepping-stone role.</p>
+          }
+          <p>Job searches rarely go in a straight line. Each step in your plan is small, and you can change it.</p>
+        </div>
+        @if (!store.apiAvailable()) {
+          <p class="message error">The local app is not running, so your answers cannot be saved yet. Start it and try again; your answers are still here.</p>
+        }
+        <div class="ob-actions">
+          <button type="button" class="minimal" (click)="back()"><span aria-hidden="true">←</span> Back</button>
+          <button type="button" class="primary ob-big" [disabled]="store.busy() || !store.apiAvailable()" (click)="save()">Looks right, let's continue <span aria-hidden="true">→</span></button>
+        </div>
+        <p class="ob-honest">Saving sends your answers only to the ReboundOps app running on this computer.</p>
+      </div>
+    }
+
+    @default {
+      @if (question(); as q) {
+        @if (soFar().length) {
+          <details class="ob-sofar">
+            <summary>Your answers so far ({{ soFar().length }})</summary>
+            <ul>
+              @for (item of soFar(); track item.id) {
+                <li><span>{{ item.label }}:</span> <strong>{{ item.answer }}</strong>
+                  <button type="button" class="link" (click)="change(item.id)">Change<span class="visually-hidden"> {{ item.label }}</span></button></li>
+              }
+            </ul>
+          </details>
+        }
+        <form class="ob-card" (submit)="$event.preventDefault(); continue()" novalidate>
+          <div class="ob-progress-row">
+            <p class="ob-progress">Question {{ position() }} of about {{ total() }}</p>
+            <div class="ob-bar" aria-hidden="true"><span [style.width.%]="position() / total() * 100"></span></div>
+          </div>
+          @let c = copy()!;
+          <h2 id="intake-heading" tabindex="-1">
+            @if (c.lead) { <span class="ob-lead">{{ c.lead }}</span> }
+            {{ c.prompt }}
+          </h2>
+          @if (c.why) { <p class="ob-why"><span>Why I ask:</span> {{ c.why }}</p> }
+
+          <div class="ob-answers">
+            @switch (q.kind) {
+              @case ('choice') {
+                <fieldset [attr.aria-describedby]="visibleError() ? 'ob-error' : null">
+                  <legend class="visually-hidden">{{ c.prompt }}</legend>
+                  @if (c.hint) { <p class="hint">{{ c.hint }}</p> }
+                  @for (option of choices(); track option.value) {
+                    <label class="ob-option">
+                      <input type="radio" [name]="q.id" [value]="option.value" [formControl]="control(q.id)">
+                      <span>{{ option.label }} @if (option.hint) { <small>{{ option.hint }}</small> }</span>
+                    </label>
+                  }
+                </fieldset>
+              }
+              @case ('multi') {
+                <fieldset>
+                  <legend class="visually-hidden">{{ c.prompt }}</legend>
+                  @for (option of choices(); track option.value) {
+                    <label class="ob-option">
+                      <input type="checkbox" [formControl]="wantControl(option.value)">
+                      <span>{{ option.label }}</span>
+                    </label>
+                  }
+                </fieldset>
+              }
+              @case ('text') {
+                <label class="visually-hidden" for="ob-input">{{ c.prompt }}</label>
+                <input id="ob-input" type="text" [formControl]="control(q.id)" autocomplete="off"
+                  [attr.aria-invalid]="!!visibleError()" [attr.aria-describedby]="visibleError() ? 'ob-hint ob-error' : 'ob-hint'">
+                <p class="hint" id="ob-hint">{{ c.hint }}</p>
+              }
+              @case ('lines') {
+                <label class="visually-hidden" for="ob-input">{{ c.prompt }}</label>
+                <textarea id="ob-input" rows="4" [formControl]="control(q.id)"
+                  [attr.aria-invalid]="!!visibleError()" [attr.aria-describedby]="visibleError() ? 'ob-hint ob-error' : 'ob-hint'"></textarea>
+                <p class="hint" id="ob-hint">{{ c.hint }}</p>
+              }
+            }
+            @if (visibleError(); as message) { <p class="field-error" id="ob-error">{{ message }}</p> }
+          </div>
+
+          <div class="ob-actions">
+            <button type="button" class="minimal" (click)="back()"><span aria-hidden="true">←</span> Back</button>
+            @if (!q.required) { <button type="button" class="secondary" (click)="skip()">Skip</button> }
+            <button type="submit" class="primary ob-big">Continue <span aria-hidden="true">→</span></button>
+          </div>
+        </form>
+        <p class="ob-escape"><button type="button" class="minimal" (click)="fullForm.emit()">Switch to the full form</button></p>
+      }
+    }
+  }
+</section>

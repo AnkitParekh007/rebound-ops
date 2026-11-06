@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { openStep } from './steps';
+import { openStep, useFullForm } from './steps';
 
 test('small-screen recovery flow does not require horizontal scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await useFullForm(page);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await page.getByRole('button', { name: /Create recovery session/i }).click();
   await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
@@ -18,6 +19,7 @@ test('small-screen recovery flow does not require horizontal scrolling', async (
 
 test('intake fields and submission work without a pointer', async ({ page }) => {
   await page.goto('/');
+  await useFullForm(page);
   await page.getByLabel('Recent role').focus();
   await expect(page.getByLabel('Recent role')).toBeFocused();
   await page.keyboard.press('Tab');

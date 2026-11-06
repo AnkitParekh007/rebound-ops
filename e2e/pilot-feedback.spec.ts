@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { openStep } from './steps';
+import { openStep, useFullForm } from './steps';
 import { readFile } from 'node:fs/promises';
 
 test('pilot feedback is disabled without consent and downloads without API calls or career data', async ({ page }) => {
   await page.goto('/');
+  await useFullForm(page);
   await page.getByLabel('Recent role').fill('PRIVATE SYNTHETIC ROLE');
   await page.getByLabel('Location or work preference').fill('PRIVATE SYNTHETIC LOCATION');
   await page.getByLabel('Priorities and constraints').fill('PRIVATE SYNTHETIC PRIORITIES');
@@ -59,6 +60,7 @@ test('pilot feedback is disabled without consent and downloads without API calls
 
 test('pilot responses are not saved in session backups and are cleared between sessions', async ({ page }) => {
   await page.goto('/');
+  await useFullForm(page);
   await page.getByRole('button', { name: /Create recovery session/i }).click();
   await openStep(page, 'Your options');
   await page.getByRole('button', { name: 'Test Return' }).click();

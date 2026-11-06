@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { openStep } from './steps';
+import { openStep, useFullForm } from './steps';
 import { readFile } from 'node:fs/promises';
 
 test('guided recovery journey, manual job comparison, backup and restore', async ({ page }) => {
   await page.goto('/');
+  await useFullForm(page);
   const create = page.getByRole('button', { name: /Create recovery session/i });
   await expect(create).toBeEnabled();
   await create.click();
