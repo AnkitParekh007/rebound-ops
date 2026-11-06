@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import type { RouteId, Session } from '@reboundops/contracts';
 import { SessionStore } from '../../core/session-store';
+import { WizardStore } from '../../core/wizard';
 
 /** Step 03: Return / Shift / Bridge hypotheses with explicit unknowns. */
 @Component({
@@ -11,9 +12,10 @@ import { SessionStore } from '../../core/session-store';
 })
 export class RoutesComponent {
   protected readonly store = inject(SessionStore);
+  private readonly wizard = inject(WizardStore);
   readonly session = input.required<Session>();
 
   async chooseRoute(routeId: RouteId): Promise<void> {
-    await this.store.chooseRoute(routeId);
+    if (await this.store.chooseRoute(routeId)) this.wizard.go('plan');
   }
 }

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openStep } from './steps';
 import { readFile } from 'node:fs/promises';
 
 test('pilot feedback is disabled without consent and downloads without API calls or career data', async ({ page }) => {
@@ -9,6 +10,8 @@ test('pilot feedback is disabled without consent and downloads without API calls
   await page.getByLabel('Demonstrated achievements — one per line')
     .fill('PRIVATE SYNTHETIC EVIDENCE CLAIM');
   await page.getByRole('button', { name: /Create recovery session/i }).click();
+  await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
+  await openStep(page, 'Tell us how it went');
   await expect(page.getByRole('heading', { name: 'Private pilot feedback' })).toBeVisible();
   const downloadButton = page.getByRole('button', { name: 'Download private feedback' });
   await expect(downloadButton).toBeDisabled();
@@ -57,7 +60,9 @@ test('pilot feedback is disabled without consent and downloads without API calls
 test('pilot responses are not saved in session backups and are cleared between sessions', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Create recovery session/i }).click();
+  await openStep(page, 'Your options');
   await page.getByRole('button', { name: 'Test Return' }).click();
+  await openStep(page, 'Tell us how it went');
 
   await page.getByLabel('Anonymous participant code (optional; not a name)').fill('P07');
   await page.getByLabel('When are you answering?').selectOption('seven_day_followup');
@@ -73,15 +78,19 @@ test('pilot responses are not saved in session backups and are cleared between s
   expect(report).toContain('Real-world action status (self-report): completed');
   expect(report).toContain('Self-reported answers, not independently verified outcomes');
 
+  await openStep(page, 'Keep or delete my data');
   const backupDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download session JSON' }).click();
   const backup = await readFile(await (await backupDownload).path(), 'utf8');
   expect(backup).not.toContain('Private feedback sentinel 9831');
   expect(backup).not.toContain('P07');
   expect(backup).not.toContain('seven_day_followup');
+  await openStep(page, 'About you');
   await page.getByRole('button', { name: 'Clear form' }).click();
   await page.getByLabel('Recent role').fill('Second fictional participant');
   await page.getByRole('button', { name: /Create recovery session/i }).click();
+  await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
+  await openStep(page, 'Tell us how it went');
   await expect(page.getByLabel('What, if anything, was most useful?')).toHaveValue('');
   await expect(page.getByLabel('Anonymous participant code (optional; not a name)')).toHaveValue('');
   await expect(page.getByRole('button', { name: 'Download private feedback' })).toBeDisabled();

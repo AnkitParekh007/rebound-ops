@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openStep } from './steps';
 
 test('exact source citation, user correction and dependent job review revocation', async ({ page }) => {
   await page.goto('/');
@@ -23,6 +24,7 @@ test('exact source citation, user correction and dependent job review revocation
   await expect(page.getByText('Backed a claim with exact source text')).toBeVisible();
   await page.getByRole('button', { name: 'Confirm', exact: true }).first().click();
 
+  await openStep(page, 'Jobs you are looking at');
   await page.getByLabel('Job title / opportunity').fill('Frontend UI engineer');
   await page.getByLabel('Requirements from this opportunity — one per line').fill('Build reusable components');
   await page.getByRole('button', { name: 'Add requirements for review' }).click();
@@ -30,10 +32,12 @@ test('exact source citation, user correction and dependent job review revocation
   await page.getByRole('button', { name: 'Supported by my evidence' }).click();
   await expect(page.getByText('supported', { exact: true })).toBeVisible();
 
+  await openStep(page, 'Things you did');
   await page.getByRole('button', { name: 'Correct & cite' }).first().click();
   await page.getByLabel('Revised claim').fill('Worked on component migration');
   await page.getByLabel('Correction reason').fill('Removed an overstated contribution');
   await page.getByRole('button', { name: 'Save correction' }).click();
-  await expect(page.getByText('unreviewed', { exact: true })).toBeVisible();
   await expect(page.getByText('Removed an overstated contribution')).toBeVisible();
+  await openStep(page, 'Jobs you are looking at');
+  await expect(page.getByText('unreviewed', { exact: true })).toBeVisible();
 });

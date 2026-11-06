@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openStep } from './steps';
 
 test('small-screen recovery flow does not require horizontal scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -6,6 +7,7 @@ test('small-screen recovery flow does not require horizontal scrolling', async (
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await page.getByRole('button', { name: /Create recovery session/i }).click();
   await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
+  await openStep(page, 'Your options');
   await page.getByRole('button', { name: 'Test Return' }).click();
   await expect(page.getByRole('heading', { name: 'Make progress manageable' })).toBeVisible();
   const widthOverflow = await page.evaluate(

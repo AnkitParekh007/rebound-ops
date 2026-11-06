@@ -1,6 +1,6 @@
 # Frontend architecture (Angular)
 
-**Status:** roadmap item B2 (gaps F1, F2) is implemented. This was a behaviour-preserving refactor: same DOM text, labels, roles and CSS classes, verified by the unchanged Playwright suite.
+**Status:** roadmap item B2 (gaps F1, F2) is implemented. The single long page was later replaced by a step-by-step wizard (below); Playwright specs open steps through `e2e/steps.ts`.
 
 ## Layers
 
@@ -8,8 +8,9 @@
 apps/web/src/
   main.ts                      zoneless bootstrap + HttpClient
   app/
-    app.component.*            shell: header, hero, steps, global messages, composition
+    app.component.*            shell: header, hero, step navigation, global messages, composition
     core/
+      wizard.ts                WizardStore: step list, statuses, locking, URL-hash sync
       session-api.service.ts   typed, stateless HTTP gateway: one method per API endpoint
       session-store.ts         signal store: session, busy/error/notice, AI preview, intents
       api-types.ts             response/request shapes not covered by shared Zod contracts
@@ -33,6 +34,18 @@ feature component ──intent──▶ SessionStore ──▶ SessionApiService
         ▲                          │
         └──── signals (session, busy, error, notice, aiPreview …) ◀──┘
 ```
+
+## Step-by-step wizard
+
+The app shows one step at a time instead of one long page. Main steps: **About you → Things you did → Jobs you are looking at (optional) → Your options → Your 7-day plan**; side steps, open at any time: **Keep or delete my data** and **Tell us how it went**.
+
+- `WizardStore` (`core/wizard.ts`) owns navigation. `steps` is one memoized `computed` derived from `SessionStore.session()`, so every status (`current`, `done`, `todo`, `optional`, `locked`) comes from the same snapshot. Status is never derived from form state.
+- Locked steps explain why in plain language (for example "Choose one of your options first") through `aria-disabled` and `aria-describedby`. If the current step becomes locked (session cleared or deleted), the wizard returns to "About you".
+- The current step is mirrored into `location.hash` (`#start`, `#evidence` …) with `pushState`, so the browser Back button and bookmarks work without a router or server fallback. An unknown or locked hash opens "About you".
+- Inactive steps stay **mounted but hidden** (`[hidden]`, enforced globally with `display: none !important`), so unsaved drafts survive moving between steps. Features are still keyed by session ID (rule 4).
+- Each user-driven step change moves focus to the step's `<h2>` and updates `document.title` ("Step 2 of 5: Things you did – ReboundOps").
+- On narrow screens the step list collapses behind a toggle with `aria-expanded`.
+- Navigation never changes the session. Successful intents may advance the wizard (intake → Things you did; choosing an option → Your 7-day plan; resume/restore → the plan if one exists).
 
 ## Rules
 

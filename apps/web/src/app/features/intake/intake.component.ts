@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { EvidenceSchema, IntakeSchema, type Intake, type Session } from '@reboundops/contracts';
 import { SessionStore } from '../../core/session-store';
+import { WizardStore } from '../../core/wizard';
 import {
   FORM_INVALID_MESSAGE, contractValidator, fieldError, linesValidator, nonEmptyLines
 } from '../../core/form-validation';
@@ -43,6 +44,7 @@ const text = (value: string, schema: Parameters<typeof contractValidator>[0]) =>
 })
 export class IntakeComponent {
   protected readonly store = inject(SessionStore);
+  private readonly wizard = inject(WizardStore);
 
   /** Typed form; every rule comes from the shared IntakeSchema the API enforces. */
   readonly form = new FormGroup({
@@ -77,7 +79,7 @@ export class IntakeComponent {
       this.store.setError(lines === 'Use at most 15 evidence lines.' ? lines : FORM_INVALID_MESSAGE);
       return;
     }
-    await this.store.submitIntake(() => this.toIntake());
+    if (await this.store.submitIntake(() => this.toIntake())) this.wizard.go('evidence');
   }
 
   demo(): void {
@@ -92,7 +94,7 @@ export class IntakeComponent {
 
   async resumeSaved(id: string): Promise<void> {
     const session = await this.store.resumeSaved(id);
-    if (session) this.loadDraftFrom(session);
+    if (session) this.reopen(session);
   }
 
   async restoreFile(event: Event): Promise<void> {
@@ -106,8 +108,14 @@ export class IntakeComponent {
       return;
     }
     const session = await this.store.restoreBackup(file);
-    if (session) this.loadDraftFrom(session);
+    if (session) this.reopen(session);
     input.value = '';
+  }
+
+  /** A reopened session continues where it left off: its plan, or its evidence. */
+  private reopen(session: Session): void {
+    this.loadDraftFrom(session);
+    this.wizard.go(session.plan ? 'plan' : 'evidence');
   }
 
   private loadDraftFrom(session: Session): void {

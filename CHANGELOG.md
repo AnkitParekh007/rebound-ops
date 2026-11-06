@@ -3,6 +3,7 @@
 ## Unreleased — Phase 2 typed MVP
 
 ### Added
+- Step-by-step wizard UI: one step at a time with a numbered step list, plain-language step names, done/optional/locked states with reasons, Back/Continue buttons, URL-hash navigation (browser Back works), focus moved to each step heading, and a collapsible step list on phones. Unsaved drafts are kept when moving between steps.
 - Dependabot ignore rules for TypeScript major/minor updates (Angular compiler compatibility) and `@types/node` major updates (oldest supported Node runtime), so update PRs that cannot pass are no longer opened.
 - Documentation brought in line with the code (B0): `architecture.md` status table and updated diagram, `phase-2.md` endpoints/persistence/AI/testing corrected, release checklist and README gates updated; future work now lives only in the roadmap.
 - Supply-chain evidence for the preview candidate: deterministic CycloneDX 1.5 SBOM of the production dependency graph (inside the archive and as a sidecar), plus signed SLSA build-provenance and SBOM attestations on `main` CI builds, verifiable with `gh attestation verify`. Root and workspace manifests now declare the MIT licence.

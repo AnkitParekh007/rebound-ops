@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openStep } from './steps';
 import { readFile } from 'node:fs/promises';
 
 const scenarios = [
@@ -48,6 +49,7 @@ for (const scenario of scenarios) {
     await page.getByRole('button', { name: 'Confirm', exact: true }).first().click();
     await expect(page.getByText('Synthetic team project note · confirmed')).toBeVisible();
 
+    await openStep(page, 'Jobs you are looking at');
     await page.getByLabel('Job title / opportunity').fill(scenario.target);
     await page.getByLabel('Requirements from this opportunity — one per line')
       .fill('Build reusable accessible components\nDemonstrate a production accessibility audit');
@@ -59,6 +61,7 @@ for (const scenario of scenarios) {
     await expect(page.getByText('supported', { exact: true })).toBeVisible();
     await expect(page.getByText('gap', { exact: true })).toBeVisible();
 
+    await openStep(page, 'Your options');
     await page.getByRole('button', { name: 'Test ' + scenario.title }).click();
     await expect(page.getByRole('heading', { name: 'Make progress manageable' })).toBeVisible();
     const budgetLabel = await page.locator('.time-pill').innerText();
@@ -88,6 +91,7 @@ for (const scenario of scenarios) {
     expect(markdown).toContain(note);
     expect(markdown).toContain('[x] Day 1');
 
+    await openStep(page, 'Keep or delete my data');
     const backupEvent = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download session JSON' }).click();
     const backupDownload = await backupEvent;
@@ -107,10 +111,13 @@ for (const scenario of scenarios) {
     await page.getByLabel('Resume a previous local backup').setInputFiles({
       name: 'fictional-backup.json', mimeType: 'application/json', buffer
     });
-    await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
-    await expect(page.getByText(scenario.target, { exact: true })).toBeVisible();
+    // A restored session with a plan reopens on the plan step.
     await expect(page.locator('.saved-review')).toContainText(note);
     await expect(page.getByText(/1 of \d+ actions completed/)).toBeVisible();
+    await openStep(page, 'Jobs you are looking at');
+    await expect(page.getByText(scenario.target, { exact: true })).toBeVisible();
+    await openStep(page, 'Things you did');
+    await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
     await expect(page.getByText('Synthetic team project note · confirmed')).toBeVisible();
   });
 }
@@ -120,6 +127,7 @@ for (const scenario of scenarios) {
     await page.goto('/');
     await page.getByLabel('Available hours per week').fill('1');
     await page.getByRole('button', { name: /Create recovery session/i }).click();
+    await openStep(page, 'Your options');
     await page.getByRole('button', { name: 'Test ' + scenario.title }).click();
     const budgetLabel = await page.locator('.time-pill').innerText();
     const [planned, available] = budgetLabel.match(/\d+/g)!.map(Number);
@@ -139,6 +147,7 @@ test('founder acceptance: no external AI request or local disk saving is enabled
   );
   await page.getByRole('button', { name: /Create recovery session/i }).click();
   await page.getByRole('button', { name: 'Confirm', exact: true }).first().click();
+  await openStep(page, 'Jobs you are looking at');
   await page.getByLabel('Job title / opportunity').fill('Fictional frontend role');
   await page.getByLabel('Requirements from this opportunity — one per line')
     .fill('Deliver accessible components');
