@@ -1,13 +1,13 @@
-# QA Regression Prompt — v1.121.0 (cvstart.org Methodology / License / Changelog pages)
+# QA Regression Prompt — v1.121.0 (reboundops.example Methodology / License / Changelog pages)
 
 > Delta-focused sign-off for v1.121.0. Baseline: v1.120.0 (all green).
 > Scope: **no new server routes, no new scan adapters, no SPA behaviour change** —
-> the delta is three new localized cvstart.org pages sourced from the repo, the
+> the delta is three new localized reboundops.example pages sourced from the repo, the
 > github.com/AnkitParekh007/rebound-ops links across the docs, and the refreshed README banner.
 
 ## What changed
 
-1. **cvstart.org pages ×16 locales** (site/ only):
+1. **reboundops.example pages ×16 locales** (site/ only):
    - `/methodology/` (+ `/<locale>/methodology/`) — i18n-keyed summary of
      [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops): score-threshold
      table (mirrors the README), six dimensions, never-do rules, manifesto tie-in,

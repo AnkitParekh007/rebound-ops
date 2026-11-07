@@ -1,7 +1,7 @@
 # QA Regression Prompt — v1.266.0
 
 > Release: **v1.266.0** (2026-11-01) · personio language-dedup wave (CAR-223: parent #4789 + #5044 + #5285), PR #617 → `fc3d931d`
-> Prod target: resumecraft.ru = **1.266.0**, parent 1.38.0 @ `fe857ecf`
+> Prod target: reboundops.example = **1.266.0**, parent 1.38.0 @ `fe857ecf`
 > Tests: **7203** unit (0 fail) · Playwright 174 (173 pass / 1 opt-in skip) · registry unchanged **125 = 120 EN + 5 RU · 120 adapters**
 
 ## What shipped (verify these first)

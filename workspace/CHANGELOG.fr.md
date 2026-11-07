@@ -121,7 +121,7 @@ Traductions : [🇬🇧 English](CHANGELOG.md) · [🇪🇸 Español](CHANGELOG.
 
 - **Vague de durcissement du rate-limiting (revue LOW №1–3 depuis `REVIEW-2026-10-31-v1.264.1`)** — `writeRateLimit()` (express-rate-limit@7.5.1, 60 req/min route×IP, 429 JSON + Retry-After) couvre désormais **les 47 endpoints mutatifs** (contre 2) : 9 gardes `llmRateLimit` mal cadrées remplacées (`/api/config` — la réécriture du `.env` !, `PUT /api/batch`, `/api/batch/merge`, outcome, followup/seed, assessments, stats/snapshot, mock-interview/save, networking/save), 3 empilées **avant** le bucket LLM sur les chemins coûteux (`/api/evaluate`, `/api/deep`, `/api/auto-pipeline`), et 33 enregistrements nus câblés (éditeurs CV/profile/modes, toutes les écritures du tracker, pipeline POST/restore/DELETE, jds, les 7 `/api/run/*` via une seule modification de boucle, posting-guard, Playwright-PDF inline, portals toggle/health/track, discover, reports, export/docx, two-pager, career-plan, memory et les trois routes DELETE). `/api/apply-helper` reste sur liste blanche en nu (calcul purement local, épinglé) ; 16 routes purement LLM gardent le bucket LLM conditionnel par conception. Un **filet de complétude** (`tests/rate-limit-coverage.test.mjs`, rouge d'abord à 27 nus) fait échouer la CI sur tout futur enregistrement mutatif non limité.
 - **`TRUST_PROXY` en opt-in + validations ré-armées (revue LOW №1–2)** — `app.set('trust proxy', N)` honore un **nombre de sauts** `TRUST_PROXY` en variable d'environnement (jamais le boolean `true` — la clé porterait alors sur l'extrémité gauche du XFF contrôlée par l'attaquant) ; désactivé par défaut, si bien que le loopback conserve sa dégénérescence documentée par socket par route. `validate: false` devient un `writeValidateConfig()` ciblé : seul `xForwardedForHeader` en est retiré (le XFF de Caddy est ignoré *par conception* sans trust proxy), toutes les autres validations — `trustProxy` incluse — redeviennent bruyantes, si bien qu'une future mauvaise configuration `trust proxy: true` remonte en `ERR_ERL_PERMISSIVE_TRUST_PROXY` au lieu du silence. Le `keyGenerator` personnalisé a été retiré délibérément : express-rate-limit lie ses validations proxy au générateur de clés par défaut, et l'isolation par route est inchangée (un `MemoryStore` par appel de factory).
-- **Le retour visuel de copie de cvstart.org retombe après 2 s (CAR-141)** — l'état « Скопировано ✓ » tient désormais les 2 secondes du critère d'acceptation (contre 1.5 s), épinglé rouge d'abord dans `tests/site-copy-feedback.test.mjs`. Cela clôt le dernier critère CAR-141 corrigeable par un agent ; la refonte de la vidéo de démo reste différée par le propriétaire (décision du 2026-11-01).
+- **Le retour visuel de copie de reboundops.example retombe après 2 s (CAR-141)** — l'état « Скопировано ✓ » tient désormais les 2 secondes du critère d'acceptation (contre 1.5 s), épinglé rouge d'abord dans `tests/site-copy-feedback.test.mjs`. Cela clôt le dernier critère CAR-141 corrigeable par un agent ; la refonte de la vidéo de démo reste différée par le propriétaire (décision du 2026-11-01).
 
 ### Modifié
 
@@ -141,12 +141,12 @@ Traductions : [🇬🇧 English](CHANGELOG.md) · [🇪🇸 Español](CHANGELOG.
 
 ### Modifié
 
-- **La copie de cvstart.org est livrée dans les 19 langues (CAR-220)** — `meta.helpDesc`, `helpTeaser.c1.desc` et `faq.a2` sont traduits dans chaque locale du site (ils étaient EN-seulement en v1.264.1 par conception) ; GitHub Pages a mis la copie améliorée en ligne sur cvstart.org.
+- **La copie de reboundops.example est livrée dans les 19 langues (CAR-220)** — `meta.helpDesc`, `helpTeaser.c1.desc` et `faq.a2` sont traduits dans chaque locale du site (ils étaient EN-seulement en v1.264.1 par conception) ; GitHub Pages a mis la copie améliorée en ligne sur reboundops.example.
 - **Hygiène du backlog + de la revue (CAR-221/222)** — les six éléments « port when merged upstream » sont clôturés : les sept PR amont sont fusionnées, quatre éléments étaient déjà portés, deux relèvent du parent. `docs/reviews/REVIEW-2026-10-31-v1.264.1.md` est livré (0 HIGH / 0 MED, trois relances LOW consignées dans BACKLOG), et la **liste de ports parent-sync** est consignée (6 PORT / 3 VERIFY / le manque de la source apple ; queue amont de 118 commits @ VERSION 1.38.0).
 
 ### Notes
 
-- Le correctif d'estampillage des miroirs du journal (`92a05fcf`) voyage dans ce tag : chaque miroir paginé sur cvstart.org porte désormais la version de la release génératrice, si bien que le grader `site-build-after-fanout` exerce enfin sa vraie logique au lieu de sauter.
+- Le correctif d'estampillage des miroirs du journal (`92a05fcf`) voyage dans ce tag : chaque miroir paginé sur reboundops.example porte désormais la version de la release génératrice, si bien que le grader `site-build-after-fanout` exerce enfin sa vraie logique au lieu de sauter.
 - Délibérément non fait : le throttling des POST mutatifs restants (revue LOW №3) et le couplage des buckets trust-proxy — consignés dans BACKLOG pour la prochaine vague de durcissement. CAR-141 (vidéo de démo) reste au propriétaire.
 - Tests 7081 → 7082 (+1 épingle CAR-219) ; Playwright 176 ; registre inchangé : 123 = 118 EN + 5 RU · 118 adapters.
 
@@ -159,7 +159,7 @@ Traductions : [🇬🇧 English](CHANGELOG.md) · [🇪🇸 Español](CHANGELOG.
 
 ### Modifié
 
-- **La FAQ de cvstart.org porte les compteurs de sources exacts (CAR-217)** — `{sources} job-board sources: {sourcesEn} international boards plus {sourcesRu} Russian ones` est substitué depuis `facts.json`, généré à partir du registre en direct (123 = 118 EN + 5 RU), si bien que les chiffres ne peuvent plus jamais dériver ; les locales encore sur l'ancienne formulation `~{adapters}` gardent l'arrondi via `adaptersRounded`. Les montées de copie EN font le voyage en même temps (`meta.helpDesc`, `helpTeaser.c1.desc` et `faq.a2` nomment le menu de commandes, le pipeline groupé avec undo et le tracker kanban).
+- **La FAQ de reboundops.example porte les compteurs de sources exacts (CAR-217)** — `{sources} job-board sources: {sourcesEn} international boards plus {sourcesRu} Russian ones` est substitué depuis `facts.json`, généré à partir du registre en direct (123 = 118 EN + 5 RU), si bien que les chiffres ne peuvent plus jamais dériver ; les locales encore sur l'ancienne formulation `~{adapters}` gardent l'arrondi via `adaptersRounded`. Les montées de copie EN font le voyage en même temps (`meta.helpDesc`, `helpTeaser.c1.desc` et `faq.a2` nomment le menu de commandes, le pipeline groupé avec undo et le tracker kanban).
 
 ### Notes
 
@@ -256,7 +256,7 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registre inchangé : 123 sources =
 
 ### Changé
 
-- Docs : la puce «118 EN adapters» du guide d'aide porte désormais le compte en fr/it/ta (les 15 autres langues l'avaient déjà). Les prix des fournisseurs sur cvstart.org revérifiés contre les pages de tarifs officielles — les quatre inchangés, CHECKED_ON → 2026-10-30. Un balayage de dérive post-release a corrigé 42 lignes de compte/version périmées à travers README ×19, CONTEXT.md, CLAUDE.md et les manuels SDD (restes de l'ère 109/104 et de l'ère v1.262.0).
+- Docs : la puce «118 EN adapters» du guide d'aide porte désormais le compte en fr/it/ta (les 15 autres langues l'avaient déjà). Les prix des fournisseurs sur reboundops.example revérifiés contre les pages de tarifs officielles — les quatre inchangés, CHECKED_ON → 2026-10-30. Un balayage de dérive post-release a corrigé 42 lignes de compte/version périmées à travers README ×19, CONTEXT.md, CLAUDE.md et les manuels SDD (restes de l'ère 109/104 et de l'ère v1.262.0).
 
 ### Notes
 
@@ -359,7 +359,7 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 - **Revue de release + backfill de spécifications (docs, #559/#558)** : `docs/reviews/REVIEW-2026-10-28-v1.261.1.md` (la vague v1.261.0/v1.261.1 revue contre ses spécifications) et le backfill des spécifications SDD pour la même vague — la fin du BACKLOG nomme désormais l'écart restant (tests dédiés pour `sources/habr.mjs`).
 - **Balayage RTL approfondi (#571)** : le harnais AR parcourt 39 routes × LTR-vs-RTL (miroir X, débordement, rognage, signatures de text-align) — 85 constats corrigés : le chrome fixe (toast, sidebar, tiroir + son × de fermeture, docs-FAB, usage-HUD, skip-link) passe à `inset-inline-*`/`border-inline-*`, les tables à `text-align: start/end` à travers 17 fichiers de vues + 2 libs, le `[dir=rtl] text-align:right` global est retiré (il luttait contre le centrage de la colonne étoile du scan), l'isolation de la colonne de score de CAR-58 passe sur un span `ltrNum`.
 - **Harnais a11y clavier (#570)** : `tests/playwright-a11y-keyboard.mjs` parcourt 11 routes (ordre de Tab/pièges, indicateurs de focus, overlays par Échap, Entrée/Espace) — 0 défaut de production ; la couverture de régression est nouvelle.
-- **Balayage i18n des non-traduits (#565)** : 36 valeurs identiques à l'EN traduites ×9 locales (`*.rolePh`, clés de config, manifeste ta) + une garde de balayage à liste blanche fermée ; audit i18n du site (cvstart.org) (#568) : 20 clés × 18 locales traduites (tout le bloc `demo.*`/`stats.t.*`/`showcase.tab*` était en anglais partout), 1 clé morte supprimée ×19.
+- **Balayage i18n des non-traduits (#565)** : 36 valeurs identiques à l'EN traduites ×9 locales (`*.rolePh`, clés de config, manifeste ta) + une garde de balayage à liste blanche fermée ; audit i18n du site (reboundops.example) (#568) : 20 clés × 18 locales traduites (tout le bloc `demo.*`/`stats.t.*`/`showcase.tab*` était en anglais partout), 1 clé morte supprimée ×19.
 - **Observabilité de la remote-QA (CAR-175, #567)** : le résumé nomme les sources de scan en échec (`stderr samples`, rédaction avant troncature) et imprime `tok ~N` depuis l'usage des fournisseurs ; la logique vit dans un `summary-parts.mjs` pur avec une porte de dérive.
 - **Listes à marqueurs imbriquées dans UI.md (un niveau, #564)** : les puces `  - ` se rendent comme un `<ul>` imbriqué (sûr vis-à-vis des placeholders de fence) — les 2 derniers passages orphelins de prose par locale ont disparu.
 - **Intégration design Lovable — phase 1 (#566) / phase 2 (branche, atterrit avant le tag)** : `public/css/tokens-v3.css` porte le concept Lovable à l'identique (surfaces oklch 0–3, paires d'encre annotées AA, famille d'accent, ok/warn/danger/info/neutral soft+encre, bandes de score A–G ×2 thèmes, densité + focus + ombres) ; la phase 2 l'active sur les noms de tokens existants (accent scindé bleu/danger, bandes de score + callouts sur les tokens cv3) avec les gardes contraste/rôle/sombre mises à jour.
@@ -391,7 +391,7 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 
 - **Harnais Mobile-390 (#552)** : un balayage Playwright de chaque route de la SPA (31 routes canoniques + 8 pages de mode = 39 hashes) à 390×844 avec un corpus préparé — vérification du débordement horizontal par route (scrollWidth vs clientWidth, tolérance de 1px, nomme l'élément le plus large) plus une vérification de la frappe des CTA (aucune barre collante/tiroir/FAB ne couvre un CTA principal) ; opt-in, ignoré proprement sans binaire de navigateur, sans réseau.
 - **Nouvelles captures v2 ×48 (CAR-140 phase A, #551)** : de vraies captures d'écran de l'interface v2 issues d'une fixture CI-isolée préparée — dashboard ×19 + job-map ×19 (première apparition de job-map-ta, job-map-vi nouveau) + scan/pipeline/tracker/reports × en/ru — qui alimentent le README, l'aide et la page d'accueil.
-- **Vraies captures d'écran sur cvstart.org (CAR-140 phase B, #553)** : les emplacements réservés CAR-140 ont disparu — la landing affiche les véritables captures v2 (vitrine job-map + rangées de captures, ×19 locales de la landing).
+- **Vraies captures d'écran sur reboundops.example (CAR-140 phase B, #553)** : les emplacements réservés CAR-140 ont disparu — la landing affiche les véritables captures v2 (vitrine job-map + rangées de captures, ×19 locales de la landing).
 - **Hints CAR-137 (#550)** : 21 nouvelles clés traduites ×19 (`help.hint.*` ×20 + les `hintKey` des pages de mode) — chaque page s'explique désormais sur place.
 
 ### Notes
@@ -402,7 +402,7 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 
 ## [1.261.0] — 2026-10-28
 
-**La vague de la revue complète est close (tous les constats HIGH + MEDIUM ont atterri), le correctif de bascule de langue signalé par le propriétaire, les correctifs de qualité des évaluations, le fan-out de l'aide ×18, la refonte v2 de la page d'accueil cvstart.org — plus 4 spécifications SDD/OpenSpec documentant la vague. Chaque correctif a atterri en fix-forward avec preuve rouge→vert et une revue GLM-5.3-Flash en contexte frais.**
+**La vague de la revue complète est close (tous les constats HIGH + MEDIUM ont atterri), le correctif de bascule de langue signalé par le propriétaire, les correctifs de qualité des évaluations, le fan-out de l'aide ×18, la refonte v2 de la page d'accueil reboundops.example — plus 4 spécifications SDD/OpenSpec documentant la vague. Chaque correctif a atterri en fix-forward avec preuve rouge→vert et une revue GLM-5.3-Flash en contexte frais.**
 
 ### Sécurité
 
@@ -415,7 +415,7 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 ### Ajouté
 
 - **CAR-147 — plafond d'évaluation adapté à la langue (#524)** : `evalTimeoutMs(lang)` — ta/hi obtiennent 480 s au lieu de 300 s (les écritures indic tokenisent plusieurs tokens par syllabe ; l'ancien plafond produisait un 502 + un rapport vide) ; le client remote-QA attend 540 s.
-- **CAR-133 — page d'accueil cvstart.org v2 (#532)** : un hero en parallaxe soumis à `prefers-reduced-motion`, une démo SIMULÉE clairement étiquetée du flux scan→évaluation→tracker, des sections révélées au scroll avec compteurs vérifiés en direct, des emplacements réservés aux captures d'écran CAR-140.
+- **CAR-133 — page d'accueil reboundops.example v2 (#532)** : un hero en parallaxe soumis à `prefers-reduced-motion`, une démo SIMULÉE clairement étiquetée du flux scan→évaluation→tracker, des sections révélées au scroll avec compteurs vérifiés en direct, des emplacements réservés aux captures d'écran CAR-140.
 - **CAR-135 — aide réécrite pour l'interface v2, fan-out ×18 achevé (#533, #540, #541, #542)** : les 19 fichiers d'aide décrivent le shell v2 (nav repliable, palette Cmd/Ctrl+K, skeletons, états vides avec exemple et action, habillage du scan v2, pipeline groupé avec annulation, rapports v2, kanban) ; les libellés de l'interface citent leurs clés i18n ; la phrase des 121 sources est dérivée en direct du registre.
 - **Spécifications (SDD/OpenSpec) (#535)** : le backfill de la deuxième vague (oct27) + trois spécifications prospectives (fan-out de l'aide, passations d'écriture, invariants de la bascule de langue).
 
@@ -574,18 +574,18 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 
 ## [1.255.0] — 2026-10-24
 
-**Le vietnamien (Tiếng Việt) rejoint l'interface comme 19e langue — un dictionnaire de 1525 clés en pleine parité avec l'EN, la détection vi/vi-VN, le guide d'aide complet, les miroirs README et CHANGELOG, l'intégration à la landing cvstart.org et le 🇻🇳 du sélecteur de langue.**
+**Le vietnamien (Tiếng Việt) rejoint l'interface comme 19e langue — un dictionnaire de 1525 clés en pleine parité avec l'EN, la détection vi/vi-VN, le guide d'aide complet, les miroirs README et CHANGELOG, l'intégration à la landing reboundops.example et le 🇻🇳 du sélecteur de langue.**
 
 ### Ajouté
 
 - **Vietnamien (`vi`) — 1525/1525 clés** en pleine parité avec `en` ; `detect()` accepte `vi` et `vi-VN` ; le vietnamien est LTR (jamais ajouté à `RTL_LANGS`). « Pipeline » reste « Pipeline » — emprunt technique standard, en liste blanche.
 - **docs/help/vi.md complet** (33 H2 / 125 H3), plus les miroirs README.vi.md et CHANGELOG.vi.md, et les chaînes d'échafaudage en vietnamien dans `prompts.mjs` (`LOCALE_NAMES` + `SCAFFOLD_STRINGS`) — la sortie LLM en vietnamien fonctionne dès l'emballage.
-- **Landing cvstart.org en vietnamien** — `site/src/i18n/vi.json`, l'entrée de locale du sitemap et une capture `dashboard-vi.png` ; le sélecteur de langue gagne le 🇻🇳 (19 positions).
+- **Landing reboundops.example en vietnamien** — `site/src/i18n/vi.json`, l'entrée de locale du sitemap et une capture `dashboard-vi.png` ; le sélecteur de langue gagne le 🇻🇳 (19 positions).
 - **Portes d'énumération 18 → 19** — LANGS, sondes detect, audit i18n, parité du changelog, bloc de traductions du README, balayage des locales — plus le `tests/i18n-vi-locale.test.mjs` rouge-d'abord (139 lignes).
 
 ### Notes
 
-- La landing cvstart.org gagne le vi — un écart délibéré par rapport au précédent ta (cette version avait gardé la landing à 17 à dessein) ; documenté dans la spécification de la version.
+- La landing reboundops.example gagne le vi — un écart délibéré par rapport au précédent ta (cette version avait gardé la landing à 17 à dessein) ; documenté dans la spécification de la version.
 - vi est en écriture latine : la porte no-latin-leaks ne s'applique pas (elle garde les langues non latines) ; le vocabulaire technique latin y est la norme.
 - Plancher de tests : 5634 → **5642** (1 ignorée = le test navigateur optionnel de capture de mise en page, inchangé).
 
@@ -630,7 +630,7 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 ### Ajouté
 
 - **10 sources portées du parent 1.38.0**, chacune avec son adaptateur fetch-walk et une suite isolée CI (fetchImpl factice, zéro réseau) : **Atlassian** (flux JSON unique sans auth, URLs iCIMS, allowlist https+icims.com), **BWI** (ItemList JSON-LD, JSON.parse d'abord), **Computrabajo** (LATAM, décodage d'entités, « remoto » espagnol lu comme remote), **Dover** (pagination DRF par tenant, rendu `Remote (International)`, tableaux validés UUID), **Google Careers** (premières pages par phrase, l'employeur de la carte gagne, dédup entre requêtes), **Kalibrr** (agrégateur SEA, l'id du flux comme id de ligne), **Magneto365** (LATAM, rythme inter-page fixe), **Platsbanken** (API JobTech suédoise, fenêtres par mot-clé), **Tech in Asia** (clés Algolia découvertes du build du site), **Zoho Recruit** (plateau hidden-input, enrichissement de détail borné, devise ISO-4217 uniquement).
-- Comptage du registre : **120 sources = 115 EN + 5 RU · 115 adaptateurs** ; les cinq gates de comptage régénérées depuis le registre vivant ; le fallback du dropdown `#/scan`, les liens cvstart.org et help §17 ×18 suivent.
+- Comptage du registre : **120 sources = 115 EN + 5 RU · 115 adaptateurs** ; les cinq gates de comptage régénérées depuis le registre vivant ; le fallback du dropdown `#/scan`, les liens reboundops.example et help §17 ×18 suivent.
 
 ### Corrigé
 
@@ -963,7 +963,7 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 
 ### Notes
 
-- La landing cvstart.org reste à 17 langues pour l’instant — la traduire est une tâche à part ; la synchro de contenu du site publie déjà docs/help/ta.md et le changelog ta.
+- La landing reboundops.example reste à 17 langues pour l’instant — la traduire est une tâche à part ; la synchro de contenu du site publie déjà docs/help/ta.md et le changelog ta.
 - REPORT_LABELS de `report-header.js` reste à 17 — le parsing des rapports tamouls arrivera avec la génération de rapports tamouls dans le repo parent.
 
 ## [1.244.2] — 2026-10-08
@@ -1107,8 +1107,8 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 
 ### Ajouté
 
-- **Carte des offres sur [cvstart.org](https://github.com/AnkitParekh007/rebound-ops)** dans les 17 langues, ainsi que dans les README anglais et russe.
-- **Captures de la carte dans toutes les langues** : une par langue (`scripts/capture-map-screenshots.mjs`), dans les 17 README, sur cvstart.org et dans une nouvelle sous-section de l'aide, « Utiliser la carte » (§33, ×17).
+- **Carte des offres sur [reboundops.example](https://github.com/AnkitParekh007/rebound-ops)** dans les 17 langues, ainsi que dans les README anglais et russe.
+- **Captures de la carte dans toutes les langues** : une par langue (`scripts/capture-map-screenshots.mjs`), dans les 17 README, sur reboundops.example et dans une nouvelle sous-section de l'aide, « Utiliser la carte » (§33, ×17).
 
 ### Notes
 
@@ -1296,13 +1296,13 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 ### Corrigé
 
 - **Deux scans simultanés faisaient tomber le serveur.** Chaque `GET /api/stream/scan` lançait le scanner complet dans le processus serveur sans protection ; un scan lancé depuis l'UI a chevauché le minuteur horaire et le processus est mort sur *JavaScript heap out of memory* (deux fois, avec des 502 entre-temps). Un seul scan à la fois désormais : une seconde requête reçoit une `error` SSE de code `SCAN_BUSY` et rien ne démarre. Le workflow de déploiement relève aussi la limite mémoire du serveur (`heap_mb`, 448 Mo par défaut).
-- **`/help` et `/changelog` de cvstart.org défilaient de côté sur mobile** (et `/changelog` ja/zh sur ordinateur) : le code long et la table des matières passent désormais à la ligne.
+- **`/help` et `/changelog` de reboundops.example défilaient de côté sur mobile** (et `/changelog` ja/zh sur ordinateur) : le code long et la table des matières passent désormais à la ligne.
 - **Le hindi manquait dans les alternatives de langue du sitemap** ; la vérification i18n du site compare maintenant le sitemap au registre des langues.
 - **L'Aide §19 demandait d'ajouter une clé à « tous les 9 » fichiers de langue** — il y en a 17.
 
 ### Ajouté
 
-- **Régression distante** (`.github/workflows/remote-qa.yml`) : chaque route × chaque langue de l'app déployée (lecture seule), chaque page × langue × mobile/ordinateur de cvstart.org, chaque lien des README et du wiki et, sur demande, un vrai scan et des appels IA en direct dans chaque langue.
+- **Régression distante** (`.github/workflows/remote-qa.yml`) : chaque route × chaque langue de l'app déployée (lecture seule), chaque page × langue × mobile/ordinateur de reboundops.example, chaque lien des README et du wiki et, sur demande, un vrai scan et des appels IA en direct dans chaque langue.
 - **Workflow de déploiement serveur** (`.github/workflows/deploy.yml`) : `recon`, `deploy` (retour arrière exact) et `verify` (test de fumée et rapport de stabilité).
 - Tests 3481 → 3486.
 
@@ -1352,7 +1352,7 @@ Tests 6841 → 6867 sur la branche de release — 6864 pass / 0 fail / 3 skip, +
 **Correctif issu d'une revue QA externe sur v1.237.0.** Le correctif Jobstreet a été confirmé de l'extérieur pour la première fois : sur les hôtes AU, NZ, HK et MY, l'ancienne forme `/id/job/<id>` renvoie un 404 propre et la nouvelle `/job/<id>` atteint une véritable route protégée par Cloudflare ; sur `id.jobstreet.com`, c'est l'inverse qui est vrai. Les liens perdus étaient bien réels. Deux défauts ont été trouvés, tous deux dans ce que v1.237.0 avait lui-même ajouté.
 
 ### Corrigé
-**Le libellé du lien vers le livre était traduit, pas sa cible.** Les 17 locales de la SPA et les 17 locales de cvstart.org pointaient toutes le lien de pied de page vers *Agentic Coding Design Patterns* sur l'édition anglaise, alors que le seul libellé traduit — le russe, «Паттерны агентного кодинга» — promettait un livre en russe. Un nouvel applicateur `data-i18n-href` (de la même forme que `data-i18n-title`, restreint aux valeurs absolues `https://`) et une clé `footer.patternsUrl` envoient désormais `ru` vers l'édition russe et toute autre locale vers l'édition anglaise. Le test de non-régression vérifie l'invariant dans les deux sens : un titre traduit implique une URL localisée.
+**Le libellé du lien vers le livre était traduit, pas sa cible.** Les 17 locales de la SPA et les 17 locales de reboundops.example pointaient toutes le lien de pied de page vers *Agentic Coding Design Patterns* sur l'édition anglaise, alors que le seul libellé traduit — le russe, «Паттерны агентного кодинга» — promettait un livre en russe. Un nouvel applicateur `data-i18n-href` (de la même forme que `data-i18n-title`, restreint aux valeurs absolues `https://`) et une clé `footer.patternsUrl` envoient désormais `ru` vers l'édition russe et toute autre locale vers l'édition anglaise. Le test de non-régression vérifie l'invariant dans les deux sens : un titre traduit implique une URL localisée.
 **SEEK migre ses hôtes, et le transport refuse les redirections.** `www.seek.com.au` → `au.seek.com` et `www.seek.co.nz` → `nz.seek.com` : les pages de détail renvoient déjà un 301, et les deux paires d'hôtes servent aujourd'hui l'API de recherche v5 en 200. Comme `http-json.mjs` définit `redirect:'error'` (une défense SSRF qui mérite d'être conservée), le jour où le chemin de l'API commencerait à rediriger, une entrée AU/NZ sur l'ancien hôte échouerait — et avec seulement les hôtes `www.` en liste blanche jusqu'ici, personne n'aurait pu migrer. `au.seek.com` et `nz.seek.com` figurent désormais dans `ALLOWED_JOBSTREET_HOSTS` ; les anciens hôtes restent, si bien que la configuration existante et les liens déjà construits continuent de fonctionner. Les sosies (`au.seek.com.evil.com`, `au-seek.com`) restent refusés.
 **Wiki :** la ligne *Agentic Practices* dans la carte de documentation de la page Home était la seule des douze à ne pas échapper le `|` à l'intérieur de `[[…|…]]`, si bien que GitHub a tronqué la cellule — lien mort, description masquée. Un seul caractère.
 
@@ -1538,7 +1538,7 @@ Verrouillé deux fois : `node:vm` sur le vrai `withSpinner`, et un clic dans un 
 **Corrigé — le balayage des compteurs de la v1.231.0 a réécrit le nom du compte dans tous les liens.**
 
 ### Corrigé
-- **Chaque lien `AnkitParekh007` est devenu `Fighter92`.** Le balayage du compteur de sources en v1.231.0 remplaçait `90` par `92` sous une garde de frontière de chiffre, qui écarte bien `290` et `901` mais correspond au `90` à l’intérieur de **`AnkitParekh007`**. **562 liens dans les 17 README, les 17 paquets d’aide et les miroirs d’aide du site**, plus **138 dans le wiki**, pointaient vers un compte inexistant ; la bannière `providers.png` et tous les liens « modifier sur GitHub » renvoyaient 404. Repéré par un utilisateur, à cause de l’image manquante.
+- **Chaque lien the original author's handle est devenu `Fighter92`.** Le balayage du compteur de sources en v1.231.0 remplaçait `90` par `92` sous une garde de frontière de chiffre, qui écarte bien `290` et `901` mais correspond au `90` à l’intérieur de **the original author's handle**. **562 liens dans les 17 README, les 17 paquets d’aide et les miroirs d’aide du site**, plus **138 dans le wiki**, pointaient vers un compte inexistant ; la bannière `providers.png` et tous les liens « modifier sur GitHub » renvoyaient 404. Repéré par un utilisateur, à cause de l’image manquante.
 - **Cinq références historiques à des versions ont glissé.** Le balayage `85 → 87` a transformé `v1.85.0` en `v1.87.0`, inventant une version jamais publiée.
 
 ### Notes
@@ -1769,7 +1769,7 @@ Verrouillé deux fois : `node:vm` sur le vrai `withSpinner`, et un clic dans un 
 - La bannière de v1.225.0 ne s'affichait pas sur GitHub : le `images/providers.svg` autonome avait un `font-family` invalide (guillemets doubles imbriqués) que GitHub rejette, le `<img>` utilisait un `src` relatif (le HTML `<img>` ne résout pas les chemins relatifs sur GitHub) et le bloc `<p>` n'avait pas de ligne vide finale. Il pointe maintenant vers un `images/providers.png` rendu via une URL absolue, avec séparation par lignes vides ; le SVG est aussi corrigé en XML valide.
 
 ### Notes
-- Docs uniquement ; aucun changement de code ni de tests. La vitrine cvstart.org et les tuiles de l'app étaient déjà correctes (SVG en ligne, pas ce fichier).  **2784**
+- Docs uniquement ; aucun changement de code ni de tests. La vitrine reboundops.example et les tuiles de l'app étaient déjà correctes (SVG en ligne, pas ce fichier).  **2784**
 
 ## [1.225.0] — 2026-08-27
 
@@ -1956,10 +1956,10 @@ Verrouillé deux fois : `node:vm` sur le vrai `withSpinner`, et un clic dans un 
 
 ## [1.212.1] — 2026-08-21
 
-**Corrigé — la landing de cvstart.org sous-comptait les sources d'emploi du scanner (elle affichait 80 et omettait Job Bank (Canada)) ; elle correspond de nouveau aux 81 de l'app, et la build du site échoue bruyamment si les deux divergent.**
+**Corrigé — la landing de reboundops.example sous-comptait les sources d'emploi du scanner (elle affichait 80 et omettait Job Bank (Canada)) ; elle correspond de nouveau aux 81 de l'app, et la build du site échoue bruyamment si les deux divergent.**
 
 ### Corrigé
-- **Le compteur « Sources d'emploi » de la landing est de nouveau synchronisé avec l'app.** Après la v1.212.0, cvstart.org affichait **80** boards et il manquait la nouvelle puce **Job Bank (Canada)**, alors que l'app, le menu déroulant de scan et le guide d'aide listaient tous **81**. La landing construit sa liste en chargeant le registre live du scanner, et une source n'a pas pu se charger dans cette build à cause de la manière dont elle importait une dépendance YAML — elle a donc été écartée en silence. Job Bank charge désormais cette dépendance de façon paresseuse, comme le reste de l'app le fait au moment du scan, donc elle apparaît toujours.
+- **Le compteur « Sources d'emploi » de la landing est de nouveau synchronisé avec l'app.** Après la v1.212.0, reboundops.example affichait **80** boards et il manquait la nouvelle puce **Job Bank (Canada)**, alors que l'app, le menu déroulant de scan et le guide d'aide listaient tous **81**. La landing construit sa liste en chargeant le registre live du scanner, et une source n'a pas pu se charger dans cette build à cause de la manière dont elle importait une dépendance YAML — elle a donc été écartée en silence. Job Bank charge désormais cette dépendance de façon paresseuse, comme le reste de l'app le fait au moment du scan, donc elle apparaît toujours.
 - **La build du site refuse désormais de publier un compte de sources incohérent.** Si le registre énumère moins de sources qu'il n'en existe sur le disque (la signature d'une source qui n'a pas chargé), la build échoue avec un message clair au lieu de publier discrètement le mauvais nombre.
 
 ### Notes
@@ -2463,7 +2463,7 @@ Verrouillé deux fois : `node:vm` sur le vrai `withSpinner`, et un clic dans un 
 - **Analyse du score (FIND-1)** — un rapport non anglais dont le H1 contient le mot de l'étiquette de score (`# Оценка вакансии: <titre>`) ne prend plus ce titre pour le score. `parseReportHeader` s'ancre désormais sur l'étiquette **en gras** localisée (`**Оценка:** 1.5 / 5`), ignore les lignes de titre et exige l'étiquette juste avant son deux-points — ainsi les rapports RU qui affichaient « Score not detected » montrent leur vrai score.
 - **Puce de légitimité (FIND-2)** — l'emphase Markdown est retirée de la valeur, la puce affiche « High Confidence » et non « ** High Confidence ».
 - **Débordement du score** — une ligne de score avec du texte de statut en trop (« 1.8, Status: Evaluated, … ») est réduite au seul score ; `.score-pill` gagne une limite sans retour à la ligne/overflow et la colonne du titre peut rétrécir, si bien qu'une puce colorée ne déborde jamais de la carte.
-- **Description SEO (FIND-3)** — les descriptions meta / OG / Twitter de cvstart.org (les 17 langues) codaient en dur « Scan ~55 job boards » alors que le corps comptait le registre réel (« ~75 »). La description interpole maintenant le compte issu du registre, elle ne peut plus dériver.
+- **Description SEO (FIND-3)** — les descriptions meta / OG / Twitter de reboundops.example (les 17 langues) codaient en dur « Scan ~55 job boards » alors que le corps comptait le registre réel (« ~75 »). La description interpole maintenant le compte issu du registre, elle ne peut plus dériver.
 
 ### Notes
 - Analyseur serveur + rendu/CSS client + i18n du site ; aucun changement de route / CSP / SSRF / écriture parent. Tests : `tests/report-header-locale.test.mjs` (+4). Suite : **2448** (+4).
@@ -2543,10 +2543,10 @@ Verrouillé deux fois : `node:vm` sur le vrai `withSpinner`, et un clic dans un 
 
 ## [1.166.0] — 2026-08-13
 
-**Corrigé (BASSE) — la terminologie de la grille reflète désormais les docs canoniques.** github.com/AnkitParekh007/rebound-ops décrit « cinq dimensions plus un score global holistique », mais le web-ui, cvstart.org et le wiki disaient « grille à six dimensions » (5 + 1 = 6, mais le vocabulaire divergeait).
+**Corrigé (BASSE) — la terminologie de la grille reflète désormais les docs canoniques.** github.com/AnkitParekh007/rebound-ops décrit « cinq dimensions plus un score global holistique », mais le web-ui, reboundops.example et le wiki disaient « grille à six dimensions » (5 + 1 = 6, mais le vocabulaire divergeait).
 
 ### Corrigé
-- Adoption de la formulation des docs — **« cinq dimensions plus un score global holistique »** — de façon cohérente dans README ×17, le site cvstart.org ×17, le guide d'aide ×17, `docs/rebound-ops-canonical.md` et le wiki (Home ×17 + Features).
+- Adoption de la formulation des docs — **« cinq dimensions plus un score global holistique »** — de façon cohérente dans README ×17, le site reboundops.example ×17, le guide d'aide ×17, `docs/rebound-ops-canonical.md` et le wiki (Home ×17 + Features).
 
 ### Notes
 - Docs/marketing uniquement ; aucun changement de code/clé i18n/route/CSP/SSRF/écriture. `tests/rubric-terminology.test.mjs` (+2). Suite : **2426** (+2).
@@ -2630,7 +2630,7 @@ Verrouillé deux fois : `node:vm` sur le vrai `withSpinner`, et un clic dans un 
 
 ### Corrigé
 - Le « ? » de HelpHint ne fuit plus dans `document.title`. Le routeur dérivait le titre d'onglet du `h1.textContent` brut, affichant « Vacancy search? » au lieu de « Vacancy search ». `router.js::focusNewView` clone désormais le titre, retire `.help-hint`, puis lit le texte ; le « ? » visible reste intact.
-- cvstart.org affichait « 17 AI providers » au lieu de « 7 ». Le helper `sub()` de `Features.astro` réécrivait tous les `{n}` avec le nombre de langues (17) avant la substitution par carte ; `{n}` est maintenant résolu par carte (fournisseurs → 7, langues → 17).
+- reboundops.example affichait « 17 AI providers » au lieu de « 7 ». Le helper `sub()` de `Features.astro` réécrivait tous les `{n}` avec le nombre de langues (17) avant la substitution par carte ; `{n}` est maintenant résolu par carte (fournisseurs → 7, langues → 17).
 
 ### Notes
 - Aucun changement de serveur, de route, de CSP, de SSRF ou de clés i18n ; forme de `facts.json` inchangée. Suite : **2402** tests (+1).
@@ -2764,11 +2764,11 @@ Verrouillé deux fois : `node:vm` sur le vrai `withSpinner`, et un clic dans un 
 
 ## [1.147.0] — 2026-08-12
 
-**Hermes & Telegram — la section d'aide intégrée + la surface cvstart.org (Phase 5b, partie 2)** — la deuxième et dernière partie du travail de documentation Hermes : le mode d'emploi vit désormais dans le guide d'aide de l'application elle-même, dans les 17 langues, et l'assistant de documentation intégré répond aux questions sur Hermes à partir de lui. Toujours uniquement documentaire — le chemin du fournisseur LLM Hermes reste **prévu / pas encore connecté** (Phase 5).
+**Hermes & Telegram — la section d'aide intégrée + la surface reboundops.example (Phase 5b, partie 2)** — la deuxième et dernière partie du travail de documentation Hermes : le mode d'emploi vit désormais dans le guide d'aide de l'application elle-même, dans les 17 langues, et l'assistant de documentation intégré répond aux questions sur Hermes à partir de lui. Toujours uniquement documentaire — le chemin du fournisseur LLM Hermes reste **prévu / pas encore connecté** (Phase 5).
 
 ### Ajouté
 - **Aide intégrée §30 « Hermes & Telegram » × 17 langues** — une nouvelle section du guide (ce qu'est Hermes + les deux formes d'intégration ; exécution sur un serveur cloud ; Telegram via Hermes + la règle « ce qu'il ne faut PAS exposer »), accessible depuis `#/help`. Le grounding de `docs-assistant` / `DocsFab` la reprend automatiquement, puisque les deux lisent `docs/help/<lang>.md`.
-- **cvstart.org — un lien vers le guide Hermes** pointant vers le document sur GitHub.
+- **reboundops.example — un lien vers le guide Hermes** pointant vers le document sur GitHub.
 
 ### Modifié
 - Seuil du bundle d'aide relevé **29 → 30 H2 / 105 → 108 H3** (`canonical-docs-coverage`, `help-ui`, `help-ru-config-section`) ; §30 ajoute 3 H3.
@@ -2790,7 +2790,7 @@ Verrouillé deux fois : `node:vm` sur le vrai `withSpinner`, et un clic dans un 
 
 ### Notes
 - **Rien n'appelle Hermes pour l'instant.** Un test canari (`tests/hermes-docs.test.mjs`) vérifie les marqueurs d'honnêteté « planifié / pas encore branché » et l'absence de branche Hermes/Nous dans `llm-dispatch.mjs` — donc brancher le fournisseur plus tard devra mettre à jour la documentation + la roadmap dans le même changement.
-- **Reporté à v1.147.0** (Phase 5b, partie 2) : la section H2 « Hermes & Telegram » de l'aide intégrée × 17 langues, et la surface marketing de cvstart.org.
+- **Reporté à v1.147.0** (Phase 5b, partie 2) : la section H2 « Hermes & Telegram » de l'aide intégrée × 17 langues, et la surface marketing de reboundops.example.
 - Suite : **2376** tests (+4 : `tests/hermes-docs.test.mjs`).
 
 ## [1.145.0] — 2026-08-12
@@ -2921,7 +2921,7 @@ Parité avec rebound-ops parent **v1.26.x** (mainline post-v1.26.0) — une nouv
 Parité avec rebound-ops parent **v1.26.0** — cinq nouvelles sources de scan sans authentification, plus des corrections de justesse pour quatre boards que web-ui prenait déjà en charge. Le registre compte désormais **78 sources = 73 EN + 5 RU** (`ALL_ADAPTERS` 73).
 
 ### Ajouté
-- **Cinq nouvelles sources de scan** (chacune avec une source + un adaptateur + une suite isolée pour CI ; elles apparaissent dans le filtre Source de `#/scan` et sur la page d'accueil cvstart.org) :
+- **Cinq nouvelles sources de scan** (chacune avec une source + un adaptateur + une suite isolée pour CI ; elles apparaissent dans le filtre Source de `#/scan` et sur la page d'accueil reboundops.example) :
   - **`join`** (JOIN) — le board JOIN d'une entreprise, lu depuis les données Next.js `__NEXT_DATA__` de `join.com/companies/<slug>` (épinglé à l'hôte, plafonné en pages).
   - **`getro`** (Getro) — les boards de portefeuille « réseau de talents » des VC via l'API publique POST `api.getro.com`, paginée du plus récent au plus ancien ; chaque offre est attribuée à l'entreprise du portefeuille, pas au fonds.
   - **`consider`** (Consider) — les boards de portefeuille VC de getconsider.com via une requête POST du même domaine ; l'hôte piloté par la configuration est épinglé par une garde SSRF structurelle (hôte HTTPS public uniquement).
@@ -2951,7 +2951,7 @@ Renforcement de la validation — corrections révélées par un audit complet d
 Parité avec rebound-ops parent **v1.25.0**.
 
 ### Ajouté
-- **Nouvelle source de scan : getManfred** (`manfred`) — un flux à l'échelle du site des offres tech espagnoles/européennes avec salaires publiés, depuis `www.getmanfred.com/api/v2/public/offers` (zéro authentification, épinglé à l'hôte + HTTPS uniquement, catalogue complet en une seule requête). Source + adaptateur + une suite isolée pour CI (`tests/sources-manfred.test.mjs`) ; le registre compte désormais **73 sources = 68 EN + 5 RU** (`ALL_ADAPTERS` 68). Apparaît dans le filtre Source de `#/scan` et sur la page d'accueil cvstart.org.
+- **Nouvelle source de scan : getManfred** (`manfred`) — un flux à l'échelle du site des offres tech espagnoles/européennes avec salaires publiés, depuis `www.getmanfred.com/api/v2/public/offers` (zéro authentification, épinglé à l'hôte + HTTPS uniquement, catalogue complet en une seule requête). Source + adaptateur + une suite isolée pour CI (`tests/sources-manfred.test.mjs`) ; le registre compte désormais **73 sources = 68 EN + 5 RU** (`ALL_ADAPTERS` 68). Apparaît dans le filtre Source de `#/scan` et sur la page d'accueil reboundops.example.
 
 ### Corrigé
 - **Le flux a16z Speedrun tronquait silencieusement à 50 offres** (#2404) — le flux plafonne une page à 50, mais la source demandait `PER_PAGE = 100`, si bien que la pagination s'arrêtait après la page 1. Corrigé à 50.
@@ -3009,7 +3009,7 @@ Parité avec rebound-ops parent **v1.25.0**.
 ## [1.130.0] — 2026-07-31
 
 ### Ajouté
-- **Deux nouvelles sources de scan portées depuis rebound-ops v1.24.0 (parent)** (en-process, sans nouvelle dépendance ; les deux apparaissent dans le filtre Source de `#/scan` et sur la landing cvstart.org) :
+- **Deux nouvelles sources de scan portées depuis rebound-ops v1.24.0 (parent)** (en-process, sans nouvelle dépendance ; les deux apparaissent dans le filtre Source de `#/scan` et sur la landing reboundops.example) :
   - **a16z Speedrun** (`a16z-speedrun-talent`, #2231) — le flux JSON global du board *talent-network* d'a16z Speedrun. Épinglé à l'hôte `speedrun-talent-network.com`, HTTPS uniquement, pagination indexée à 0 avec plafond de pages, `q`/config par entreprise, fail-soft.
   - **Cryptocurrency Jobs** (`cryptocurrencyjobs`) — le board d'emploi Web3 `cryptocurrencyjobs.co`, ingéré via son flux RSS 2.0 public (zéro authentification). Décodage des entités XML en deux passes, offres remote uniquement, employeur extrait de la fin du titre `"… at <Entreprise>"`.
   - Le registre totalise désormais **72 sources = 67 anglaises + 5 russes** (`ALL_ADAPTERS` = 67 adaptateurs de portails anglais).
@@ -3094,7 +3094,7 @@ Parité avec rebound-ops parent **v1.25.0**.
 ## [1.125.0] — 2026-07-21
 
 ### Ajouté
-- **cvstart.org : section « Sources d'offres » sur la landing** — une nouvelle section entre les captures d'écran et le comparatif liste **les 67 sources de scan sous forme de puces cliquables** (62 boards/ATS anglophones + les 5 boards russes sous leur propre sous-titre), chacune renvoyant vers le site public de la source. La liste est synchronisée avec le registre d'adaptateurs en direct au moment du build (`sync-assets.mjs` → `facts.sources`), si bien qu'elle ne peut jamais diverger de l'app ; une carte de liens organisée dans `Sources.astro` est protégée par la nouvelle `tests/site-sources.test.mjs`. La navigation d'en-tête a gagné une ancre **Sources** ; 4 nouvelles clés i18n du site ×17. La liste `inLanguage` du JSON-LD de la landing, à laquelle il manquait encore `hi`, a également été corrigée.
+- **reboundops.example : section « Sources d'offres » sur la landing** — une nouvelle section entre les captures d'écran et le comparatif liste **les 67 sources de scan sous forme de puces cliquables** (62 boards/ATS anglophones + les 5 boards russes sous leur propre sous-titre), chacune renvoyant vers le site public de la source. La liste est synchronisée avec le registre d'adaptateurs en direct au moment du build (`sync-assets.mjs` → `facts.sources`), si bien qu'elle ne peut jamais diverger de l'app ; une carte de liens organisée dans `Sources.astro` est protégée par la nouvelle `tests/site-sources.test.mjs`. La navigation d'en-tête a gagné une ancre **Sources** ; 4 nouvelles clés i18n du site ×17. La liste `inLanguage` du JSON-LD de la landing, à laquelle il manquait encore `hi`, a également été corrigée.
 
 
 ## [1.124.0] — 2026-07-21
@@ -3123,12 +3123,12 @@ Parité avec rebound-ops parent **v1.25.0**.
 ## [1.122.0] — 2026-07-16
 
 ### Ajouté
-- **Hindi (हिन्दी) — la 17e langue** — dictionnaire d'UI complet (~1 110 clés), guide d'aide intégré complet (parité 29 H2 / 105 H3), `README.hi.md`, un nouveau `CHANGELOG.hi.md` (débutant à la v1.122.0, selon le précédent de/it/tr), les pages landing + Méthodologie/Licence/Changelog/Aide de cvstart.org, le sélecteur de langue (🇮🇳), la détection automatique de la langue du navigateur, et une capture d'écran de tableau de bord localisée. Chaque garde-fou de parité ×16 tourne désormais ×17 : parité du dictionnaire i18n + instantané, garde-fous H2/H3 de l'aide, parité du CHANGELOG, `check-i18n` du site, et le balayage des locales Playwright.
+- **Hindi (हिन्दी) — la 17e langue** — dictionnaire d'UI complet (~1 110 clés), guide d'aide intégré complet (parité 29 H2 / 105 H3), `README.hi.md`, un nouveau `CHANGELOG.hi.md` (débutant à la v1.122.0, selon le précédent de/it/tr), les pages landing + Méthodologie/Licence/Changelog/Aide de reboundops.example, le sélecteur de langue (🇮🇳), la détection automatique de la langue du navigateur, et une capture d'écran de tableau de bord localisée. Chaque garde-fou de parité ×16 tourne désormais ×17 : parité du dictionnaire i18n + instantané, garde-fous H2/H3 de l'aide, parité du CHANGELOG, `check-i18n` du site, et le balayage des locales Playwright.
 
 ## [1.121.0] — 2026-07-16
 
 ### Ajouté
-- **cvstart.org : pages Méthodologie, Licence et Changelog** — la landing a gagné trois nouvelles sections dans les 16 langues, à côté du bloc Comparatif existant : **/methodology/** (la grille de notation à six dimensions de 0,0 à 5,0, le seuil de candidature à 4.0, et les règles à ne jamais enfreindre — un résumé localisé de [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)), **/license/** (le texte canonique MIT avec un renvoi vers NOTICE.md), et **/changelog/** (ce fichier, affiché par locale à partir des 16 CHANGELOG traduits du dépôt). Nouvelle entrée **Méthodologie** dans l'en-tête et liens Ressources dans le pied de page ; `sync-assets.mjs` synchronise désormais le CHANGELOG ×16 et la LICENSE dans le site au moment du build, pour que les pages ne puissent jamais diverger du dépôt.
+- **reboundops.example : pages Méthodologie, Licence et Changelog** — la landing a gagné trois nouvelles sections dans les 16 langues, à côté du bloc Comparatif existant : **/methodology/** (la grille de notation à six dimensions de 0,0 à 5,0, le seuil de candidature à 4.0, et les règles à ne jamais enfreindre — un résumé localisé de [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)), **/license/** (le texte canonique MIT avec un renvoi vers NOTICE.md), et **/changelog/** (ce fichier, affiché par locale à partir des 16 CHANGELOG traduits du dépôt). Nouvelle entrée **Méthodologie** dans l'en-tête et liens Ressources dans le pied de page ; `sync-assets.mjs` synchronise désormais le CHANGELOG ×16 et la LICENSE dans le site au moment du build, pour que les pages ne puissent jamais diverger du dépôt.
 - **Liens vers la méthodologie dans toute la documentation** — le README (dans les 16 langues), la liste canonique du §1 du guide d'aide intégré (dans les 16 langues), et le wiki renvoient désormais vers [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) (ainsi que la FAQ et le glossaire), aux côtés des guides existants sur [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops).
 
 ### Modifié
@@ -3137,7 +3137,7 @@ Parité avec rebound-ops parent **v1.25.0**.
 ## [1.120.0] — 2026-07-16
 
 ### Ajouté
-- **Le Manifeste ReboundOps** (parité parent v1.20.0) — le projet parent a publié le Manifeste ReboundOps (`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)) et le met désormais en avant depuis son README, son updater et son tableau de bord Go. L'interface web fait de même : un nouveau lien dans le pied de page de la barre latérale ouvre la page du manifeste (nouvelle clé i18n `footer.manifesto` dans les 16 locales), le guide d'aide intégré a gagné le §29 « Le Manifeste ReboundOps » dans les 16 langues, le README explique ce qu'est le manifeste et comment le signer, et le pied de page de la landing cvstart.org y renvoie également.
+- **Le Manifeste ReboundOps** (parité parent v1.20.0) — le projet parent a publié le Manifeste ReboundOps (`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)) et le met désormais en avant depuis son README, son updater et son tableau de bord Go. L'interface web fait de même : un nouveau lien dans le pied de page de la barre latérale ouvre la page du manifeste (nouvelle clé i18n `footer.manifesto` dans les 16 locales), le guide d'aide intégré a gagné le §29 « Le Manifeste ReboundOps » dans les 16 langues, le README explique ce qu'est le manifeste et comment le signer, et le pied de page de la landing reboundops.example y renvoie également.
 
 ### Notes
 - Le parent v1.20.0 a aussi corrigé la suppression des compétences déjà connues du mode ciblé `upskill`, rendu dotenv silencieux pour que la sortie stdout de `scan --json` reste analysable, et corrigé le template CV HTML pour qu'un en-tête de poste reste collé à ses puces — des surfaces côté CLI dans lesquelles l'interface web ne shell pas ; aucun changement de code côté web-ui n'était nécessaire.
@@ -3150,7 +3150,7 @@ Parité avec rebound-ops parent **v1.25.0**.
 ## [1.119.4] — 2026-07-13
 
 ### Modifié
-- **LICENSE nomme l'auteur** — la ligne de copyright indique désormais : *Sergei Emelianov (AnkitParekh007) <https://sergey-cv.com> and rebound-ops-ui contributors* (texte MIT canonique intact). Un nouveau **NOTICE.md** détaille la licence : qui détient le copyright, ce que couvre exactement la concession MIT (code, docs, traductions, la landing, le wiki), ce qu'elle NE couvre PAS (vos données à l'exécution, le projet parent, le contenu des job boards, les marques), le tableau des composants tiers (express/js-yaml — MIT ; Astro/Tailwind — MIT ; les polices Figtree et JetBrains Mono — SIL OFL 1.1 ; sharp — Apache-2.0) et une ligne d'attribution facultative.
+- **LICENSE nomme l'auteur** — la ligne de copyright indique désormais : *the original author <https://github.com/AnkitParekh007/rebound-ops> and rebound-ops-ui contributors* (texte MIT canonique intact). Un nouveau **NOTICE.md** détaille la licence : qui détient le copyright, ce que couvre exactement la concession MIT (code, docs, traductions, la landing, le wiki), ce qu'elle NE couvre PAS (vos données à l'exécution, le projet parent, le contenu des job boards, les marques), le tableau des composants tiers (express/js-yaml — MIT ; Astro/Tailwind — MIT ; les polices Figtree et JetBrains Mono — SIL OFL 1.1 ; sharp — Apache-2.0) et une ligne d'attribution facultative.
 
 ## [1.119.3] — 2026-07-13
 
@@ -3161,8 +3161,8 @@ Parité avec rebound-ops parent **v1.25.0**.
 
 ### Ajouté
 - **CONTRIBUTING.md** — le guide du contributeur vers lequel la landing et le README pointaient depuis toujours existe désormais : installation, carte du projet, les règles dures sécurité/no-build, les niveaux de test, le walkthrough des « deux registres » pour ajouter une source de scan, le contrat i18n ×16, les conventions de commits/PR et le processus de release.
-- **Drapeaux des langues sur la landing** — le sélecteur de langues de cvstart.org, la grille des langues du pied de page et la bannière « lisez dans votre langue » affichent désormais le drapeau de chaque locale à côté de son endonyme (le même jeu d'indicateurs régionaux que le `<select>` de langue de l'app ; dégrade en lettres de région là où les glyphes de drapeau manquent).
-- **Corrections du pied de page de la landing** — le lien mort vers Discussions (fonction non activée sur le dépôt) pointe désormais vers le **wiki** du projet, et le pied de page crédite l'auteur : **Sergei Emelianov** ([sergey-cv.com](https://sergey-cv.com/) · [LinkedIn](https://www.linkedin.com/in/sergey-emelyanov-in-job/)).
+- **Drapeaux des langues sur la landing** — le sélecteur de langues de reboundops.example, la grille des langues du pied de page et la bannière « lisez dans votre langue » affichent désormais le drapeau de chaque locale à côté de son endonyme (le même jeu d'indicateurs régionaux que le `<select>` de langue de l'app ; dégrade en lettres de région là où les glyphes de drapeau manquent).
+- **Corrections du pied de page de la landing** — le lien mort vers Discussions (fonction non activée sur le dépôt) pointe désormais vers le **wiki** du projet, et le pied de page crédite l'auteur : **the original author** ([the original author](https://github.com/AnkitParekh007/rebound-ops) · [LinkedIn](https://github.com/AnkitParekh007/rebound-ops)).
 
 ## [1.119.1] — 2026-07-13
 
@@ -3171,11 +3171,11 @@ Parité avec rebound-ops parent **v1.25.0**.
 
 ## [1.119.0] — 2026-07-13
 
-Parité avec le rebound-ops parent **v1.19.0** + rafraîchissement de la landing cvstart.org.
+Parité avec le rebound-ops parent **v1.19.0** + rafraîchissement de la landing reboundops.example.
 
 ### Ajouté
 - **2 nouveaux fournisseurs de scan** — Meituan (`zhaopin.meituan.com`) et Tencent (`careers.tencent.com`) : les API JSON publiques sans authentification des boards tech chinois, détectées par hôte ou sélectionnées via un `provider:` explicite, avec recherche côté serveur par mot-clé, pagination et déduplication par URL — **61 adaptateurs** désormais (56 EN + 5 RU). +20 tests (**1844**).
-- **Bloc des contributeurs sur la landing** — cvstart.org affiche les avatars de toutes les personnes ayant contribué du code (API GitHub `/contributors` au build, bots filtrés), localisé dans les 16 langues, avec un lien vers le graphe complet des contributeurs.
+- **Bloc des contributeurs sur la landing** — reboundops.example affiche les avatars de toutes les personnes ayant contribué du code (API GitHub `/contributors` au build, bots filtrés), localisé dans les 16 langues, avec un lien vers le graphe complet des contributeurs.
 - **Compteur d'étoiles GitHub en direct sur la landing** — le badge d'en-tête se rafraîchit désormais côté client depuis l'API GitHub à chaque visite (l'instantané de build sert de repli), et une reconstruction hebdomadaire planifiée de Pages garde l'instantané et la liste des contributeurs à jour ; les appels API en CI sont authentifiés par token.
 
 ### Corrigé
@@ -3660,7 +3660,7 @@ Hérité gratuitement du `git pull` du parent (la web-ui délègue à ceux-ci) :
 
 ## [1.74.3] — 2026-06-18
 
-**docs(parent-source): pointe le dépôt parent `rebound-ops` vers le fork [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops).** La web-ui référence désormais le fork du mainteneur comme projet parent partout où c'est une source réelle : la valeur par défaut `REBOUND_OPS_REPO` de l'installeur `bin/setup.sh`, chaque lien `git clone` / « au-dessus de » / onboarding dans les 12 READMEs, et la documentation des agents (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `docs/`). Le crédit à l'auteur santifer (et l'avertissement d'interface non officielle) est inchangé — seules les URL de source/clonage ont changé. `tests/sh-files.test.mjs` vérifie maintenant que l'installeur clone le fork.
+**docs(parent-source): pointe le dépôt parent `rebound-ops` vers le fork [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops).** La web-ui référence désormais le fork du mainteneur comme projet parent partout où c'est une source réelle : la valeur par défaut `REBOUND_OPS_REPO` de l'installeur `bin/setup.sh`, chaque lien `git clone` / « au-dessus de » / onboarding dans les 12 READMEs, et la documentation des agents (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `docs/`). Le crédit à l'auteur the original author (et l'avertissement d'interface non officielle) est inchangé — seules les URL de source/clonage ont changé. `tests/sh-files.test.mjs` vérifie maintenant que l'installeur clone le fork.
 
 ---
 
@@ -3920,7 +3920,7 @@ Hérité gratuitement du `git pull` du parent (la web-ui délègue à ceux-ci) :
 
 ## [1.59.13] — 2026-05-21
 
-**fix(i18n) : fusion des vraies clés dupliquées via @alias + purge finale des données personnelles.** Le vrai nom du mainteneur retiré des fixtures de test et des rapports QA (→ `Jane Doe`) ; `LICENSE`/`package.json` → handle `AnkitParekh007`. Le mécanisme `@alias` fusionne les 10 clés identiques sur les 8 locales ; `nav.config`/`config.title` ne sont PAS fusionnées (elles divergent en espagnol). 991 → **994** tests. (I18N-CL3)
+**fix(i18n) : fusion des vraies clés dupliquées via @alias + purge finale des données personnelles.** Le vrai nom du mainteneur retiré des fixtures de test et des rapports QA (→ `Jane Doe`) ; `LICENSE`/`package.json` → handle the original author's handle. Le mécanisme `@alias` fusionne les 10 clés identiques sur les 8 locales ; `nav.config`/`config.title` ne sont PAS fusionnées (elles divergent en espagnol). 991 → **994** tests. (I18N-CL3)
 
 ---
 

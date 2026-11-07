@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// direction-gate: check requerido que FALLA si la PR lleva el label `direction/needs-santiago`.
+// direction-gate: check requerido que FALLA si la PR lleva el label `direction/needs-maintainer`.
 // Cero reglas de contenido: solo lee labels. La política de dirección corre en la sesión (policy-check);
-// aquí solo se impide que la merge queue / auto-merge fusione lo que Santiago no ha decidido.
+// aquí solo se impide que la merge queue / auto-merge fusione lo que el mantenedor no ha decidido.
 //
 // Eventos:
 //  - pull_request (opened/synchronize/reopened/labeled/unlabeled): lee los labels ACTUALES por API (el payload
@@ -16,13 +16,13 @@
 
 import fs from 'node:fs';
 
-export const BLOCK_LABEL = process.env.BLOCK_LABEL || 'direction/needs-santiago';
+export const BLOCK_LABEL = process.env.BLOCK_LABEL || 'direction/needs-maintainer';
 
 /** Pura: decide con una lista de nombres de labels. */
 export function gate(labels, blockLabel = BLOCK_LABEL) {
   const has = (labels || []).includes(blockLabel);
   return has
-    ? { ok: false, why: `lleva ${blockLabel}: solo Santiago decide; se fusiona con su OK (quita el label desde el lote)` }
+    ? { ok: false, why: `lleva ${blockLabel}: solo el mantenedor decide; se fusiona con su OK (quita el label desde el lote)` }
     : { ok: true, why: `sin ${blockLabel}` };
 }
 /** Pura: número de PR a partir del head_ref de la merge queue, o null. */

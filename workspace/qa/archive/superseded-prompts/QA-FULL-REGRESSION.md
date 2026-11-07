@@ -90,7 +90,7 @@ Boot each route via `#/<route>`; confirm the view renders and the browser consol
 - [ ] Read-only relays (`stats.mjs`, `salary-gap.mjs`, `analyze-patterns.mjs`, `followup-*`) fail soft to `{available:false}` without the parent scripts.
 - [ ] Tests bootstrap their own `REBOUND_OPS_ROOT`; no test leaks a write into the real parent (`tests/test-root-isolation.test.mjs`).
 
-## 8. Site (cvstart.org) & deployment
+## 8. Site (reboundops.example) & deployment
 
 - [ ] Site builds (Node ≥ 22 via nvm): `cd site && npm run build`. `facts.json` regenerates from the live registry (version/tests/sources/locales). "Job sources" chips = 72; changelog page reads "all 17 languages".
 - [ ] Release flow: tag fires **Release**; **Publish** must be dispatched manually (`gh workflow run publish-package.yml --ref vX.Y.Z`) — never `npm publish` locally. **Pages** is paths-filtered on `site/**`; if only facts changed, dispatch `deploy-pages.yml`.

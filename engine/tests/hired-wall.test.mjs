@@ -102,7 +102,7 @@ const FIXTURE_AVATAR = join(ROOT, 'tests', 'fixtures', 'avatar-8x8.png');
       '--avatar-fixture', FIXTURE_AVATAR], { stdio: 'pipe' });
   } catch { refused = true; }
   const after = parseLedger(readFileSync(join(dir, 'HIRED.md'), 'utf8'));
-  if (refused && after.length === 1) pass('non-github/santifer.io link is refused');
+  if (refused && after.length === 1) pass('non-github/the original author link is refused');
   else fail('a foreign link was accepted into the ledger');
   rmSync(dir, { recursive: true, force: true });
 }

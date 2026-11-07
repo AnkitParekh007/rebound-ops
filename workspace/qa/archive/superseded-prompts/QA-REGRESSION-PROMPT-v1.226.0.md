@@ -20,7 +20,7 @@ node scripts/check-changelog-parity.mjs               # 16 non-EN at v1.226.0
 rebound-ops 1.30.0's community/CLI wave: the **Hired Wall**, `/calibrate`, clean-markers, template packs, doctor, pdf/LaTeX, and the eval/tracker/scan CLIs web-ui doesn't shell into. Already in web-ui: the `_html-to-text` quoted-angle-brackets fix (v1.214.2) and detect-reposts `roleFuzzyMatch`. Deferred: `title-filter stem:` prefix (web-ui filtering lives in `en-scanner`, cleanly separable — like the earlier `word:` matcher).
 
 ## §3 — Manual pass
-`#/scan` Source filter lists **ITviec** and **CareerViet**. `/api/scan/sources` returns 85 (80 EN + 5 RU). cvstart.org Job-sources shows both.
+`#/scan` Source filter lists **ITviec** and **CareerViet**. `/api/scan/sources` returns 85 (80 EN + 5 RU). reboundops.example Job-sources shows both.
 
 ## §4 — Sign-off
 Suite **2818** green · 2 sources + adapters + tests · 5 gate surfaces regenerated · parity ×17 at v1.226.0 · README banner+badges ×17 · help §17 count 83→85 ×17 · CONVENTIONS/PROJECT-CONTEXT/CLAUDE refreshed · site rebuilt (facts.json 85). Deploy: Pages, local + prod restart, wiki (85 sources · 80 adapters).

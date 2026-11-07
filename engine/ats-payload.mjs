@@ -255,7 +255,7 @@ export function validatePayloadShape(payload) {
  * Move `competencies[]` into `skills[]` as one comma-delimited category and
  * empty the source array.
  *
- * IDEMPOTENT (the edge santifer asked to have pinned by a test): running this on
+ * IDEMPOTENT (the edge the original author asked to have pinned by a test): running this on
  * an already-folded payload is a no-op, not a duplicate category. Two mechanisms
  * carry that, because either alone is incomplete:
  *

@@ -51,7 +51,7 @@ PDF adaptados, y registra cada candidatura localmente en tu máquina.
 - [Cómo puntúa rebound-ops las ofertas de empleo](https://github.com/AnkitParekh007/rebound-ops)
   — la metodología de puntuación: las cinco dimensiones más una puntuación global holística, el umbral de 4.0
   para postular, y lo que el sistema se niega explícitamente a hacer.
-  Resumida también en [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) en tu idioma.
+  Resumida también en [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) en tu idioma.
 
 **Principios fundamentales** (de
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

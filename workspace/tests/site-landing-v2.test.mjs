@@ -1,5 +1,5 @@
 /**
- * Landing v2 guards (cvstart.org).
+ * Landing v2 guards (reboundops.example).
  *
  * The redesign moved the hero visual to a clearly-labelled simulated demo and
  * added four animation systems; the screenshot section now renders FRESH v2

@@ -672,7 +672,7 @@ func (m StatsModel) renderHelp() string {
 
 	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Text)
 	descStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
-	brandPlain := "rebound-ops by santifer.io"
+	brandPlain := "rebound-ops · maintained by Ankit Parekh"
 	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render(brandPlain)
 	budget := m.width - 2
 	if budget < 1 {

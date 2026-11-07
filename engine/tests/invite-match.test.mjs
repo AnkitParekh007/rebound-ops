@@ -161,7 +161,7 @@ eq('isAIInterviewerPlatform is false for a phone-only invite', isAIInterviewerPl
 eq('isAIInterviewerPlatform is false when nothing plausible is present', isAIInterviewerPlatform('Please confirm your availability for the interview.'), false);
 eq('isAIInterviewerPlatform is false for empty text', isAIInterviewerPlatform(''), false);
 
-// Multi-link regression (#2676 review, santifer): Alex also sells a
+// Multi-link regression (#2676 review, the original author): Alex also sells a
 // "Coordinator" product that schedules human-conducted rounds and sends the
 // calendar invite/reminder itself, so an alex.com link legitimately appears
 // alongside a human meeting-platform link. isAIInterviewerPlatform() must

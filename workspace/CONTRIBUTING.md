@@ -14,7 +14,7 @@ npm start            # http://127.0.0.1:4317
 npm test             # full unit/integration suite (node --test)
 ```
 
-- **Node ≥ 18** for the server and tests. The `site/` landing (cvstart.org) is a separate Astro artifact and needs **Node ≥ 22.12** — it builds only in CI, so you rarely need this locally.
+- **Node ≥ 18** for the server and tests. The `site/` landing (reboundops.example) is a separate Astro artifact and needs **Node ≥ 22.12** — it builds only in CI, so you rarely need this locally.
 - The app runs fine without the parent rebound-ops project — endpoints that relay parent scripts fail soft with `{available:false}`.
 
 ## Project map
@@ -29,7 +29,7 @@ npm test             # full unit/integration suite (node --test)
 | `public/js/lib/locales/` | One i18n dictionary per locale (16 locales) |
 | `docs/` | Architecture, conventions, ADRs, and the in-app help (`docs/help/<locale>.md`) |
 | `tests/` | `node --test` suites + Playwright + two E2E runners |
-| `site/` | cvstart.org landing (Astro, CI-built — the no-build rule still owns `public/`) |
+| `site/` | reboundops.example landing (Astro, CI-built — the no-build rule still owns `public/`) |
 | `qa/` | Release QA regression prompts |
 
 Read [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) before touching a layer, and [`docs/sdd/CONVENTIONS.md`](docs/sdd/CONVENTIONS.md) for the full conventions list.

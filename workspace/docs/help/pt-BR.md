@@ -53,7 +53,7 @@ personalizados e registra cada candidatura localmente na sua máquina.
   — a metodologia de pontuação: as cinco dimensões mais uma pontuação global holística, o limiar de 4.0
   para candidatura, e o que o sistema se recusa explicitamente a
   fazer. Também resumido em
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) no seu
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) no seu
   idioma.
 
 **Princípios fundamentais** (de

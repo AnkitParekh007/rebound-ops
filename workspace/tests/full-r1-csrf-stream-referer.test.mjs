@@ -74,7 +74,7 @@ after(async () => {
 });
 
 test('isCrossSite: a foreign Referer is cross-site when neither Sec-Fetch-Site nor Origin is present', () => {
-  const p = guard.buildHostPolicy({ allowedHosts: 'resumecraft.ru' });
+  const p = guard.buildHostPolicy({ allowedHosts: 'reboundops.example' });
   const req = (headers) => ({ headers });
   // The exact gap: no Sec-Fetch-Site, no Origin, but a Referer naming an
   // attacker page — the classic old-browser cross-site <img>.
@@ -91,7 +91,7 @@ test('isCrossSite: a foreign Referer is cross-site when neither Sec-Fetch-Site n
   // An allowed public host behind a proxy (ALLOWED_HOSTS) is excused, same
   // as the Origin check.
   assert.equal(
-    guard.isCrossSite(req({ host: 'proxy:9', referer: 'https://resumecraft.ru/scan' }), p),
+    guard.isCrossSite(req({ host: 'proxy:9', referer: 'https://reboundops.example/scan' }), p),
     false,
   );
   // No Referer at all (curl, the CLI, server-side tests) stays trusted —

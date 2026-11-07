@@ -3,7 +3,7 @@ name: Remote QA (prod, site, links)
 # Full regression of what is actually deployed, from a clean runner:
 #   prod   — the deployed web-ui behind HTTP basic auth: every route × every UI
 #            locale, read-only (non-GET /api and SSE are aborted in the browser)
-#   site   — cvstart.org: every page × every locale × two viewports + links
+#   site   — reboundops.example: every page × every locale × two viewports + links
 #   links  — every link in README ×17 and in the wiki
 # Reports go to the job summary: counts, routes and short error lines only —
 # never page text or screenshots, because this repo's Actions logs are public.

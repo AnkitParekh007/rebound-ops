@@ -421,7 +421,7 @@ export function extractReqId(text) {
 // single-link Alex match, but Alex is itself multi-modal in practice — it
 // also sells a "Coordinator" product that schedules and sends calendar
 // invites for human-conducted rounds, so an alex.com link can legitimately
-// appear on an invite to a human interview (#2676 review, santifer). When a
+// appear on an invite to a human interview (#2676 review, the original author). When a
 // human-platform link (Zoom, Teams, etc.) is also present and wins the scan,
 // the match resolves to that human platform and this flag is `false` for
 // that invite, even though alex.com appears somewhere in the text. HireVue
@@ -509,7 +509,7 @@ export function extractPlatform(text) {
 export function isAIInterviewerPlatform(text) {
   if (!text) return false;
   // Must use the SAME first-match iteration as extractPlatform() (#2676
-  // review, santifer): scanning independently for any AI-flagged pattern
+  // review, the original author): scanning independently for any AI-flagged pattern
   // anywhere in the text — regardless of which platform extractPlatform()
   // actually resolves to — let a body containing both a human-platform link
   // (Zoom, Teams) AND an alex.com link flag as AI even though the platform

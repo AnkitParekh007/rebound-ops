@@ -1,4 +1,4 @@
-# QA Regression Prompt — v1.125.0 (cvstart.org "Job sources" section)
+# QA Regression Prompt — v1.125.0 (reboundops.example "Job sources" section)
 
 > Delta-focused sign-off. Baseline: v1.124.0 (all green). Site-only feature.
 

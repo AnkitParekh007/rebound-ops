@@ -1,6 +1,6 @@
 /**
  * One-off LIVE browser verification of the v1.263.0 owner-UX batch on PROD
- * (https://resumecraft.ru, basic auth). Read-only: it never writes, never
+ * (https://reboundops.example, basic auth). Read-only: it never writes, never
  * submits, never triggers an LLM evaluation — the only LLM-touching step is
  * one docs-assistant question-chip (a read-only grounded-help answer).
  *

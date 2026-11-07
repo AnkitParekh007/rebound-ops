@@ -47,7 +47,7 @@
   — Chromium 설치 및 PDF·폼 채우기를 위한 MCP 등록.
 - [rebound-ops가 채용 공고를 평가하는 방식](https://github.com/AnkitParekh007/rebound-ops)
   — 채점 방법론: 5가지 차원과 종합 점수, 4.0 지원 임계값, 그리고 이 시스템이
-  명시적으로 하지 않는 것들. [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops)에서도
+  명시적으로 하지 않는 것들. [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops)에서도
   여러분의 언어로 요약본을 확인할 수 있습니다.
 
 **핵심 원칙**

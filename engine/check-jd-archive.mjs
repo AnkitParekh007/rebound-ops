@@ -45,7 +45,7 @@
  *     ambiguous match, or an unreadable/unparseable tracker) — a soft
  *     `jd-archive-review-due` finding, same severity shape as
  *     check-table-freshness.mjs's `review-due`: visible, never blocking CI.
- *     santifer's ruling explicitly rejected a report-age/creation-date
+ *     the original author's ruling explicitly rejected a report-age/creation-date
  *     cutoff here — the risk this validator exists for (a posting dying
  *     before the JD is needed again) tracks whether the APPLICATION is
  *     still live, not when the REPORT was written, so an old-but-live row
@@ -92,7 +92,7 @@ const DEFAULT_JDS_DIR = join(DATA_ROOT, 'jds');
 const DEFAULT_TRACKER_PATH = resolveTrackerPath(DATA_ROOT);
 const STATES_FILE = join(REBOUND_OPS, 'templates/states.yml');
 
-// The retroactive-enforcement terminal set (PR #2791, santifer 2026-08-17:
+// The retroactive-enforcement terminal set (PR #2791, the original author 2026-08-17:
 // "build the state-based split you described" — Schlaflied 2026-08-16).
 // Confirmed against templates/states.yml's own canonical labels. "Offer" is
 // deliberately EXCLUDED even though states.yml marks it `terminal: true` for
@@ -402,7 +402,7 @@ export function hasEmbeddedJdArchive(content) {
  * enforcement," NOT "treat every report as live." A report number simply
  * absent from the returned map (no linking row, or 2+ rows linking it) is
  * the fail-soft case instead: the caller treats a missing map entry as
- * 'live', matching santifer's "a row the join can't resolve gets the
+ * 'live', matching the original author's "a row the join can't resolve gets the
  * warning, not an error" instruction.
  *
  * @param {string|null} trackerPath - Path to applications.md, or null/absent to skip the join.

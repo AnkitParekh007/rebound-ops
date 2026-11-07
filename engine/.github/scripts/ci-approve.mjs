@@ -69,8 +69,8 @@ export async function listHeld(page, { repo, from, to }) {
   return Object.assign(out.filter((r) => r.event === 'pull_request' && !seen.has(r.id) && seen.add(r.id)), { truncated });
 }
 /** 403 al aprobar: el token no puede aprobar runs de forks. Se para la pasada y el run sale en rojo. Cómo arreglarlo lo decide
- *  Santiago: un token de GitHub App firma como bot; un PAT personal firmaría a nombre de esa persona (el problema de L98). */
-export const DENIED = (tok) => `${tok} no puede aprobar runs de forks (403): la CI de los primerizos sigue retenida. Opciones, las decide Santiago: token de una GitHub App en CI_APPROVE_TOKEN (aprueba como bot) o un PAT personal (aprobaría a nombre de esa persona). Mientras, se aprueba a mano.`;
+ *  el mantenedor: un token de GitHub App firma como bot; un PAT personal firmaría a nombre de esa persona (el problema de L98). */
+export const DENIED = (tok) => `${tok} no puede aprobar runs de forks (403): la CI de los primerizos sigue retenida. Opciones, las decide el mantenedor: token de una GitHub App en CI_APPROVE_TOKEN (aprueba como bot) o un PAT personal (aprobaría a nombre de esa persona). Mientras, se aprueba a mano.`;
 
 // ---------- Reglas puras (testeables sin red) ----------
 /** Manifiestos y lockfiles de dependencias a CUALQUIER profundidad (web/, dashboard/, scaffolder/…): CONTRIBUTING promete que el bot

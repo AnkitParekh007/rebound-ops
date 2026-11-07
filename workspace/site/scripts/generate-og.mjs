@@ -46,7 +46,7 @@ const baseSvg = `
   <text x="72" y="248" font-family="Figtree, Helvetica, Arial, sans-serif" font-size="58" font-weight="800" fill="#222222">rebound-ops-ui</text>
   <text x="72" y="316" font-family="Figtree, Helvetica, Arial, sans-serif" font-size="30" font-weight="600" fill="#C41E3D">Free · Open source · Local-first job search</text>
   <text x="72" y="372" font-family="Figtree, Helvetica, Arial, sans-serif" font-size="24" fill="#6A6A6A">Scan job boards · AI fit scores · tailored CVs · tracker</text>
-  <text x="72" y="560" font-family="Figtree, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#222222">cvstart.org</text>
+  <text x="72" y="560" font-family="Figtree, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#222222">reboundops.example</text>
   <text x="72" y="592" font-family="Figtree, Helvetica, Arial, sans-serif" font-size="18" fill="#B0B0B0">github.com/AnkitParekh007/rebound-ops</text>
 </svg>`;
 

@@ -2,7 +2,7 @@
 
 Patch from the v1.239.2 live regression (Remote QA run 36581340197). That run was green in:
 - prod: 510 visits;
-- cvstart.org: 170 visits;
+- reboundops.example: 170 visits;
 - links;
 - scan: waited 10 min for the hourly scan, then ATS + Regional done;
 - 16 of 17 evaluate locales (ja SCORE_SUMMARY and hi language fixed by v1.239.2).

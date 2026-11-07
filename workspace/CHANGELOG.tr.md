@@ -115,7 +115,7 @@
 
 - **Hız sınırı sağlamlaştırma dalgası (`REVIEW-2026-10-31-v1.264.1`'den inceleme LOW №1–3)** — `writeRateLimit()` (express-rate-limit@7.5.1, 60 req/min route×IP, 429 JSON + Retry-After) artık **47 veri-değiştiren uç noktanın tamamını** kapsıyor (2 idi): kapsam dışı bırakılmış 9 `llmRateLimit` koruması değiştirildi (`/api/config` — `.env` yeniden yazımı!, `PUT /api/batch`, `/api/batch/merge`, outcome, followup/seed, assessments, stats/snapshot, mock-interview/save, networking/save), pahalı yollarda LLM kovasının **öncesine** 3 tane istiflendi (`/api/evaluate`, `/api/deep`, `/api/auto-pipeline`) ve 33 çıplak kayıt bağlandı (CV/profile/modes düzenleyicileri, tüm tracker yazımları, pipeline POST/restore/DELETE, jds, tek bir döngü düzenlemesiyle 7 `/api/run/*`, posting-guard, satır-içi Playwright-PDF, portals toggle/health/track, discover, reports, export/docx, two-pager, career-plan, memory ve üç DELETE rotası). `/api/apply-helper` allowlist'li çıplak olarak kalıyor (salt yerel hesaplama, sabitlenmiş); 16 salt-LLM rotası tasarım gereği koşullu LLM kovasını koruyor. Bir **eksiksizlik tetikleyicisi** (`tests/rate-limit-coverage.test.mjs`, 27 çıplak kayıtla red-first) gelecekteki her hız sınırlandırılmamış veri-değiştiren kayıtta CI'ı düşürür.
 - **`TRUST_PROXY` isteğe bağlı kullanımı + yeniden devreye alınan doğrulamalar (inceleme LOW №1–2)** — `app.set('trust proxy', N)` bir `TRUST_PROXY` env **hop sayısını** kabul ediyor (asla boolean `true` değil — bu, saldırgan-kontrollü sol XFF ucuna göre anahtarlamaya yol açardı); varsayılan olarak ayarsız, böylece loopback belgelenmiş soket-anahtarlı rota-başına dejenerasyonunu koruyor. `validate: false`, hedefli bir `writeValidateConfig()`'e dönüşüyor: yalnızca `xForwardedForHeader` muaf tutuluyor (trust proxy olmadan Caddy'nin XFF'si *tasarım gereği* yok sayılıyor), diğer her doğrulama — `trustProxy` dahil — yeniden gürültülü, böylece gelecekteki bir `trust proxy: true` yanlış yapılandırması sessizlik yerine `ERR_ERL_PERMISSIVE_TRUST_PROXY` olarak yüzeye çıkıyor. Özel `keyGenerator` bilinçli olarak kaldırıldı: express-rate-limit, proxy doğrulamalarını varsayılan anahtar üreticisine bağlıyor ve rota-başına izolasyon değişmedi (her fabrika çağrısına bir `MemoryStore`).
-- **cvstart.org kopyalama geri bildirimi 2 sn sonra geri alınıyor (CAR-141)** — «Скопировано ✓» durumu artık kabul kriterindeki 2 saniye boyunca kalıyor (1,5 sn idi), `tests/site-copy-feedback.test.mjs` içinde red-first sabitlendi. Bu, CAR-141'in ajan tarafından giderilebilir son kriterini kapatıyor; tanıtım videosu yenilemesi sahibin ertelemesinde kalıyor (karar 2026-11-01).
+- **reboundops.example kopyalama geri bildirimi 2 sn sonra geri alınıyor (CAR-141)** — «Скопировано ✓» durumu artık kabul kriterindeki 2 saniye boyunca kalıyor (1,5 sn idi), `tests/site-copy-feedback.test.mjs` içinde red-first sabitlendi. Bu, CAR-141'in ajan tarafından giderilebilir son kriterini kapatıyor; tanıtım videosu yenilemesi sahibin ertelemesinde kalıyor (karar 2026-11-01).
 
 ### Değişti
 
@@ -135,12 +135,12 @@
 
 ### Değişti
 
-- **cvstart.org metni 19 dilin tamamında yayınlanıyor (CAR-220)** — `meta.helpDesc`, `helpTeaser.c1.desc` ve `faq.a2` her site yerel ayarında çevrilmiş (v1.264.1'de tasarım gereği yalnızca EN'diler); GitHub Pages yükseltilmiş metni cvstart.org'da canlı olarak yayınladı.
+- **reboundops.example metni 19 dilin tamamında yayınlanıyor (CAR-220)** — `meta.helpDesc`, `helpTeaser.c1.desc` ve `faq.a2` her site yerel ayarında çevrilmiş (v1.264.1'de tasarım gereği yalnızca EN'diler); GitHub Pages yükseltilmiş metni reboundops.example'da canlı olarak yayınladı.
 - **Backlog + inceleme hijyeni (CAR-221/222)** — «upstream'de birleştirildikten sonra taşınacak» altı madde kapatıldı: yedi upstream PR'sinin tamamı birleştirildi, dört madde zaten taşınmıştı, ikisi üst proje tarafında. `docs/reviews/REVIEW-2026-10-31-v1.264.1.md` geliyor (0 HIGH / 0 MED, üç LOW takip maddesi BACKLOG'a not edildi) ve **parent-sync port-listesi** kayda geçiyor (6 PORT / 3 VERIFY / apple kaynak boşluğu; upstream kuyruğu 118 commit @ VERSION 1.38.0).
 
 ### Notlar
 
-- Changelog ayna-damgası düzeltmesi (`92a05fcf`) bu etiketle birlikte geliyor: cvstart.org'daki her sayfalanmış ayna artık onu üreten sürümün sürüm numarasını taşıyor, böylece `site-build-after-fanout` değerlendiricisi nihayet atlamak yerine gerçek mantığını çalıştırıyor.
+- Changelog ayna-damgası düzeltmesi (`92a05fcf`) bu etiketle birlikte geliyor: reboundops.example'daki her sayfalanmış ayna artık onu üreten sürümün sürüm numarasını taşıyor, böylece `site-build-after-fanout` değerlendiricisi nihayet atlamak yerine gerçek mantığını çalıştırıyor.
 - Bilinçli olarak yapılmadı: kalan veri-değiştiren POST'ların hız sınırlandırılması (inceleme LOW №3) ve trust-proxy kova bağlaşımı — bir sonraki sağlamlaştırma dalgası için BACKLOG'a not edildi. CAR-141 (tanıtım videosu) sahibin kalıyor.
 - Testler 7081 → 7082 (+1 CAR-219 sabitlemesi); Playwright 176; registry değişmedi 123 = 118 EN + 5 RU · 118 adapters.
 
@@ -153,7 +153,7 @@
 
 ### Değişti
 
-- **cvstart.org SSS tam kaynak sayılarını taşıyor (CAR-217)** — `{sources} iş panosu kaynağı: {sourcesEn} uluslararası pano artı {sourcesRu} Rus kaynağı` ifadesi `facts.json`'dan yerine konuyor; `facts.json` canlı registry'den üretiliyor (123 = 118 EN + 5 RU), böylece sayılar asla sapamaz; hâlâ eski `~{adapters}` söyleminde olan yerel ayarlar `adaptersRounded` üzerinden yuvarlamayı sürdürüyor. EN metin yükseltmeleri de beraberinde geliyor (`meta.helpDesc`, `helpTeaser.c1.desc`, `faq.a2` komut menüsünü, geri al özelliğiyle gruplanmış pipeline'ı ve kanban tracker'ı adlandırıyor).
+- **reboundops.example SSS tam kaynak sayılarını taşıyor (CAR-217)** — `{sources} iş panosu kaynağı: {sourcesEn} uluslararası pano artı {sourcesRu} Rus kaynağı` ifadesi `facts.json`'dan yerine konuyor; `facts.json` canlı registry'den üretiliyor (123 = 118 EN + 5 RU), böylece sayılar asla sapamaz; hâlâ eski `~{adapters}` söyleminde olan yerel ayarlar `adaptersRounded` üzerinden yuvarlamayı sürdürüyor. EN metin yükseltmeleri de beraberinde geliyor (`meta.helpDesc`, `helpTeaser.c1.desc`, `faq.a2` komut menüsünü, geri al özelliğiyle gruplanmış pipeline'ı ve kanban tracker'ı adlandırıyor).
 
 ### Notlar
 
@@ -250,7 +250,7 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 
 ### Değişti
 
-- Dokümantasyon: yardım kılavuzunun «118 EN adapters» maddesi fr/it/ta'da da sayıyı taşıyor (diğer 15 yerel ayarda zaten vardı). cvstart.org'daki satıcı fiyatları resmi fiyatlandırma sayfalarına karşı yeniden doğrulandı — dördü de değişmedi, CHECKED_ON → 2026-10-30. Sürüm-sonrası sürüklenme taraması, README ×19, CONTEXT.md, CLAUDE.md ve SDD kılavuzlarında 42 bayat sayı/sürüm satırını düzeltti (109/104 dönemi ve v1.262.0 dönemi kalıntıları).
+- Dokümantasyon: yardım kılavuzunun «118 EN adapters» maddesi fr/it/ta'da da sayıyı taşıyor (diğer 15 yerel ayarda zaten vardı). reboundops.example'daki satıcı fiyatları resmi fiyatlandırma sayfalarına karşı yeniden doğrulandı — dördü de değişmedi, CHECKED_ON → 2026-10-30. Sürüm-sonrası sürüklenme taraması, README ×19, CONTEXT.md, CLAUDE.md ve SDD kılavuzlarında 42 bayat sayı/sürüm satırını düzeltti (109/104 dönemi ve v1.262.0 dönemi kalıntıları).
 
 ### Notlar
 
@@ -352,7 +352,7 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 - **Sürüm incelemesi + şartname geri-doldurması (docs, #559/#558)**: `docs/reviews/REVIEW-2026-10-28-v1.261.1.md` (v1.261.0/v1.261.1 dalgası kendi şartnamelerine karşı incelendi) ve aynı dalga için SDD şartname geri-doldurması — BACKLOG kuyruğu artık kalan boşluğu adlandırıyor (`sources/habr.mjs` için özgül testler).
 - **RTL derin taraması (#571)**: AR düzeneği 39 rotayı LTR-karşı-RTL dolaşıyor (X-aynası, taşma, kırpılma, text-align imzaları) — 85 bulgu düzeltildi: sabit chrome öğeleri (toast, sidebar, drawer + onun kapatma ×'i, docs-FAB, usage-HUD, skip-link) `inset-inline-*`/`border-inline-*`'a taşındı, tablolar 17 görünüm dosyası + 2 kütüphanede `text-align: start/end`'e geçti, toplu `[dir=rtl] text-align:right` kuralı kaldırıldı (scan yıldız-sütunu ortalamasıyla çelişiyordu), CAR-58 skor-sütunu izolasyonu bir `ltrNum` span'ına taşındı.
 - **Klavye a11y düzenek (#570)**: `tests/playwright-a11y-keyboard.mjs` 11 rota dolaşıyor (Tab sırası/tuzakları, odak göstergeleri, Escape kaplamaları, Enter/Space) — 0 üretim hatası; regresyon kapsamı yeni.
-- **i18n çevrilmemiş taraması (#565)**: 36 en-özdeş değer ×9 yerel ayarda çevrildi (`*.rolePh`, config anahtarları, ta manifestosu) + beyaz-listeye dayalı kapalı bir tarama koruması; site (cvstart.org) i18n denetimi (#568): 20 anahtar × 18 yerel ayarda çevrildi (`demo.*`/`stats.t.*`/`showcase.tab*` bloğunun tamamı her yerde İngilizceydi), 1 ölü anahtar ×19 kaldırıldı.
+- **i18n çevrilmemiş taraması (#565)**: 36 en-özdeş değer ×9 yerel ayarda çevrildi (`*.rolePh`, config anahtarları, ta manifestosu) + beyaz-listeye dayalı kapalı bir tarama koruması; site (reboundops.example) i18n denetimi (#568): 20 anahtar × 18 yerel ayarda çevrildi (`demo.*`/`stats.t.*`/`showcase.tab*` bloğunun tamamı her yerde İngilizceydi), 1 ölü anahtar ×19 kaldırıldı.
 - **Remote-QA gözlemlenebilirliği (CAR-175, #567)**: özet, başarısız olan tarama kaynaklarını adlandırıyor (`stderr örnekleri`, kırpma-öncesi maskeleme) ve sağlayıcı kullanımından `tok ~N` yazdırıyor; mantık, bir sapma kapısıyla birlikte saf bir `summary-parts.mjs` içinde duruyor.
 - **UI.md iç içe işaretçi listeleri (tek düzey, #564)**: `  - ` maddeleri iç içe bir `<ul>` olarak render ediliyor (fence-yer-tutucu-güvenli) — yerel ayar başına son 2 sarkan düzyazı dizisi gitti.
 - **Lovable tasarım entegrasyonu — faz 1 (#566) / faz 2 (dal, etiketten önce iniyor)**: `public/css/tokens-v3.css` Lovable konseptini harfi harfine taşıyor (oklch yüzeyler 0–3, AA-ek-açıklamalı mürekkep çiftleri, accent ailesi, ok/warn/danger/info/neutral yumuşak+mürekkep, skor bantları A–G ×2 tema, yoğunluk + odak + gölgeler); faz 2 onu mevcut token adları üzerinde etkinleştiriyor (accent blue/danger diye bölünüyor, cv3 token'ları üzerinde skor bantları + callout'lar), kontrast/rol/koyu kapıları güncellenmiş olarak.
@@ -384,7 +384,7 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 
 - **Mobile-390 düzenek (#552)**: tohumlanmış bir korpusla 390×844 boyutunda her SPA rotasının (31 kanonik + 8 mode sayfası = 39 hash) bir Playwright taraması — rota başına yatay taşma kontrolü (scrollWidth vs clientWidth, 1px tolerans, en geniş ihlalciyi adlandırır) artı bir CTA isabet kontrolü (yapışkan çubuk/çekmece/FAB birincil bir CTA'yı kapatamaz); opt-in, tarayıcı ikilisi yokken zarifçe atlanır, ağsız.
 - **Taze v2 yakalamaları ×48 (CAR-140 A fazı, #551)**: tohumlanmış, CI-izole bir fikstürden gerçek v2-arayüz ekran görüntüleri — dashboard ×19 + job-map ×19 (job-map-ta ilk kez görünüyor, job-map-vi yeni) + scan/pipeline/tracker/reports × en/ru — README'yi, yardımı ve landing'i besliyor.
-- **cvstart.org gerçek ekran görüntüleri (CAR-140 B fazı, #553)**: CAR-140 yer tutucu yuvaları gitti — landing artık gerçek v2 yakalamalarını gösteriyor (job-map vitrini + ekran görüntüsü satırları, ×19 landing yerel ayarı).
+- **reboundops.example gerçek ekran görüntüleri (CAR-140 B fazı, #553)**: CAR-140 yer tutucu yuvaları gitti — landing artık gerçek v2 yakalamalarını gösteriyor (job-map vitrini + ekran görüntüsü satırları, ×19 landing yerel ayarı).
 - **CAR-137 ipuçları (#550)**: 21 yeni çevrilmiş anahtar ×19 (`help.hint.*` ×20 + mode-sayfa `hintKey`'leri) — artık her sayfa kendini yerinde açıklıyor.
 
 ### Notlar
@@ -395,7 +395,7 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 
 ## [1.261.0] — 2026-10-28
 
-**Tam inceleme dalgası 1.261.0 ile tamamlandı (tüm YÜKSEK + ORTA bulgular indi), sahibin bildirdiği dil değişimi düzeltmesi, değerlendirme-kalitesi düzeltmeleri, yardım ×18 fan-out'u, cvstart.org landing v2 — artı dalgayı belgeleyen 4 SDD/OpenSpec şartnamesi. Her düzeltme red→green fix-forward ve bir GLM-5.3-Flash taze-bağlam incelemesinden geçti.**
+**Tam inceleme dalgası 1.261.0 ile tamamlandı (tüm YÜKSEK + ORTA bulgular indi), sahibin bildirdiği dil değişimi düzeltmesi, değerlendirme-kalitesi düzeltmeleri, yardım ×18 fan-out'u, reboundops.example landing v2 — artı dalgayı belgeleyen 4 SDD/OpenSpec şartnamesi. Her düzeltme red→green fix-forward ve bir GLM-5.3-Flash taze-bağlam incelemesinden geçti.**
 
 ### Güvenlik
 
@@ -408,7 +408,7 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 ### Eklendi
 
 - **CAR-147 — yerel ayar duyarlı değerlendirme tavanı (#524)**: `evalTimeoutMs(lang)` — ta/hi, 300 s yerine 480 s alıyor (Hint yazı sistemleri hece başına birkaç belirteç tokenize ediyor; eski sert süre sınırı 502 + boş rapor üretiyordu); remote-QA istemcisi 540 s bekliyor.
-- **CAR-133 — cvstart.org landing v2 (#532)**: reduced-motion ile kapılanan paralaks hero, scan→evaluate→tracker akışının açıkça SIMULATED etiketli bir demosu, canlı-doğrulanmış sayımlarla scroll-reveal bölümleri, CAR-140 ekran-görüntüsü yer tutucu yuvaları.
+- **CAR-133 — reboundops.example landing v2 (#532)**: reduced-motion ile kapılanan paralaks hero, scan→evaluate→tracker akışının açıkça SIMULATED etiketli bir demosu, canlı-doğrulanmış sayımlarla scroll-reveal bölümleri, CAR-140 ekran-görüntüsü yer tutucu yuvaları.
 - **CAR-135 — arayüz v2 için yardım yeniden yazıldı, ×18 fan-out tamamlandı (#533, #540, #541, #542)**: 19 yardım dosyasının tamamı v2 kabuğunu anlatıyor (katlanabilir gezinme, Cmd/Ctrl+K komut paleti, iskeletler, örnek+eylemli boş durumlar, scan v2 kabuğu, pipeline gruplu+geri alma, reports v2, kanban); arayüz etiketleri kendi i18n anahtarlarını aktarıyor; 121-kaynak cümlesi kayıt defterinden üretiliyor.
 - **Şartnameler (SDD/OpenSpec) (#535)**: oct27 wave-two geri-doldurması + üç ileriye dönük şartname (yardım fan-out'u, yazma devirleri, dil değişimi değişmezleri).
 
@@ -567,13 +567,13 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 
 ## [1.255.0] — 2026-10-24
 
-**Vietnamca (Tiếng Việt), 19. arayüz dili olarak katılıyor — EN ile tam pariteli 1525 anahtarlık sözlük, vi/vi-VN algılama, eksiksiz yardım paketi, README ve CHANGELOG aynaları, cvstart.org açılış sayfası entegrasyonu ve dil değiştiricideki 🇻🇳.**
+**Vietnamca (Tiếng Việt), 19. arayüz dili olarak katılıyor — EN ile tam pariteli 1525 anahtarlık sözlük, vi/vi-VN algılama, eksiksiz yardım paketi, README ve CHANGELOG aynaları, reboundops.example açılış sayfası entegrasyonu ve dil değiştiricideki 🇻🇳.**
 
 ### Eklendi
 
 - **Vietnamca (`vi`) — 1525/1525 anahtar**, `en` ile tam parite; `detect()` `vi` ve `vi-VN` kabul eder; Vietnamca LTR'dir (asla `RTL_LANGS`'a eklenmez). 'Pipeline' 'Pipeline' olarak kalır — standart teknik ödünç kelime, beyaz listede.
 - **Eksiksiz docs/help/vi.md** (33 H2 / 125 H3), ayrıca README.vi.md ve CHANGELOG.vi.md aynaları ve `prompts.mjs` içindeki Vietnamca iskele dizeleri (`LOCALE_NAMES` + `SCAFFOLD_STRINGS`) — Vietnamca LLM çıktısı kutudan çıktığı gibi çalışır.
-- **cvstart.org açılış sayfasının Vietnamca'sı** — `site/src/i18n/vi.json`, sitemap locale girdisi ve bir `dashboard-vi.png` ekran görüntüsü; dil değiştirici 🇻🇳 kazanır (19 konum).
+- **reboundops.example açılış sayfasının Vietnamca'sı** — `site/src/i18n/vi.json`, sitemap locale girdisi ve bir `dashboard-vi.png` ekran görüntüsü; dil değiştirici 🇻🇳 kazanır (19 konum).
 - **Sayım kapıları 18 → 19** — LANGS, detect prob'ları, i18n denetimi, changelog paritesi, README çeviri bloğu, locale taraması — ayrıca red-first `tests/i18n-vi-locale.test.mjs` (139 satır).
 
 ### Notlar
@@ -623,7 +623,7 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 ### Eklendi
 
 - **10 kaynak parent 1.38.0'den portlandı**, her biri kendi fetch-walk adaptörü ve CI-izole suitiyle (sahte fetchImpl, sıfır ağ): **Atlassian** (tek auth'suz JSON akışı, iCIMS URL'leri, https+icims.com allowlist), **BWI** (JSON-LD ItemList, JSON.parse önce), **Computrabajo** (LATAM, varlık çözme, İspanyolca «remoto»=remote), **Dover** (tenant başına DRF sayfalama, `Remote (International)` gösterimi, UUID doğrulanmış panolar), **Google Careers** (fazla başına ilk sayfa, kart işvereni kazanır, sorgular arası dedup), **Kalibrr** (SEA toplayıcısı, feed id satır id'si olarak), **Magneto365** (LATAM, sabit sayfalar-arası tempo), **Platsbanken** (İsveç JobTech API'si, anahtar kelime başına pencereler), **Tech in Asia** (Algolia anahtarları site build'inden keşfediliyor), **Zoho Recruit** (hidden-input pano, sınırlı detail zenginleştirme, para birimi yalnız ISO-4217).
-- Kayıt sayacı: **120 kaynak = 115 EN + 5 RU · 115 adaptör**; beş sayaç kapısı canlı kayıt defterinden yeniden üretildi; `#/scan` dropdown fallback'u, cvstart.org kaynak bağlantıları ve help §17 ×18 takip ediyor.
+- Kayıt sayacı: **120 kaynak = 115 EN + 5 RU · 115 adaptör**; beş sayaç kapısı canlı kayıt defterinden yeniden üretildi; `#/scan` dropdown fallback'u, reboundops.example kaynak bağlantıları ve help §17 ×18 takip ediyor.
 
 ### Düzeltildi
 
@@ -952,7 +952,7 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 
 ### Notlar
 
-- cvstart.org açılış sayfası şimdilik 17 dilde kalıyor — çevirisi ayrı bir görev; site içerik senkronizasyonu zaten docs/help/ta.md ve ta changelog'unu dağıtıyor.
+- reboundops.example açılış sayfası şimdilik 17 dilde kalıyor — çevirisi ayrı bir görev; site içerik senkronizasyonu zaten docs/help/ta.md ve ta changelog'unu dağıtıyor.
 - `report-header.js` içindeki REPORT_LABELS 17'de kalıyor — Tamilce rapor ayrıştırma, ana depodaki Tamilce rapor üretimiyle gelecek.
 
 ## [1.244.2] — 2026-10-08
@@ -1096,8 +1096,8 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 
 ### Eklendi
 
-- **[cvstart.org](https://github.com/AnkitParekh007/rebound-ops) üzerinde iş haritası** 17 dilin tamamında, ayrıca İngilizce ve Rusça README'lerde.
-- **Her dilde harita ekran görüntüleri** — dil başına bir tane (`scripts/capture-map-screenshots.mjs`), 17 README'nin tamamında, cvstart.org'da ve yeni bir yardım alt bölümünde: “Haritayı kullanma” (§33, ×17).
+- **[reboundops.example](https://github.com/AnkitParekh007/rebound-ops) üzerinde iş haritası** 17 dilin tamamında, ayrıca İngilizce ve Rusça README'lerde.
+- **Her dilde harita ekran görüntüleri** — dil başına bir tane (`scripts/capture-map-screenshots.mjs`), 17 README'nin tamamında, reboundops.example'da ve yeni bir yardım alt bölümünde: “Haritayı kullanma” (§33, ×17).
 
 ### Notlar
 
@@ -1285,13 +1285,13 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 ### Düzeltildi
 
 - **Aynı anda iki tarama sunucuyu çökertiyordu.** Her `GET /api/stream/scan`, tam tarayıcıyı hiçbir koruma olmadan sunucu sürecinin içinde çalıştırıyordu; arayüzden başlatılan bir tarama saatlik zamanlayıcıyla çakıştı ve süreç *JavaScript heap out of memory* hatasıyla öldü (iki kez, arada 502 hataları). Artık aynı anda tek tarama çalışıyor: ikinci istek `SCAN_BUSY` kodlu bir SSE `error` alıyor ve hiçbir şey başlamıyor. Dağıtım iş akışı ayrıca sunucunun bellek sınırını yükseltiyor (`heap_mb`, varsayılan 448 MB).
-- **cvstart.org'da `/help` ve `/changelog` telefonda yana kayıyordu** (ja/zh `/changelog` masaüstünde de): uzun kod ve içindekiler artık satır kırıyor.
+- **reboundops.example'da `/help` ve `/changelog` telefonda yana kayıyordu** (ja/zh `/changelog` masaüstünde de): uzun kod ve içindekiler artık satır kırıyor.
 - **Hintçe, site haritasının dil alternatiflerinde yoktu**; sitenin i18n denetimi artık site haritasını dil kaydıyla karşılaştırıyor.
 - **Yardım §19, anahtarın "8 dil dosyasının tümüne" eklenmesini söylüyordu** — 17 dosya var.
 
 ### Eklendi
 
-- **Uzaktan regresyon** (`.github/workflows/remote-qa.yml`): dağıtılmış uygulamanın her rotası × her dili (salt okunur), cvstart.org'un her sayfası × dili × telefon/masaüstü, README'lerdeki ve wiki'deki her bağlantı ve istenirse her dilde gerçek bir tarama ile canlı yapay zekâ çağrıları.
+- **Uzaktan regresyon** (`.github/workflows/remote-qa.yml`): dağıtılmış uygulamanın her rotası × her dili (salt okunur), reboundops.example'un her sayfası × dili × telefon/masaüstü, README'lerdeki ve wiki'deki her bağlantı ve istenirse her dilde gerçek bir tarama ile canlı yapay zekâ çağrıları.
 - **Sunucu dağıtım iş akışı** (`.github/workflows/deploy.yml`): `recon`, `deploy` (bayt düzeyinde geri alma ile) ve `verify` (duman testi ve kararlılık raporu).
 - Testler 3481 → 3486.
 
@@ -1342,7 +1342,7 @@ Tests 6867 → 6868 (+1) · Playwright 176 · registry değişmedi: 123 sources 
 
 ### Düzeltildi
 
-- **Kitap bağlantısının etiketi yerelleştirilmişti, ama hedefi değil.** 17 SPA yerel ayarının ve 17 cvstart.org yerel ayarının tamamı, *Agentic Coding Design Patterns* footer bağlantısını İngilizce baskıya yönlendiriyordu; oysa çevrilmiş tek etiket — Rusça, «Паттерны агентного кодинга» — bir Rusça kitap vadediyordu. Yeni bir `data-i18n-href` uygulayıcısı (`data-i18n-title` ile aynı biçimde, mutlak `https://` değerleriyle sınırlı) ve bir `footer.patternsUrl` anahtarı, `ru`'yu Rusça baskıya, diğer her yerel ayarı İngilizce baskıya gönderiyor. Regresyon testi bu değişmezi iki yönde de doğruluyor: çevrilmiş bir başlık, yerelleştirilmiş bir URL'yi ima eder.
+- **Kitap bağlantısının etiketi yerelleştirilmişti, ama hedefi değil.** 17 SPA yerel ayarının ve 17 reboundops.example yerel ayarının tamamı, *Agentic Coding Design Patterns* footer bağlantısını İngilizce baskıya yönlendiriyordu; oysa çevrilmiş tek etiket — Rusça, «Паттерны агентного кодинга» — bir Rusça kitap vadediyordu. Yeni bir `data-i18n-href` uygulayıcısı (`data-i18n-title` ile aynı biçimde, mutlak `https://` değerleriyle sınırlı) ve bir `footer.patternsUrl` anahtarı, `ru`'yu Rusça baskıya, diğer her yerel ayarı İngilizce baskıya gönderiyor. Regresyon testi bu değişmezi iki yönde de doğruluyor: çevrilmiş bir başlık, yerelleştirilmiş bir URL'yi ima eder.
 - **SEEK ana bilgisayarlarını taşıyor, ve taşıma katmanı yönlendirmeleri reddediyor.** `www.seek.com.au` → `au.seek.com` ve `www.seek.co.nz` → `nz.seek.com`: detay sayfaları zaten 301 veriyor, ve her iki ana bilgisayar çifti de bugün v5 arama API'sini 200 ile sunuyor. `http-json.mjs`, `redirect:'error'` ayarladığından (korunmaya değer bir SSRF savunması), API yolunun yönlendirmeye başladığı gün eski ana bilgisayardaki bir AU/NZ girdisi başarısız olurdu — ve yalnızca `www.` ana bilgisayarları izin listesindeyken kimse taşınamazdı. `au.seek.com` ve `nz.seek.com` artık `ALLOWED_JOBSTREET_HOSTS` içinde; eski ana bilgisayarlar kalıyor, bu yüzden mevcut yapılandırma ve zaten oluşturulmuş bağlantılar çalışmaya devam ediyor. Taklitler (`au.seek.com.evil.com`, `au-seek.com`) hâlâ reddediliyor.
 - **Wiki:** Home belgeleme haritasındaki *Agentic Practices* satırı, on iki satırdan `[[…|…]]` içindeki `|`'yi kaçırmayan tek satırdı, bu yüzden GitHub hücreyi kesti — ölü bağlantı, açıklama gizlendi. Tek bir karakter.
 
@@ -1529,7 +1529,7 @@ Bu, v1.231.2'de not edilen `applyI18n()` tuzağıyla aynı kusur sınıfı — a
 **Düzeltildi — v1.231.0'ın sayaç taraması tüm bağlantılardaki hesap adını değiştirdi.**
 
 ### Düzeltildi
-- **Her `AnkitParekh007` bağlantısı `Fighter92` oldu.** v1.231.0'daki kaynak sayacı taraması, `290` ve `901`'i doğru şekilde atlayan ama **`AnkitParekh007`** içindeki `90` ile eşleşen bir rakam sınırı koruması altında `90`'ı `92` ile değiştirdi. **17 README'nin tamamında, 17 yardım paketinin tamamında ve sitenin yardım aynalarında 562 bağlantı**, artı **wiki'de 138 tanesi**, var olmayan bir hesabı gösteriyordu. Eksik görsel sayesinde bir kullanıcı fark etti.
+- **Her the original author's handle bağlantısı `Fighter92` oldu.** v1.231.0'daki kaynak sayacı taraması, `290` ve `901`'i doğru şekilde atlayan ama **the original author's handle** içindeki `90` ile eşleşen bir rakam sınırı koruması altında `90`'ı `92` ile değiştirdi. **17 README'nin tamamında, 17 yardım paketinin tamamında ve sitenin yardım aynalarında 562 bağlantı**, artı **wiki'de 138 tanesi**, var olmayan bir hesabı gösteriyordu. Eksik görsel sayesinde bir kullanıcı fark etti.
 - **Beş tarihsel sürüm göndermesi kaydı.** Aynı sürümdeki `85 → 87` taraması `v1.85.0`'ı `v1.87.0` yaptı ve hiç çıkmamış bir sürüm uydurdu.
 
 ### Notlar
@@ -1756,7 +1756,7 @@ Bu, v1.231.2'de not edilen `applyI18n()` tuzağıyla aynı kusur sınıfı — a
 - v1.225.0 afişi GitHub'da görünmüyordu: bağımsız `images/providers.svg` dosyasında GitHub'ın reddettiği geçersiz bir `font-family` (iç içe çift tırnak) vardı, `<img>` depo-göreli bir `src` kullanıyordu (ham HTML `<img>` GitHub'da göreli yolları çözmez) ve `<p>` bloğunda sondaki boş satır yoktu. Artık mutlak bir URL üzerinden işlenmiş bir `images/providers.png` gösteriyor, boş satırlarla ayrılmış olarak; SVG de geçerli XML'e düzeltildi.
 
 ### Notlar
-- Yalnızca dokümanlar; kod veya test değişikliği yok. cvstart.org vitrini ve uygulamanın kutucukları zaten doğruydu (satır içi SVG, bu dosya değil).  **2784**
+- Yalnızca dokümanlar; kod veya test değişikliği yok. reboundops.example vitrini ve uygulamanın kutucukları zaten doğruydu (satır içi SVG, bu dosya değil).  **2784**
 
 ## [1.225.0] — 2026-08-27
 
@@ -1943,10 +1943,10 @@ Bu, v1.231.2'de not edilen `applyI18n()` tuzağıyla aynı kusur sınıfı — a
 
 ## [1.212.1] — 2026-08-21
 
-**Düzeltildi — cvstart.org açılış sayfası tarayıcının iş kaynaklarını eksik sayıyordu (80 gösteriyor ve Job Bank (Kanada)'yı atlıyordu); artık uygulamanın 81'iyle yeniden eşleşiyor ve ikisi ayrışırsa site derlemesi yüksek sesle başarısız oluyor.**
+**Düzeltildi — reboundops.example açılış sayfası tarayıcının iş kaynaklarını eksik sayıyordu (80 gösteriyor ve Job Bank (Kanada)'yı atlıyordu); artık uygulamanın 81'iyle yeniden eşleşiyor ve ikisi ayrışırsa site derlemesi yüksek sesle başarısız oluyor.**
 
 ### Düzeltildi
-- **Açılış sayfasının "İş kaynakları" sayımı uygulamayla yeniden senkron.** v1.212.0 sonrasında cvstart.org **80** pano gösteriyor ve yeni **Job Bank (Kanada)** çipi eksikti; oysa uygulama, tarama açılır menüsü ve yardım kılavuzu hepsi **81** listeliyordu. Açılış sayfası listesini canlı tarayıcı kaydını yükleyerek kurar ve bir kaynak, bir YAML bağımlılığını içeri alma biçimi yüzünden o derlemede yüklenemedi — böylece sessizce düştü. Job Bank artık bu bağımlılığı, uygulamanın geri kalanının tarama sırasında yaptığı gibi tembel yükler, dolayısıyla her zaman görünür.
+- **Açılış sayfasının "İş kaynakları" sayımı uygulamayla yeniden senkron.** v1.212.0 sonrasında reboundops.example **80** pano gösteriyor ve yeni **Job Bank (Kanada)** çipi eksikti; oysa uygulama, tarama açılır menüsü ve yardım kılavuzu hepsi **81** listeliyordu. Açılış sayfası listesini canlı tarayıcı kaydını yükleyerek kurar ve bir kaynak, bir YAML bağımlılığını içeri alma biçimi yüzünden o derlemede yüklenemedi — böylece sessizce düştü. Job Bank artık bu bağımlılığı, uygulamanın geri kalanının tarama sırasında yaptığı gibi tembel yükler, dolayısıyla her zaman görünür.
 - **Site derlemesi artık uyuşmayan bir kaynak sayısını yayımlamayı reddediyor.** Kayıt, diskte var olandan daha az kaynak sayarsa (yüklenemeyen bir kaynağın izi), derleme yanlış sayıyı sessizce yayımlamak yerine açık bir mesajla başarısız olur.
 
 ### Notlar
@@ -2450,7 +2450,7 @@ Bu, v1.231.2'de not edilen `applyI18n()` tuzağıyla aynı kusur sınıfı — a
 - **Puan ayrıştırma (FIND-1)** — H1'i puan etiketi sözcüğünü içeren İngilizce olmayan bir rapor (`# Оценка вакансии: <başlık>`) artık o başlığı puan sanmıyor. `parseReportHeader` şimdi yerelleştirilmiş **kalın** etikete (`**Оценка:** 1.5 / 5`) sabitleniyor, başlık satırlarını atlıyor ve etiketin iki noktaya bitişik olmasını istiyor — böylece "Score not detected" gösteren RU raporları gerçek puanını gösteriyor.
 - **Meşruiyet rozeti (FIND-2)** — değerden Markdown vurgusu temizleniyor, rozet "** High Confidence" yerine "High Confidence" gösteriyor.
 - **Puan taşması** — sonuna durum metni eklenmiş bir puan satırı ("1.8, Status: Evaluated, …") yalnızca puana sıkıştırılıyor; `.score-pill` bir kaydırma-yok/taşma sınırı kazanıyor ve başlık sütunu daralabiliyor, böylece renkli rozet kart kenarından hiç taşmıyor.
-- **SEO açıklaması (FIND-3)** — cvstart.org'un meta / OG / Twitter açıklamaları (17 dilin tümü) "Scan ~55 job boards" değerini sabit kodluyordu, oysa gövde gerçek kayıt defterini sayıyordu ("~75"). Açıklama artık kayıt defterinden türetilen sayıyı yerleştiriyor, böylece bir daha kaymıyor.
+- **SEO açıklaması (FIND-3)** — reboundops.example'un meta / OG / Twitter açıklamaları (17 dilin tümü) "Scan ~55 job boards" değerini sabit kodluyordu, oysa gövde gerçek kayıt defterini sayıyordu ("~75"). Açıklama artık kayıt defterinden türetilen sayıyı yerleştiriyor, böylece bir daha kaymıyor.
 
 ### Notlar
 - Sunucu ayrıştırıcı + istemci render/CSS + site i18n; rota / CSP / SSRF / üst yazma değişikliği yok. Testler: `tests/report-header-locale.test.mjs` (+4). Takım: **2448** (+4).
@@ -2530,10 +2530,10 @@ Bu, v1.231.2'de not edilen `applyI18n()` tuzağıyla aynı kusur sınıfı — a
 
 ## [1.166.0] — 2026-08-13
 
-**Düzeltildi (DÜŞÜK) — rubrik terminolojisi artık kanonik belgeleri yansıtıyor.** github.com/AnkitParekh007/rebound-ops "beş boyut artı bütünsel bir genel puan" diye tanımlıyor, ancak web-ui, cvstart.org ve wiki hepsi "altı boyutlu rubrik" diyordu (5 + 1 = 6, ama sözcükler uyuşmuyordu).
+**Düzeltildi (DÜŞÜK) — rubrik terminolojisi artık kanonik belgeleri yansıtıyor.** github.com/AnkitParekh007/rebound-ops "beş boyut artı bütünsel bir genel puan" diye tanımlıyor, ancak web-ui, reboundops.example ve wiki hepsi "altı boyutlu rubrik" diyordu (5 + 1 = 6, ama sözcükler uyuşmuyordu).
 
 ### Düzeltildi
-- Belgelerin ifadesi — **"beş boyut artı bütünsel bir genel puan"** — README ×17, cvstart.org sitesi ×17, yardım kılavuzu ×17, `docs/rebound-ops-canonical.md` ve wiki (Home ×17 + Features) genelinde tutarlı biçimde benimsendi.
+- Belgelerin ifadesi — **"beş boyut artı bütünsel bir genel puan"** — README ×17, reboundops.example sitesi ×17, yardım kılavuzu ×17, `docs/rebound-ops-canonical.md` ve wiki (Home ×17 + Features) genelinde tutarlı biçimde benimsendi.
 
 ### Notlar
 - Yalnızca belge/pazarlama; kod/i18n anahtarı/rota/CSP/SSRF/yazma değişikliği yok. `tests/rubric-terminology.test.mjs` (+2). Takım: **2426** (+2).
@@ -2617,7 +2617,7 @@ Bu, v1.231.2'de not edilen `applyI18n()` tuzağıyla aynı kusur sınıfı — a
 
 ### Düzeltildi
 - HelpHint'in «?» işareti artık `document.title`'a sızmıyor. Yönlendirici sekme başlığını ham `h1.textContent`'ten türetiyordu, bu yüzden sekme «Vacancy search» yerine «Vacancy search?» gösteriyordu. `router.js::focusNewView` artık başlığı klonluyor, `.help-hint`'i kaldırıyor ve sonra metni okuyor; görünen «?» dokunulmadan kalıyor.
-- cvstart.org «7» yerine «17 AI providers» gösteriyordu. `Features.astro`'daki `sub()` yardımcısı, kart bazlı değiştirmeden önce tüm `{n}` değerlerini dil sayısıyla (17) yeniden yazıyordu; artık `{n}` kart bazında çözülüyor (sağlayıcılar → 7, diller → 17).
+- reboundops.example «7» yerine «17 AI providers» gösteriyordu. `Features.astro`'daki `sub()` yardımcısı, kart bazlı değiştirmeden önce tüm `{n}` değerlerini dil sayısıyla (17) yeniden yazıyordu; artık `{n}` kart bazında çözülüyor (sağlayıcılar → 7, diller → 17).
 
 ### Notlar
 - Sunucu, rota, CSP, SSRF veya i18n anahtarı değişikliği yok; `facts.json` biçimi değişmedi. Takım: **2402** test (+1).
@@ -2751,11 +2751,11 @@ Bu, v1.231.2'de not edilen `applyI18n()` tuzağıyla aynı kusur sınıfı — a
 
 ## [1.147.0] — 2026-08-12
 
-**Hermes & Telegram — uygulama içi yardım bölümü + cvstart.org yüzeyi (Phase 5b, bölüm 2)** — Hermes belge çalışmasının ikinci ve son parçası: nasıl yapılır artık uygulamanın kendi yardım kılavuzunun içinde, 17 dilin tümünde yaşıyor ve uygulama içi belge asistanı Hermes sorularını buradan yanıtlıyor. Hâlâ yalnızca belge — Hermes LLM sağlayıcı yolu **planlandı / henüz bağlanmadı** durumunda kalıyor (Phase 5).
+**Hermes & Telegram — uygulama içi yardım bölümü + reboundops.example yüzeyi (Phase 5b, bölüm 2)** — Hermes belge çalışmasının ikinci ve son parçası: nasıl yapılır artık uygulamanın kendi yardım kılavuzunun içinde, 17 dilin tümünde yaşıyor ve uygulama içi belge asistanı Hermes sorularını buradan yanıtlıyor. Hâlâ yalnızca belge — Hermes LLM sağlayıcı yolu **planlandı / henüz bağlanmadı** durumunda kalıyor (Phase 5).
 
 ### Eklendi
 - **Uygulama içi yardım §30 "Hermes & Telegram" × 17 dil** — yeni bir kılavuz bölümü (Hermes nedir + iki entegrasyon biçimi; bir bulut sunucusunda çalıştırma; Hermes üzerinden Telegram + "NEYİN açığa çıkarılmaması gerektiği" kuralı), `#/help` üzerinden erişilebilir. `docs-assistant` / `DocsFab` grounding'i bunu otomatik alır çünkü ikisi de `docs/help/<lang>.md` okur.
-- **cvstart.org — Hermes kılavuzuna bir bağlantı**, GitHub'daki belgeye yönlendirir.
+- **reboundops.example — Hermes kılavuzuna bir bağlantı**, GitHub'daki belgeye yönlendirir.
 
 ### Değişti
 - Yardım paketi eşiği **29 → 30 H2 / 105 → 108 H3** yükseltildi (`canonical-docs-coverage`, `help-ui`, `help-ru-config-section`); §30 üç H3 ekler.
@@ -2777,7 +2777,7 @@ Bu, v1.231.2'de not edilen `applyI18n()` tuzağıyla aynı kusur sınıfı — a
 
 ### Notlar
 - **Şu an hiçbir şey Hermes'i çağırmıyor.** Bir kanarya testi (`tests/hermes-docs.test.mjs`) «planlanan / henüz bağlanmamış» dürüstlük işaretlerini ve `llm-dispatch.mjs`'de hiçbir Hermes/Nous dalı olmadığını doğrular — yani sağlayıcının ileride bağlanması, belgeleri + yol haritasını aynı değişiklikte güncellemek zorundadır.
-- **v1.147.0'a ertelendi** (Phase 5b, bölüm 2): uygulama içi yardımdaki «Hermes & Telegram» H2 bölümü × 17 dil ve cvstart.org pazarlama yüzeyi.
+- **v1.147.0'a ertelendi** (Phase 5b, bölüm 2): uygulama içi yardımdaki «Hermes & Telegram» H2 bölümü × 17 dil ve reboundops.example pazarlama yüzeyi.
 - Takım: **2376** test (+4: `tests/hermes-docs.test.mjs`).
 
 ## [1.145.0] — 2026-08-12
@@ -2908,7 +2908,7 @@ Bu, v1.231.2'de not edilen `applyI18n()` tuzağıyla aynı kusur sınıfı — a
 Üst proje rebound-ops **v1.26.0** paritesi — beş yeni sıfır-kimlik-doğrulama tarama kaynağı artı web-ui'nin zaten taşıdığı dört panoya doğruluk düzeltmeleri. Kayıt defteri artık **78 kaynak = 73 İngilizce + 5 Rusça** (`ALL_ADAPTERS` 73).
 
 ### Eklendi
-- **Beş yeni tarama kaynağı** (her biri bir kaynak + adaptör + CI-izole bir paket; `#/scan` Kaynak filtresinde ve cvstart.org açılış sayfasında görünüyorlar):
+- **Beş yeni tarama kaynağı** (her biri bir kaynak + adaptör + CI-izole bir paket; `#/scan` Kaynak filtresinde ve reboundops.example açılış sayfasında görünüyorlar):
   - **`join`** (JOIN) — bir şirketin JOIN panosu, `join.com/companies/<slug>` içindeki Next.js `__NEXT_DATA__`'sından (ana bilgisayara sabitli, sayfa sınırlı).
   - **`getro`** (Getro) — VC "yetenek ağı" portföy panoları, herkese açık `api.getro.com` POST API'si üzerinden, en yeniden-eskiye sayfalanmış; her iş fona değil portföy işverenine atfediliyor.
   - **`consider`** (Consider) — getconsider.com VC portföy panoları, aynı-kökenli bir POST üzerinden; yapılandırma-güdümlü ana bilgisayar yapısal bir SSRF koruyucusuyla sabitleniyor (yalnızca herkese açık HTTPS ana bilgisayarı).
@@ -2939,7 +2939,7 @@ Doğrulama sağlamlaştırması — kapsamlı bir proje denetimiyle ortaya çık
 Üst proje rebound-ops v1.25.0 paritesi.
 
 ### Eklendi
-- **Yeni tarama kaynağı: getManfred** (`manfred`) — yayınlanmış maaşlarla İspanyol/AB teknoloji rollerinin pano-geneli bir beslemesi, `www.getmanfred.com/api/v2/public/offers`'tan (sıfır-kimlik doğrulama, ana bilgisayara sabitlenmiş + yalnızca-HTTPS, tek istekli tam katalog). Kaynak + adaptör + CI-izole bir paket (`tests/sources-manfred.test.mjs`); kayıt defteri artık 73 kaynak = 68 İngilizce + 5 Rusça (`ALL_ADAPTERS` 68). `#/scan` Kaynak filtresinde ve cvstart.org açılış sayfasında görünür.
+- **Yeni tarama kaynağı: getManfred** (`manfred`) — yayınlanmış maaşlarla İspanyol/AB teknoloji rollerinin pano-geneli bir beslemesi, `www.getmanfred.com/api/v2/public/offers`'tan (sıfır-kimlik doğrulama, ana bilgisayara sabitlenmiş + yalnızca-HTTPS, tek istekli tam katalog). Kaynak + adaptör + CI-izole bir paket (`tests/sources-manfred.test.mjs`); kayıt defteri artık 73 kaynak = 68 İngilizce + 5 Rusça (`ALL_ADAPTERS` 68). `#/scan` Kaynak filtresinde ve reboundops.example açılış sayfasında görünür.
 
 ### Düzeltildi
 - **a16z Speedrun beslemesi sessizce 50 işe kısaltılıyordu** (#2404) — besleme bir sayfayı 50 ile sınırlıyor ancak kaynak `PER_PAGE = 100` istiyordu, bu yüzden sayfalama 1. sayfadan sonra duruyordu. 50'ye düzeltildi.
@@ -2998,7 +2998,7 @@ Doğrulama sağlamlaştırması — kapsamlı bir proje denetimiyle ortaya çık
 ## [1.130.0] — 2026-07-31
 
 ### Eklendi
-- **Üst proje rebound-ops v1.24.0'dan taşınan iki yeni tarama kaynağı** (işlem içinde, yeni bağımlılık yok; ikisi de `#/scan` Kaynak filtresinde ve cvstart.org açılış sayfasında görünüyor):
+- **Üst proje rebound-ops v1.24.0'dan taşınan iki yeni tarama kaynağı** (işlem içinde, yeni bağımlılık yok; ikisi de `#/scan` Kaynak filtresinde ve reboundops.example açılış sayfasında görünüyor):
   - **a16z Speedrun** (`a16z-speedrun-talent`, #2231) — a16z Speedrun *yetenek ağı* panosu genelindeki JSON beslemesi. `speedrun-talent-network.com`'a ana bilgisayar sabitli, yalnızca HTTPS, sayfa sınırlı 0-indeksli sayfalama, şirket başına `q`/yapılandırma iş parçacığı, hataya karşı toleranslı.
   - **Cryptocurrency Jobs** (`cryptocurrencyjobs`) — Web3 iş panosu `cryptocurrencyjobs.co`, herkese açık RSS 2.0 beslemesi üzerinden alınıyor (kimlik doğrulamasız). İki geçişli XML varlık çözme, yalnızca uzaktan ilanlar, işveren başlık kuyruğundaki `"… at <Company>"` kalıbından ayrıştırılıyor.
   - Kayıt defteri toplamı artık **72 kaynak = 67 İngilizce + 5 Rusça** (`ALL_ADAPTERS` = 67 İngilizce portal adaptörü).
@@ -3082,7 +3082,7 @@ Doğrulama sağlamlaştırması — kapsamlı bir proje denetimiyle ortaya çık
 ## [1.125.0] — 2026-07-21
 
 ### Eklendi
-- **cvstart.org: Landingde "İş kaynakları" bölümü** — ekran görüntüleri ile karşılaştırma listesi arasına eklenen yeni bir bölüm, **67 tarama kaynağının tümünü tıklanabilir çipler olarak** listeler (62 İngilizce pano/ATS + kendi alt başlığı altında 5 Rus panosu), her biri kaynağın herkese açık sitesine bağlanır. Liste, build sırasında canlı adaptör kayıt defterinden senkronize edilir (`sync-assets.mjs` → `facts.sources`), böylece uygulamadan asla sapamaz; `Sources.astro` içindeki düzenlenmiş bağlantı haritası yeni `tests/site-sources.test.mjs` ile korunur. Üst gezinme çubuğu yeni bir **Kaynaklar** çapası kazandı; 4 yeni site i18n anahtarı ×17. Ayrıca, hâlâ `hi` eksik olan landing JSON-LD `inLanguage` listesi düzeltildi.
+- **reboundops.example: Landingde "İş kaynakları" bölümü** — ekran görüntüleri ile karşılaştırma listesi arasına eklenen yeni bir bölüm, **67 tarama kaynağının tümünü tıklanabilir çipler olarak** listeler (62 İngilizce pano/ATS + kendi alt başlığı altında 5 Rus panosu), her biri kaynağın herkese açık sitesine bağlanır. Liste, build sırasında canlı adaptör kayıt defterinden senkronize edilir (`sync-assets.mjs` → `facts.sources`), böylece uygulamadan asla sapamaz; `Sources.astro` içindeki düzenlenmiş bağlantı haritası yeni `tests/site-sources.test.mjs` ile korunur. Üst gezinme çubuğu yeni bir **Kaynaklar** çapası kazandı; 4 yeni site i18n anahtarı ×17. Ayrıca, hâlâ `hi` eksik olan landing JSON-LD `inLanguage` listesi düzeltildi.
 
 ## [1.124.0] — 2026-07-21
 
@@ -3110,12 +3110,12 @@ Doğrulama sağlamlaştırması — kapsamlı bir proje denetimiyle ortaya çık
 ## [1.122.0] — 2026-07-16
 
 ### Eklendi
-- **Hintçe (हिन्दी) — 17. dil** — tam arayüz sözlüğü (~1.110 anahtar), eksiksiz uygulama içi yardım kılavuzu (29 H2 / 105 H3 paritesi), `README.hi.md`, yeni bir `CHANGELOG.hi.md` (de/it/tr emsalini izleyerek v1.122.0'dan başlıyor), cvstart.org landing + Metodoloji/Lisans/Değişiklik Günlüğü/Yardım sayfaları, dil değiştirici (🇮🇳), tarayıcı diline göre otomatik algılama ve yerelleştirilmiş bir dashboard ekran görüntüsü. Her ×16 parite kapısı artık ×17 çalışıyor: i18n sözlük paritesi + anlık görüntü, yardım H2/H3 kapıları, CHANGELOG paritesi, site `check-i18n` ve Playwright yerel ayar taraması.
+- **Hintçe (हिन्दी) — 17. dil** — tam arayüz sözlüğü (~1.110 anahtar), eksiksiz uygulama içi yardım kılavuzu (29 H2 / 105 H3 paritesi), `README.hi.md`, yeni bir `CHANGELOG.hi.md` (de/it/tr emsalini izleyerek v1.122.0'dan başlıyor), reboundops.example landing + Metodoloji/Lisans/Değişiklik Günlüğü/Yardım sayfaları, dil değiştirici (🇮🇳), tarayıcı diline göre otomatik algılama ve yerelleştirilmiş bir dashboard ekran görüntüsü. Her ×16 parite kapısı artık ×17 çalışıyor: i18n sözlük paritesi + anlık görüntü, yardım H2/H3 kapıları, CHANGELOG paritesi, site `check-i18n` ve Playwright yerel ayar taraması.
 
 ## [1.121.0] — 2026-07-16
 
 ### Eklendi
-- **cvstart.org: Metodoloji, Lisans ve Değişiklik günlüğü sayfaları** — landing sayfası, mevcut Karşılaştırma bloğunun yanına 16 dilin tümünde üç yeni bölüm kazandı: **/methodology/** (altı boyutlu 0.0–5.0 puanlama ölçeği, 4.0 başvuru eşiği ve asla yapılmayacak kurallar — [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) adresinin yerelleştirilmiş bir özeti), **/license/** (NOTICE.md işaretçisiyle birlikte resmi MIT metni) ve **/changelog/** (bu dosya, depodaki 16 çevrilmiş CHANGELOG'dan yerel ayara göre işlenir). Yeni başlık **Metodoloji** girdisi ve altbilgi Kaynaklar bağlantıları; `sync-assets.mjs` artık derleme sırasında CHANGELOG ×16 ve LICENSE'ı siteye eşitliyor, böylece sayfalar depodan asla sapamaz.
+- **reboundops.example: Metodoloji, Lisans ve Değişiklik günlüğü sayfaları** — landing sayfası, mevcut Karşılaştırma bloğunun yanına 16 dilin tümünde üç yeni bölüm kazandı: **/methodology/** (altı boyutlu 0.0–5.0 puanlama ölçeği, 4.0 başvuru eşiği ve asla yapılmayacak kurallar — [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) adresinin yerelleştirilmiş bir özeti), **/license/** (NOTICE.md işaretçisiyle birlikte resmi MIT metni) ve **/changelog/** (bu dosya, depodaki 16 çevrilmiş CHANGELOG'dan yerel ayara göre işlenir). Yeni başlık **Metodoloji** girdisi ve altbilgi Kaynaklar bağlantıları; `sync-assets.mjs` artık derleme sırasında CHANGELOG ×16 ve LICENSE'ı siteye eşitliyor, böylece sayfalar depodan asla sapamaz.
 - **Dokümanlar genelinde metodoloji bağlantıları** — README (16 dilin tümü), uygulama içi yardım kılavuzu §1 kanonik listesi (16 dilin tümü) ve wiki artık mevcut [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) kılavuzlarının yanı sıra [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) adresine (ayrıca SSS ve sözlüğe) bağlantı veriyor.
 
 ### Değiştirildi
@@ -3124,7 +3124,7 @@ Doğrulama sağlamlaştırması — kapsamlı bir proje denetimiyle ortaya çık
 ## [1.120.0] — 2026-07-16
 
 ### Eklendi
-- **ReboundOps Manifestosu** (üst proje v1.20.0 paritesi) — üst proje ReboundOps Manifestosu'nu (`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)) yayınladı ve şimdi bunu README'sinden, güncelleyicisinden ve Go dashboard'ından öne çıkarıyor. Web-ui de aynısını yapıyor: yeni bir kenar çubuğu altbilgi bağlantısı manifesto sayfasını açıyor (16 yerel ayarın tümünde yeni `footer.manifesto` i18n anahtarı), uygulama içi yardım kılavuzu 16 dilin tümünde §29 "ReboundOps Manifestosu"nu kazandı, README manifestonun ne olduğunu ve nasıl imzalanacağını açıklıyor ve cvstart.org landing altbilgisi de ona bağlantı veriyor.
+- **ReboundOps Manifestosu** (üst proje v1.20.0 paritesi) — üst proje ReboundOps Manifestosu'nu (`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)) yayınladı ve şimdi bunu README'sinden, güncelleyicisinden ve Go dashboard'ından öne çıkarıyor. Web-ui de aynısını yapıyor: yeni bir kenar çubuğu altbilgi bağlantısı manifesto sayfasını açıyor (16 yerel ayarın tümünde yeni `footer.manifesto` i18n anahtarı), uygulama içi yardım kılavuzu 16 dilin tümünde §29 "ReboundOps Manifestosu"nu kazandı, README manifestonun ne olduğunu ve nasıl imzalanacağını açıklıyor ve reboundops.example landing altbilgisi de ona bağlantı veriyor.
 
 ### Notlar
 - Üst proje v1.20.0 ayrıca `upskill` hedefli modun bilinen-beceri bastırmasını düzeltti, `scan --json` stdout'unun ayrıştırılabilir kalması için dotenv'i sessizleştirdi ve bir rol başlığının madde işaretleriyle birlikte kalması için HTML CV şablonunu düzeltti — bunlar web-ui'nin shell ile çağırmadığı CLI tarafı yüzeyler; web-ui kodunda değişiklik gerekmedi.
@@ -3137,7 +3137,7 @@ Doğrulama sağlamlaştırması — kapsamlı bir proje denetimiyle ortaya çık
 ## [1.119.4] — 2026-07-13
 
 ### Değiştirildi
-- **LICENSE yazarı belirtiyor** — telif satırı artık şöyle: *Sergei Emelianov (AnkitParekh007) <https://sergey-cv.com> and rebound-ops-ui contributors* (kanonik MIT metni dokunulmadı). Yeni **NOTICE.md** lisanslamayı ayrıntılı açıklıyor: telif hakkını kim tutuyor, MIT izni tam olarak neyi kapsıyor (kod, belgeler, çeviriler, landing, wiki), neyi KAPSAMIYOR (çalışma zamanı verileriniz, üst proje, iş ilanı içerikleri, ticari markalar), üçüncü taraf bileşen tablosu (express/js-yaml — MIT; Astro/Tailwind — MIT; Figtree ve JetBrains Mono yazı tipleri — SIL OFL 1.1; sharp — Apache-2.0) ve isteğe bağlı bir atıf satırı.
+- **LICENSE yazarı belirtiyor** — telif satırı artık şöyle: *the original author <https://github.com/AnkitParekh007/rebound-ops> and rebound-ops-ui contributors* (kanonik MIT metni dokunulmadı). Yeni **NOTICE.md** lisanslamayı ayrıntılı açıklıyor: telif hakkını kim tutuyor, MIT izni tam olarak neyi kapsıyor (kod, belgeler, çeviriler, landing, wiki), neyi KAPSAMIYOR (çalışma zamanı verileriniz, üst proje, iş ilanı içerikleri, ticari markalar), üçüncü taraf bileşen tablosu (express/js-yaml — MIT; Astro/Tailwind — MIT; Figtree ve JetBrains Mono yazı tipleri — SIL OFL 1.1; sharp — Apache-2.0) ve isteğe bağlı bir atıf satırı.
 
 ## [1.119.3] — 2026-07-13
 
@@ -3148,8 +3148,8 @@ Doğrulama sağlamlaştırması — kapsamlı bir proje denetimiyle ortaya çık
 
 ### Eklendi
 - **CONTRIBUTING.md** — landing'in ve README'nin başından beri bağlantı verdiği katkıda bulunan rehberi artık mevcut: kurulum, proje haritası, katı güvenlik/no-build kuralları, test katmanları, tarama kaynağı eklemek için «iki kayıt» walkthrough'u, ×16 i18n sözleşmesi, commit/PR kuralları ve sürüm süreci.
-- **Landing'de dil bayrakları** — cvstart.org dil değiştirici, alt bilgideki dil ızgarası ve «kendi dilinde oku» banner'ı artık her yerel ayarın bayrağını endoniminin yanında gösteriyor (uygulamanın dil `<select>`'iyle aynı bölgesel gösterge seti; bayrak glifleri olmayan yerlerde bölge harflerine düşer).
-- **Landing altbilgi düzeltmeleri** — ölü Discussions bağlantısı (özellik depoda etkin değil) artık projenin **wiki**'sine gidiyor ve altbilgi yazarı belirtiyor: **Sergei Emelianov** ([sergey-cv.com](https://sergey-cv.com/) · [LinkedIn](https://www.linkedin.com/in/sergey-emelyanov-in-job/)).
+- **Landing'de dil bayrakları** — reboundops.example dil değiştirici, alt bilgideki dil ızgarası ve «kendi dilinde oku» banner'ı artık her yerel ayarın bayrağını endoniminin yanında gösteriyor (uygulamanın dil `<select>`'iyle aynı bölgesel gösterge seti; bayrak glifleri olmayan yerlerde bölge harflerine düşer).
+- **Landing altbilgi düzeltmeleri** — ölü Discussions bağlantısı (özellik depoda etkin değil) artık projenin **wiki**'sine gidiyor ve altbilgi yazarı belirtiyor: **the original author** ([the original author](https://github.com/AnkitParekh007/rebound-ops) · [LinkedIn](https://github.com/AnkitParekh007/rebound-ops)).
 
 ## [1.119.1] — 2026-07-13
 
@@ -3158,11 +3158,11 @@ Doğrulama sağlamlaştırması — kapsamlı bir proje denetimiyle ortaya çık
 
 ## [1.119.0] — 2026-07-13
 
-Üst rebound-ops **v1.19.0** paritesi + cvstart.org landing yenilemesi.
+Üst rebound-ops **v1.19.0** paritesi + reboundops.example landing yenilemesi.
 
 ### Eklendi
 - **2 yeni tarama sağlayıcısı** — Meituan (`zhaopin.meituan.com`) ve Tencent (`careers.tencent.com`): Çin tech kartlarının kimlik doğrulamasız açık JSON API'leri, host'tan tespit edilir veya açık `provider:` ile seçilir; anahtar kelime başına sunucu tarafı arama, sayfalama ve URL'ye göre tekilleştirme — artık **61 adaptör** (56 EN + 5 RU). +20 test (**1844**).
-- **Landingde katkıda bulunanlar bloğu** — cvstart.org, kod katkısı yapan herkesin avatarını gösterir (build sırasında GitHub `/contributors` API'si, botlar filtrelenir), 16 dilin tümünde yerelleştirilmiştir ve tam katkı grafiğine bağlantı verir.
+- **Landingde katkıda bulunanlar bloğu** — reboundops.example, kod katkısı yapan herkesin avatarını gösterir (build sırasında GitHub `/contributors` API'si, botlar filtrelenir), 16 dilin tümünde yerelleştirilmiştir ve tam katkı grafiğine bağlantı verir.
 - **Landingde canlı GitHub yıldız sayacı** — başlıktaki rozet artık her ziyarette GitHub API'sinden istemci tarafında yenilenir (build anlık görüntüsü fallback olarak kalır) ve haftalık zamanlanmış Pages yeniden derlemesi anlık görüntü + katkıda bulunanlar listesini taze tutar; CI'daki API çağrıları token ile doğrulanır.
 
 ### Düzeltildi
@@ -3611,7 +3611,7 @@ Inherited for free from the `git pull` of the parent (web-ui shells out to these
 
 ## [1.74.3] — 2026-06-18
 
-**docs(parent-source): point the parent `rebound-ops` repo at the [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops) fork.** The web-ui now references the maintainer's fork as the parent project everywhere it is a live source: the `bin/setup.sh` installer's `REBOUND_OPS_REPO` clone default, every `git clone` / "sits on top of" / onboarding link across all 12 READMEs, and the agent docs (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `docs/`). Author credit to santifer (and the unofficial-UI disclaimer) is unchanged — only the source/clone URLs moved. `tests/sh-files.test.mjs` now asserts the installer clones the fork.
+**docs(parent-source): point the parent `rebound-ops` repo at the [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops) fork.** The web-ui now references the maintainer's fork as the parent project everywhere it is a live source: the `bin/setup.sh` installer's `REBOUND_OPS_REPO` clone default, every `git clone` / "sits on top of" / onboarding link across all 12 READMEs, and the agent docs (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `docs/`). Author credit to the original author (and the unofficial-UI disclaimer) is unchanged — only the source/clone URLs moved. `tests/sh-files.test.mjs` now asserts the installer clones the fork.
 
 ---
 
@@ -3872,7 +3872,7 @@ Inherited for free from the `git pull` of the parent (web-ui shells out to these
 
 ## [1.59.13] — 2026-05-21
 
-**fix(i18n): collapse TRUE duplicate keys via @alias + final personal-data purge (pre-fr, follow-up to v1.59.12).** Two parts. **(1) Personal data:** swept the WHOLE repo, not just the dict — the maintainer's real name was used as incidental test-fixture data (`tests/health-doctor-unify.test.mjs`, `tests/llm-output.test.mjs`) and in archived QA reports; all replaced with neutral examples (`Jane Doe`). `LICENSE` copyright + `package.json` author switched from the real legal name to the public `AnkitParekh007` handle. Repo now greps clean for the real name/email everywhere. **(2) Duplicate keys (I18N-CL3, properly):** added an `@alias` mechanism to `i18n.t()` — a key `{ '@alias': 'x.y' }` resolves to a canonical key. Collapsed the 10 keys that are byte-identical across all 8 locales (`nav.help`/`dash.quick.helpCta` → `help.title`; `nav.cv` → `cv.title`; `nav.health`/`dash.quick.healthCta` → `health.title`; `nav.reports`/`dash.reports`/`dash.quick.reportsCta` → `rep.title`; `nav.apply` → `apply.title`; `nav.interviewPrep` → `interviewPrep.title`). The contributor's own `nav.config`/`config.title` example is deliberately NOT aliased — they diverge in Spanish (short sidebar `Configuración` vs full title `Configuración de la aplicación`); aliasing would change a rendered label. Coverage test, CI inline check, and `tools/i18n-audit.mjs` are all alias-aware (skip alias keys for parity, enforce every target exists, resolve before dup-counting). New `tests/i18n-alias.test.mjs` (3 cases) locks integrity + behaviour. 991 → **994** unit. Reduces the French translator's surface — true dupes are now translated once. (I18N-CL3, personal-data-sweep)
+**fix(i18n): collapse TRUE duplicate keys via @alias + final personal-data purge (pre-fr, follow-up to v1.59.12).** Two parts. **(1) Personal data:** swept the WHOLE repo, not just the dict — the maintainer's real name was used as incidental test-fixture data (`tests/health-doctor-unify.test.mjs`, `tests/llm-output.test.mjs`) and in archived QA reports; all replaced with neutral examples (`Jane Doe`). `LICENSE` copyright + `package.json` author switched from the real legal name to the public the original author's handle handle. Repo now greps clean for the real name/email everywhere. **(2) Duplicate keys (I18N-CL3, properly):** added an `@alias` mechanism to `i18n.t()` — a key `{ '@alias': 'x.y' }` resolves to a canonical key. Collapsed the 10 keys that are byte-identical across all 8 locales (`nav.help`/`dash.quick.helpCta` → `help.title`; `nav.cv` → `cv.title`; `nav.health`/`dash.quick.healthCta` → `health.title`; `nav.reports`/`dash.reports`/`dash.quick.reportsCta` → `rep.title`; `nav.apply` → `apply.title`; `nav.interviewPrep` → `interviewPrep.title`). The contributor's own `nav.config`/`config.title` example is deliberately NOT aliased — they diverge in Spanish (short sidebar `Configuración` vs full title `Configuración de la aplicación`); aliasing would change a rendered label. Coverage test, CI inline check, and `tools/i18n-audit.mjs` are all alias-aware (skip alias keys for parity, enforce every target exists, resolve before dup-counting). New `tests/i18n-alias.test.mjs` (3 cases) locks integrity + behaviour. 991 → **994** unit. Reduces the French translator's surface — true dupes are now translated once. (I18N-CL3, personal-data-sweep)
 
 ---
 

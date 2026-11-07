@@ -25,7 +25,7 @@ node scripts/check-changelog-parity.mjs                    # 16 non-EN at v1.211
 
 1. `#/scan` **Source** filter lists **Yourator** (offline FALLBACK + live `/api/scan/sources` agree — the drift gate proves it).
 2. `GET /api/scan/sources` returns **81**; the EN set includes `yourator`.
-3. cvstart.org **Job sources** links Yourator → yourator.co.
+3. reboundops.example **Job sources** links Yourator → yourator.co.
 4. A scan row with a French/DACH title carrying `&eacute;`/`&#233;` renders the accented letter, not the entity.
 
 ## §3 — Invariants / security
@@ -41,4 +41,4 @@ node scripts/check-changelog-parity.mjs                    # 16 non-EN at v1.211
 
 ## §5 — Sign-off
 
-Suite **2667** green · new `sources-yourator` (19) · `html-entities` 7→10 · `trust-validator` +accent-fold · gate lists (adapter-registry / scan-sources-endpoint / FALLBACK / SOURCE_URLS) carry `yourator` · registry **81** = 76 EN + 5 RU · CHANGELOG parity ×17 at v1.211.0 · help §17 count 80→81 · 75→76 + anchor → v1.211.0 · API/OVERVIEW/CONVENTIONS refreshed · site Sources.astro + wiki. Deploy: prod rsync of the new source+adapter + registry + `html-entities.mjs` + `trust-validator.mjs` + `scan-results.js`, restart. cvstart.org Pages rebuild (site/ changed).
+Suite **2667** green · new `sources-yourator` (19) · `html-entities` 7→10 · `trust-validator` +accent-fold · gate lists (adapter-registry / scan-sources-endpoint / FALLBACK / SOURCE_URLS) carry `yourator` · registry **81** = 76 EN + 5 RU · CHANGELOG parity ×17 at v1.211.0 · help §17 count 80→81 · 75→76 + anchor → v1.211.0 · API/OVERVIEW/CONVENTIONS refreshed · site Sources.astro + wiki. Deploy: prod rsync of the new source+adapter + registry + `html-entities.mjs` + `trust-validator.mjs` + `scan-results.js`, restart. reboundops.example Pages rebuild (site/ changed).

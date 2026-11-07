@@ -1,6 +1,6 @@
 # QA REGRESSION PROMPT — rebound-ops-ui **v1.174.0** (reports parsing + SEO — 4-finding audit)
 
-**User audit (2026-08-13) — 4 findings + a layout bug on `#/reports`.** Localized (RU) reports showed "Score not detected", legitimacy chips carried stray `**`, a long score spilled out of its coloured block, and the cvstart.org SEO description was stale.
+**User audit (2026-08-13) — 4 findings + a layout bug on `#/reports`.** Localized (RU) reports showed "Score not detected", legitimacy chips carried stray `**`, a long score spilled out of its coloured block, and the reboundops.example SEO description was stale.
 
 - **Under test:** `package.json` **1.174.0**. **Server:** `npm start` → `http://127.0.0.1:4317`.
 
@@ -35,4 +35,4 @@ node scripts/check-changelog-parity.mjs     # all 16 non-EN locales at v1.174.0
 
 ## §4 — Sign-off
 
-Suite **2448** green · `report-header-locale` 11/11 · RU scores render · legitimacy chips clean · no card overflow · EN byte-identical · cvstart.org description "~75" ×17 · parity ×17. **Closes the 4-finding audit** (FIND-4 wiki refreshed in the release fan-out).
+Suite **2448** green · `report-header-locale` 11/11 · RU scores render · legitimacy chips clean · no card overflow · EN byte-identical · reboundops.example description "~75" ×17 · parity ×17. **Closes the 4-finding audit** (FIND-4 wiki refreshed in the release fan-out).

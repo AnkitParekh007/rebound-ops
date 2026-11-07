@@ -27,7 +27,7 @@
 - [How rebound-ops scores job listings](https://github.com/AnkitParekh007/rebound-ops)
   — методологія оцінювання: шість вимірів, поріг подання заявки 4.0
   та те, що система свідомо ніколи не робить. Стисло викладено також на
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) вашою мовою.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) вашою мовою.
 
 **Визначальні принципи** (з
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

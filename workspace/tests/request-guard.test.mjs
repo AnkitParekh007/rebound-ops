@@ -32,7 +32,7 @@ before(async () => {
   for (const d of ['config', 'data', 'reports']) mkdirSync(resolve(dir, d), { recursive: true });
   writeFileSync(resolve(dir, 'cv.md'), '# cv\n');
   process.env.REBOUND_OPS_ROOT = dir;
-  process.env.ALLOWED_HOSTS = 'resumecraft.ru';
+  process.env.ALLOWED_HOSTS = 'reboundops.example';
   guard = await import('../server/lib/request-guard.mjs');
   ({ createApp } = await import('../server/index.mjs'));
   server = http.createServer(createApp());
@@ -57,8 +57,8 @@ test('hostnameOf strips ports and brackets', () => {
 });
 
 test('policy: loopback names, IP literals, bind host and ALLOWED_HOSTS pass; other names do not', () => {
-  const p = guard.buildHostPolicy({ bindHost: 'ui.lan', allowedHosts: 'resumecraft.ru, Example.com:8080' });
-  for (const ok of ['localhost:1', '127.0.0.1:1', '[::1]:1', '192.168.1.5', 'ui.lan', 'resumecraft.ru', 'example.com']) {
+  const p = guard.buildHostPolicy({ bindHost: 'ui.lan', allowedHosts: 'reboundops.example, Example.com:8080' });
+  for (const ok of ['localhost:1', '127.0.0.1:1', '[::1]:1', '192.168.1.5', 'ui.lan', 'reboundops.example', 'example.com']) {
     assert.equal(guard.isAllowedHost(ok, p), true, ok);
   }
   for (const bad of ['rebind.evil.example', 'evil.localhost.example', '', undefined]) {
@@ -69,7 +69,7 @@ test('policy: loopback names, IP literals, bind host and ALLOWED_HOSTS pass; oth
 });
 
 test('isCrossSite: Origin must name this server; Sec-Fetch-Site cross-site is refused', () => {
-  const p = guard.buildHostPolicy({ allowedHosts: 'resumecraft.ru' });
+  const p = guard.buildHostPolicy({ allowedHosts: 'reboundops.example' });
   const req = (headers) => ({ headers });
   assert.equal(guard.isCrossSite(req({ host: 'localhost:1' }), p), false, 'no Origin at all (curl, CLI)');
   assert.equal(guard.isCrossSite(req({ host: 'localhost:1', origin: 'http://localhost:1' }), p), false);
@@ -81,7 +81,7 @@ test('isCrossSite: Origin must name this server; Sec-Fetch-Site cross-site is re
   assert.equal(guard.isCrossSite(req({ host: '127.0.0.1:1', origin: 'http://127.0.0.1:9' }), p), true, 'another local app, other port');
   assert.equal(guard.isCrossSite(req({ host: '127.0.0.1:1', origin: 'http://localhost:9' }), p), true);
   assert.equal(guard.isCrossSite(req({ host: '192.168.1.5:4317', origin: 'http://192.168.1.5:4317' }), p), false, 'LAN use: exact host:port');
-  assert.equal(guard.isCrossSite(req({ host: 'proxy:9', origin: 'https://resumecraft.ru' }), p), false, 'allowed public host behind a rewriting proxy');
+  assert.equal(guard.isCrossSite(req({ host: 'proxy:9', origin: 'https://reboundops.example' }), p), false, 'allowed public host behind a rewriting proxy');
   assert.equal(guard.isCrossSite(req({ host: 'localhost:1', 'sec-fetch-site': 'cross-site' }), p), true);
   assert.equal(guard.isCrossSite(req({ host: 'localhost:1', 'sec-fetch-site': 'same-origin' }), p), false);
 });
@@ -90,7 +90,7 @@ test('a rebound Host is refused with 421 on every route, a loopback or allowed H
   assert.equal((await call({ path: '/api/health', headers: { host: 'rebind.evil.example' } })).status, 421);
   assert.equal((await call({ path: '/', headers: { host: 'rebind.evil.example:4317' } })).status, 421);
   assert.equal((await call({ path: '/api/health' })).status, 200);
-  assert.equal((await call({ path: '/api/health', headers: { host: 'resumecraft.ru' } })).status, 200);
+  assert.equal((await call({ path: '/api/health', headers: { host: 'reboundops.example' } })).status, 200);
 });
 
 test('a cross-site POST is refused before the route runs (nothing is written)', async () => {

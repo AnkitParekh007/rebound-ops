@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * check-dist.mjs — build-output gate for cvstart.org (CAR-132).
+ * check-dist.mjs — build-output gate for reboundops.example (CAR-132).
  *
  * Two invariants over the BUILT HTML (site/dist):
  *   1. Exactly one <h1> per /help and /changelog page, all 19 locales —

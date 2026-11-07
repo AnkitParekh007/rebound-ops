@@ -123,7 +123,7 @@
 
 - **레이트-리밋 강화 웨이브 (`REVIEW-2026-10-31-v1.264.1`의 리뷰 LOW №1–3)** — `writeRateLimit()` (express-rate-limit@7.5.1, 60 req/min route×IP, 429 JSON + Retry-After)가 이제 **47개 mutating 엔드포인트 전부**를 커버합니다 (이전에는 2개): 잘못 스코프된 `llmRateLimit` 가드 9개를 교체하고 (`/api/config` — 바로 그 `.env` 재작성!, `PUT /api/batch`, `/api/batch/merge`, outcome, followup/seed, assessments, stats/snapshot, mock-interview/save, networking/save), 비용이 큰 경로에서 LLM 버킷 **앞에** 3개를 스택하고 (`/api/evaluate`, `/api/deep`, `/api/auto-pipeline`), bare 등록 33개를 연결했습니다 (CV/profile/modes 에디터, 모든 tracker 쓰기, pipeline POST/restore/DELETE, jds, 한 번의 루프 편집으로 잡히는 7개의 `/api/run/*`, posting-guard, Playwright-PDF 인라인, portals toggle/health/track, discover, reports, export/docx, two-pager, career-plan, memory, 그리고 DELETE 라우트 3개). `/api/apply-helper`는 allowlisted bare로 남습니다 (순수 로컬 계산, 고정됨); 16개 순수-LLM 라우트는 설계상 조건부 LLM 버킷을 유지합니다. **완전성 트립와이어** (`tests/rate-limit-coverage.test.mjs`, bare 27개 시점에서 red-first)는 앞으로 스로틀되지 않은 mutating 등록이 하나라도 등장하면 CI를 실패시킵니다.
 - **`TRUST_PROXY` 옵트인 + 재무장된 검증 (리뷰 LOW №1–2)** — `app.set('trust proxy', N)`는 `TRUST_PROXY` env **홉 카운트**를 존중합니다 (불리언 `true`는 결코 아닙니다 — 그렇게 하면 공격자가 통제하는 왼쪽 XFF 끝을 키로 삼게 됩니다); 기본값은 미설정이므로, 루프백은 문서화된 소켓-키 기반 라우트별 열화를 그대로 유지합니다. `validate: false`는 표적화된 `writeValidateConfig()`가 됩니다: 옵트아웃되는 것은 `xForwardedForHeader`뿐이고 (trust proxy가 없으면 Caddy의 XFF는 *설계상* 무시됩니다), `trustProxy`를 포함한 나머지 모든 검증은 다시 시끄러워져서, 미래의 `trust proxy: true` 오설정이 침묵 대신 `ERR_ERL_PERMISSIVE_TRUST_PROXY`로 표면화됩니다. 커스텀 `keyGenerator`는 의도적으로 제거됐습니다: express-rate-limit는 프록시 검증을 기본 키 제너레이터에 묶어 두며, 라우트별 격리는 변함이 없습니다 (팩토리 호출마다 하나의 `MemoryStore`).
-- **cvstart.org 카피 피드백이 2 s 후에 되돌려집니다 (CAR-141)** — «Скопировано ✓» 상태는 이제 수용 기준인 2 s를 유지합니다 (이전에는 1.5 s), red-first 핀은 `tests/site-copy-feedback.test.mjs`에 있습니다. 이것으로 에이전트가 고칠 수 있는 마지막 CAR-141 기준이 닫혔습니다; 데모 비디오 새로 고침은 오너가 미룬 채 남아 있습니다 (결정 2026-11-01).
+- **reboundops.example 카피 피드백이 2 s 후에 되돌려집니다 (CAR-141)** — «Скопировано ✓» 상태는 이제 수용 기준인 2 s를 유지합니다 (이전에는 1.5 s), red-first 핀은 `tests/site-copy-feedback.test.mjs`에 있습니다. 이것으로 에이전트가 고칠 수 있는 마지막 CAR-141 기준이 닫혔습니다; 데모 비디오 새로 고침은 오너가 미룬 채 남아 있습니다 (결정 2026-11-01).
 
 ### 변경
 
@@ -143,12 +143,12 @@
 
 ### 변경
 
-- **cvstart.org 카피가 19개 언어 전부로 배포됩니다 (CAR-220)** — `meta.helpDesc`, `helpTeaser.c1.desc`, `faq.a2`가 모든 사이트 로케일에서 번역됩니다 (v1.264.1에서는 설계상 EN 전용이었습니다); GitHub Pages가 업그레이드된 카피를 cvstart.org에 라이브로 배포했습니다.
+- **reboundops.example 카피가 19개 언어 전부로 배포됩니다 (CAR-220)** — `meta.helpDesc`, `helpTeaser.c1.desc`, `faq.a2`가 모든 사이트 로케일에서 번역됩니다 (v1.264.1에서는 설계상 EN 전용이었습니다); GitHub Pages가 업그레이드된 카피를 reboundops.example에 라이브로 배포했습니다.
 - **백로그 + 리뷰 위생 (CAR-221/222)** — «상류에 병합되면 포트하기» 6개 항목이 닫혔습니다: 상류 PR 7개 전부가 병합됐고, 4개 항목은 이미 포트됐으며, 2개는 부모 측 몫입니다. `docs/reviews/REVIEW-2026-10-31-v1.264.1.md`가 반영됐고 (HIGH 0 / MED 0, LOW 후속 3개는 BACKLOG에 기록), **parent-sync 포트-리스트**가 기록됐습니다 (6 PORT / 3 VERIFY / apple-소스 갭; 상류 테일 118 커밋 @ VERSION 1.38.0).
 
 ### 참고
 
-- 변경 로그 미러-스탬프 수정 (`92a05fcf`)이 이 태그에 함께 탑승합니다: cvstart.org의 모든 페이지네이션 미러는 이제 생성 릴리스 버전을 실어 나르므로, `site-build-after-fanout` 그레이더가 마침내 스킵하는 대신 실제 로직을 실행합니다.
+- 변경 로그 미러-스탬프 수정 (`92a05fcf`)이 이 태그에 함께 탑승합니다: reboundops.example의 모든 페이지네이션 미러는 이제 생성 릴리스 버전을 실어 나르므로, `site-build-after-fanout` 그레이더가 마침내 스킵하는 대신 실제 로직을 실행합니다.
 - 의도적으로 하지 않은 것: 남은 mutating POST들의 스로틀링 (리뷰 LOW №3)과 trust-proxy 버킷 커플링 — 다음 강화 웨이브를 위해 BACKLOG에 기록됐습니다. CAR-141 (데모 비디오)은 오너의 몫으로 남아 있습니다.
 - 테스트 7081 → 7082 (+1 CAR-219 핀); Playwright 176; 레지스트리 변경 없음 123 = 118 EN + 5 RU · 118 adapters.
 
@@ -161,7 +161,7 @@
 
 ### 변경
 
-- **cvstart.org FAQ가 정확한 소스 카운트를 실어 나릅니다 (CAR-217)** — `{sources} job-board sources: {sourcesEn} international boards plus {sourcesRu} Russian ones`가 라이브 레지스트리 (123 = 118 EN + 5 RU)에서 생성되는 `facts.json`에서 치환되므로, 숫자는 절대 드리프트할 수 없습니다; 여전히 이전 `~{adapters}` 문구를 쓰는 로케일은 `adaptersRounded`를 통해 반올림을 유지합니다. EN 카피 업그레이드가 함께 탑승합니다 (`meta.helpDesc`, `helpTeaser.c1.desc`, `faq.a2`가 커맨드 메뉴, 되돌리기가 있는 그룹화된 파이프라인, 칸반 트래커를 이름으로 씁니다).
+- **reboundops.example FAQ가 정확한 소스 카운트를 실어 나릅니다 (CAR-217)** — `{sources} job-board sources: {sourcesEn} international boards plus {sourcesRu} Russian ones`가 라이브 레지스트리 (123 = 118 EN + 5 RU)에서 생성되는 `facts.json`에서 치환되므로, 숫자는 절대 드리프트할 수 없습니다; 여전히 이전 `~{adapters}` 문구를 쓰는 로케일은 `adaptersRounded`를 통해 반올림을 유지합니다. EN 카피 업그레이드가 함께 탑승합니다 (`meta.helpDesc`, `helpTeaser.c1.desc`, `faq.a2`가 커맨드 메뉴, 되돌리기가 있는 그룹화된 파이프라인, 칸반 트래커를 이름으로 씁니다).
 
 ### 참고
 
@@ -258,7 +258,7 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 
 ### 변경
 
-- 문서: 도움말 가이드의 «118 EN 어댑터» 불릿이 fr/it/ta에서도 카운트를 실어 나릅니다(다른 15개 로케일은 이미 갖추고 있었습니다). cvstart.org의 벤더 가격이 공식 가격 페이지와 재검증됐습니다 — 넷 모두 불변, CHECKED_ON → 2026-10-30. 릴리스 후 드리프트 스윕이 README ×19, CONTEXT.md, CLAUDE.md, SDD 매뉴얼에 걸친 스테일 카운트/버전 라인 42건을 고쳤습니다(109/104 시대와 v1.262.0 시대의 잔여물).
+- 문서: 도움말 가이드의 «118 EN 어댑터» 불릿이 fr/it/ta에서도 카운트를 실어 나릅니다(다른 15개 로케일은 이미 갖추고 있었습니다). reboundops.example의 벤더 가격이 공식 가격 페이지와 재검증됐습니다 — 넷 모두 불변, CHECKED_ON → 2026-10-30. 릴리스 후 드리프트 스윕이 README ×19, CONTEXT.md, CLAUDE.md, SDD 매뉴얼에 걸친 스테일 카운트/버전 라인 42건을 고쳤습니다(109/104 시대와 v1.262.0 시대의 잔여물).
 
 ### 참고
 
@@ -357,7 +357,7 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 - **릴리스 리뷰 + 스펙 백필 (문서, #559/#558)**: `docs/reviews/REVIEW-2026-10-28-v1.261.1.md` (v1.261.0/v1.261.1 물결을 스펙 대조로 리뷰)와 같은 물결의 SDD 스펙 백필 — BACKLOG 꼬리는 이제 남은 갭의 이름을 밝힙니다(`sources/habr.mjs`의 전용 테스트).
 - **RTL 딥 스윕 (#571)**: AR 하니스가 39개 라우트 × LTR-대-RTL을 걷습니다(X-미러, 오버플로, 클리핑, text-align 시그니처) — 85건 발견 수정: 고정 UI 요소(토스트, 사이드바, 드로어 + 그 닫기 ×, docs-FAB, usage-HUD, skip-link)가 `inset-inline-*`/`border-inline-*`으로 옮겨지고, 테이블은 17개 뷰 파일 + 2개 라이브러리에 걸쳐 `text-align: start/end`로, 일괄 `[dir=rtl] text-align:right`은 제거되며(스캔 별-열 센터링과 충돌했습니다), CAR-58 점수-열 격리는 `ltrNum` 스팬 위로 옮겨졌습니다.
 - **키보드 a11y 하니스 (#570)**: `tests/playwright-a11y-keyboard.mjs`가 11개 라우트를 걷습니다(탭 순서/함정, 포커스 표시기, Escape 오버레이, Enter/Space) — 프로덕션 결함 0건; 회귀 커버리지는 새 것입니다.
-- **i18n 미번역 스윕 (#565)**: 영어와 동일한 36개 값이 ×9 로케일에서 번역되었습니다(`*.rolePh`, 설정 키, ta 선언문) + 닫힌 허용목록 스윕 가드; 사이트(cvstart.org) i18n 감사(#568): 20개 키 × 18 로케일 번역(전체 `demo.*`/`stats.t.*`/`showcase.tab*` 블록이 어디서나 영어였습니다), 죽은 키 1개 ×19에서 제거.
+- **i18n 미번역 스윕 (#565)**: 영어와 동일한 36개 값이 ×9 로케일에서 번역되었습니다(`*.rolePh`, 설정 키, ta 선언문) + 닫힌 허용목록 스윕 가드; 사이트(reboundops.example) i18n 감사(#568): 20개 키 × 18 로케일 번역(전체 `demo.*`/`stats.t.*`/`showcase.tab*` 블록이 어디서나 영어였습니다), 죽은 키 1개 ×19에서 제거.
 - **Remote-QA 관측성 (CAR-175, #567)**: 요약이 실패하는 스캔 소스를 이름으로 지목하고(`stderr 샘플`, 잘라내기 전 재식별 정보 제거) 프로바이더 사용량에서 `tok ~N`을 출력합니다; 로직은 드리프트 게이트가 있는 순수 `summary-parts.mjs`에 삽니다.
 - **UI.md 중첩 마커 목록 (한 단계, #564)**: `  - ` 불릿이 중첩 `<ul>`로 렌더링됩니다(펜스-플레이스홀더-안전) — 로케일당 마지막 2개의 매달린 텍스트 런이 사라졌습니다.
 - **Lovable 디자인 통합 — 1단계 (#566) / 2단계 (브랜치, 태그 전 반영)**: `public/css/tokens-v3.css`가 Lovable 컨셉을 그대로 이식합니다(oklch 표면 0–3, AA 주석 ink 쌍, 악센트 패밀리, ok/warn/danger/info/neutral 소프트+ink, 스코어 밴드 A–G ×2 테마, 밀도 + 포커스 + 그림자); 2단계는 대비/역할/다크 게이트를 갱신하면서 기존 토큰 이름 위에서 이를 활성화합니다(악센트 분할 blue/danger, 스코어 밴드 + 콜아웃이 cv3 토큰 위로).
@@ -389,7 +389,7 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 
 - **모바일-390 하니스 (#552)**: 390×844에서 모든 SPA 라우트(정규 31개 + 모드 페이지 8개 = 39개 해시)를 걷는 Playwright 스위프(시드된 코퍼스 포함) — 라우트별 가로 오버플로 검사(scrollWidth vs clientWidth, 1px 허용 오차, 가장 넓은 위반 항목을 지목)와 CTA 적중 검사(sticky 바/드로어/FAB가 프라이머리 CTA를 가리지 않음); 옵트인, 브라우저 바이너리가 없으면 우아하게 건너뜁니다, 네트워크 없음.
 - **새 v2 캡처 ×48 (CAR-140 phase A, #551)**: 시드된 CI-격리 픽스처에서 나온 실제 v2-UI 스크린샷 — dashboard ×19 + job-map ×19 (job-map-ta 첫 등장, job-map-vi 신규) + scan/pipeline/tracker/reports × en/ru — README, 도움말, 랜딩에 들어갑니다.
-- **cvstart.org 실제 스크린샷 (CAR-140 phase B, #553)**: CAR-140 자리표시자 슬롯이 사라졌습니다 — 랜딩이 실제 v2 캡처를 보여줍니다(job-map 쇼케이스 + 스크린샷 행, ×19 랜딩 로케일).
+- **reboundops.example 실제 스크린샷 (CAR-140 phase B, #553)**: CAR-140 자리표시자 슬롯이 사라졌습니다 — 랜딩이 실제 v2 캡처를 보여줍니다(job-map 쇼케이스 + 스크린샷 행, ×19 랜딩 로케일).
 - **CAR-137 힌트 (#550)**: 신규 번역 키 21개 ×19 (`help.hint.*` ×20 + 모드 페이지 `hintKey`들) — 모든 페이지가 이제 그 자리에서 스스로를 설명합니다.
 
 ### 참고
@@ -400,7 +400,7 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 
 ## [1.261.0] — 2026-10-28
 
-**전면 리뷰 물결 완료(HIGH + MEDIUM 발견 전부 반영), 소유자가 보고한 언어 전환 수정, 평가 품질 수정, 도움말 ×18 팬아웃, cvstart.org 랜딩 v2 — 그리고 이 물결을 기록하는 SDD/OpenSpec 스펙 4건. 모든 수정은 적-녹(red→green) fix-forward와 새 컨텍스트 GLM-5.3-Flash 리뷰를 거쳐 반영되었습니다.**
+**전면 리뷰 물결 완료(HIGH + MEDIUM 발견 전부 반영), 소유자가 보고한 언어 전환 수정, 평가 품질 수정, 도움말 ×18 팬아웃, reboundops.example 랜딩 v2 — 그리고 이 물결을 기록하는 SDD/OpenSpec 스펙 4건. 모든 수정은 적-녹(red→green) fix-forward와 새 컨텍스트 GLM-5.3-Flash 리뷰를 거쳐 반영되었습니다.**
 
 ### 보안
 
@@ -413,7 +413,7 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 ### 추가
 
 - **CAR-147 — 로케일 인식 평가 상한 (#524)**: `evalTimeoutMs(lang)` — ta/hi는 300 s 대신 480 s를 받습니다(인도계 문자는 음절당 여러 토큰으로 토큰화됩니다; 기존 상한선은 502 + 빈 리포트를 낳았습니다); remote-QA 클라이언트는 540 s를 기다립니다.
-- **CAR-133 — cvstart.org 랜딩 v2 (#532)**: reduced-motion으로 게이트된 패럴랙스 히어로, scan→evaluate→tracker 흐름의 명확히 표시된 SIMULATED 데모, 실시간 검증된 카운트가 있는 scroll-reveal 섹션, CAR-140 스크린샷 자리표시자 슬롯.
+- **CAR-133 — reboundops.example 랜딩 v2 (#532)**: reduced-motion으로 게이트된 패럴랙스 히어로, scan→evaluate→tracker 흐름의 명확히 표시된 SIMULATED 데모, 실시간 검증된 카운트가 있는 scroll-reveal 섹션, CAR-140 스크린샷 자리표시자 슬롯.
 - **CAR-135 — UI v2를 위한 도움말 재작성, ×18 팬아웃 완료 (#533, #540, #541, #542)**: 19개 도움말 파일 전부가 v2 셸을 설명합니다(접을 수 있는 nav, Cmd/Ctrl+K 팔레트, 스켈레톤, 예시+액션 빈 상태, scan v2 인터페이스, 파이프라인 그룹화+되돌리기, 리포트 v2, 칸반); UI 라벨은 자신의 i18n 키를 인용합니다; 121-소스 문장은 레지스트리에서 직접 삽니다.
 - **스펙 (SDD/OpenSpec) (#535)**: 10월 27일 wave-two 백필 + 향후 작업을 위한 스펙 세 개(도움말 팬아웃, 쓰기 핸드오프, 언어 전환 불변식).
 
@@ -572,18 +572,18 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 
 ## [1.255.0] — 2026-10-24
 
-**베트남어(Tiếng Việt)가 19번째 UI 로캘로 합류합니다 — EN과 완전한 동등성을 갖춘 1525키 사전, vi/vi-VN 감지, 전체 도움말 번들, README·CHANGELOG 미러, cvstart.org 랜딩 통합, 그리고 언어 전환기의 🇻🇳입니다.**
+**베트남어(Tiếng Việt)가 19번째 UI 로캘로 합류합니다 — EN과 완전한 동등성을 갖춘 1525키 사전, vi/vi-VN 감지, 전체 도움말 번들, README·CHANGELOG 미러, reboundops.example 랜딩 통합, 그리고 언어 전환기의 🇻🇳입니다.**
 
 ### 추가
 
 - **베트남어(`vi`) — 1525/1525키**, `en`과 완전한 동등성; `detect()`는 `vi`와 `vi-VN`을 받습니다; 베트남어는 LTR(`RTL_LANGS`에 넣지 않음). 'Pipeline'은 'Pipeline'으로 남습니다 — 표준 기술 차용어로 화이트리스트 등재.
 - **docs/help/vi.md 전체** (33 H2 / 125 H3), README.vi.md·CHANGELOG.vi.md 미러, 그리고 `prompts.mjs`의 베트남어 스캐폴드 문자열(`LOCALE_NAMES` + `SCAFFOLD_STRINGS`)까지 — 베트남어 LLM 출력이 기본으로 동작합니다.
-- **cvstart.org 랜딩의 베트남어** — `site/src/i18n/vi.json`, 사이트맵 로캘 항목, `dashboard-vi.png` 스크린샷; 언어 전환기에 🇻🇳 추가(19개 위치).
+- **reboundops.example 랜딩의 베트남어** — `site/src/i18n/vi.json`, 사이트맵 로캘 항목, `dashboard-vi.png` 스크린샷; 언어 전환기에 🇻🇳 추가(19개 위치).
 - **열거 게이트 18 → 19** — LANGS, detect 프룹, i18n 감사, 체인지로그 패리티, README 번역 블록, 로캘 스윕 — 그리고 우선-빨강 `tests/i18n-vi-locale.test.mjs`(139줄).
 
 ### 참고
 
-- cvstart.org 랜딩에 vi 추가 — ta 선례에서의 의도된 이탈(해당 릴리스는 랜딩을 의도적으로 17로 유지); 릴리스 스펙에 문서화.
+- reboundops.example 랜딩에 vi 추가 — ta 선례에서의 의도된 이탈(해당 릴리스는 랜딩을 의도적으로 17로 유지); 릴리스 스펙에 문서화.
 - vi는 라틴 문자이므로 no-latin-leaks 게이트가 적용되지 않습니다(비-라틴 로캘을 보호); 라틴 기술 어휘가 표준입니다.
 - 테스트 바닥: 5634 → **5642** (1개 건너뜀 = 옵트인 레이아웃-캡처 브라우저 테스트, 변경 없음).
 
@@ -628,7 +628,7 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 ### 추가
 
 - **10개 소스를 상위 1.38.0에서 포팅**, 각각 fetch-walk 어댑터와 CI 고립 스위트(가짜 fetchImpl, 네트워크 없음): **Atlassian**(단일 무인증 JSON 피드, iCIMS URL, https+icims.com allowlist), **BWI**(JSON-LD ItemList, JSON.parse 우선), **Computrabajo**(LATAM, 엔티티 디코드, 스페인어 «remoto»=remote), **Dover**(테넌트별 DRF 페이지네이션, `Remote (International)` 렌더, UUID 검증 보드), **Google Careers**(구문별 첫 페이지, 카드 고용주 우선, 쿼리 간 dedup), **Kalibrr**(SEA 애그리게이터, 피드 id가 행 id), **Magneto365**(LATAM, 고정 페이지 간 페이싱), **Platsbanken**(스웨덴 JobTech API, 키워드별 윈도), **Tech in Asia**(사이트 빌드에서 Algolia 키 발견), **Zoho Recruit**(히든-인풋 보드, 제한적 detail enrichment, ISO-4217 전용 통화 파싱).
-- 레지스트리 카운트: **120 소스 = 115 EN + 5 RU · 115 어댑터**; 5개 카운트 게이트를 라이브 레지스트리에서 재생성; `#/scan` 드롭다운 폴백, cvstart.org 소스 링크, help §17 ×18이 따라갑니다.
+- 레지스트리 카운트: **120 소스 = 115 EN + 5 RU · 115 어댑터**; 5개 카운트 게이트를 라이브 레지스트리에서 재생성; `#/scan` 드롭다운 폴백, reboundops.example 소스 링크, help §17 ×18이 따라갑니다.
 
 ### 수정
 
@@ -963,7 +963,7 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 
 ### 참고
 
-- cvstart.org 랜딩은 당분간 17 로케일 유지 — 랜딩 번역은 별도 작업입니다. 사이트 콘텐츠 동기화는 이미 docs/help/ta.md와 ta 체인지로그를 배포합니다.
+- reboundops.example 랜딩은 당분간 17 로케일 유지 — 랜딩 번역은 별도 작업입니다. 사이트 콘텐츠 동기화는 이미 docs/help/ta.md와 ta 체인지로그를 배포합니다.
 - `report-header.js`의 REPORT_LABELS는 17 유지 — 타밀어 보고서 파싱은 부모 저장소의 타밀어 보고서 생성과 함께 제공됩니다.
 
 ## [1.244.2] — 2026-10-08
@@ -1110,8 +1110,8 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 
 ### 추가
 
-- **[cvstart.org](https://github.com/AnkitParekh007/rebound-ops)의 채용 지도**를 17개 언어로 제공하며, 영어와 러시아어 README에도 실었습니다.
-- **모든 언어의 지도 스크린샷** — 언어마다 한 장(`scripts/capture-map-screenshots.mjs`)씩, 17개 README 전체, cvstart.org, 그리고 새 도움말 소절 “지도 사용법”(§33, ×17)에 실었습니다.
+- **[reboundops.example](https://github.com/AnkitParekh007/rebound-ops)의 채용 지도**를 17개 언어로 제공하며, 영어와 러시아어 README에도 실었습니다.
+- **모든 언어의 지도 스크린샷** — 언어마다 한 장(`scripts/capture-map-screenshots.mjs`)씩, 17개 README 전체, reboundops.example, 그리고 새 도움말 소절 “지도 사용법”(§33, ×17)에 실었습니다.
 
 ### 참고
 
@@ -1299,13 +1299,13 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 ### 수정
 
 - **스캔 두 개가 동시에 돌면 서버가 죽었습니다.** 모든 `GET /api/stream/scan`이 아무 보호 없이 서버 프로세스 안에서 전체 스캐너를 실행했고, UI에서 시작한 스캔이 매시 타이머와 겹치면서 프로세스가 *JavaScript heap out of memory*로 종료됐습니다(두 번, 그동안 502 오류). 이제 한 번에 하나만 실행됩니다. 두 번째 요청은 코드 `SCAN_BUSY`인 SSE `error`를 받고 아무것도 시작되지 않습니다. 배포 워크플로는 서버 메모리 한도도 올립니다(`heap_mb`, 기본 448 MB).
-- **cvstart.org의 `/help`와 `/changelog`가 휴대폰에서 옆으로 스크롤됐습니다**(ja/zh `/changelog`는 데스크톱에서도). 긴 코드와 목차가 이제 줄바꿈됩니다.
+- **reboundops.example의 `/help`와 `/changelog`가 휴대폰에서 옆으로 스크롤됐습니다**(ja/zh `/changelog`는 데스크톱에서도). 긴 코드와 목차가 이제 줄바꿈됩니다.
 - **사이트맵의 언어 대체 목록에 힌디어가 없었습니다**. 사이트의 i18n 검사가 이제 사이트맵을 언어 레지스트리와 비교합니다.
 - **도움말 §19가 키를 "8개" 언어 파일에 추가하라고 안내했습니다** — 실제로는 17개입니다.
 
 ### 추가
 
-- **원격 회귀 테스트**(`.github/workflows/remote-qa.yml`): 배포된 앱의 모든 경로 × 모든 언어(읽기 전용), cvstart.org의 모든 페이지 × 언어 × 휴대폰/데스크톱, README와 위키의 모든 링크, 그리고 요청 시 실제 스캔과 모든 언어의 라이브 AI 호출.
+- **원격 회귀 테스트**(`.github/workflows/remote-qa.yml`): 배포된 앱의 모든 경로 × 모든 언어(읽기 전용), reboundops.example의 모든 페이지 × 언어 × 휴대폰/데스크톱, README와 위키의 모든 링크, 그리고 요청 시 실제 스캔과 모든 언어의 라이브 AI 호출.
 - **서버 배포 워크플로**(`.github/workflows/deploy.yml`): `recon`, `deploy`(바이트 단위로 정확한 롤백 포함), `verify`(스모크 테스트와 안정성 보고서).
 - 테스트 3481 → 3486.
 
@@ -1356,7 +1356,7 @@ Tests 6905 → 7041 (+136) · Playwright 176 (173 통과 / 1 opt-in 스킵) · �
 
 ### 수정
 
-**책 링크의 레이블은 현지화되었지만 대상은 그렇지 않았습니다.** SPA의 17개 로케일과 cvstart.org의 17개 로케일 모두 *Agentic Coding Design Patterns* 푸터 링크를 영어판으로 가리키고 있었던 반면, 번역된 유일한 레이블 — 러시아어 «Паттерны агентного кодинга» — 은 러시아어판을 약속하고 있었습니다. 새로운 `data-i18n-href` 적용기(절대 `https://` 값으로 제한된, `data-i18n-title`과 같은 형태)와 `footer.patternsUrl` 키가 `ru`는 러시아어판으로, 그 밖의 모든 로케일은 영어판으로 보냅니다. 회귀 테스트는 이 불변식을 양방향으로 단언합니다: 번역된 제목은 현지화된 URL을 함의합니다.
+**책 링크의 레이블은 현지화되었지만 대상은 그렇지 않았습니다.** SPA의 17개 로케일과 reboundops.example의 17개 로케일 모두 *Agentic Coding Design Patterns* 푸터 링크를 영어판으로 가리키고 있었던 반면, 번역된 유일한 레이블 — 러시아어 «Паттерны агентного кодинга» — 은 러시아어판을 약속하고 있었습니다. 새로운 `data-i18n-href` 적용기(절대 `https://` 값으로 제한된, `data-i18n-title`과 같은 형태)와 `footer.patternsUrl` 키가 `ru`는 러시아어판으로, 그 밖의 모든 로케일은 영어판으로 보냅니다. 회귀 테스트는 이 불변식을 양방향으로 단언합니다: 번역된 제목은 현지화된 URL을 함의합니다.
 **SEEK가 호스트를 이전하고 있으며, 전송 계층은 리다이렉트를 거부합니다.** `www.seek.com.au` → `au.seek.com`, `www.seek.co.nz` → `nz.seek.com`: 상세 페이지는 이미 301을 반환하며, 두 호스트 쌍 모두 오늘 v5 검색 API를 200으로 서비스합니다. `http-json.mjs`가 `redirect:'error'`를 설정하기 때문에(가치 있는 SSRF 방어책입니다), API 경로가 리다이렉트를 시작하는 날 예전 호스트의 AU/NZ 항목이 실패하게 됩니다 — 그리고 `www.` 호스트만 허용목록에 있는 한 아무도 이전할 수 없습니다. `au.seek.com`과 `nz.seek.com`이 이제 `ALLOWED_JOBSTREET_HOSTS`에 있습니다. 예전 호스트는 그대로 남아 있으므로 기존 설정과 이미 만들어진 링크는 계속 작동합니다. 흉내낸 도메인(`au.seek.com.evil.com`, `au-seek.com`)은 여전히 거부됩니다.
 **Wiki:** Home 문서 지도의 *Agentic Practices* 행은 열두 개 중 유일하게 `[[…|…]]` 안에서 `|`를 이스케이프하지 않아, GitHub가 셀을 잘라냈습니다 — 링크는 죽고 설명은 숨겨졌습니다. 문자 하나 차이였습니다.
 
@@ -1549,7 +1549,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 **수정 — v1.231.0의 카운트 일괄 치환이 모든 링크의 계정 이름을 바꿔 놓았습니다.**
 
 ### 수정
-- **모든 `AnkitParekh007` 링크가 `Fighter92`가 되었습니다.** v1.231.0의 소스 카운트 치환은 숫자 경계 보호 아래 `90`을 `92`로 바꿉니다. 이 보호는 `290`과 `901`은 올바르게 건너뛰지만, **`AnkitParekh007`** 안의 `90`에는 일치합니다. 앞은 알파벳이고 뒤는 그냥 토큰이 끝나기 때문입니다. **17개 README 전부, 17개 도움말 묶음 전부, 사이트의 도움말 미러에 걸쳐 562개 링크**와 **위키의 138개**가 존재하지 않는 계정을 가리켰고, `providers.png` 배너와 모든 “GitHub에서 편집” 링크가 404였습니다. 이미지가 보이지 않는다는 사용자 제보로 발견했습니다.
+- **모든 the original author's handle 링크가 `Fighter92`가 되었습니다.** v1.231.0의 소스 카운트 치환은 숫자 경계 보호 아래 `90`을 `92`로 바꿉니다. 이 보호는 `290`과 `901`은 올바르게 건너뛰지만, **the original author's handle** 안의 `90`에는 일치합니다. 앞은 알파벳이고 뒤는 그냥 토큰이 끝나기 때문입니다. **17개 README 전부, 17개 도움말 묶음 전부, 사이트의 도움말 미러에 걸쳐 562개 링크**와 **위키의 138개**가 존재하지 않는 계정을 가리켰고, `providers.png` 배너와 모든 “GitHub에서 편집” 링크가 404였습니다. 이미지가 보이지 않는다는 사용자 제보로 발견했습니다.
 - **과거 릴리스 참조 5건이 어긋났습니다.** 같은 릴리스의 `85 → 87` 치환이 `v1.85.0`을 `v1.87.0`으로 바꿔, 낸 적 없는 릴리스를 만들어냈습니다.
 
 ### 참고
@@ -1780,7 +1780,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 - v1.225.0 배너가 GitHub에서 표시되지 않았습니다: 독립형 `images/providers.svg`의 `font-family`에 중첩된 큰따옴표(GitHub가 거부)가 있었고, `<img>`가 저장소 상대 `src`를 사용했으며(GitHub는 raw HTML `<img>`의 상대 경로를 해석하지 않음), `<p>` 블록에 끝 빈 줄이 없어 다음 줄과 합쳐졌습니다. 이제 렌더링된 `images/providers.png`를 절대 raw URL로 가리키며 빈 줄로 분리됩니다. SVG도 유효한 XML로 수정했습니다.
 
 ### 참고
-- 문서만; 코드/테스트 변경 없음. cvstart.org 쇼케이스와 앱의 제공자 타일은 이미 정상이었습니다(인라인 SVG, 이 파일 아님).  **2784**
+- 문서만; 코드/테스트 변경 없음. reboundops.example 쇼케이스와 앱의 제공자 타일은 이미 정상이었습니다(인라인 SVG, 이 파일 아님).  **2784**
 
 ## [1.225.0] — 2026-08-27
 
@@ -1967,10 +1967,10 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 
 ## [1.212.1] — 2026-08-21
 
-**수정 — cvstart.org 랜딩이 스캐너의 채용 소스를 적게 셌습니다(80으로 표시하며 Job Bank (캐나다)를 누락). 이제 앱의 81과 다시 일치하며, 둘이 어긋나면 사이트 빌드가 요란하게 실패합니다.**
+**수정 — reboundops.example 랜딩이 스캐너의 채용 소스를 적게 셌습니다(80으로 표시하며 Job Bank (캐나다)를 누락). 이제 앱의 81과 다시 일치하며, 둘이 어긋나면 사이트 빌드가 요란하게 실패합니다.**
 
 ### 수정
-- **랜딩의 "채용 소스" 수가 앱과 다시 동기화됩니다.** v1.212.0 이후 cvstart.org는 **80**개 보드를 보여주고 새 **Job Bank (캐나다)** 칩이 빠져 있었지만, 앱·스캔 드롭다운·도움말은 모두 **81**을 나열했습니다. 랜딩은 라이브 스캐너 레지스트리를 불러와 목록을 만드는데, 한 소스가 YAML 의존성을 가져오는 방식 때문에 그 빌드에서 로드에 실패해 조용히 누락됐습니다. 이제 Job Bank는 앱의 나머지가 스캔 시점에 하는 것과 같은 방식으로 그 의존성을 지연 로드하므로 항상 나타납니다.
+- **랜딩의 "채용 소스" 수가 앱과 다시 동기화됩니다.** v1.212.0 이후 reboundops.example는 **80**개 보드를 보여주고 새 **Job Bank (캐나다)** 칩이 빠져 있었지만, 앱·스캔 드롭다운·도움말은 모두 **81**을 나열했습니다. 랜딩은 라이브 스캐너 레지스트리를 불러와 목록을 만드는데, 한 소스가 YAML 의존성을 가져오는 방식 때문에 그 빌드에서 로드에 실패해 조용히 누락됐습니다. 이제 Job Bank는 앱의 나머지가 스캔 시점에 하는 것과 같은 방식으로 그 의존성을 지연 로드하므로 항상 나타납니다.
 - **사이트 빌드는 이제 어긋난 소스 수를 배포하지 않습니다.** 레지스트리가 디스크에 존재하는 것보다 적은 소스를 열거하면(로드 실패 소스의 특징) 빌드가 잘못된 숫자를 조용히 배포하는 대신 명확한 메시지와 함께 실패합니다.
 
 ### 참고
@@ -2474,7 +2474,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 - **점수 파싱 (FIND-1)** — H1에 점수 라벨 단어가 포함된 비영어 리포트(`# Оценка вакансии: <제목>`)에서 그 제목을 점수로 오인하지 않습니다. `parseReportHeader`가 이제 현지화된 **굵은** 라벨(`**Оценка:** 1.5 / 5`)에 고정하고, 제목 줄을 건너뛰며, 라벨이 콜론에 인접하도록 요구합니다 — 그래서 "Score not detected"였던 RU 리포트가 실제 점수를 표시합니다.
 - **정당성 칩 (FIND-2)** — 값에서 Markdown 강조가 제거되어 칩이 "** High Confidence"가 아닌 "High Confidence"로 표시됩니다.
 - **점수 오버플로** — 상태 텍스트가 뒤따르는 점수 줄("1.8, Status: Evaluated, …")은 점수만으로 압축됩니다; `.score-pill`에 줄바꿈 없음/오버플로 캡이 추가되고 제목 열이 줄어들 수 있어 색상 칩이 카드 밖으로 넘치지 않습니다.
-- **SEO 설명 (FIND-3)** — cvstart.org의 meta / OG / Twitter 설명(17개 언어 모두)이 "Scan ~55 job boards"로 고정된 반면 본문은 실제 레지스트리("~75")를 세었습니다. 이제 설명이 레지스트리 기반 개수를 삽입하여 다시 어긋나지 않습니다.
+- **SEO 설명 (FIND-3)** — reboundops.example의 meta / OG / Twitter 설명(17개 언어 모두)이 "Scan ~55 job boards"로 고정된 반면 본문은 실제 레지스트리("~75")를 세었습니다. 이제 설명이 레지스트리 기반 개수를 삽입하여 다시 어긋나지 않습니다.
 
 ### 참고
 - 서버 파서 + 클라이언트 렌더/CSS + 사이트 i18n; 라우트 / CSP / SSRF / 상위 쓰기 변경 없음. 테스트: `tests/report-header-locale.test.mjs` (+4). 전체: **2448** (+4).
@@ -2554,10 +2554,10 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 
 ## [1.166.0] — 2026-08-13
 
-**수정 (LOW) — 루브릭 용어가 이제 공식 문서와 일치합니다.** github.com/AnkitParekh007/rebound-ops "다섯 차원과 종합 전체 점수"라고 하지만, 웹 UI·cvstart.org·위키는 모두 "6차원 루브릭"이라고 했습니다(5 + 1 = 6이지만 표현이 달랐습니다).
+**수정 (LOW) — 루브릭 용어가 이제 공식 문서와 일치합니다.** github.com/AnkitParekh007/rebound-ops "다섯 차원과 종합 전체 점수"라고 하지만, 웹 UI·reboundops.example·위키는 모두 "6차원 루브릭"이라고 했습니다(5 + 1 = 6이지만 표현이 달랐습니다).
 
 ### 수정됨
-- 문서 표현 — **"다섯 차원과 종합 전체 점수"** — 을 README ×17, cvstart.org 사이트 ×17, 도움말 가이드 ×17, `docs/rebound-ops-canonical.md`, 위키(Home ×17 + Features)에 일관 적용.
+- 문서 표현 — **"다섯 차원과 종합 전체 점수"** — 을 README ×17, reboundops.example 사이트 ×17, 도움말 가이드 ×17, `docs/rebound-ops-canonical.md`, 위키(Home ×17 + Features)에 일관 적용.
 
 ### 참고
 - 문서/마케팅 문구만; 코드/i18n 키/라우트/CSP/SSRF/쓰기 변경 없음. `tests/rubric-terminology.test.mjs` (+2). 총 **2426** (+2).
@@ -2641,7 +2641,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 
 ### 수정됨
 - HelpHint의 «?»가 더 이상 `document.title`에 새어 나오지 않습니다. 라우터가 가공되지 않은 `h1.textContent`에서 탭 제목을 만들어 «Vacancy search?»로 표시되었습니다. 이제 `router.js::focusNewView`가 제목을 복제하고 `.help-hint`를 제거한 뒤 텍스트를 읽습니다. 화면의 «?»는 그대로입니다.
-- cvstart.org가 «7» 대신 «17 AI providers»를 표시했습니다. `Features.astro`의 `sub()`가 카드별 치환 전에 모든 `{n}`을 로케일 수(17)로 바꿨습니다. 이제 `{n}`은 카드별로 해석됩니다(제공자 → 7, 언어 → 17).
+- reboundops.example가 «7» 대신 «17 AI providers»를 표시했습니다. `Features.astro`의 `sub()`가 카드별 치환 전에 모든 `{n}`을 로케일 수(17)로 바꿨습니다. 이제 `{n}`은 카드별로 해석됩니다(제공자 → 7, 언어 → 17).
 
 ### 참고
 - 서버·라우트·CSP·SSRF·i18n 키 변경 없음. 총 **2402**개 테스트(+1).
@@ -2775,11 +2775,11 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 
 ## [1.147.0] — 2026-08-12
 
-**Hermes & Telegram — 앱 내 도움말 섹션 + cvstart.org 표면 (Phase 5b, 2부)** — Hermes 문서 작업의 두 번째이자 마지막 부분입니다: 사용법이 이제 17개 언어 전체에서 앱 자체 도움말 가이드 안에 담기며, 앱 내 문서 어시스턴트가 이를 바탕으로 Hermes 질문에 답합니다. 여전히 문서 전용입니다 — Hermes LLM 제공자 경로는 **계획됨 / 아직 미연동** 상태로 유지됩니다(Phase 5).
+**Hermes & Telegram — 앱 내 도움말 섹션 + reboundops.example 표면 (Phase 5b, 2부)** — Hermes 문서 작업의 두 번째이자 마지막 부분입니다: 사용법이 이제 17개 언어 전체에서 앱 자체 도움말 가이드 안에 담기며, 앱 내 문서 어시스턴트가 이를 바탕으로 Hermes 질문에 답합니다. 여전히 문서 전용입니다 — Hermes LLM 제공자 경로는 **계획됨 / 아직 미연동** 상태로 유지됩니다(Phase 5).
 
 ### 추가
 - **앱 내 도움말 §30 "Hermes & Telegram" × 17개 언어** — 새 가이드 섹션(Hermes란 무엇인가 + 두 가지 통합 형태; 클라우드 서버에서 실행; Hermes를 통한 Telegram + "노출하지 말아야 할 것" 규칙), `#/help`에서 접근 가능. `docs-assistant` / `DocsFab` 그라운딩이 자동으로 이를 가져옵니다(둘 다 `docs/help/<lang>.md`를 읽음).
-- **cvstart.org — Hermes 가이드 링크**, GitHub 문서로 연결.
+- **reboundops.example — Hermes 가이드 링크**, GitHub 문서로 연결.
 
 ### 변경
 - 도움말 번들 게이트 **29 → 30 H2 / 105 → 108 H3**로 상향(`canonical-docs-coverage`, `help-ui`, `help-ru-config-section`); §30이 H3 3개를 추가.
@@ -2801,7 +2801,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 
 ### 참고
 - **아직 Hermes를 호출하는 코드는 없습니다.** 캐너리 테스트(`tests/hermes-docs.test.mjs`)가 "계획됨/아직 연결되지 않음" 정직성 표시와 `llm-dispatch.mjs`에 Hermes/Nous 분기가 없음을 확인합니다 — 따라서 나중에 제공자를 연결할 때는 같은 변경에서 문서 + 로드맵도 함께 업데이트해야 합니다.
-- **v1.147.0으로 연기됨**(Phase 5b, 2부): 앱 내 도움말의 "Hermes & Telegram" H2 × 17개 언어, 그리고 cvstart.org 마케팅 페이지.
+- **v1.147.0으로 연기됨**(Phase 5b, 2부): 앱 내 도움말의 "Hermes & Telegram" H2 × 17개 언어, 그리고 reboundops.example 마케팅 페이지.
 - 스위트: **2376**개 테스트(+4: `tests/hermes-docs.test.mjs`).
 
 ## [1.145.0] — 2026-08-12
@@ -2932,7 +2932,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 상위 rebound-ops **v1.26.0** 패리티 — 다섯 개의 새로운 무인증 스캔 소스와, web-ui가 이미 보유한 네 개 게시판에 대한 정확성 수정입니다. 레지스트리는 이제 **78개 소스 = 영문 73개 + 러시아어 5개**입니다(`ALL_ADAPTERS` 73).
 
 ### 추가
-- **새로운 스캔 소스 5개**(각각 소스 + 어댑터 + CI 격리 스위트를 갖추며, `#/scan`의 Source 필터와 cvstart.org 랜딩에 표시됩니다):
+- **새로운 스캔 소스 5개**(각각 소스 + 어댑터 + CI 격리 스위트를 갖추며, `#/scan`의 Source 필터와 reboundops.example 랜딩에 표시됩니다):
   - **`join`**(JOIN) — `join.com/companies/<slug>`에 내장된 Next.js `__NEXT_DATA__`에서 회사의 JOIN 게시판을 읽어옵니다(호스트 고정, 페이지 상한).
   - **`getro`**(Getro) — 공개 `api.getro.com` POST API를 통한 VC "탤런트 네트워크" 포트폴리오 게시판으로, 최신순으로 페이지네이션됩니다; 각 채용 공고는 펀드가 아니라 포트폴리오 기업 소속으로 표시됩니다.
   - **`consider`**(Consider) — 동일 출처 POST를 통한 getconsider.com VC 포트폴리오 게시판으로, 구성 기반 호스트가 구조적 SSRF 가드(공개 HTTPS 호스트만 허용)로 고정됩니다.
@@ -2962,7 +2962,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 상위 rebound-ops **v1.25.0** 패리티.
 
 ### 추가
-- **새로운 스캔 소스: getManfred**(`manfred`) — `www.getmanfred.com/api/v2/public/offers`에서 제공되는, 급여가 공개된 스페인/EU 기술직 게시판 전체 피드입니다(무인증, 호스트 고정 + HTTPS 전용, 단일 요청으로 전체 카탈로그 수집). 소스 + 어댑터 + CI 격리 스위트(`tests/sources-manfred.test.mjs`)를 추가했습니다; 레지스트리는 이제 **73개 소스 = 영문 68개 + 러시아어 5개**입니다(`ALL_ADAPTERS` 68). `#/scan` Source 필터와 cvstart.org 랜딩에 표시됩니다.
+- **새로운 스캔 소스: getManfred**(`manfred`) — `www.getmanfred.com/api/v2/public/offers`에서 제공되는, 급여가 공개된 스페인/EU 기술직 게시판 전체 피드입니다(무인증, 호스트 고정 + HTTPS 전용, 단일 요청으로 전체 카탈로그 수집). 소스 + 어댑터 + CI 격리 스위트(`tests/sources-manfred.test.mjs`)를 추가했습니다; 레지스트리는 이제 **73개 소스 = 영문 68개 + 러시아어 5개**입니다(`ALL_ADAPTERS` 68). `#/scan` Source 필터와 reboundops.example 랜딩에 표시됩니다.
 
 ### 수정
 - **a16z Speedrun 피드가 조용히 50개로 잘리고 있었습니다**(#2404) — 피드는 페이지당 50개로 상한이 있지만 소스는 `PER_PAGE = 100`을 요청하고 있었기 때문에, 1페이지 이후 페이지네이션이 멈췄습니다. 50으로 정정했습니다.
@@ -3020,7 +3020,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 ## [1.130.0] — 2026-07-31
 
 ### 추가
-- **상위 rebound-ops v1.24.0에서 이식된 2개의 새 스캔 소스**(인프로세스, 새 의존성 없음; 둘 다 `#/scan` Source 필터와 cvstart.org 랜딩에 표시됩니다):
+- **상위 rebound-ops v1.24.0에서 이식된 2개의 새 스캔 소스**(인프로세스, 새 의존성 없음; 둘 다 `#/scan` Source 필터와 reboundops.example 랜딩에 표시됩니다):
   - **a16z Speedrun**(`a16z-speedrun-talent`, #2231) — a16z Speedrun *talent-network* 보드 전체 JSON 피드. `speedrun-talent-network.com`에 호스트 고정, HTTPS 전용, 페이지 상한이 있는 0-인덱스 페이지네이션, 회사별 `q`/설정 스레딩, fail-soft.
   - **Cryptocurrency Jobs**(`cryptocurrencyjobs`) — Web3 채용 보드 `cryptocurrencyjobs.co`, 공개 RSS 2.0 피드로 수집(무인증). 2-패스 XML 엔티티 디코드, 원격 전용 공고, 제목 끝의 `"… at <Company>"`에서 고용주 파싱.
   - 레지스트리 총합은 이제 **72개 소스 = 영문 67개 + 러시아어 5개**입니다(`ALL_ADAPTERS` = 영문 포털 어댑터 67개).
@@ -3104,7 +3104,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 ## [1.125.0] — 2026-07-21
 
 ### 추가
-- **cvstart.org: "채용 공고 소스" 랜딩 섹션** — 스크린샷과 비교 목록 사이에 새로운 섹션이 추가되어, **스캔 소스 67개 전체를 클릭 가능한 칩**(영어권 게시판/ATS 62개 + 별도 소제목으로 묶인 러시아어 게시판 5개)으로 나열하며, 각 칩은 해당 소스의 공개 사이트로 연결됩니다. 이 목록은 빌드 시점에 실제 어댑터 레지스트리(`sync-assets.mjs` → `facts.sources`)에서 동기화되므로 앱과 절대 어긋날 수 없습니다. `Sources.astro`의 큐레이션된 링크 맵은 새로운 `tests/site-sources.test.mjs`로 검증됩니다. 헤더 내비게이션에는 **Sources** 앵커가 추가되었고, 사이트 i18n 키 4개 × 17개 언어가 새로 생겼습니다. 또한 랜딩 페이지 JSON-LD의 `inLanguage` 목록에서 그동안 빠져 있던 `hi`도 함께 수정했습니다.
+- **reboundops.example: "채용 공고 소스" 랜딩 섹션** — 스크린샷과 비교 목록 사이에 새로운 섹션이 추가되어, **스캔 소스 67개 전체를 클릭 가능한 칩**(영어권 게시판/ATS 62개 + 별도 소제목으로 묶인 러시아어 게시판 5개)으로 나열하며, 각 칩은 해당 소스의 공개 사이트로 연결됩니다. 이 목록은 빌드 시점에 실제 어댑터 레지스트리(`sync-assets.mjs` → `facts.sources`)에서 동기화되므로 앱과 절대 어긋날 수 없습니다. `Sources.astro`의 큐레이션된 링크 맵은 새로운 `tests/site-sources.test.mjs`로 검증됩니다. 헤더 내비게이션에는 **Sources** 앵커가 추가되었고, 사이트 i18n 키 4개 × 17개 언어가 새로 생겼습니다. 또한 랜딩 페이지 JSON-LD의 `inLanguage` 목록에서 그동안 빠져 있던 `hi`도 함께 수정했습니다.
 
 ## [1.124.0] — 2026-07-21
 
@@ -3132,12 +3132,12 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 ## [1.122.0] — 2026-07-16
 
 ### 추가
-- **힌디어(हिन्दी) — 17번째 언어** — 전체 UI 사전(약 1,110개 키), 인앱 도움말 가이드 전체(29개 H2 / 105개 H3 패리티), `README.hi.md`, 새 `CHANGELOG.hi.md`(de/it/tr 선례를 따라 v1.122.0부터 시작), cvstart.org 랜딩 + 방법론/라이선스/체인지로그/도움말 페이지, 언어 전환기(🇮🇳), 브라우저 언어 자동 감지, 그리고 현지화된 대시보드 스크린샷까지 모두 추가되었습니다. 이제 모든 ×16 패리티 게이트가 ×17로 실행됩니다: i18n 사전 패리티 + 스냅샷, 도움말 H2/H3 게이트, CHANGELOG 패리티, 사이트 `check-i18n`, 그리고 Playwright 로케일 스윕까지.
+- **힌디어(हिन्दी) — 17번째 언어** — 전체 UI 사전(약 1,110개 키), 인앱 도움말 가이드 전체(29개 H2 / 105개 H3 패리티), `README.hi.md`, 새 `CHANGELOG.hi.md`(de/it/tr 선례를 따라 v1.122.0부터 시작), reboundops.example 랜딩 + 방법론/라이선스/체인지로그/도움말 페이지, 언어 전환기(🇮🇳), 브라우저 언어 자동 감지, 그리고 현지화된 대시보드 스크린샷까지 모두 추가되었습니다. 이제 모든 ×16 패리티 게이트가 ×17로 실행됩니다: i18n 사전 패리티 + 스냅샷, 도움말 H2/H3 게이트, CHANGELOG 패리티, 사이트 `check-i18n`, 그리고 Playwright 로케일 스윕까지.
 
 ## [1.121.0] — 2026-07-16
 
 ### 추가
-- **cvstart.org: 방법론, 라이선스, 체인지로그 페이지** — 랜딩이 기존 Compare 블록 옆에 16개 언어 전체로 세 개의 새 섹션을 추가했습니다: **/methodology/**(6차원 0.0–5.0 채점 루브릭, 4.0 지원 임계값, 그리고 절대 하지 않는 규칙들 — [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)를 현지화하여 요약), **/license/**(NOTICE.md 포인터가 포함된 정식 MIT 전문), **/changelog/**(이 파일을 저장소의 번역된 16개 CHANGELOG로부터 로케일별로 렌더링). 새 헤더 **Methodology** 항목과 푸터 리소스 링크가 추가되었고, `sync-assets.mjs`가 이제 빌드 시점에 CHANGELOG ×16과 LICENSE를 사이트로 동기화하므로 페이지가 저장소와 어긋날 일이 없습니다.
+- **reboundops.example: 방법론, 라이선스, 체인지로그 페이지** — 랜딩이 기존 Compare 블록 옆에 16개 언어 전체로 세 개의 새 섹션을 추가했습니다: **/methodology/**(6차원 0.0–5.0 채점 루브릭, 4.0 지원 임계값, 그리고 절대 하지 않는 규칙들 — [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)를 현지화하여 요약), **/license/**(NOTICE.md 포인터가 포함된 정식 MIT 전문), **/changelog/**(이 파일을 저장소의 번역된 16개 CHANGELOG로부터 로케일별로 렌더링). 새 헤더 **Methodology** 항목과 푸터 리소스 링크가 추가되었고, `sync-assets.mjs`가 이제 빌드 시점에 CHANGELOG ×16과 LICENSE를 사이트로 동기화하므로 페이지가 저장소와 어긋날 일이 없습니다.
 - **문서 전반의 방법론 링크** — README(16개 전체), 인앱 도움말 가이드 §1 정식 레퍼런스 목록(16개 전체), 위키가 이제 기존 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) 가이드와 나란히 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)를 링크합니다(FAQ와 용어집도 포함).
 
 ### 변경
@@ -3146,7 +3146,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 ## [1.120.0] — 2026-07-16
 
 ### 추가
-- **ReboundOps 선언문** (부모 v1.20.0 패리티) — 상위 프로젝트가 ReboundOps 선언문(`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops))을 출시하고, 이제 자신의 README·업데이터·Go 대시보드에서 이를 안내합니다. 웹 UI도 이를 뒤따릅니다: 사이드바 푸터의 새 링크가 선언문 페이지를 열고(16개 로케일 전체에 새 i18n 키 `footer.manifesto` 추가), 인앱 도움말 가이드는 16개 언어 전체에서 §29 «ReboundOps 선언문»이 추가되었으며, README는 선언문이 무엇이고 어떻게 서명하는지 설명하고, cvstart.org 랜딩 푸터도 이를 링크합니다.
+- **ReboundOps 선언문** (부모 v1.20.0 패리티) — 상위 프로젝트가 ReboundOps 선언문(`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops))을 출시하고, 이제 자신의 README·업데이터·Go 대시보드에서 이를 안내합니다. 웹 UI도 이를 뒤따릅니다: 사이드바 푸터의 새 링크가 선언문 페이지를 열고(16개 로케일 전체에 새 i18n 키 `footer.manifesto` 추가), 인앱 도움말 가이드는 16개 언어 전체에서 §29 «ReboundOps 선언문»이 추가되었으며, README는 선언문이 무엇이고 어떻게 서명하는지 설명하고, reboundops.example 랜딩 푸터도 이를 링크합니다.
 
 ### 비고
 - 부모 v1.20.0은 `upskill` 타깃 모드의 기존 스킬 억제 문제도 수정했고, `scan --json`의 표준 출력이 계속 파싱 가능하도록 dotenv를 조용히 처리했으며, 역할 제목이 항목과 분리되지 않도록 HTML CV 템플릿을 수정했습니다 — 모두 웹 UI가 셸을 통해 호출하지 않는 CLI 측 동작이므로, 웹 UI 코드 변경은 필요하지 않았습니다.
@@ -3159,7 +3159,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 ## [1.119.4] — 2026-07-13
 
 ### 변경
-- **LICENSE에 작성자 명시** — 저작권 줄이 이제 *Sergei Emelianov (AnkitParekh007) <https://sergey-cv.com> and rebound-ops-ui contributors*입니다(MIT 정식 본문은 그대로). 새 **NOTICE.md**가 라이선스를 상세히 설명합니다: 저작권 보유자, MIT 허가가 정확히 무엇을 포함하는지(코드, 문서, 번역, 랜딩, 위키), 무엇을 포함하지 않는지(런타임의 사용자 데이터, 부모 프로젝트, 채용 보드 콘텐츠, 상표), 서드파티 구성 요소 표(express/js-yaml — MIT; Astro/Tailwind — MIT; Figtree·JetBrains Mono 글꼴 — SIL OFL 1.1; sharp — Apache-2.0), 선택적 저작자 표시 문구.
+- **LICENSE에 작성자 명시** — 저작권 줄이 이제 *the original author <https://github.com/AnkitParekh007/rebound-ops> and rebound-ops-ui contributors*입니다(MIT 정식 본문은 그대로). 새 **NOTICE.md**가 라이선스를 상세히 설명합니다: 저작권 보유자, MIT 허가가 정확히 무엇을 포함하는지(코드, 문서, 번역, 랜딩, 위키), 무엇을 포함하지 않는지(런타임의 사용자 데이터, 부모 프로젝트, 채용 보드 콘텐츠, 상표), 서드파티 구성 요소 표(express/js-yaml — MIT; Astro/Tailwind — MIT; Figtree·JetBrains Mono 글꼴 — SIL OFL 1.1; sharp — Apache-2.0), 선택적 저작자 표시 문구.
 
 ## [1.119.3] — 2026-07-13
 
@@ -3170,8 +3170,8 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 
 ### 추가
 - **CONTRIBUTING.md** — 랜딩과 README가 줄곧 링크해 온 기여자 가이드가 이제 실제로 존재합니다: 설치, 프로젝트 맵, 엄격한 보안/노빌드 규칙, 테스트 계층, 스캔 소스 추가를 위한 «두 레지스트리» 워크스루, ×16 i18n 계약, 커밋/PR 규약, 릴리스 프로세스.
-- **랜딩의 언어 국기** — cvstart.org의 언어 전환기, 푸터의 언어 그리드, «당신의 언어로 읽기» 배너가 이제 각 로케일의 국기를 엔도님 옆에 표시합니다(앱의 언어 `<select>`와 같은 지역 지시자 세트; 국기 글리프가 없는 곳에서는 지역 문자로 대체).
-- **랜딩 푸터 수정** — 저장소에서 기능이 비활성화되어 죽어 있던 Discussions 링크가 이제 프로젝트 **위키**를 가리키며, 푸터에 작성자 크레딧이 추가되었습니다: **Sergei Emelianov**([sergey-cv.com](https://sergey-cv.com/) · [LinkedIn](https://www.linkedin.com/in/sergey-emelyanov-in-job/)).
+- **랜딩의 언어 국기** — reboundops.example의 언어 전환기, 푸터의 언어 그리드, «당신의 언어로 읽기» 배너가 이제 각 로케일의 국기를 엔도님 옆에 표시합니다(앱의 언어 `<select>`와 같은 지역 지시자 세트; 국기 글리프가 없는 곳에서는 지역 문자로 대체).
+- **랜딩 푸터 수정** — 저장소에서 기능이 비활성화되어 죽어 있던 Discussions 링크가 이제 프로젝트 **위키**를 가리키며, 푸터에 작성자 크레딧이 추가되었습니다: **the original author**([the original author](https://github.com/AnkitParekh007/rebound-ops) · [LinkedIn](https://github.com/AnkitParekh007/rebound-ops)).
 
 ## [1.119.1] — 2026-07-13
 
@@ -3180,11 +3180,11 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 
 ## [1.119.0] — 2026-07-13
 
-부모 rebound-ops **v1.19.0** 패리티 + cvstart.org 랜딩 새 단장.
+부모 rebound-ops **v1.19.0** 패리티 + reboundops.example 랜딩 새 단장.
 
 ### 추가
 - **2개의 새 스캔 프로바이더** — Meituan(`zhaopin.meituan.com`)과 Tencent(`careers.tencent.com`): 중국 테크 보드의 인증 불필요 공개 JSON API. 호스트로 자동 감지되거나 명시적 `provider:`로 선택되며, 키워드별 서버 사이드 검색·페이지네이션·URL 중복 제거를 지원 — 이제 **61개 어댑터**(영문 56 + 러시아어 5). +20개 테스트(**1844**).
-- **랜딩의 기여자 블록** — cvstart.org가 코드를 기여한 모든 사람의 아바타를 표시합니다(빌드 시 GitHub `/contributors` API, 봇 필터링). 16개 언어 모두 현지화되었고 전체 기여자 그래프 링크가 포함됩니다.
+- **랜딩의 기여자 블록** — reboundops.example가 코드를 기여한 모든 사람의 아바타를 표시합니다(빌드 시 GitHub `/contributors` API, 봇 필터링). 16개 언어 모두 현지화되었고 전체 기여자 그래프 링크가 포함됩니다.
 - **랜딩의 실시간 GitHub 스타 카운터** — 헤더 배지가 이제 방문할 때마다 클라이언트에서 GitHub API로 갱신됩니다(빌드 시 스냅샷은 폴백). 주간 예약 Pages 재빌드가 스냅샷과 기여자 목록을 신선하게 유지하며, CI의 API 호출은 토큰 인증을 사용합니다.
 
 ### 수정
@@ -3666,7 +3666,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 
 ## [1.74.3] — 2026-06-18
 
-**docs(parent-source): 부모 `rebound-ops` 저장소를 [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops) 포크로 변경.** web-ui는 이제 실제 소스로 쓰이는 모든 곳에서 메인테이너의 포크를 부모 프로젝트로 참조합니다: `bin/setup.sh` 설치 스크립트의 `REBOUND_OPS_REPO` 클론 기본값, 12개 README의 모든 `git clone` / "위에 올라가는" / 온보딩 링크, 그리고 에이전트 문서(`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `docs/`). 작성자 santifer 크레딧(및 비공식 UI 고지)은 변경되지 않았으며 — 소스/클론 URL만 이동했습니다. `tests/sh-files.test.mjs`는 이제 설치 스크립트가 포크를 클론하는지 검증합니다.
+**docs(parent-source): 부모 `rebound-ops` 저장소를 [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops) 포크로 변경.** web-ui는 이제 실제 소스로 쓰이는 모든 곳에서 메인테이너의 포크를 부모 프로젝트로 참조합니다: `bin/setup.sh` 설치 스크립트의 `REBOUND_OPS_REPO` 클론 기본값, 12개 README의 모든 `git clone` / "위에 올라가는" / 온보딩 링크, 그리고 에이전트 문서(`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `docs/`). 작성자 the original author 크레딧(및 비공식 UI 고지)은 변경되지 않았으며 — 소스/클론 URL만 이동했습니다. `tests/sh-files.test.mjs`는 이제 설치 스크립트가 포크를 클론하는지 검증합니다.
 
 ---
 
@@ -3926,7 +3926,7 @@ pull 이후 포크 분기점을 다시 확인했습니다: `providers/telegram-c
 
 ## [1.59.13] — 2026-05-21
 
-**fix(i18n): @alias 로 진짜 중복 키 통합 + 개인정보 최종 정리.** 메인테이너 실명을 테스트 픽스처/QA 리포트에서 제거(→ `Jane Doe`), `LICENSE`/`package.json` 을 `AnkitParekh007` 핸들로 변경. `@alias` 로 8개 로케일 동일한 10개 키 통합. `nav.config`/`config.title` 은 스페인어에서 달라 통합 안 함. 991 → **994** 테스트. (I18N-CL3)
+**fix(i18n): @alias 로 진짜 중복 키 통합 + 개인정보 최종 정리.** 메인테이너 실명을 테스트 픽스처/QA 리포트에서 제거(→ `Jane Doe`), `LICENSE`/`package.json` 을 the original author's handle 핸들로 변경. `@alias` 로 8개 로케일 동일한 10개 키 통합. `nav.config`/`config.title` 은 스페인어에서 달라 통합 안 함. 991 → **994** 테스트. (I18N-CL3)
 
 ---
 

@@ -23,7 +23,7 @@ node scripts/check-changelog-parity.mjs                    # 16 non-EN at v1.215
 ## §2 — Manual browser pass
 
 1. `#/docs-assistant` (and the floating docs button on any page): ask *"how do I run this from OpenWorker?"* — the answer is grounded in help §32 (per locale).
-2. cvstart.org footer shows the **OpenWorker coworker** link → `github.com/AnkitParekh007/rebound-ops`.
+2. reboundops.example footer shows the **OpenWorker coworker** link → `github.com/AnkitParekh007/rebound-ops`.
 3. Help guide (any locale) ends with **§32**; the section renders with its two subsections.
 
 ## §3 — Invariants / security

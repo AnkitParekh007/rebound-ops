@@ -119,7 +119,7 @@
 
 - **限流強化浪潮（`REVIEW-2026-10-31-v1.264.1` 的 LOW №1–3）** — `writeRateLimit()`（express-rate-limit@7.5.1，60 req/min route×IP，429 JSON + Retry-After）現已覆蓋**全部 47 個變更型端點**（此前僅 2 個）：替換 9 個作用域錯位的 `llmRateLimit` 守衛（`/api/config` — 會重寫 `.env`！、`PUT /api/batch`、`/api/batch/merge`、outcome、followup/seed、assessments、stats/snapshot、mock-interview/save、networking/save），在最昂貴的路徑上於 LLM 桶**之前**堆疊 3 個（`/api/evaluate`、`/api/deep`、`/api/auto-pipeline`），並為 33 個裸註冊接線（CV/profile/modes 編輯器、tracker 的全部寫入、pipeline POST/restore/DELETE、jds、7× `/api/run/*` 一處迴圈修改、posting-guard、Playwright-PDF inline、portals toggle/health/track、discover、reports、export/docx、two-pager、career-plan、memory 以及三條 DELETE 路由）。`/api/apply-helper` 保持在 allowlist 中不限流（純本地運算，已固定）；16 條純 LLM 路由按設計保留條件性 LLM 桶。**完備性 tripwire**（`tests/rate-limit-coverage.test.mjs`，以 27 個裸註冊 red-first 起步）會在未來出現任何未限流的變更型註冊時讓 CI 失敗。
 - **`TRUST_PROXY` 可選啟用 + 重新武裝的驗證（LOW №1–2）** — `app.set('trust proxy', N)` 接受 env 的 **hop-count**（絕不為布林 `true` — 否則將按攻擊者可控的 XFF 左端建構鍵）；預設不設置，loopback 保留按套接字取鍵的既定退化。`validate: false` 改為定向的 `writeValidateConfig()`：僅關閉 `xForwardedForHeader`（無 trust proxy 時忽略 Caddy 的 XFF *正是設計*）；其餘驗證 — 包括 `trustProxy` — 重新發聲，因此未來 `trust proxy: true` 的誤配置會以 `ERR_ERL_PERMISSIVE_TRUST_PROXY` 顯現而非沉默。自訂 `keyGenerator` 被有意移除：express-rate-limit 將其代理驗證綁定到預設鍵產生器，且按路由隔離不變（每次工廠呼叫一個 `MemoryStore`）。
-- **cvstart.org 複製回饋保持 2 秒（CAR-141）** — 「Скопировано ✓」狀態現按驗收標準保持 2 秒（此前 1.5 秒），red-first 固定於 `tests/site-copy-feedback.test.mjs`。這關閉了 CAR-141 最後一個可由代理修復的標準；示範影片的重錄由所有者決定推遲。
+- **reboundops.example 複製回饋保持 2 秒（CAR-141）** — 「Скопировано ✓」狀態現按驗收標準保持 2 秒（此前 1.5 秒），red-first 固定於 `tests/site-copy-feedback.test.mjs`。這關閉了 CAR-141 最後一個可由代理修復的標準；示範影片的重錄由所有者決定推遲。
 
 ### 變更
 
@@ -139,12 +139,12 @@
 
 ### 變更
 
-- **cvstart.org 文案以全部 19 個語言出貨（CAR-220）** — `meta.helpDesc`、`helpTeaser.c1.desc` 與 `faq.a2` 在每個網站語系都有翻譯（v1.264.1 中它們按設計僅限 EN）；GitHub Pages 已把升級後的文案線上發佈到 cvstart.org。
+- **reboundops.example 文案以全部 19 個語言出貨（CAR-220）** — `meta.helpDesc`、`helpTeaser.c1.desc` 與 `faq.a2` 在每個網站語系都有翻譯（v1.264.1 中它們按設計僅限 EN）；GitHub Pages 已把升級後的文案線上發佈到 reboundops.example。
 - **Backlog + 審查衛生（CAR-221/222）** — 六個「待上游合併後移植」項目結案：全部七個上游 PR 已合併，四個項目早已移植，兩個屬父專案端。`docs/reviews/REVIEW-2026-10-31-v1.264.1.md` 落地（0 HIGH / 0 MED，三個 LOW 後續記錄在 BACKLOG），且 **parent-sync 移植清單**已記錄在案（6 PORT / 3 VERIFY / apple 來源缺口；上游尾部 118 個提交 @ VERSION 1.38.0）。
 
 ### 備註
 
-- 變更日誌鏡像蓋章修復（`92a05fcf`）隨本標籤同行：cvstart.org 上每個分頁鏡像現在都攜帶生成它的發行版本，所以 `site-build-after-fanout` 評分器終於執行其真實邏輯而不是跳過。
+- 變更日誌鏡像蓋章修復（`92a05fcf`）隨本標籤同行：reboundops.example 上每個分頁鏡像現在都攜帶生成它的發行版本，所以 `site-build-after-fanout` 評分器終於執行其真實邏輯而不是跳過。
 - 刻意不做：節流其餘的變更性 POST（審查 LOW №3）與 trust-proxy 桶耦合 — 記錄在 BACKLOG，留給下一波加固。CAR-141（示範影片）仍屬負責人。
 - Tests 7081 → 7082（+1 CAR-219 釘選）；Playwright 176；註冊表未變：123 sources = 118 EN + 5 RU · 118 adapters。
 
@@ -157,7 +157,7 @@
 
 ### 變更
 
-- **cvstart.org FAQ 攜帶精確的來源計數（CAR-217）** — `{sources} job-board sources: {sourcesEn} international boards plus {sourcesRu} Russian ones` 由 `facts.json` 替換，而 `facts.json` 是從線上註冊表生成（123 = 118 EN + 5 RU），所以數字永不漂移；仍停在舊 `~{adapters}` 措辭的語系繼續透過 `adaptersRounded` 四捨五入。EN 文案升級順帶而來（`meta.helpDesc`、`helpTeaser.c1.desc`、`faq.a2` 點名指令選單、帶復原的分組 pipeline 與 kanban 追蹤器）。
+- **reboundops.example FAQ 攜帶精確的來源計數（CAR-217）** — `{sources} job-board sources: {sourcesEn} international boards plus {sourcesRu} Russian ones` 由 `facts.json` 替換，而 `facts.json` 是從線上註冊表生成（123 = 118 EN + 5 RU），所以數字永不漂移；仍停在舊 `~{adapters}` 措辭的語系繼續透過 `adaptersRounded` 四捨五入。EN 文案升級順帶而來（`meta.helpDesc`、`helpTeaser.c1.desc`、`faq.a2` 點名指令選單、帶復原的分組 pipeline 與 kanban 追蹤器）。
 
 ### 備註
 
@@ -255,7 +255,7 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 
 ### 變更
 
-- 文件：說明指南的「118 EN adapters」條目在 fr/it/ta 中補上數量（其餘 15 個語言已有）。cvstart.org 上的供應商價格對照官方定價頁重新核實 — 四項全部未變，CHECKED_ON → 2026-10-30。發佈後的漂移巡檢修正了 README ×19、CONTEXT.md、CLAUDE.md 與 SDD 手冊中 42 處過期的數量／版本行（109/104 年代與 v1.262.0 年代的殘留）。
+- 文件：說明指南的「118 EN adapters」條目在 fr/it/ta 中補上數量（其餘 15 個語言已有）。reboundops.example 上的供應商價格對照官方定價頁重新核實 — 四項全部未變，CHECKED_ON → 2026-10-30。發佈後的漂移巡檢修正了 README ×19、CONTEXT.md、CLAUDE.md 與 SDD 手冊中 42 處過期的數量／版本行（109/104 年代與 v1.262.0 年代的殘留）。
 
 ### 備註
 
@@ -357,7 +357,7 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 - **發佈評審 + 規格回補（docs，#559/#558）**：`docs/reviews/REVIEW-2026-10-28-v1.261.1.md`（對照其規格評審 v1.261.0/v1.261.1 浪潮）與同一浪潮的 SDD 規格回補 — BACKLOG 尾端現在點名剩餘缺口（`sources/habr.mjs` 的專屬測試）。
 - **RTL 深度巡檢（#571）**：AR 巡檢走訪 39 條路由 × LTR 對 RTL（X 鏡像、溢位、裁切、text-align 特徵）— 85 項發現已修復：固定定位的介面元素（toast、側欄、抽屜與其關閉 ×、docs-FAB、usage-HUD、skip-link）改用 `inset-inline-*`/`border-inline-*`，17 個檢視檔 + 2 個函式庫的表格改用 `text-align: start/end`，移除一刀切的 `[dir=rtl] text-align:right`（它與 scan 星號欄的置中相牴觸），CAR-58 的分數欄隔離改掛到 `ltrNum` span 上。
 - **鍵盤無障礙巡檢（#570）**：`tests/playwright-a11y-keyboard.mjs` 走訪 11 條路由（Tab 順序/陷阱、焦點指示器、Escape 關閉覆蓋層、Enter/Space）— 0 個正式環境缺陷；迴歸涵蓋為新增。
-- **i18n 未翻譯清掃（#565）**：36 個與英文相同的值已翻譯 ×9 語系（`*.rolePh`、config 鍵、ta 宣言）+ 一道封閉允許清單式清掃防護；網站（cvstart.org）i18n 稽核（#568）：20 個鍵 × 18 語系已翻譯（整個 `demo.*`/`stats.t.*`/`showcase.tab*` 區塊到處都是英文）、移除 1 個死去鍵 ×19。
+- **i18n 未翻譯清掃（#565）**：36 個與英文相同的值已翻譯 ×9 語系（`*.rolePh`、config 鍵、ta 宣言）+ 一道封閉允許清單式清掃防護；網站（reboundops.example）i18n 稽核（#568）：20 個鍵 × 18 語系已翻譯（整個 `demo.*`/`stats.t.*`/`showcase.tab*` 區塊到處都是英文）、移除 1 個死去鍵 ×19。
 - **remote-QA 可觀測性（CAR-175，#567）**：摘要會點名失敗的掃描來源（`stderr samples`、先遮蔽再截斷），並依提供者用量印出 `tok ~N`；邏輯位於純粹的 `summary-parts.mjs`，附一道漂移閘門。
 - **UI.md 巢狀標記清單（一層，#564）**：`  - ` 項目符號渲染為巢狀 `<ul>`（圍欄佔位符安全）— 每個語系最後 2 處懸空散文片段消失。
 - **Lovable 設計整合 — 階段 1（#566）/ 階段 2（分支上，將在打 tag 前落地）**：`public/css/tokens-v3.css` 原樣移植 Lovable 概念（oklch 表面 0–3、標註 AA 的墨水配對、強調色家族、ok/warn/danger/info/neutral 的柔色+墨水、分數帶 A–G ×2 主題、密度 + 焦點 + 陰影）；階段 2 將它掛上既有 token 名稱啟用（強調色拆分 blue/danger、分數帶 + callout 改用 cv3 token），對比/角色/深色閘門同步更新。
@@ -389,7 +389,7 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 
 - **Mobile-390 巡檢（#552）**：以 Playwright 走訪每條 SPA 路由（31 個規範路由 + 8 個模式頁 = 39 個 hash），在 390×844 下搭配植入的語料 — 逐路由的水平溢位檢查（scrollWidth 對 clientWidth、1px 容差、點名最寬的元兇）外加 CTA 命中檢查（任何吸附列/抽屜/FAB 都不得遮住主要 CTA）；選擇性執行、無瀏覽器二進位檔時優雅跳過、無網路。
 - **全新 v2 截圖 ×48（CAR-140 phase A，#551）**：來自植入式 CI 隔離 fixture 的真實 v2 UI 截圖 — dashboard ×19 + job-map ×19（job-map-ta 首次出現、job-map-vi 新增）+ scan/pipeline/tracker/reports × en/ru — 供 README、說明與落地頁取用。
-- **cvstart.org 真實截圖（CAR-140 phase B，#553）**：CAR-140 的預留位已成歷史 — 落地頁展示實際的 v2 截圖（job-map 展示區 + 截圖列，×19 個落地頁語系）。
+- **reboundops.example 真實截圖（CAR-140 phase B，#553）**：CAR-140 的預留位已成歷史 — 落地頁展示實際的 v2 截圖（job-map 展示區 + 截圖列，×19 個落地頁語系）。
 - **CAR-137 提示（#550）**：21 個新的已翻譯鍵 ×19（`help.hint.*` ×20 + 模式頁的 `hintKey`）— 每個頁面現在都能就地自我說明。
 
 ### 備註
@@ -400,7 +400,7 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 
 ## [1.261.0] — 2026-10-28
 
-**完整評審浪潮收官（所有 HIGH + MEDIUM 發現全數落地）、擁有者回報的語言切換修復、評估品質修復、說明 ×18 展開、cvstart.org 落地頁 v2 — 另有 4 份記錄這波浪潮的 SDD/OpenSpec 規格。每一項修復都以紅→綠的 fix-forward 與一次 GLM-5.3-Flash 全新上下文評審落地。**
+**完整評審浪潮收官（所有 HIGH + MEDIUM 發現全數落地）、擁有者回報的語言切換修復、評估品質修復、說明 ×18 展開、reboundops.example 落地頁 v2 — 另有 4 份記錄這波浪潮的 SDD/OpenSpec 規格。每一項修復都以紅→綠的 fix-forward 與一次 GLM-5.3-Flash 全新上下文評審落地。**
 
 ### 安全
 
@@ -413,7 +413,7 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 ### 新增
 
 - **CAR-147 — 語系感知的評估上限（#524）**：`evalTimeoutMs(lang)` — ta/hi 改為 480 秒而非 300 秒（印度系文字每個音節會切成多個 token；舊的時限只會產出 502 與空報告）；remote-QA 客戶端等待 540 秒。
-- **CAR-133 — cvstart.org 落地頁 v2（#532）**：受 reduced-motion 節制的視差 hero、一個明確標示為「模擬」的 scan→evaluate→tracker 流程展示、帶即時驗證計數的 scroll-reveal 區塊、CAR-140 截圖預留位。
+- **CAR-133 — reboundops.example 落地頁 v2（#532）**：受 reduced-motion 節制的視差 hero、一個明確標示為「模擬」的 scan→evaluate→tracker 流程展示、帶即時驗證計數的 scroll-reveal 區塊、CAR-140 截圖預留位。
 - **CAR-135 — 為 UI v2 重寫說明，×18 展開完成（#533、#540、#541、#542）**：全部 19 份說明檔描述 v2 外殼（可收合導覽、Cmd/Ctrl+K 面板、骨架、範例+動作的空狀態、scan v2 介面、pipeline 分組+復原、reports v2、看板）；UI 標籤引用各自的 i18n 鍵；121 個來源的句子直接取自註冊表。
 - **SDD/OpenSpec 規格（#535）**：oct27 wave-two 補記 + 三份前瞻規格（說明展開、寫入交接、語言切換不變量）。
 
@@ -572,18 +572,18 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 
 ## [1.255.0] — 2026-10-24
 
-**越南語（Tiếng Việt）成為第19個介面語言 — 一個與 EN 完全對齊的 1525 鍵詞典、vi/vi-VN 偵測、完整說明包、README 與 CHANGELOG 鏡像、cvstart.org 落地頁整合，以及語言切換器中的 🇻🇳。**
+**越南語（Tiếng Việt）成為第19個介面語言 — 一個與 EN 完全對齊的 1525 鍵詞典、vi/vi-VN 偵測、完整說明包、README 與 CHANGELOG 鏡像、reboundops.example 落地頁整合，以及語言切換器中的 🇻🇳。**
 
 ### 新增
 
 - **越南語(`vi`) — 1525/1525 鍵**，與 `en` 完全對齊；`detect()` 接受 `vi` 與 `vi-VN`；越南語為 LTR(不加入 `RTL_LANGS`)。'Pipeline' 維持 'Pipeline' — 標準技術外來詞，已列入白名單。
 - **完整 docs/help/vi.md**(33 H2 / 125 H3)，外加 README.vi.md 與 CHANGELOG.vi.md 鏡像，以及 `prompts.mjs` 中的越南語鷹架字串(`LOCALE_NAMES` + `SCAFFOLD_STRINGS`)— 越南語 LLM 輸出開箱即用。
-- **cvstart.org 落地頁越南語版** — `site/src/i18n/vi.json`、sitemap 的 locale 項目與 `dashboard-vi.png` 截圖；語言切換器新增 🇻🇳(19 個位置)。
+- **reboundops.example 落地頁越南語版** — `site/src/i18n/vi.json`、sitemap 的 locale 項目與 `dashboard-vi.png` 截圖；語言切換器新增 🇻🇳(19 個位置)。
 - **列舉閘門 18 → 19** — LANGS、detect 探針、i18n 稽核、changelog 對齊、README 翻譯區塊、locale 掃描 — 外加 red-first 的 `tests/i18n-vi-locale.test.mjs`(139 行)。
 
 ### 備註
 
-- cvstart.org 落地頁新增 vi — 對 ta 前例的一次有意偏離(該版本刻意維持落地頁為 17 種)；已記錄於發布規格。
+- reboundops.example 落地頁新增 vi — 對 ta 前例的一次有意偏離(該版本刻意維持落地頁為 17 種)；已記錄於發布規格。
 - vi 是拉丁文字，不適用 no-latin-leaks 閘門(它守護非拉丁語言)；拉丁技術詞彙在此是常態。
 - 測試下限：5634 → **5642**(1 項跳過 = 可選的版面截圖瀏覽器測試，未變)。
 
@@ -628,7 +628,7 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 ### 新增
 
 - **10 個來源移植自父 1.38.0**，各帶 fetch-walk 配接器與 CI 隔離套件（假 fetchImpl、零網路）：**Atlassian**(單一免認證 JSON 源、iCIMS URL、https+icims.com allowlist)、**BWI**(JSON-LD ItemList、JSON.parse 優先)、**Computrabajo**(拉美、實體解碼、西語 «remoto» 識別 remote)、**Dover**(按租戶 DRF 分頁、`Remote (International)` 渲染、UUID 驗證板塊)、**Google Careers**(按短語首頁、卡片雇主優先、查詢間去重)、**Kalibrr**(SEA 聚合、feed id 作列 id)、**Magneto365**(拉美、固定翻頁節奏)、**Platsbanken**(瑞典 JobTech API、按關鍵字視窗)、**Tech in Asia**(從網站建置發現 Algolia 金鑰)、**Zoho Recruit**(隱藏輸入板塊、受限 detail 增强、僅 ISO-4217 幣別解析)。
-- 註冊表計數：**120 來源 = 115 EN + 5 RU · 115 配接器**；五個計數閘從活註冊表再生成；`#/scan` 下拉回退、cvstart.org 來源連結與 help §17 ×18 跟隨。
+- 註冊表計數：**120 來源 = 115 EN + 5 RU · 115 配接器**；五個計數閘從活註冊表再生成；`#/scan` 下拉回退、reboundops.example 來源連結與 help §17 ×18 跟隨。
 
 ### 修復
 
@@ -957,7 +957,7 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 
 ### 備註
 
-- cvstart.org 落地頁暫維持 17 個語言——翻譯落地頁是獨立任務；網站內容同步已發布 docs/help/ta.md 與 ta 更新日誌。
+- reboundops.example 落地頁暫維持 17 個語言——翻譯落地頁是獨立任務；網站內容同步已發布 docs/help/ta.md 與 ta 更新日誌。
 - `report-header.js` 的 REPORT_LABELS 維持 17——坦米爾語報告解析將隨父儲存庫的坦米爾語報告生成一併到來。
 
 ## [1.244.2] — 2026-10-08
@@ -1101,8 +1101,8 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 
 ### 新增
 
-- **[cvstart.org](https://github.com/AnkitParekh007/rebound-ops) 上的職缺地圖**，涵蓋全部 17 種語言，英文與俄文 README 也一併加入。
-- **所有語言的地圖截圖**：每種語言一張（`scripts/capture-map-screenshots.mjs`），收錄於全部 17 個 README、cvstart.org 以及說明中新增的小節「如何使用地圖」（§33，×17）。
+- **[reboundops.example](https://github.com/AnkitParekh007/rebound-ops) 上的職缺地圖**，涵蓋全部 17 種語言，英文與俄文 README 也一併加入。
+- **所有語言的地圖截圖**：每種語言一張（`scripts/capture-map-screenshots.mjs`），收錄於全部 17 個 README、reboundops.example 以及說明中新增的小節「如何使用地圖」（§33，×17）。
 
 ### 說明
 
@@ -1289,13 +1289,13 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 ### 修復
 
 - **兩個掃描同時執行會讓伺服器當機。** 每個 `GET /api/stream/scan` 都在伺服器行程內毫無保護地執行完整掃描器;一次從介面啟動的掃描與每小時計時器重疊,行程因 *JavaScript heap out of memory* 結束(兩次,期間出現 502 錯誤)。現在同一時間只執行一個掃描:第二個請求會收到代碼為 `SCAN_BUSY` 的 SSE `error`,不會啟動任何掃描。部署工作流程也會提高伺服器的記憶體上限(`heap_mb`,預設 448 MB)。
-- **cvstart.org 的 `/help` 與 `/changelog` 在手機上會橫向捲動**(ja/zh 的 `/changelog` 在桌機上也會):長程式碼與目錄現在會自動換行。
+- **reboundops.example 的 `/help` 與 `/changelog` 在手機上會橫向捲動**(ja/zh 的 `/changelog` 在桌機上也會):長程式碼與目錄現在會自動換行。
 - **網站地圖的語言替代項中缺少印地語**;網站的 i18n 檢查現在會把網站地圖與語言登錄表比對。
 - **說明 §19 要求把鍵加入「全部 8 個」語言檔** — 實際有 17 個。
 
 ### 新增
 
-- **遠端回歸測試**(`.github/workflows/remote-qa.yml`):已部署應用的每個路由 × 每種語言(唯讀),cvstart.org 的每個頁面 × 語言 × 手機/桌機,README 與 wiki 中的每個連結,並可視需要執行一次真實掃描以及每種語言的即時 AI 呼叫。
+- **遠端回歸測試**(`.github/workflows/remote-qa.yml`):已部署應用的每個路由 × 每種語言(唯讀),reboundops.example 的每個頁面 × 語言 × 手機/桌機,README 與 wiki 中的每個連結,並可視需要執行一次真實掃描以及每種語言的即時 AI 呼叫。
 - **伺服器部署工作流程**(`.github/workflows/deploy.yml`):`recon`、`deploy`(含逐位元組精確回復)與 `verify`(冒煙測試與穩定性報告)。
 - 測試 3481 → 3486。
 
@@ -1345,7 +1345,7 @@ Tests 6868 → 6869 (+1) · Playwright 176 · 註冊表未變：123 sources = 11
 **針對 v1.237.0 的一次外部 QA 複查修補。** Jobstreet 的修復已首次從外部獲得證實：在 AU、NZ、HK 與 MY 主機上，舊有的 `/id/job/<id>` 形式會回傳一個乾淨的 404，而新的 `/job/<id>` 能到達一個真實的、受 Cloudflare 保護的路由；在 `id.jobstreet.com` 上情況則正好相反。遺失的連結確實存在。發現了兩項缺陷，皆出在 v1.237.0 自身新增的內容裡。
 
 ### 修復
-**書籍連結 ——文案翻譯了，目標網址卻沒有。** 全部 17 個 SPA 語系與全部 17 個 cvstart.org 語系，都把頁尾指向 *Agentic Coding Design Patterns* 的連結指向英文版，而唯一被翻譯的文案——俄語 «Паттерны агентного кодинга»——承諾的卻是一本俄語版的書。新增的 `data-i18n-href` 套用器（與 `data-i18n-title` 同形，僅限絕對的 `https://` 值）與 `footer.patternsUrl` 鍵，現在會把 `ru` 導向俄語版，其餘每個語系都導向英文版。回歸測試從兩個方向斷言這個不變式：翻譯過的標題意味著在地化的網址。
+**書籍連結 ——文案翻譯了，目標網址卻沒有。** 全部 17 個 SPA 語系與全部 17 個 reboundops.example 語系，都把頁尾指向 *Agentic Coding Design Patterns* 的連結指向英文版，而唯一被翻譯的文案——俄語 «Паттерны агентного кодинга»——承諾的卻是一本俄語版的書。新增的 `data-i18n-href` 套用器（與 `data-i18n-title` 同形，僅限絕對的 `https://` 值）與 `footer.patternsUrl` 鍵，現在會把 `ru` 導向俄語版，其餘每個語系都導向英文版。回歸測試從兩個方向斷言這個不變式：翻譯過的標題意味著在地化的網址。
 **SEEK ——正在遷移主機，而傳輸層拒絕跟隨重新導向。** `www.seek.com.au` → `au.seek.com`、`www.seek.co.nz` → `nz.seek.com`：明細頁面如今已經回傳 301，這兩組主機目前也都以 200 提供 v5 搜尋 API。由於 `http-json.mjs` 設定了 `redirect:'error'`（一項值得保留的 SSRF 防護），一旦 API 路徑開始對舊主機上的 AU/NZ 項目發出重新導向，擷取就會失敗——而由於允許清單裡此前只有 `www.` 開頭的主機，根本沒有人能完成遷移。`au.seek.com` 與 `nz.seek.com` 現已加入 `ALLOWED_JOBSTREET_HOSTS`；舊主機仍保留，因此既有設定與已產生的連結照常可用。仿冒主機（`au.seek.com.evil.com`、`au-seek.com`）依然會被拒絕。
 **Wiki：** Home 文件地圖中的 *Agentic Practices* 那一列，是十二列裡唯一沒有在 `[[…|…]]` 內轉義 `|` 的一列，導致 GitHub 截斷了該儲存格——連結失效，描述被隱藏。只差一個字元。
 
@@ -1531,7 +1531,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 **修正 — v1.231.0 的計數替換改寫了所有連結中的帳號名。**
 
 ### 修復
-- **每一個 `AnkitParekh007` 連結都變成了 `Fighter92`。** v1.231.0 的來源計數替換在數字邊界保護下把 `90` 換成 `92`；該保護能正確跳過 `290` 與 `901`，卻會比對到 **`AnkitParekh007`** 裡的 `90`。**17 個 README、17 套說明文件以及網站說明鏡像中的 562 處連結**，加上**維基裡的 138 處**，都指向不存在的帳號。是一位使用者因為圖片沒顯示而發現的。
+- **每一個 the original author's handle 連結都變成了 `Fighter92`。** v1.231.0 的來源計數替換在數字邊界保護下把 `90` 換成 `92`；該保護能正確跳過 `290` 與 `901`，卻會比對到 **the original author's handle** 裡的 `90`。**17 個 README、17 套說明文件以及網站說明鏡像中的 562 處連結**，加上**維基裡的 138 處**，都指向不存在的帳號。是一位使用者因為圖片沒顯示而發現的。
 - **五處歷史版本引用發生偏移。** 同一版本的 `85 → 87` 替換把 `v1.85.0` 變成 `v1.87.0`，憑空造出一個從未發布的版本。
 
 ### 說明
@@ -1762,7 +1762,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 - v1.225.0 的橫幅在 GitHub 上不顯示:獨立的 `images/providers.svg` 有一個無效的 `font-family`(巢狀的雙引號),被 GitHub 拒絕;`<img>` 使用了儲存庫相對 `src`(GitHub 不解析 raw HTML `<img>` 的相對路徑);`<p>` 區塊缺少結尾空行,導致與下一行合併。現在它透過絕對 raw URL 指向已算繪的 `images/providers.png`,並以空行分隔;SVG 也已修正為有效 XML。
 
 ### 備註
-- 僅文件;無程式碼/測試改動。cvstart.org 展示區與應用內磚貼先前已正確(內嵌 SVG,非此檔案)。  **2784**
+- 僅文件;無程式碼/測試改動。reboundops.example 展示區與應用內磚貼先前已正確(內嵌 SVG,非此檔案)。  **2784**
 
 ## [1.225.0] — 2026-08-27
 
@@ -1949,10 +1949,10 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 
 ## [1.212.1] — 2026-08-21
 
-**修復 — cvstart.org 到達頁少算了掃描器的職缺來源（顯示 80 並遺漏 Job Bank（加拿大））；現在重新與應用的 81 一致，若兩者不符，網站建置會大聲失敗。**
+**修復 — reboundops.example 到達頁少算了掃描器的職缺來源（顯示 80 並遺漏 Job Bank（加拿大））；現在重新與應用的 81 一致，若兩者不符，網站建置會大聲失敗。**
 
 ### 修復
-- **到達頁的「職缺來源」計數重新與應用同步。** 在 v1.212.0 之後，cvstart.org 顯示 **80** 個職缺板並缺少新的 **Job Bank（加拿大）** 晶片，而應用、掃描下拉選單與說明指南都列出 **81**。到達頁透過載入即時掃描器登錄來建立清單，而某個來源因其引入 YAML 相依的方式在該建置中載入失敗，於是被悄悄丟棄。現在 Job Bank 以延遲載入方式引入該相依，與應用其餘部分在掃描時的做法一致，所以它一定會出現。
+- **到達頁的「職缺來源」計數重新與應用同步。** 在 v1.212.0 之後，reboundops.example 顯示 **80** 個職缺板並缺少新的 **Job Bank（加拿大）** 晶片，而應用、掃描下拉選單與說明指南都列出 **81**。到達頁透過載入即時掃描器登錄來建立清單，而某個來源因其引入 YAML 相依的方式在該建置中載入失敗，於是被悄悄丟棄。現在 Job Bank 以延遲載入方式引入該相依，與應用其餘部分在掃描時的做法一致，所以它一定會出現。
 - **網站建置現在拒絕發佈不相符的來源計數。** 若登錄列舉出的來源少於磁碟上實際存在的數量（來源載入失敗的特徵），建置會以清楚的訊息失敗，而不是悄悄發佈錯誤的數字。
 
 ### 說明
@@ -2456,7 +2456,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 - **評分解析 (FIND-1)** — H1 中包含評分標籤詞的非英文報告(`# Оценка вакансии: <標題>`)不再把該標題誤當作評分。`parseReportHeader` 現在錨定到本地化的**粗體**標籤(`**Оценка:** 1.5 / 5`),跳過標題行,並要求標籤緊鄰冒號 — 因此顯示 "Score not detected" 的 RU 報告會展示真實評分。
 - **合法性徽章 (FIND-2)** — 從值中移除 Markdown 強調,徽章顯示 "High Confidence" 而非 "** High Confidence"。
 - **評分溢出** — 帶尾隨狀態文字的評分行("1.8, Status: Evaluated, …")被壓縮為僅評分;`.score-pill` 新增不換行/溢出上限,標題欄可收縮,因此彩色徽章不會溢出卡片邊緣。
-- **SEO 描述 (FIND-3)** — cvstart.org 的 meta / OG / Twitter 描述(全部 17 種語言)硬編碼 "Scan ~55 job boards",而內文依真實註冊表計數("~75")。描述現在插入註冊表衍生的計數,不會再漂移。
+- **SEO 描述 (FIND-3)** — reboundops.example 的 meta / OG / Twitter 描述(全部 17 種語言)硬編碼 "Scan ~55 job boards",而內文依真實註冊表計數("~75")。描述現在插入註冊表衍生的計數,不會再漂移。
 
 ### 說明
 - 伺服器解析器 + 用戶端渲染/CSS + 網站 i18n;無路由 / CSP / SSRF / 父寫入變更。測試:`tests/report-header-locale.test.mjs`(+4)。套件:**2448**(+4)。
@@ -2536,10 +2536,10 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 
 ## [1.166.0] — 2026-08-13
 
-**修復 (LOW) — 評分標準術語現在與規範文件一致。** github.com/AnkitParekh007/rebound-ops 描述為「五個維度加上整體綜合評分」,但 Web UI、cvstart.org 和 wiki 都說「六維度評分標準」(5 + 1 = 6,但用詞不一致)。
+**修復 (LOW) — 評分標準術語現在與規範文件一致。** github.com/AnkitParekh007/rebound-ops 描述為「五個維度加上整體綜合評分」,但 Web UI、reboundops.example 和 wiki 都說「六維度評分標準」(5 + 1 = 6,但用詞不一致)。
 
 ### 修復
-- 採用文件措辭 — **「五個維度加上綜合評分」** — 一致套用於 README ×17、cvstart.org 網站 ×17、說明指南 ×17、`docs/rebound-ops-canonical.md` 和 wiki(Home ×17 + Features)。
+- 採用文件措辭 — **「五個維度加上綜合評分」** — 一致套用於 README ×17、reboundops.example 網站 ×17、說明指南 ×17、`docs/rebound-ops-canonical.md` 和 wiki(Home ×17 + Features)。
 
 ### 說明
 - 僅文件/行銷文案;無程式碼/i18n 鍵/路由/CSP/SSRF/寫入變更。`tests/rubric-terminology.test.mjs`(+2)。套件:**2426** (+2)。
@@ -2623,7 +2623,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 
 ### 修復
 - HelpHint 的 «?» 不再洩漏到 `document.title`。路由器從未處理的 `h1.textContent` 衍生分頁標題,導致顯示為「Vacancy search?」而非「Vacancy search」。現在 `router.js::focusNewView` 複製標題、移除 `.help-hint` 後再讀取文字;頁面上可見的 «?» 保持不變。
-- cvstart.org 顯示「17 AI providers」而非「7」。`Features.astro` 的 `sub()` 在按卡片替換前就把所有 `{n}` 改為語言數(17);現在 `{n}` 按卡片解析(供應商 → 7,語言 → 17)。
+- reboundops.example 顯示「17 AI providers」而非「7」。`Features.astro` 的 `sub()` 在按卡片替換前就把所有 `{n}` 改為語言數(17);現在 `{n}` 按卡片解析(供應商 → 7,語言 → 17)。
 
 ### 說明
 - 無伺服器、路由、CSP、SSRF 或 i18n 鍵變更。套件:**2402** 項測試(+1)。
@@ -2757,11 +2757,11 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 
 ## [1.147.0] — 2026-08-12
 
-**Hermes & Telegram —— 應用內說明章節 + cvstart.org 介面(Phase 5b，第 2 部分)** —— Hermes 文件工作的第二部分,也是最後一部分:操作說明現已放入應用自己的說明指南中,涵蓋全部 17 種語言,應用內文件助理也據此回答 Hermes 相關問題。仍僅限文件 —— Hermes LLM 供應方路徑仍處於 **規劃中 / 尚未接上**(Phase 5)。
+**Hermes & Telegram —— 應用內說明章節 + reboundops.example 介面(Phase 5b，第 2 部分)** —— Hermes 文件工作的第二部分,也是最後一部分:操作說明現已放入應用自己的說明指南中,涵蓋全部 17 種語言,應用內文件助理也據此回答 Hermes 相關問題。仍僅限文件 —— Hermes LLM 供應方路徑仍處於 **規劃中 / 尚未接上**(Phase 5)。
 
 ### 新增
 - **應用內說明 §30「Hermes & Telegram」× 17 種語言** —— 新的指南章節(Hermes 是什麼 + 兩種整合形態;在雲端伺服器上執行;經 Hermes 轉發到 Telegram + 「不該公開什麼」規則),可從 `#/help` 存取。`docs-assistant` / `DocsFab` 的 grounding 會自動取得它(兩者都讀取 `docs/help/<lang>.md`)。
-- **cvstart.org —— 指向 Hermes 指南的連結**,跳轉到 GitHub 文件。
+- **reboundops.example —— 指向 Hermes 指南的連結**,跳轉到 GitHub 文件。
 
 ### 變更
 - 說明套件門檻提升至 **29 → 30 H2 / 105 → 108 H3**(`canonical-docs-coverage`、`help-ui`、`help-ru-config-section`);§30 新增 3 個 H3。
@@ -2783,7 +2783,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 
 ### 說明
 - **目前還沒有任何程式碼呼叫 Hermes。** 一個哨兵測試(`tests/hermes-docs.test.mjs`)斷言「規劃中/尚未接上」的誠實標記仍然存在,並確認 `llm-dispatch.mjs` 中沒有 Hermes/Nous 分支——因此日後接上該供應方時,必須在同一次變更中同步更新文件 + roadmap。
-- **延後至 v1.147.0**（Phase 5b，第 2 部分):應用內說明中的「Hermes & Telegram」H2 小節 × 17 種語言,以及 cvstart.org 的行銷頁面。
+- **延後至 v1.147.0**（Phase 5b，第 2 部分):應用內說明中的「Hermes & Telegram」H2 小節 × 17 種語言,以及 reboundops.example 的行銷頁面。
 - 套件:**2376** 項測試(+4:`tests/hermes-docs.test.mjs`)。
 
 ## [1.145.0] — 2026-08-12
@@ -2914,7 +2914,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 對齊父專案 rebound-ops **v1.26.0** — 五個新的零驗證掃描來源，加上對 web-ui 既有四個看板的正確性修復。註冊表現有 **78 個來源 = 73 個英文 + 5 個俄文**（`ALL_ADAPTERS` 73）。
 
 ### 新增
-- **五個新掃描來源**（各自為一個來源 + adapter + CI 隔離測試套件；皆已出現在 `#/scan` 的 Source 篩選器與 cvstart.org 首頁）：
+- **五個新掃描來源**（各自為一個來源 + adapter + CI 隔離測試套件；皆已出現在 `#/scan` 的 Source 篩選器與 reboundops.example 首頁）：
   - **`join`**（JOIN）— 透過 `join.com/companies/<slug>` 中 Next.js 的 `__NEXT_DATA__` 讀取公司自己的 JOIN 看板（主機固定、頁數上限）。
   - **`getro`**（Getro）— 透過公開的 `api.getro.com` POST API 讀取創投「人才網絡」投資組合看板，依最新優先排序分頁；每筆職缺皆歸屬於投資組合中的雇主，而非基金本身。
   - **`consider`**（Consider）— 透過同源 POST 讀取 getconsider.com 的創投投資組合看板；設定驅動的主機由結構化 SSRF 防護把關（僅限公開 HTTPS 主機）。
@@ -2944,7 +2944,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 對齊父專案 rebound-ops v1.25.0。
 
 ### 新增
-- **新增掃描來源:getManfred**(`manfred`)—— 一個橫跨全站的西班牙／歐盟科技職缺消息來源,附帶公開薪資,取自 `www.getmanfred.com/api/v2/public/offers`(零驗證、主機固定 + 僅限 HTTPS、單一請求取得完整目錄)。新增來源 + adapter,以及一套 CI 隔離測試套件(`tests/sources-manfred.test.mjs`);註冊表現有 **73** 個來源 = 68 個英文 + 5 個俄文(`ALL_ADAPTERS` 68)。已出現在 `#/scan` 的 Source 篩選器,以及 cvstart.org 首頁。
+- **新增掃描來源:getManfred**(`manfred`)—— 一個橫跨全站的西班牙／歐盟科技職缺消息來源,附帶公開薪資,取自 `www.getmanfred.com/api/v2/public/offers`(零驗證、主機固定 + 僅限 HTTPS、單一請求取得完整目錄)。新增來源 + adapter,以及一套 CI 隔離測試套件(`tests/sources-manfred.test.mjs`);註冊表現有 **73** 個來源 = 68 個英文 + 5 個俄文(`ALL_ADAPTERS` 68)。已出現在 `#/scan` 的 Source 篩選器,以及 reboundops.example 首頁。
 
 ### 修復
 - **a16z Speedrun 消息來源會靜默截斷至 50 筆職缺**(#2404)—— 該消息來源每頁上限為 50 筆,但此來源原本請求 `PER_PAGE = 100`,導致第一頁後分頁即中止。已修正為 50。
@@ -3003,7 +3003,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 ## [1.130.0] — 2026-07-31
 
 ### 新增
-- **兩個新掃描來源,移植自父專案 rebound-ops v1.24.0**(同進程,無新相依;皆出現於 `#/scan` 的 Source 篩選器與 cvstart.org 落地頁):
+- **兩個新掃描來源,移植自父專案 rebound-ops v1.24.0**(同進程,無新相依;皆出現於 `#/scan` 的 Source 篩選器與 reboundops.example 落地頁):
   - **a16z Speedrun**(`a16z-speedrun-talent`,#2231)— a16z Speedrun *人才網絡*(talent-network)全站 JSON 動態消息。主機固定為 `speedrun-talent-network.com`,僅限 HTTPS,0 起始分頁並附頁數上限,依公司貫穿 `q`/設定,失敗自動降級。
   - **Cryptocurrency Jobs**(`cryptocurrencyjobs`)— Web3 職缺看板 `cryptocurrencyjobs.co`,透過其公開 RSS 2.0 動態消息擷取(零驗證)。兩階段 XML 實體解碼,僅列出遠端職缺,雇主名稱從標題尾端的「"… at <Company>"」解析而得。
   - 註冊表總數現為 **72 個來源 = 67 個英文 + 5 個俄文**(`ALL_ADAPTERS` = 67 個英文入口配接器)。
@@ -3087,7 +3087,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 ## [1.125.0] — 2026-07-21
 
 ### 新增
-- **cvstart.org:「求職來源」登陸頁區塊** — 在截圖與比較清單之間新增一個區塊,將**全部 67 個掃描來源以可點擊標籤的形式列出**(62 個英文求職看板/ATS,外加獨立列在小標題下的 5 個俄文看板),每個標籤都連結到該來源的公開網站。此清單於建置時從實際的轉接器登錄檔(`sync-assets.mjs` → `facts.sources`)同步而來,因此永遠不會與應用程式本身出現落差;`Sources.astro` 中人工整理的連結對照表由新增的 `tests/site-sources.test.mjs` 把關。頁首導覽新增了 **Sources** 錨點;新增 4 個網站 i18n 鍵 × 17 種語言。同時修正了登陸頁 JSON-LD 中 `inLanguage` 清單先前遺漏 `hi` 的問題。
+- **reboundops.example:「求職來源」登陸頁區塊** — 在截圖與比較清單之間新增一個區塊,將**全部 67 個掃描來源以可點擊標籤的形式列出**(62 個英文求職看板/ATS,外加獨立列在小標題下的 5 個俄文看板),每個標籤都連結到該來源的公開網站。此清單於建置時從實際的轉接器登錄檔(`sync-assets.mjs` → `facts.sources`)同步而來,因此永遠不會與應用程式本身出現落差;`Sources.astro` 中人工整理的連結對照表由新增的 `tests/site-sources.test.mjs` 把關。頁首導覽新增了 **Sources** 錨點;新增 4 個網站 i18n 鍵 × 17 種語言。同時修正了登陸頁 JSON-LD 中 `inLanguage` 清單先前遺漏 `hi` 的問題。
 
 ## [1.124.0] — 2026-07-21
 
@@ -3115,12 +3115,12 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 ## [1.122.0] — 2026-07-16
 
 ### 新增
-- **印地語(हिन्दी)— 第 17 種語言** — 完整的 UI 詞典(約 1,110 個鍵)、完整的應用程式內說明指南(29 個 H2／105 個 H3 對齊)、`README.hi.md`、全新的 `CHANGELOG.hi.md`(依循 de／it／tr 先例，自 v1.122.0 起開始)、cvstart.org 落地頁與方法論／授權／更新日誌／說明頁面、語言切換器(🇮🇳)、瀏覽器語言自動偵測，以及在地化的儀表板截圖。每一道 ×16 對齊關卡現在都改為 ×17 執行：i18n 詞典對齊與快照、說明指南 H2／H3 關卡、更新日誌對齊、網站的 `check-i18n`，以及 Playwright 語系巡檢。
+- **印地語(हिन्दी)— 第 17 種語言** — 完整的 UI 詞典(約 1,110 個鍵)、完整的應用程式內說明指南(29 個 H2／105 個 H3 對齊)、`README.hi.md`、全新的 `CHANGELOG.hi.md`(依循 de／it／tr 先例，自 v1.122.0 起開始)、reboundops.example 落地頁與方法論／授權／更新日誌／說明頁面、語言切換器(🇮🇳)、瀏覽器語言自動偵測，以及在地化的儀表板截圖。每一道 ×16 對齊關卡現在都改為 ×17 執行：i18n 詞典對齊與快照、說明指南 H2／H3 關卡、更新日誌對齊、網站的 `check-i18n`，以及 Playwright 語系巡檢。
 
 ## [1.121.0] — 2026-07-16
 
 ### 新增
-- **cvstart.org:方法論、授權與更新日誌頁面** — 落地頁在全部 16 種語言中新增三個章節,與既有的比較區塊並列:**/methodology/**(六維度 0.0–5.0 評分準則、4.0 分投遞門檻,以及絕不做的規則 — 這是 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) 的在地化摘要)、**/license/**(標準 MIT 授權文字並附 NOTICE.md 指引),以及 **/changelog/**(即本檔案,依語系從儲存庫 16 份翻譯後的 CHANGELOG 渲染)。新增頁首「Methodology」項目與頁尾 Resources 連結;`sync-assets.mjs` 現在會在建置時同步 CHANGELOG ×16 與 LICENSE 至落地頁,讓這些頁面永遠不會與儲存庫失去同步。
+- **reboundops.example:方法論、授權與更新日誌頁面** — 落地頁在全部 16 種語言中新增三個章節,與既有的比較區塊並列:**/methodology/**(六維度 0.0–5.0 評分準則、4.0 分投遞門檻,以及絕不做的規則 — 這是 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) 的在地化摘要)、**/license/**(標準 MIT 授權文字並附 NOTICE.md 指引),以及 **/changelog/**(即本檔案,依語系從儲存庫 16 份翻譯後的 CHANGELOG 渲染)。新增頁首「Methodology」項目與頁尾 Resources 連結;`sync-assets.mjs` 現在會在建置時同步 CHANGELOG ×16 與 LICENSE 至落地頁,讓這些頁面永遠不會與儲存庫失去同步。
 - **跨文件的方法論連結** — README(全部 16 個)、應用程式內說明指南 §1 的正式指南清單(全部 16 種語言),以及 wiki,現在都連結到 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)(FAQ 與詞彙表亦同),與既有的 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) 指南並列。
 
 ### 變更
@@ -3129,7 +3129,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 ## [1.120.0] — 2026-07-16
 
 ### 新增
-- **ReboundOps 宣言**(父專案 v1.20.0 對齊)— 父專案發布了 ReboundOps 宣言(`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops))，現已在其 README、更新程式與 Go 儀表板中呈現。網頁介面同步跟進:新的側邊欄頁尾連結會開啟宣言頁面(全部 16 個語言區域新增 `footer.manifesto` i18n 鍵)，應用程式內說明指南在全部 16 種語言中新增了 §29「ReboundOps 宣言」，README 解說了宣言是什麼、如何簽署，cvstart.org 落地頁頁尾也連結至該頁面。
+- **ReboundOps 宣言**(父專案 v1.20.0 對齊)— 父專案發布了 ReboundOps 宣言(`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops))，現已在其 README、更新程式與 Go 儀表板中呈現。網頁介面同步跟進:新的側邊欄頁尾連結會開啟宣言頁面(全部 16 個語言區域新增 `footer.manifesto` i18n 鍵)，應用程式內說明指南在全部 16 種語言中新增了 §29「ReboundOps 宣言」，README 解說了宣言是什麼、如何簽署，reboundops.example 落地頁頁尾也連結至該頁面。
 
 ### 備註
 - 父專案 v1.20.0 同時修復了 `upskill` 目標模式下已知技能的抑制邏輯、讓 dotenv 靜默以使 `scan --json` 的 stdout 保持可解析，並修正 HTML 履歷範本讓職稱標頭與其條列項目保持在一起——這些皆為 CLI 端表面，網頁介面並不透過命令列呼叫它們，因此無需變更網頁介面程式碼。
@@ -3142,7 +3142,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 ## [1.119.4] — 2026-07-13
 
 ### 變更
-- **LICENSE 載明作者** — 版權行現為 *Sergei Emelianov (AnkitParekh007) <https://sergey-cv.com> and rebound-ops-ui contributors*(MIT 規範本文未動)。新增 **NOTICE.md** 詳細闡述授權:版權歸屬、MIT 授權確切涵蓋什麼(程式碼、文件、翻譯、落地頁、wiki)、不涵蓋什麼(你的執行期資料、父專案、職缺看板內容、商標)、第三方元件表(express/js-yaml — MIT;Astro/Tailwind — MIT;Figtree 與 JetBrains Mono 字型 — SIL OFL 1.1;sharp — Apache-2.0)以及可選的署名行。
+- **LICENSE 載明作者** — 版權行現為 *the original author <https://github.com/AnkitParekh007/rebound-ops> and rebound-ops-ui contributors*(MIT 規範本文未動)。新增 **NOTICE.md** 詳細闡述授權:版權歸屬、MIT 授權確切涵蓋什麼(程式碼、文件、翻譯、落地頁、wiki)、不涵蓋什麼(你的執行期資料、父專案、職缺看板內容、商標)、第三方元件表(express/js-yaml — MIT;Astro/Tailwind — MIT;Figtree 與 JetBrains Mono 字型 — SIL OFL 1.1;sharp — Apache-2.0)以及可選的署名行。
 
 ## [1.119.3] — 2026-07-13
 
@@ -3153,8 +3153,8 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 
 ### 新增
 - **CONTRIBUTING.md** — 落地頁與 README 一直連結的貢獻者指南現在真的存在了:安裝、專案地圖、安全/免建置硬規則、測試層級、新增掃描來源的「雙註冊表」演練、×16 i18n 契約、提交/PR 規範與發布流程。
-- **落地頁語言旗幟** — cvstart.org 的語言切換器、頁尾語言網格和「用你的語言閱讀」橫幅現在在每個語言的自稱旁顯示其旗幟(與應用語言 `<select>` 相同的區域指示符集;在缺少旗幟字形的平台上退化為區域字母)。
-- **落地頁頁尾修復** — 失效的 Discussions 連結(儲存庫未啟用該功能)現指向專案 **wiki**,頁尾新增作者署名:**Sergei Emelianov**([sergey-cv.com](https://sergey-cv.com/) · [LinkedIn](https://www.linkedin.com/in/sergey-emelyanov-in-job/))。
+- **落地頁語言旗幟** — reboundops.example 的語言切換器、頁尾語言網格和「用你的語言閱讀」橫幅現在在每個語言的自稱旁顯示其旗幟(與應用語言 `<select>` 相同的區域指示符集;在缺少旗幟字形的平台上退化為區域字母)。
+- **落地頁頁尾修復** — 失效的 Discussions 連結(儲存庫未啟用該功能)現指向專案 **wiki**,頁尾新增作者署名:**the original author**([the original author](https://github.com/AnkitParekh007/rebound-ops) · [LinkedIn](https://github.com/AnkitParekh007/rebound-ops))。
 
 ## [1.119.1] — 2026-07-13
 
@@ -3163,11 +3163,11 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 
 ## [1.119.0] — 2026-07-13
 
-父專案 rebound-ops **v1.19.0** 對齊 + cvstart.org 落地頁煥新。
+父專案 rebound-ops **v1.19.0** 對齊 + reboundops.example 落地頁煥新。
 
 ### 新增
 - **2 個新掃描提供方** — 美團(`zhaopin.meituan.com`)與騰訊(`careers.tencent.com`):中國科技公司職缺板塊的免認證公開 JSON API,依主機自動偵測或以明確 `provider:` 選擇,支援按關鍵字的伺服器端搜尋、分頁與按 URL 去重 — 現共 **61 個轉接器**(56 個英文 + 5 個俄文)。+20 個測試(**1844**)。
-- **落地頁貢獻者區塊** — cvstart.org 展示所有貢獻過程式碼者的頭像(建置時呼叫 GitHub `/contributors` API,過濾機器人),已在地化至全部 16 種語言,並連結到完整貢獻者圖譜。
+- **落地頁貢獻者區塊** — reboundops.example 展示所有貢獻過程式碼者的頭像(建置時呼叫 GitHub `/contributors` API,過濾機器人),已在地化至全部 16 種語言,並連結到完整貢獻者圖譜。
 - **落地頁即時 GitHub 星標計數** — 頁首徽章現在每次造訪都從 GitHub API 在用戶端重新整理(建置時快照作為後備),每週排程的 Pages 重建保持快照與貢獻者清單新鮮;CI 中的 API 呼叫已使用權杖認證。
 
 ### 修復
@@ -3649,7 +3649,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 
 ## [1.74.3] — 2026-06-18
 
-**docs(parent-source): 將父 `rebound-ops` 儲存庫指向 [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops) 分叉。** web-ui 現在在所有作為實際來源的位置都將維護者的分叉作為父專案引用:`bin/setup.sh` 安裝腳本的 `REBOUND_OPS_REPO` clone 預設值、12 個 README 中的每個 `git clone` /「建構於其上」/ onboarding 連結,以及代理文件(`CLAUDE.md`、`AGENTS.md`、`GEMINI.md`、`.github/copilot-instructions.md`、`docs/`)。對作者 santifer 的署名(以及非官方 UI 免責聲明)保持不變 —— 僅移動了來源/clone URL。`tests/sh-files.test.mjs` 現在斷言安裝腳本 clone 的是分叉。
+**docs(parent-source): 將父 `rebound-ops` 儲存庫指向 [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops) 分叉。** web-ui 現在在所有作為實際來源的位置都將維護者的分叉作為父專案引用:`bin/setup.sh` 安裝腳本的 `REBOUND_OPS_REPO` clone 預設值、12 個 README 中的每個 `git clone` /「建構於其上」/ onboarding 連結,以及代理文件(`CLAUDE.md`、`AGENTS.md`、`GEMINI.md`、`.github/copilot-instructions.md`、`docs/`)。對作者 the original author 的署名(以及非官方 UI 免責聲明)保持不變 —— 僅移動了來源/clone URL。`tests/sh-files.test.mjs` 現在斷言安裝腳本 clone 的是分叉。
 
 ---
 
@@ -3909,7 +3909,7 @@ Help ×17 現在同時列出 `AU-Main` 與 `NZ-Main` 的兩種主機形式。標
 
 ## [1.59.13] — 2026-05-21
 
-**fix(i18n): 用 @alias 合併真正重複的鍵 + 個人資料最終清理.** 從測試夾具/QA 報告中移除維護者真實姓名(→ `Jane Doe`),`LICENSE`/`package.json` 改為 `AnkitParekh007` 帳號。`@alias` 機制合併 8 個語言完全相同的 10 個鍵。`nav.config`/`config.title` 因西班牙語不同而不合併。991 → **994** 測試。(I18N-CL3)
+**fix(i18n): 用 @alias 合併真正重複的鍵 + 個人資料最終清理.** 從測試夾具/QA 報告中移除維護者真實姓名(→ `Jane Doe`),`LICENSE`/`package.json` 改為 the original author's handle 帳號。`@alias` 機制合併 8 個語言完全相同的 10 個鍵。`nav.config`/`config.title` 因西班牙語不同而不合併。991 → **994** 測試。(I18N-CL3)
 
 ---
 

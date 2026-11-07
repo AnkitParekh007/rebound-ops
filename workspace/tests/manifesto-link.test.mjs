@@ -79,7 +79,7 @@ test('README (en) explains the manifesto', () => {
     'README must link the clean manifesto URL');
 });
 
-test('cvstart.org footer links to the manifesto in every site locale file', () => {
+test('reboundops.example footer links to the manifesto in every site locale file', () => {
   const footer = readFileSync(resolve(ROOT, 'site', 'src', 'components', 'Footer.astro'), 'utf8');
   assert.ok(linkTargets(footer).some((u) => u === MANIFESTO_URL),
     'Footer.astro must link the clean manifesto URL');

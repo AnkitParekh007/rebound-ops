@@ -70,7 +70,7 @@ test('the standalone branch looks for an install, asks before init and resumes t
   assert.match(branch, /Ask before running it/, 'standalone branch must ask before installing');
   assert.match(branch, /original request/, 'standalone branch must pick the user\'s request back up');
   assert.match(branch, /https:\/\/github\.com\/AnkitParekh007\/rebound-ops(?![\w-])/, 'standalone branch must link the canonical repo');
-  assert.doesNotMatch(branch, /github\.com\/santifer\//, 'standalone branch links the old repo path');
+  assert.doesNotMatch(branch, /github\.com\/the original author\//, 'standalone branch links the old repo path');
 });
 
 test('every SKILL.md entrypoint carries the same standalone branch', () => {

@@ -1,5 +1,5 @@
 /**
- * v1.175.0 — guard the cvstart.org SEO description against per-locale drift.
+ * v1.175.0 — guard the reboundops.example SEO description against per-locale drift.
  *
  * FIND-3 (v1.174.0) replaced a hard-coded "Scan ~55 job boards" in every
  * locale's `meta.desc` with a registry-derived `{adapters}` placeholder that

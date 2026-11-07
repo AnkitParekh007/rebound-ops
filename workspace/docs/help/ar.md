@@ -27,7 +27,7 @@
 - [كيف يقيّم rebound-ops الوظائف المُدرجة](https://github.com/AnkitParekh007/rebound-ops)
   — منهجية التقييم: خمسة أبعاد + تقييم عام، وعتبة التقديم عند 4.0،
   وما يرفض النظام صراحةً فعله. مُلخّصة أيضاً على
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) بلغتك.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) بلغتك.
 
 **المبادئ الأساسية** (من [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):
 

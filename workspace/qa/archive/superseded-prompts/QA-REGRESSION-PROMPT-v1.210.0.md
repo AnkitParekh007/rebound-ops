@@ -23,7 +23,7 @@ node scripts/check-changelog-parity.mjs      # 16 non-EN at v1.210.0
 
 1. `#/scan` → the **Source** filter dropdown lists **Senjob** (offline `FALLBACK_SOURCES` and live `/api/scan/sources` agree — the drift gate proves it).
 2. `GET /api/scan/sources` returns **80** entries; the EN set includes `senjob`.
-3. cvstart.org **Job sources** section links Senjob → senjob.com (`SOURCE_URLS`).
+3. reboundops.example **Job sources** section links Senjob → senjob.com (`SOURCE_URLS`).
 4. No console errors on `#/scan`.
 
 ## §3 — Contract / security invariants
@@ -40,4 +40,4 @@ node scripts/check-changelog-parity.mjs      # 16 non-EN at v1.210.0
 
 ## §5 — Sign-off
 
-Suite **2643** green · new suites `sources-senjob` (13) + `sources-title-entity-decode` (5) · gate lists (adapter-registry / scan-sources-endpoint / FALLBACK / SOURCE_URLS) carry `senjob` · registry **80** = 75 EN + 5 RU · CHANGELOG parity ×17 at v1.210.0 · help §17 count 79→80 · 74→75 ×17 · README banner/badges ×17 · API/OVERVIEW/CONVENTIONS counts refreshed · site Sources.astro + wiki updated. Deploy: prod rsync of the 8 changed server files (senjob source+adapter + 5 patched sources + registry); server picks up the new source on restart. cvstart.org Pages rebuild (site/ changed).
+Suite **2643** green · new suites `sources-senjob` (13) + `sources-title-entity-decode` (5) · gate lists (adapter-registry / scan-sources-endpoint / FALLBACK / SOURCE_URLS) carry `senjob` · registry **80** = 75 EN + 5 RU · CHANGELOG parity ×17 at v1.210.0 · help §17 count 79→80 · 74→75 ×17 · README banner/badges ×17 · API/OVERVIEW/CONVENTIONS counts refreshed · site Sources.astro + wiki updated. Deploy: prod rsync of the 8 changed server files (senjob source+adapter + 5 patched sources + registry); server picks up the new source on restart. reboundops.example Pages rebuild (site/ changed).

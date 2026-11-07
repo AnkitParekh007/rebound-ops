@@ -48,7 +48,7 @@ locally on your machine.
 - [How rebound-ops scores job listings](https://github.com/AnkitParekh007/rebound-ops)
   — the scoring methodology: the five dimensions plus the holistic global score, the 4.0 apply threshold,
   and what the system explicitly refuses to do. Also summarized at
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) in your language.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) in your language.
 
 **Defining principles** (from
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

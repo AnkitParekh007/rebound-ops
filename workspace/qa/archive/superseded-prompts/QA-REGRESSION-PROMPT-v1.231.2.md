@@ -91,7 +91,7 @@ The redirect prepended `/ru/` to every path without looking at what was there.
 | `cvstart.ru/de/` | `/ru/de/` **404** | `/de/` ✅ |
 | `cvstart.ru/enterprise/` | `/ru/enterprise/` | `/ru/enterprise/` — unchanged |
 
-`en` is **stripped**, not passed through: cvstart.org serves English at the root
+`en` is **stripped**, not passed through: reboundops.example serves English at the root
 and has no `/en/` directory. The locale test is anchored and requires `/` or
 end-of-string after the prefix, so `/enterprise/` is not mistaken for `en`.
 

@@ -48,7 +48,7 @@ działający jako polecenia slash w dowolnym CLI do kodowania AI (Claude Code, C
 - [Jak rebound-ops ocenia oferty pracy](https://github.com/AnkitParekh007/rebound-ops)
   — metodologia oceniania: sześć wymiarów, próg aplikowania 4.0
   oraz to, czego system wyraźnie nigdy nie robi. Skrót dostępny też pod adresem
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) w Twoim języku.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) w Twoim języku.
 
 **Definiujące zasady** (z
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

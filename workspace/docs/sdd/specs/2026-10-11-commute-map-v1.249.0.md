@@ -41,7 +41,7 @@ over much of a phone viewport, and treated a marker tap as immediate navigation.
 
 - Running the router, geocoder or commute refresh from the UI.
 - Editing plugin settings or exposing router/email configuration.
-- Changing the parent rebound-ops repository or requiring the AnkitParekh007 fork.
+- Changing the parent rebound-ops repository or requiring the the original author fork.
 - Automatically reframing the map when a filter changes.
 
 ## Acceptance criteria

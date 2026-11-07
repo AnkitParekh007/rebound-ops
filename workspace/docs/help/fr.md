@@ -57,7 +57,7 @@ votre machine.
   — la méthodologie de notation : les cinq dimensions plus un score global holistique, le seuil de
   candidature à 4.0, et ce que le système refuse explicitement de faire.
   Également résumée sur
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) dans votre langue.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) dans votre langue.
 
 **Principes fondateurs** (d'après
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)) :

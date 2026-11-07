@@ -24,10 +24,10 @@ npm run test:e2e && npm run test:e2e:full              # smoke + 23/23
    `/etc/systemd/system/rebound-ops-ui.service.d/heap.conf` with
    `NODE_OPTIONS=--max-old-space-size=<heap_mb>` (default 448) and daemon-reloads only
    when it changes. `verify` reports exits, OOM kills, memory and Caddy 502s.
-3. **cvstart.org**: `/help` + `/changelog` no horizontal overflow at 390 / 1366 px;
+3. **reboundops.example**: `/help` + `/changelog` no horizontal overflow at 390 / 1366 px;
    `sitemap-0.xml` carries `hreflang="hi"` (85 alternates).
 4. **Help §19 ×17**: "add the key to all 17 language files" (was 8 / 9).
-5. **Remote QA** (`remote-qa.yml`): prod × 17 locales (read-only), cvstart.org × 17 ×
+5. **Remote QA** (`remote-qa.yml`): prod × 17 locales (read-only), reboundops.example × 17 ×
    2 viewports, README ×17 + wiki links; `live: true` adds one scan + live LLM
    (docs assistant, evaluate with `save:false`) in every locale.
    The prod origin comes from the `PROD_URL` secret (no hostname in the repo); a
@@ -39,7 +39,7 @@ npm run test:e2e && npm run test:e2e:full              # smoke + 23/23
 1. Open `#/scan` in two tabs, click **Scan** in both within a few seconds: the second
    tab shows "a scan is already running (started …)" and no second progress bar.
 2. After the first finishes, **Scan** works again in either tab.
-3. cvstart.org on a phone: `/help`, `/changelog` (also ja, zh-CN) — no sideways scroll.
+3. reboundops.example on a phone: `/help`, `/changelog` (also ja, zh-CN) — no sideways scroll.
 4. `curl -s https://github.com/AnkitParekh007/rebound-ops | grep -c 'hreflang="hi"'` → 85.
 
 ## §3 — Invariants

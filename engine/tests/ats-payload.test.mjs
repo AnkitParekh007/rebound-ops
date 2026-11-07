@@ -117,7 +117,7 @@ test('a payload can be piped in on stdin', () => {
   assert.deepEqual(JSON.parse(r.stdout).competencies, []);
 });
 
-// ── Idempotency through the CLI (#3251, santifer's requested edge) ───────────
+// ── Idempotency through the CLI (#3251, the original author's requested edge) ───────────
 
 test('running the transform twice produces a byte-identical payload', () => {
   withFixture(DIRTY_PAYLOAD, (file, dir) => {

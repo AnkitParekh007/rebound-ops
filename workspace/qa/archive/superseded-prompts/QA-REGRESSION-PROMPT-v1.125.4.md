@@ -33,5 +33,5 @@
 - [ ] Manual: same in **हिन्दी** — `Respond in Hindi (locale: hi)`.
 - [ ] `node scripts/check-changelog-parity.mjs` — all 16 locales at 1.125.4.
 - [ ] Site build green (`cd site && npm run build`, Node ≥ 22) — sharp/svgo
-      bumps are build-time only; spot-check cvstart.org renders after deploy.
+      bumps are build-time only; spot-check reboundops.example renders after deploy.
 - [ ] `/api/health` → `version 1.125.4`, `parentVersion 1.22.0`.

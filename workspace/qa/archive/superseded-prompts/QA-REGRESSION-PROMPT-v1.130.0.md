@@ -34,7 +34,7 @@
 - [ ] `node --test tests/scan-fallback-sources.test.mjs` (drift) — `FALLBACK_SOURCES` in `scan.js` matches the live registry (value + label).
 - [ ] Manual: `GET /api/scan/sources` lists both new sources with the right region/label.
 - [ ] Manual: `#/scan` Source filter shows **a16z Speedrun** and **Cryptocurrency Jobs**.
-- [ ] Site: cvstart.org "Job sources" chips include both (build from `site/` before checking).
+- [ ] Site: reboundops.example "Job sources" chips include both (build from `site/` before checking).
 - [ ] Help H2/H3 unchanged (29/105); §17 count sentence reads **72** / **67 English + 5 Russian**.
 - [ ] CHANGELOG parity ×17 at 1.130.0 (`node scripts/check-changelog-parity.mjs`).
 - [ ] `/api/health` → `version 1.130.0`, `parentVersion 1.24.0`.

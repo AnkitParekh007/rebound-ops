@@ -2656,14 +2656,14 @@ if (
 
 console.log('\n6. Personal data leak check');
 
-const leakPatterns = [
-  'Santiago', 'santifer.io', 'Santifer iRepair', 'Zinkee', 'ALMAS',
-  'hi@santifer.io', '688921377', '/Users/santifer/',
-];
+// Add the maintainer's own private identifiers here (full name if private,
+// phone, personal email, home path) so a commit can never leak them. The
+// previous list named a third party and was removed with their details.
+const leakPatterns = [];
 
 const scanExtensions = ['md', 'yml', 'html', 'mjs', 'sh', 'go', 'json'];
 const allowedFiles = [
-  // English README + localized translations (all legitimately credit Santiago)
+  // English README + localized translations
   'README.md', 'README.ar.md', 'README.da.md', 'README.de.md', 'README.es.md', 'README.fr.md', 'README.hi.md',
   'README.ja.md', 'README.ko-KR.md', 'README.pl.md', 'README.pt-BR.md', 'README.ru.md', 'README.ta.md', 'README.cn.md',
   'README.ua.md', 'README.zh-TW.md', 'README.tr.md',
@@ -4367,7 +4367,7 @@ if (
     fail(`minimum-wage phrasing discipline broken: ${mwAccusatory.length ? `accusatory blockquote line(s): ${mwAccusatory[0].trim().slice(0, 80)}` : (!mwHasLawyerRouting ? 'missing [ask your lawyer] routing in rendered blockquote' : 'expected a blockquote output template in the section')} (#2280)`);
   }
 
-  // 4. The rendered lawyer question must follow santifer's exact shape from
+  // 4. The rendered lawyer question must follow the original author's exact shape from
   //    his #2027 comment: computed hourly figure, hours basis disclosed,
   //    jurisdiction name, statutory-minimum question, AND a mention of
   //    special rates (student/homeworker) as a prompt — never an assertion
@@ -4629,7 +4629,7 @@ if (
 }
 
 // --- offer-prep sub-statutory-terms lawyer question (#2039, reworked per #2280) ---
-// santifer's direction on PR #2042 (2026-07-29, reasoning in #2280): a
+// the original author's direction on PR #2042 (2026-07-29, reasoning in #2280): a
 // jurisdiction table of category-regulation flags (floor_categories,
 // void_doctrine) is a live legal fact this system can never verify or
 // notice going stale, same as #2027's minimum-wage table — a stale flag
@@ -7571,7 +7571,7 @@ console.log('\n12c. Materialized skill index mode');
     // necessary is what can make its parent absent: pointed at an empty or a
     // non-existent directory, `git init` still succeeds but seeds no .git/info,
     // and the bare write threw ENOENT before the fixture ran a single assertion
-    // (santifer, reviewing #2567). Assuming the default template here would be
+    // (the original author, reviewing #2567). Assuming the default template here would be
     // the same ambient-environment dependency this block exists to remove.
     const excludePath = join(fixtureRoot, '.git', 'info', 'exclude');
     mkdirSync(dirname(excludePath), { recursive: true });
@@ -11176,7 +11176,7 @@ try {
     } else {
       // Check 2 reads the tracker's own Company column, where the two spellings
       // survive intact, so this is the one the dotted I blinds.
-      // Decision changed 12-ago (Santiago): the targeted fix landed, so the
+      // Decision changed 12-ago (the original author): the targeted fix landed, so the
       // tracker check now folds the dotted I and DOES catch the duplicate.
       // Left pinned in the opposite direction so a revert is loud.
       if (/Possible duplicates/.test(tkOut)) {

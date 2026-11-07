@@ -1,5 +1,5 @@
 /**
- * v1.121.0 — cvstart.org Methodology / License / Changelog pages.
+ * v1.121.0 — reboundops.example Methodology / License / Changelog pages.
  *
  * The landing gained three localized pages sourced from the repo:
  *   /methodology/ — i18n-keyed summary of github.com/AnkitParekh007/rebound-ops

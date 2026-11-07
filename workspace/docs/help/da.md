@@ -50,7 +50,7 @@ lokalt på din maskine.
 - [Sådan scorer rebound-ops jobopslag](https://github.com/AnkitParekh007/rebound-ops)
   — scoringsmetodologien: de fem dimensioner plus en holistisk samlet score, 4,0-ansøgningstærsklen,
   og hvad systemet eksplicit nægter at gøre. Opsummeres også på
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) på dit sprog.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) på dit sprog.
 
 **Definerende principper** (fra
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

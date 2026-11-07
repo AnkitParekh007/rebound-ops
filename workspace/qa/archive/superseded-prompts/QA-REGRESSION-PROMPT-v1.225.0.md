@@ -22,7 +22,7 @@ node scripts/check-changelog-parity.mjs                    # 16 non-EN at v1.225
 
 - On GitHub, the README and any `docs/help/<lang>.md` show the provider banner at the top.
 - In the app (`#/help`), the banner does not appear (stripped) and nothing is broken — the real logos are on the provider tiles (`#/config`, `#/usage`, dashboard chip, ⚡ eval).
-- cvstart.org landing: the `#providers` showcase (from v1.224.0 follow-up) shows the same logos.
+- reboundops.example landing: the `#providers` showcase (from v1.224.0 follow-up) shows the same logos.
 
 ## §3 — Contract / invariants
 

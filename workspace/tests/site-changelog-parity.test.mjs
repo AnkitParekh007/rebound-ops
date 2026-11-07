@@ -1,5 +1,5 @@
 /**
- * CAR-131 — cvstart.org changelog mirrors carry every release per locale.
+ * CAR-131 — reboundops.example changelog mirrors carry every release per locale.
  *
  * The audit found de at 248 releases, ta at 24, vi at 4 against 461 in EN
  * (counts moved since; the shape is the same), plus da carrying a 199-entry

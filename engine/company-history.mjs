@@ -634,7 +634,7 @@ export function getCompanyCard(result, companyName, aggregators) {
 // script already has tested rather than adding a second, undocumented cutoff.
 //
 // Schema v1 (verbatim from RFC #1506, ratified 2026-07-16 — full 10-field
-// shape, per @Schlaflied's converged-schema comment that @santifer ratified):
+// shape, per @Schlaflied's converged-schema comment that the original author ratified):
 //   { schemaVersion: 1, companyKey, region, signalType: 'no-response-friction',
 //     detail: null, severity: 'single'|'pattern'|null,
 //     sourceDetector: 'company-history', sourceHash: 'sha256:...',

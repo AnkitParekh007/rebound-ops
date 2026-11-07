@@ -41,7 +41,7 @@ Parent **v1.26.0** parity. Registry now **78 sources = 73 EN + 5 RU** (`ALL_ADAP
 
 1. **`#/scan` Source filter** — the dropdown lists **JOIN, Getro, Consider, JOINUP, Remotli** (offline FALLBACK + live registry). Chip count / source list reflects **78**.
 2. **`#/portals` health** — unchanged contract: a genuinely-down board shows a real failure; a16z no longer reads as an empty board after a transient blip.
-3. **cvstart.org landing** (after Pages redeploy) — the Job-sources section shows **78** sources incl. the 5 new chips (join.com / getro.com / getconsider.com / joinup.ch / remotli.ch).
+3. **reboundops.example landing** (after Pages redeploy) — the Job-sources section shows **78** sources incl. the 5 new chips (join.com / getro.com / getconsider.com / joinup.ch / remotli.ch).
 4. No new UI strings / i18n keys (source labels are data) — nothing else in the chrome changes.
 
 ## §3 — Contract & security invariants

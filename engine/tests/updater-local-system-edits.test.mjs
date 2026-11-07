@@ -515,7 +515,7 @@ const PATHS = ['modes/', 'generate-cover-letter.mjs'];
 }
 
 // ── 11. ...so the update RESTORES it ──
-//    The property the suite never asserted (santifer's review): nothing pinned
+//    The property the suite never asserted (the original author's review): nothing pinned
 //    that apply() brings back a system file the user deleted. Before the #2337
 //    detector the raw checkout did it for free; the detector is what could take
 //    it away, so the case belongs with the detector. Same shape as case 8: the

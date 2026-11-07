@@ -1,5 +1,5 @@
 /**
- * CAR-132 — cvstart.org build gate: exactly one <h1> per /help and
+ * CAR-132 — reboundops.example build gate: exactly one <h1> per /help and
  * /changelog page ×19 locales, and a per-page changelog weight budget
  * (the full-history page used to weigh ~1 MB).
  *

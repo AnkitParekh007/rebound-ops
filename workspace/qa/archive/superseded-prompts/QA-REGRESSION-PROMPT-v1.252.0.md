@@ -16,7 +16,7 @@ node scripts/remote-qa/link-check.mjs   # зелёный (github 5xx = unverifie
 ## §1 — Родитель 1.37.0 (главная проверка релиза)
 
 1. `curl -s http://127.0.0.1:4317/api/health` → `"parentVersion": "1.37.0"` (локально родитель в `~/My_diary/rebound-ops` на 139efe1b).
-2. Прод: `https://resumecraft.ru/api/health` → `"version": "1.252.0"`, `"parentVersion": "1.37.0"`.
+2. Прод: `https://reboundops.example/api/health` → `"version": "1.252.0"`, `"parentVersion": "1.37.0"`.
 3. Трекер рендерится (статусы канонические, states.yml родителя не менялся в дельте).
 4. Отчёты открываются, дашборд рисует счётчики.
 

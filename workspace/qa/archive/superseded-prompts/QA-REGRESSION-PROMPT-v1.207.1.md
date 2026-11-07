@@ -1,6 +1,6 @@
 # QA REGRESSION PROMPT — rebound-ops-ui **v1.207.1** (patch: mobile landing overflow + flaky-test hardening)
 
-**Fixed.** Two non-app fixes: (1) the `site/` marketing landing (cvstart.org) clipped its hero off the right edge on narrow phones; (2) a flaky Playwright smoke assertion that could fail on a transient resource 404. **No server or SPA app code changed.**
+**Fixed.** Two non-app fixes: (1) the `site/` marketing landing (reboundops.example) clipped its hero off the right edge on narrow phones; (2) a flaky Playwright smoke assertion that could fail on a transient resource 404. **No server or SPA app code changed.**
 
 - **Under test:** `package.json` **1.207.1**.
 
@@ -31,4 +31,4 @@ node --test tests/playwright-smoke.mjs       # 20/20
 
 ## §3 — Sign-off
 
-Unit suite **2618** green (unchanged — no unit tests added/removed) · CHANGELOG parity ×17 at v1.207.1 · README badge+banner ×17 · site builds clean (86 pages) · smoke 20/20 · **no server/SPA/app-behavior change**, no new dependency, no parent edits. Deploy: Pages rebuild refreshes cvstart.org with the overflow fix; prod re-synced (app byte-identical to 1.207.0, version footer → 1.207.1).
+Unit suite **2618** green (unchanged — no unit tests added/removed) · CHANGELOG parity ×17 at v1.207.1 · README badge+banner ×17 · site builds clean (86 pages) · smoke 20/20 · **no server/SPA/app-behavior change**, no new dependency, no parent edits. Deploy: Pages rebuild refreshes reboundops.example with the overflow fix; prod re-synced (app byte-identical to 1.207.0, version footer → 1.207.1).

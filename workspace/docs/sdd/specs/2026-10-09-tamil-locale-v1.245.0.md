@@ -27,7 +27,7 @@ first new language after the 17-locale wave, at full key parity.
 
 ## Deliberate non-actions
 
-- cvstart.org landing stays 17 locales at this release (the landing
+- reboundops.example landing stays 17 locales at this release (the landing
   translation shipped separately in #419).
 - `report-header.js` REPORT_LABELS stays 17 — Tamil report parsing arrives
   with parent-repo Tamil report generation.
@@ -39,7 +39,7 @@ first new language after the 17-locale wave, at full key parity.
 - `npm run test:ci` → **5076 tests / 5075 pass / 0 fail**; workflow evals
   **14 pass · 0 fail**; browser smoke green; site build green (91 pages
   after the landing PR).
-- Prod (resumecraft.ru): `/api/health` = `1.245.0`; smoke **15/15**.
+- Prod (reboundops.example): `/api/health` = `1.245.0`; smoke **15/15**.
 - Language switcher renders தமிழ் 🇮🇳; `?lang=ta` persists; RTL round-trip
   clean; docs/help/ta.md renders all 33 sections.
 

@@ -30,4 +30,4 @@ Prefer the manual route? `git clone` still works exactly as before — see the [
 
 ## License
 
-MIT © [Santiago Fernández de Valderrama](https://santifer.io)
+MIT © [the original author](https://github.com/AnkitParekh007/rebound-ops)

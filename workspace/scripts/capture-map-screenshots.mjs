@@ -3,7 +3,7 @@
  * scripts/capture-map-screenshots.mjs
  *
  * One job-map (#/map) screenshot per locale into web-ui/images/job-map-<file>.png,
- * used by the READMEs, the help bundles and the cvstart.org #job-map section.
+ * used by the READMEs, the help bundles and the reboundops.example #job-map section.
  * The frame is the map page only — title + located counter + filter chips +
  * search + map + side list + filter bar — never the page chrome: the topbar and
  * the notifications drawer are hidden for the shot (addStyleTag, this script

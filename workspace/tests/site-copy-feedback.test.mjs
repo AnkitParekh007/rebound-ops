@@ -1,8 +1,8 @@
 /**
- * CAR-141 — copy-to-clipboard feedback guards (cvstart.org).
+ * CAR-141 — copy-to-clipboard feedback guards (reboundops.example).
  *
  * The finding: «копирование без обратной связи» — clicking a copy button on
- * cvstart.org gave no feedback. The mechanism exists in the markup (icon
+ * reboundops.example gave no feedback. The mechanism exists in the markup (icon
  * swap + aria-live region) but the handler early-returned when the async
  * Clipboard API rejects (headless browsers, permission-denied, insecure
  * contexts) — in exactly those environments the click was silent. These

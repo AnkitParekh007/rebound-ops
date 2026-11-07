@@ -1,5 +1,5 @@
 /**
- * P3.4 (CAR-132 tail) — the cvstart.org fixed-header backdrop contract.
+ * P3.4 (CAR-132 tail) — the reboundops.example fixed-header backdrop contract.
  *
  * The site header is position:fixed over the page; when scrolled it paints a
  * translucent rgba fill. Without a backdrop-filter that fill reads as a flat

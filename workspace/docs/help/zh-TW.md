@@ -41,7 +41,7 @@
   — 安裝 Chromium 並註冊 MCP,以支援 PDF 與表單填寫。
 - [rebound-ops 如何為職缺評分](https://github.com/AnkitParekh007/rebound-ops)
   — 評分方法論:五個維度加上整體綜合評分、4.0 分投遞門檻,以及本系統絕對
-  拒絕做的事。也可在 [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) 以你
+  拒絕做的事。也可在 [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) 以你
   慣用的語言查看摘要。
 
 **核心原則**(出自

@@ -47,7 +47,7 @@ ngay trên máy của bạn.
 - [How rebound-ops scores job listings](https://github.com/AnkitParekh007/rebound-ops)
   — phương pháp chấm điểm: năm chiều cộng điểm tổng toàn cục, ngưỡng ứng tuyển 4.0,
   và những gì hệ thống cố tình không làm. Cũng được tóm tắt tại
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) bằng ngôn ngữ của bạn.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) bằng ngôn ngữ của bạn.
 
 **Nguyên tắc nền tảng** (từ
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

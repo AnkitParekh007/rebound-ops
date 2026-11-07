@@ -24,7 +24,6 @@
     "create",
     "cli"
   ],
-  "author": "Santiago Fernández de Valderrama <hi@santifer.io> (https://santifer.io)",
   "homepage": "https://github.com/AnkitParekh007/rebound-ops#readme",
   "repository": {
     "type": "git",
@@ -36,5 +35,11 @@
   },
   "license": "MIT",
   "dependencies": {},
-  "private": true
+  "private": true,
+  "maintainers": [
+    {
+      "name": "Ankit Parekh",
+      "url": "https://github.com/AnkitParekh007"
+    }
+  ]
 }

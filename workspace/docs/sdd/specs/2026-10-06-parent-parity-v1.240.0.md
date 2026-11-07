@@ -3,7 +3,7 @@
 - **Status:** Done
 - **Release:** v1.240.0 (2026-10-06)
 - **Related:** [ADR-0002](../../adr/0002-defend-fork-divergences.md) (defend fork divergences), [ADR-0003](../../adr/0003-mirror-vs-relay.md) (mirror vs relay), PR #380 (@bullitt186), the `parent-sync` skill
-- **Owner:** maintainer — done when the gates in *Verification* are green and resumecraft.ru reports the version
+- **Owner:** maintainer — done when the gates in *Verification* are green and reboundops.example reports the version
 
 ## Goal
 Bring `AnkitParekh007/rebound-ops` (the parent) level with upstream `AnkitParekh007/rebound-ops` and mirror into web-ui everything the parent gained that web-ui reads or re-implements.
@@ -29,7 +29,7 @@ Trusted-proxy egress, `scan-history.tsv` column registry, language-aware requisi
 2. `ALL_ADAPTERS.length === 104` and the sorted id list matches the live registry. *(`tests/adapter-registry.test.mjs`)*
 3. `GET /api/scan/sources` lists the six new EN sources. *(`tests/scan-sources-endpoint.test.mjs`)*
 4. The `#/scan` fallback list equals the server registry by value and label. *(`tests/scan-fallback-sources.test.mjs`)*
-5. Every source has a link on cvstart.org. *(`tests/site-sources.test.mjs`)*
+5. Every source has a link on reboundops.example. *(`tests/site-sources.test.mjs`)*
 6. All 17 help bundles state 109 / 104+5. *(`tests/help-source-counts.test.mjs`)*
 7. Each new source is host-pinned, HTTPS-only, `redirect:'error'`, and throws (never returns `[]`) on a malformed body. *(`tests/sources-<slug>.test.mjs` ×6)*
 8. A checklist `pipeline.md` reads as N pending, adds under `## Pending`, never creates a fence. *(`tests/parsers-pipeline-checklist.test.mjs`)*

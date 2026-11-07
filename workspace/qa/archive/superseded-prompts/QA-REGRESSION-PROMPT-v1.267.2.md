@@ -1,7 +1,7 @@
 # QA Regression Prompt — v1.267.2
 
 > Release: **v1.267.2** (2026-11-04) · second parent-sync wave against rebound-ops @ `7d8feb6d` (87 commits) + CAR-228 filter compat
-> Prod target: resumecraft.ru = **1.267.2**, parent 1.38.0 @ `7d8feb6d`
+> Prod target: reboundops.example = **1.267.2**, parent 1.38.0 @ `7d8feb6d`
 > Tests: **7398** unit (0 fail) · Playwright **176** (174 harness: 173 pass / 0 fail / 1 opt-in skip · e2e 21/0 · comprehensive 23/23) · registry **129 = 124 EN + 5 RU · 124 adapters**
 
 ## What shipped (verify these first)
@@ -28,7 +28,7 @@
 - [ ] All views render; 19 locales switch cleanly (no Latin leaks, RTL holds); dark/light across sidebar/tracker/scan.
 - [ ] Mobile 390 px: sidebar drawer, scan table, tracker — no horizontal overflow.
 - [ ] `#/health` all green; `/api/health` reports `1.267.2`.
-- [ ] cvstart.org: mirrors stamped `v1.267.2`; the Sources section shows 129.
+- [ ] reboundops.example: mirrors stamped `v1.267.2`; the Sources section shows 129.
 - [ ] README ×19 banners name v1.267.2 (lead) / v1.266.0 (previous); badges tests-7398 / release-v1.267.2.
 
 ## Not in scope (by design)

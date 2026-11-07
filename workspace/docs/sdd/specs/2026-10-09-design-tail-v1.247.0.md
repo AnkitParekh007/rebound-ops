@@ -36,7 +36,7 @@ the dark map the previous release deliberately deferred.
   `tests/design-qa-v1247.test.mjs`, 27 contracts.
 - Browser suites green; e2e 21/0; evals 12 pass · 0 fail · 2 worktree
   env-skips; site build green; CSS contracts 790/800/798.
-- Prod (resumecraft.ru): smoke **15/15**; targeted map check — dark theme
+- Prod (reboundops.example): smoke **15/15**; targeted map check — dark theme
   applies `invert(1) hue-rotate(180deg) brightness(.87) contrast(.88)
   saturate(.55)` to `.leaflet-tile`, light → `none`; zoom control
   `rgb(30,35,46)`.

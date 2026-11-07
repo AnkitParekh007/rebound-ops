@@ -1,7 +1,7 @@
 # Regression suite — v1.244.2 (scan chrome + results-table hardening)
 
 > Детальный ручной прогон. База: v1.244.1 → v1.244.2. Локально: `npm start`
-> → `http://127.0.0.1:4317` (basic auth). Прод: `https://resumecraft.ru`.
+> → `http://127.0.0.1:4317` (basic auth). Прод: `https://reboundops.example`.
 > Прогонять в Chromium + Firefox, light и dark, минимум en/ru/ar/ta.
 > Gate-команды из §0 можно копировать как есть.
 

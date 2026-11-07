@@ -1,7 +1,7 @@
 /**
  * changelog-parity.mjs — the shared release-count contract for CHANGELOG files.
  *
- * CAR-131: the cvstart.org per-locale changelog pages were badly incomplete
+ * CAR-131: the reboundops.example per-locale changelog pages were badly incomplete
  * (de 252, ta 28, vi 8 releases against 465 in EN) because every locale file
  * was seeded mid-history (de with a single entry at v1.85.0, ta at v1.245.0,
  * vi at v1.255.0, …) and the release train prepends exactly one translated
@@ -10,7 +10,7 @@
  *
  * Single splitter/counter for every consumer:
  *   - scripts/check-changelog-parity.mjs     (release-train gate, test:ci)
- *   - site/scripts/sync-assets.mjs           (site build gate, cvstart.org)
+ *   - site/scripts/sync-assets.mjs           (site build gate, reboundops.example)
  *   - scripts/backfill-changelog-locales.mjs (the repair tool)
  *
  * Pure text transforms — no I/O, no dependencies.

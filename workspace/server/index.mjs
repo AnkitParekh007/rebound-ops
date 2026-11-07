@@ -412,7 +412,7 @@ export function createApp() {
   // could mint fresh rate-limit buckets at will. A hop count trusts only
   // the proxy that connected to us and resolves req.ip to the right-most
   // trusted XFF entry — one Caddy hop on the same host is the prod topology
-  // at resumecraft.ru. Unset by default: loopback deploys key limiters on
+  // at reboundops.example. Unset by default: loopback deploys key limiters on
   // the socket address, which is spoof-proof. express-rate-limit's
   // keyGenerator needs no change (it reads req.ip); the matching
   // writeValidateConfig() in rate-limit.mjs re-arms full validations when

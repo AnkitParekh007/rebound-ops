@@ -67,8 +67,8 @@ npm run test:coverage:gate      # coverage ratchet (scripts/coverage-baseline.js
 6. `gh pr merge <n> --squash --delete-branch`; `git checkout main && git pull`.
 7. `git tag vX.Y.Z <merge sha> && git push origin vX.Y.Z` → Release workflow.
 8. `gh workflow run publish-package.yml --ref vX.Y.Z` (never auto).
-9. cvstart.org: Pages deploys on `site/**` pushes; otherwise `gh workflow run deploy-pages.yml --ref main`.
-10. **resumecraft.ru:** `gh workflow run deploy.yml --ref main -f mode=deploy -f ui_ref=vX.Y.Z -f parent_ref=<parent sha>`;
+9. reboundops.example: Pages deploys on `site/**` pushes; otherwise `gh workflow run deploy-pages.yml --ref main`.
+10. **reboundops.example:** `gh workflow run deploy.yml --ref main -f mode=deploy -f ui_ref=vX.Y.Z -f parent_ref=<parent sha>`;
     watch it; the log must show `version=X.Y.Z` and the public check `401` (basic auth) — a `421`
     means `ALLOWED_HOSTS` is wrong. Then `-f mode=verify`.
 11. Wiki: fresh clone of `AnkitParekh007/rebound-ops.wiki`, Home ×19 banners, Scanner-Providers rows,
@@ -80,7 +80,7 @@ npm run test:coverage:gate      # coverage ratchet (scripts/coverage-baseline.js
 Every release — patch included — also carries ALL of the following. If any step is missed,
 the release is not done:
 
-1. **Full regression on BOTH stands**: local `127.0.0.1:4317` AND prod (resumecraft.ru).
+1. **Full regression on BOTH stands**: local `127.0.0.1:4317` AND prod (reboundops.example).
    All views, all 19 locales, LLM providers live (`gh workflow run remote-qa.yml -f live=true`),
    scanner (`-f scan=true`), plus an adversarial browser pass (Playwright; creds via env,
    never committed). Findings become Linear issues (Russian) in the carrer-ops-ui workspace

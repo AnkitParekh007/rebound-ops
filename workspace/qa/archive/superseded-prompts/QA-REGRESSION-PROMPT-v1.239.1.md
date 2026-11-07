@@ -1,7 +1,7 @@
 # QA regression — v1.239.1
 
 Patch from the v1.239.0 live regression (Remote QA run 36567385635): prod 510 visits,
-cvstart.org 170 visits and links were clean, but the live job reported the scan as
+reboundops.example 170 visits and links were clean, but the live job reported the scan as
 failed (the server was running the hourly scan retried after the deploy and answered
 `SCAN_BUSY`) and the ja and uk evaluations came back mostly in English
 (ja script 20 %, uk script 15 %). **Counts:** 103 sources (98 EN + 5 RU) / 98

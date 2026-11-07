@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Static multilingual marketing landing for rebound-ops-ui (cvstart.org). Built with Astro; deployed to GitHub Pages by CI only.",
+  "description": "Static multilingual marketing landing for rebound-ops-ui (reboundops.example). Built with Astro; deployed to GitHub Pages by CI only.",
   "scripts": {
     "predev": "node scripts/sync-assets.mjs",
     "dev": "astro dev",

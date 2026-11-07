@@ -30,7 +30,7 @@ Parent **v1.25.0** parity — one new source + four provider fixes. Registry now
 
 1. **`#/scan` Source filter** — open the Source dropdown; **getManfred** appears (both offline FALLBACK and the live registry list). Selecting it and scanning (VPN off if needed) returns Spanish/EU roles, many with a salary.
 2. **`#/portals` health** — a company whose board is genuinely down now shows a **failure** state (not a false "reachable, 0 roles").
-3. **cvstart.org landing** (after Pages redeploy) — the Job-sources section chip count reads **73** and includes a **getManfred** chip linking to `getmanfred.com`.
+3. **reboundops.example landing** (after Pages redeploy) — the Job-sources section chip count reads **73** and includes a **getManfred** chip linking to `getmanfred.com`.
 4. No new UI strings/i18n keys this release — nothing else in the chrome changes.
 
 ## §3 — Contract & security invariants

@@ -30,7 +30,7 @@ Open `#/config` → **API keys**: the Anthropic / Gemini / OpenAI / Qwen / OpenR
 ## §4 — Not in scope
 
 - The 7 monogram providers: they publish no open-source brand icon, so a real logo would have to be invented (inaccurate) — monogram is deliberate.
-- The cvstart.org landing shows a provider **count**, not per-provider logos (no logo showcase exists there); prose docs/help/README/wiki list providers by name.
+- The reboundops.example landing shows a provider **count**, not per-provider logos (no logo showcase exists there); prose docs/help/README/wiki list providers by name.
 
 ## §5 — Sign-off
 

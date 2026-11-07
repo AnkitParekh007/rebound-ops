@@ -4,7 +4,6 @@
   "description": "Clean, docs-style web interface for the rebound-ops AI job-search pipeline — search, evaluate, deep-dive, apply, track every offer from a single browser tab.",
   "type": "module",
   "license": "MIT",
-  "author": "AnkitParekh007",
   "homepage": "https://github.com/AnkitParekh007/rebound-ops#readme",
   "repository": {
     "type": "git",
@@ -74,5 +73,11 @@
   "overrides": {
     "qs": "^6.17.0"
   },
-  "private": true
+  "private": true,
+  "maintainers": [
+    {
+      "name": "Ankit Parekh",
+      "url": "https://github.com/AnkitParekh007"
+    }
+  ]
 }

@@ -39,7 +39,7 @@ Parent **v1.26.x** mainline (post-v1.26.0). Registry now **79 sources = 74 EN + 
 
 1. **`#/scan` Source filter** — the dropdown lists **Eightfold** (offline FALLBACK + live registry). Source count reflects **79**.
 2. **`#/tracker`** — status tabs still fold the canonical funnel; the new `evaluated`/`skip` aliases resolve (parent file read first, FALLBACK backs a fresh clone).
-3. **cvstart.org landing** (after Pages redeploy) — Job-sources section shows **79** incl. the `eightfold` chip (→ eightfold.ai).
+3. **reboundops.example landing** (after Pages redeploy) — Job-sources section shows **79** incl. the `eightfold` chip (→ eightfold.ai).
 4. No new UI strings / i18n keys (source label + quality ports are data/logic) — chrome unchanged.
 
 ## §3 — Contract & security invariants

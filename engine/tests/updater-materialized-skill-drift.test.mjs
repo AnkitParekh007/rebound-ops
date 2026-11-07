@@ -248,7 +248,7 @@ console.log('\n🧪 Testing updater drift detection over materialized skill entr
 }
 
 // ── 7. check() itself is actually wired to the exclusion, not just the
-//    standalone helper (santifer's review on #4216) ───────────────────────
+//    standalone helper (the original author's review on #4216) ───────────────────────
 //    Every case above drives driftPathspecExcludingSkillEntrypoints() and
 //    systemTreeDiffers() directly against a throwaway repo — proving the
 //    HELPER is correct, never that check()'s own call site actually routes

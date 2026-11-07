@@ -51,7 +51,7 @@ PDF-резюме и отслеживает каждую заявку локал�
 - [How rebound-ops scores job listings](https://github.com/AnkitParekh007/rebound-ops)
   — методология оценки: пять параметров плюс целостная общая оценка, порог отклика 4.0 и то,
   что система принципиально не делает. Также кратко изложено на
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) на вашем языке.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) на вашем языке.
 
 **Определяющие принципы** (из
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

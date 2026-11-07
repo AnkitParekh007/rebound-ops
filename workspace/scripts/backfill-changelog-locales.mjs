@@ -5,7 +5,7 @@
  * The per-locale CHANGELOG files were seeded mid-history (de with one entry
  * at v1.85.0, ta at v1.245.0, vi at v1.255.0, …) and every release prepends
  * one translated entry — so everything published before a locale existed is
- * simply absent, and cvstart.org's per-locale changelog pages were incomplete
+ * simply absent, and reboundops.example's per-locale changelog pages were incomplete
  * (de 252, ta 28, vi 8 against EN 465). The old parity gate compared only the
  * NEWEST heading, so no gate ever noticed.
  *

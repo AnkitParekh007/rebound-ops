@@ -62,7 +62,7 @@ ReboundOps, the name of the practice, belongs to everyone who practices it. rebo
 
 *To sign, add your name. Your signature becomes a commit. For many, it will be their first.*
 
-**Originally written by:** Santiago Fernández de Valderrama Aparicio, July 14, 2026, for the project this engine derives from.
+**Originally written by:** the original author, July 14, 2026, for the project this engine derives from.
 
 ---
 

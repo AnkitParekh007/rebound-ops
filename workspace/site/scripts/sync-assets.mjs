@@ -86,7 +86,7 @@ function rewriteLinks(md) {
 // site resolves them at sync time: a key present in the site's own i18n
 // file (src/i18n/<locale>.json) wins; otherwise the label falls back to the
 // app's EN dict (the single source of truth). A key with no EN value is a
-// hard build failure — cvstart.org must never print a raw placeholder.
+// hard build failure — reboundops.example must never print a raw placeholder.
 const HELP_PLACEHOLDER_RE = /\{\{t:([A-Za-z0-9_.-]+)\}\}/g;
 // Help-file stem → site i18n JSON name (ko-KR.md reads ko.json).
 const SITE_JSON_NAMES = { 'ko-KR': 'ko' };
@@ -196,7 +196,7 @@ for (const f of clFiles) {
 // counts alone cannot see a typo'd version plus a hole (same count, different
 // set). The locale files were seeded mid-history and the release train
 // prepends one entry per release, so a seeded-once-partial file stayed
-// partial forever — de reached cvstart.org with 252 of 465 releases while the
+// partial forever — de reached reboundops.example with 252 of 465 releases while the
 // old parity gate (newest heading only) passed clean. Fail the build instead
 // of shipping a page whose release set depends on when the locale was added.
 if (!clSources.has('en')) {
@@ -244,7 +244,7 @@ for (const [lang, { file, entries }] of clSources) {
   clIndex[lang] = { pages: chunks.length, months: buildMonthIndex(chunks) };
   chunks.forEach((chunk, p) => {
     const body = chunk.map((r) => r.lines.join('\n')).join('\n');
-    const footer = `\n\n---\n\n*rebound-ops-ui v${SITE_VERSION} · page ${p + 1}/${chunks.length} · mirror of the project changelog for cvstart.org*`;
+    const footer = `\n\n---\n\n*rebound-ops-ui v${SITE_VERSION} · page ${p + 1}/${chunks.length} · mirror of the project changelog for reboundops.example*`;
     writeFileSync(join(clDst, `${lang}-p${String(p + 1).padStart(2, '0')}.md`), rewriteRootLinks(`${body.trimStart()}\n${footer}\n`));
   });
   // Delivery tripwire (CAR-131, adapted to pagination): the pages on disk

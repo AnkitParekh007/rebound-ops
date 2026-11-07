@@ -44,7 +44,7 @@ const HARD_EXPIRED_PATTERNS = [
   //
   // The trailing \b(?!-) is a compound-adjective guard. Without it,
   // "This role is closed-loop control of the platform" (real prose in a
-  // control-systems JD, per santifer's review on #4194) matches the "is
+  // control-systems JD, per the original author's review on #4194) matches the "is
   // closed" fragment and returns expired. \b requires end-of-word after
   // "closed"; (?!-) additionally rejects the hyphen case that \b alone
   // allows (d->- is word->non-word, so \b matches; the lookahead is what
@@ -110,7 +110,7 @@ const LISTING_PAGE_PATTERNS = [
 // anything placed there wins over a live Apply button on the page.
 //
 // /\bjob expired\b/i lived in HARD_EXPIRED_PATTERNS in the first cut of #4175
-// and false-fired on four live-posting shapes santifer measured in the #4194
+// and false-fired on four live-posting shapes the original author measured in the #4194
 // review: a "Similar jobs" carousel with a "Job Expired" entry, a "Hide job
 // expired" filter chip, a footer FAQ asking "what happens when a job
 // expired?", and — before the closed-loop guard on the closed pattern above —

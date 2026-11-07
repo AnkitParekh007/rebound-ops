@@ -12,8 +12,8 @@
 //   .claude-plugin/plugin.json  "AI job search command center"
 //                               — "command center" reads as centralized infrastructure,
 //                                 which is the opposite of what this tool is.
-//   package.json  homepage      https://santifer.io
-//   CITATION.cff  url           https://santifer.io
+//   package.json  homepage      https://github.com/AnkitParekh007/rebound-ops
+//   CITATION.cff  url           https://github.com/AnkitParekh007/rebound-ops
 //                               — both set in the same branding commit, BEFORE
 //                                 github.com/AnkitParekh007/rebound-ops existed. Meanwhile the GitHub
 //                                 homepage and the README already say github.com/AnkitParekh007/rebound-ops.

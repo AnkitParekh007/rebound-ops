@@ -35,5 +35,5 @@
 - [ ] `node scripts/check-changelog-parity.mjs` — all 16 locales at 1.125.2.
 - [ ] `rg -c 'gemini-2\.0-flash' docs/help/` — zero hits.
 - [ ] README ×17: badge `tests-1957`, `release-v1.125.2`, 🆕 line v1.125.2.
-- [ ] Contributors: cvstart.org contributors block includes Alien10140 after the
+- [ ] Contributors: reboundops.example contributors block includes Alien10140 after the
       site rebuild (build-time `facts.json` top-24 sync).

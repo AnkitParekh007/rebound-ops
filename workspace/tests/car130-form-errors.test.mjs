@@ -83,7 +83,7 @@ test('CAR-130: loopback origin keeps the local dev hint (start.sh)', async () =>
 });
 
 test('CAR-130: a deployed origin shows generic wording, never the dev command', async () => {
-  for (const origin of ['https://resumecraft.ru', 'http://192.168.1.10:4317', '']) {
+  for (const origin of ['https://reboundops.example', 'http://192.168.1.10:4317', '']) {
     const { w } = loadApi({ origin });
     await assert.rejects(
       () => w.API.post('/api/mode/project', {}),
@@ -95,7 +95,7 @@ test('CAR-130: a deployed origin shows generic wording, never the dev command', 
 });
 
 test('CAR-130: the connection banner drops the dev command when deployed', async () => {
-  const { w, banner, bannerMsg } = loadApi({ origin: 'https://resumecraft.ru', withBanner: true });
+  const { w, banner, bannerMsg } = loadApi({ origin: 'https://reboundops.example', withBanner: true });
   // CAR-244.4 — the banner is a last-resort signal: it rises on the SECOND
   // consecutive transport failure, so fail twice to bring it up before
   // asserting the message content.

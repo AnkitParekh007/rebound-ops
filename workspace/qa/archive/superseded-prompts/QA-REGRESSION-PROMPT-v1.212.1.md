@@ -1,6 +1,6 @@
 # QA REGRESSION PROMPT — rebound-ops-ui **v1.212.1** (landing source-count fix)
 
-**Patch release.** cvstart.org under-counted scan sources (showed **80**, dropped **Job Bank (Canada)**) while the app listed **81**. Root cause: `jobbankca` top-level-imported `js-yaml`, which the Pages build (site/-only `npm ci`) can't resolve, so the registry enumeration silently dropped it. No app behaviour changed — the scanner always had all 81.
+**Patch release.** reboundops.example under-counted scan sources (showed **80**, dropped **Job Bank (Canada)**) while the app listed **81**. Root cause: `jobbankca` top-level-imported `js-yaml`, which the Pages build (site/-only `npm ci`) can't resolve, so the registry enumeration silently dropped it. No app behaviour changed — the scanner always had all 81.
 
 - **Under test:** `package.json` **1.212.1**. Registry **81** = 76 EN + 5 RU, `ALL_ADAPTERS` **76** — unchanged.
 
@@ -25,7 +25,7 @@ mv node_modules/js-yaml.HIDDEN node_modules/js-yaml
 
 ## §2 — Manual browser pass (after Pages redeploy)
 
-1. cvstart.org **Job sources** header reads **"81 job boards"** (not 80).
+1. reboundops.example **Job sources** header reads **"81 job boards"** (not 80).
 2. A **Job Bank (Canada)** chip is present and links to **jobbank.gc.ca**.
 3. Senjob + Yourator still present; EchoJobs still absent.
 4. Footer version badge reads **v1.212.1**.
@@ -44,4 +44,4 @@ mv node_modules/js-yaml.HIDDEN node_modules/js-yaml
 
 ## §5 — Sign-off
 
-Suite **2687** green (2685 + 2 site-sources gates) · `site-sources` 4→6 · `sources-jobbankca` 24 (async resolveProfileKeywords) · dep-isolation proof: registry enumerates **81** with js-yaml hidden · CHANGELOG parity ×17 at v1.212.1 · help **untouched** (source count unchanged 81/76) · CONVENTIONS/PROJECT-CONTEXT/CLAUDE.md refreshed · site rebuilt (facts.sources **81**, assertion passes) · wiki version + tests bumped. Deploy: Pages rebuild (site/ + registry changed) → cvstart.org back to 81; prod + local rsync of `jobbankca.mjs` + restart.
+Suite **2687** green (2685 + 2 site-sources gates) · `site-sources` 4→6 · `sources-jobbankca` 24 (async resolveProfileKeywords) · dep-isolation proof: registry enumerates **81** with js-yaml hidden · CHANGELOG parity ×17 at v1.212.1 · help **untouched** (source count unchanged 81/76) · CONVENTIONS/PROJECT-CONTEXT/CLAUDE.md refreshed · site rebuilt (facts.sources **81**, assertion passes) · wiki version + tests bumped. Deploy: Pages rebuild (site/ + registry changed) → reboundops.example back to 81; prod + local rsync of `jobbankca.mjs` + restart.

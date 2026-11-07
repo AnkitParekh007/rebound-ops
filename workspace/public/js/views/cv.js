@@ -57,7 +57,7 @@ Router.register('cv', async () => {
     className: 'textarea', rows: 30, style: { minHeight: '60vh' },
     id: 'cv-editor',
     // CAR-58 (v1.246.0) — markdown source is LTR content: in an RTL locale the
-    // bidi algorithm mirrored it ("# Sergey Emelyanov" → "Sergey Emelyanov #")
+    // bidi algorithm mirrored it ("# the original author" → "the original author #")
     // and displaced the markers. The editor stays LTR in every locale; the
     // chrome around it (headings, buttons) keeps the page direction.
     dir: 'ltr',

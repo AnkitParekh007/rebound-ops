@@ -3,8 +3,8 @@
   "version": "1.38.0",
   "description": "Open-source AI job search that runs locally in your AI coding CLI: scan job portals, evaluate listings into a structured A-H report with a 1-5 score, tailor your CV, track applications",
   "author": {
-    "name": "santifer",
-    "url": "https://santifer.io"
+    "name": "Ankit Parekh",
+    "url": "https://github.com/AnkitParekh007"
   },
   "homepage": "https://github.com/AnkitParekh007/rebound-ops",
   "repository": "https://github.com/AnkitParekh007/rebound-ops",

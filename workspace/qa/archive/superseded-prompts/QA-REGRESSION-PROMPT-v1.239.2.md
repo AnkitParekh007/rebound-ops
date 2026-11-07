@@ -1,6 +1,6 @@
 # QA regression — v1.239.2
 
-Patch from the v1.239.1 live regression (Remote QA run 36573692773). That run was clean on prod (510 visits), cvstart.org (170), links, and the scan (it waited 11 min for the hourly scan, then ATS + Regional done). Its evaluate column had three findings:
+Patch from the v1.239.1 live regression (Remote QA run 36573692773). That run was clean on prod (510 visits), reboundops.example (170), links, and the scan (it waited 11 min for the hourly scan, then ATS + Regional done). Its evaluate column had three findings:
 - ar: all block letters A–G missing (the model translated the letters);
 - ja: no SCORE_SUMMARY block;
 - hi: 29 % Devanagari script share (threshold 30 %).

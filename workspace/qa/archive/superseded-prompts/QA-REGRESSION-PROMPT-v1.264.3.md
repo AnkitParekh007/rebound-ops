@@ -1,7 +1,7 @@
 # QA Regression Prompt — v1.264.3
 
 > Release: **v1.264.3** (2026-11-01) · hardening-wave PR (rate-limit fleet: 6 agent branches integrated)
-> Prod target: resumecraft.ru = **1.264.3**, parent 1.38.0 @ `0595b5d1`
+> Prod target: reboundops.example = **1.264.3**, parent 1.38.0 @ `0595b5d1`
 > Tests: **7096** unit (0 fail) · Playwright **176** (174 harness: 173 pass / 0 fail / 1 opt-in skip · + e2e 21/0 · e2e-comprehensive 23/23) · registry 123 = 118 EN + 5 RU · 118 adapters · coverage **98.46/90.10** · evals 14/0/1skip
 > Playwright arithmetic: 176 = the `test:e2e:browser` TAP total of **174** (173 pass / 0 fail / 1 skip — the
 > opt-in `SCAN_REDESIGN_CAPTURE=1` layout-capture test in `scan-redesign-layout.test.mjs`) plus
@@ -17,7 +17,7 @@
 2. **`TRUST_PROXY` is a no-op by default.** Local run without the env behaves exactly as before
    (loopback, no warnings in the server log). With `TRUST_PROXY=1` behind a proxy, per-client buckets
    key on the right-most XFF entry.
-3. **cvstart.org copy feedback 2 s (CAR-141).** Click «Скопировать команду»: the ✓ + «Скопировано» state
+3. **reboundops.example copy feedback 2 s (CAR-141).** Click «Скопировать команду»: the ✓ + «Скопировано» state
    holds **2 seconds** (was 1.5 s) in any locale, `aria-live` announcement fires once, re-click restarts
    cleanly.
 4. **Help §19/§32 ×19.** Open `#/help` in ru / de / ar: «на 19 языках» / «in 19 Sprachen» / «التسع عشرة» —
@@ -28,7 +28,7 @@
 - [ ] All views render; 19 locales switch cleanly (no Latin leaks, RTL holds); dark/light across sidebar/tracker/scan.
 - [ ] Mobile 390 px: sidebar drawer, scan table, tracker — no horizontal overflow.
 - [ ] `#/health` all green; `/api/health` reports `1.264.3`.
-- [ ] cvstart.org: /changelog paginated mirrors stamped `v1.264.3` on every page.
+- [ ] reboundops.example: /changelog paginated mirrors stamped `v1.264.3` on every page.
 - [ ] README ×19 banners name v1.264.3 (lead) / v1.264.2 (previous); badges say tests-7096 / release-v1.264.3.
 
 ## Not in scope (by design)

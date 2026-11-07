@@ -268,7 +268,7 @@ try {
   }
 
   // ── 7b. strict mode refuses rather than silently dropping ────────────────
-  // Raised by @santifer in review: for apply-mode recovery of the user's own
+  // Raised by the original author in review: for apply-mode recovery of the user's own
   // previous answers, a partial parse that silently drops one is worse than a
   // refusal, because the missing answer looks like an answer they never gave.
   // The default stays total — the fixed point above depends on it — so the

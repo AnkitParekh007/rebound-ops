@@ -39,7 +39,7 @@ and the seven majors.
   (reproduced on main: Flow 2b's `input#dry-run` actionability never
   settles after the server down/up flow) — fixed with a hard reload
   before Flow 2b; 21/0 twice locally and on CI.
-- Prod (resumecraft.ru): smoke **15/15**; targeted — apply-dark link
+- Prod (reboundops.example): smoke **15/15**; targeted — apply-dark link
   contrast, RTL pill direction, FAB clearance.
 
 ## Notes

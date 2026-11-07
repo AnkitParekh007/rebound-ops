@@ -47,7 +47,7 @@
   — Chromium のインストールと、PDF・フォーム入力用 MCP の登録。
 - [rebound-ops による求人スコアリングの仕組み](https://github.com/AnkitParekh007/rebound-ops)
   — スコアリングメソドロジー: 5 つの評価次元 + 総合スコア、4.0 の応募しきい値、そして
-  このシステムが絶対に行わないこと。[cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops)
+  このシステムが絶対に行わないこと。[reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops)
   でもあなたの言語で要約を確認できます。
 
 **基本原則** (出典:

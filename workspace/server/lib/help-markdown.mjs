@@ -73,7 +73,7 @@ export function stripGithubOnlyBlocks(markdown) {
 //
 //   • the app (#/help) — the ACTIVE locale's label, via I18n.t in
 //     public/js/views/help.js, before UI.md();
-//   • cvstart.org — the site's own i18n value when it has one, else the EN
+//   • reboundops.example — the site's own i18n value when it has one, else the EN
 //     dict value, at sync time (site/scripts/sync-assets.mjs);
 //   • server-side readers (the "Ask the docs" retrieval corpus) — the EN
 //     dict value, here: the assistant answers in the request language, and

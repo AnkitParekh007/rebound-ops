@@ -1,7 +1,7 @@
 # QA Regression Prompt — v1.268.0
 
 > Release: **v1.268.0** (2026-11-05) · minor — the evaluate two-step contract (CAR-229/230/111 + CAR-232/233 runners + Permissions-Policy)
-> Prod target: resumecraft.ru = **1.268.0**, parent 1.38.0 (fork @ `31a29b30`, unchanged — no parent-sync in this release)
+> Prod target: reboundops.example = **1.268.0**, parent 1.38.0 (fork @ `31a29b30`, unchanged — no parent-sync in this release)
 > Tests: **7439** unit (7510 pass / 0 fail / 3 skip) · Playwright **176** (0 fail / 1 opt-in skip) · registry unchanged **129 = 124 EN + 5 RU · 124 adapters**
 
 ## §0 gates (must be green before the sweep — real numbers, no re-derivation by hand)
@@ -63,7 +63,7 @@ A red §0 gate is a finding, not a sweep item: triage before touching the manual
 - [ ] All views render; 19 locales switch cleanly (no Latin leaks, RTL holds); dark/light across sidebar/tracker/scan.
 - [ ] Mobile 390 px: sidebar drawer, scan table, tracker — no horizontal overflow.
 - [ ] `#/health` all green; `/api/health` reports `1.268.0`.
-- [ ] cvstart.org: mirrors stamped `v1.268.0`; the Sources section shows 129.
+- [ ] reboundops.example: mirrors stamped `v1.268.0`; the Sources section shows 129.
 - [ ] README ×19 banners name v1.268.0 (lead) / v1.267.2 (previous); badges tests-7510 / release-v1.268.0.
 
 ## Credentials & ethics

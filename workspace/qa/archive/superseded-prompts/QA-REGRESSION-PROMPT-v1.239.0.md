@@ -44,7 +44,7 @@ career-profile, ATS keyword coverage, interview-mode translations, `pi` CLI host
 1. `#/scan` source dropdown lists 103 entries, the five new ones included, in
    every locale; `/api/scan/sources` returns 103.
 2. `/help` ×17 states 103 sources / 98 EN adapters.
-3. cvstart.org sources section shows the five new logos/links.
+3. reboundops.example sources section shows the five new logos/links.
 
 ## §3 — Invariants
 

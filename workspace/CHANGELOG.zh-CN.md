@@ -121,7 +121,7 @@
 
 - **限流强化浪潮（`REVIEW-2026-10-31-v1.264.1` 的 LOW №1–3）** — `writeRateLimit()`（express-rate-limit@7.5.1，60 req/min route×IP，429 JSON + Retry-After）现已覆盖**全部 47 个变更型端点**（此前仅 2 个）：替换 9 个作用域错位的 `llmRateLimit` 守卫（`/api/config` — 会重写 `.env`！、`PUT /api/batch`、`/api/batch/merge`、outcome、followup/seed、assessments、stats/snapshot、mock-interview/save、networking/save），在最昂贵的路径上于 LLM 桶**之前**堆叠 3 个（`/api/evaluate`、`/api/deep`、`/api/auto-pipeline`），并为 33 个裸注册接线（CV/profile/modes 编辑器、tracker 的全部写入、pipeline POST/restore/DELETE、jds、7× `/api/run/*` 一处循环修改、posting-guard、Playwright-PDF inline、portals toggle/health/track、discover、reports、export/docx、two-pager、career-plan、memory 以及三条 DELETE 路由）。`/api/apply-helper` 保持在 allowlist 中不限流（纯本地计算，已固定）；16 条纯 LLM 路由按设计保留条件性 LLM 桶。**完备性 tripwire**（`tests/rate-limit-coverage.test.mjs`，以 27 个裸注册 red-first 起步）会在未来出现任何未限流的变更型注册时让 CI 失败。
 - **`TRUST_PROXY` 可选启用 + 重新武装的校验（LOW №1–2）** — `app.set('trust proxy', N)` 接受 env 的 **hop-count**（绝不为布尔 `true` — 否则将按攻击者可控的 XFF 左端构建键）；默认不设置，loopback 保留按套接字取键的既定退化。`validate: false` 改为定向的 `writeValidateConfig()`：仅关闭 `xForwardedForHeader`（无 trust proxy 时忽略 Caddy 的 XFF *正是设计*）；其余校验 — 包括 `trustProxy` — 重新发声，因此未来 `trust proxy: true` 的误配置会以 `ERR_ERL_PERMISSIVE_TRUST_PROXY` 显现而非沉默。自定义 `keyGenerator` 被有意移除：express-rate-limit 将其代理校验绑定到默认键生成器，且按路由隔离不变（每次工厂调用一个 `MemoryStore`）。
-- **cvstart.org 复制反馈保持 2 秒（CAR-141）** — «Скопировано ✓» 状态现按验收标准保持 2 秒（此前 1.5 秒），red-first 固定于 `tests/site-copy-feedback.test.mjs`。这关闭了 CAR-141 最后一个可由智能体修复的标准；演示视频的重录由所有者决定推迟。
+- **reboundops.example 复制反馈保持 2 秒（CAR-141）** — «Скопировано ✓» 状态现按验收标准保持 2 秒（此前 1.5 秒），red-first 固定于 `tests/site-copy-feedback.test.mjs`。这关闭了 CAR-141 最后一个可由智能体修复的标准；演示视频的重录由所有者决定推迟。
 
 ### 更改
 
@@ -141,12 +141,12 @@
 
 ### 更改
 
-- **cvstart.org 文案以全部 19 种语言发布（CAR-220）** —— `meta.helpDesc`、`helpTeaser.c1.desc` 与 `faq.a2` 在每个站点语言中均已翻译（v1.264.1 时它们按设计仅 EN）；GitHub Pages 已把升级后的文案实装上线到 cvstart.org。
+- **reboundops.example 文案以全部 19 种语言发布（CAR-220）** —— `meta.helpDesc`、`helpTeaser.c1.desc` 与 `faq.a2` 在每个站点语言中均已翻译（v1.264.1 时它们按设计仅 EN）；GitHub Pages 已把升级后的文案实装上线到 reboundops.example。
 - **Backlog + 评审卫生（CAR-221/222）** —— 六项「待上游合并后移植」条目已关闭：七个上游 PR 全部合并，四项此前已移植，两项在父项目侧。`docs/reviews/REVIEW-2026-10-31-v1.264.1.md` 已落地（0 HIGH / 0 MED，三个 LOW 后续已记入 BACKLOG），且 **parent-sync 移植清单**已记录在案（6 PORT / 3 VERIFY / apple 来源缺口；上游尾部 118 个提交 @ VERSION 1.38.0）。
 
 ### 备注
 
-- 变更日志镜像戳修复（`92a05fcf`）随本标签搭车：cvstart.org 上每个分页镜像现在都携带生成它的发布版本，因此 `site-build-after-fanout` 评分器终于跑上了自己的真实逻辑，而不是跳过。
+- 变更日志镜像戳修复（`92a05fcf`）随本标签搭车：reboundops.example 上每个分页镜像现在都携带生成它的发布版本，因此 `site-build-after-fanout` 评分器终于跑上了自己的真实逻辑，而不是跳过。
 - 刻意的未行动：对其余变更型 POST 的限流（评审 LOW №3）与 trust-proxy 桶耦合 —— 已记入 BACKLOG，留给下一波加固。CAR-141（演示视频）仍是所有者的事。
 - Tests 7081 → 7082（+1 CAR-219 钉子）；Playwright 176；注册表不变 123 = 118 EN + 5 RU · 118 adapters。
 
@@ -159,7 +159,7 @@
 
 ### 更改
 
-- **cvstart.org FAQ 携带精确的来源计数（CAR-217）** —— `{sources} job-board sources: {sourcesEn} international boards plus {sourcesRu} Russian ones` 由 `facts.json` 替换，后者从活注册表生成（123 = 118 EN + 5 RU），因此数字永远不会漂移；仍在旧 `~{adapters}` 措辞上的语言通过 `adaptersRounded` 继续取整。EN 文案升级一并搭车（`meta.helpDesc`、`helpTeaser.c1.desc`、`faq.a2` 指名命令菜单、带 undo 的分组 pipeline 与看板式 tracker）。
+- **reboundops.example FAQ 携带精确的来源计数（CAR-217）** —— `{sources} job-board sources: {sourcesEn} international boards plus {sourcesRu} Russian ones` 由 `facts.json` 替换，后者从活注册表生成（123 = 118 EN + 5 RU），因此数字永远不会漂移；仍在旧 `~{adapters}` 措辞上的语言通过 `adaptersRounded` 继续取整。EN 文案升级一并搭车（`meta.helpDesc`、`helpTeaser.c1.desc`、`faq.a2` 指名命令菜单、带 undo 的分组 pipeline 与看板式 tracker）。
 
 ### 备注
 
@@ -256,7 +256,7 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 
 ### 更改
 
-- 文档：help 指南的「118 EN adapters」条目现在在 fr/it/ta 中也带上计数（其余 15 个 locale 早已带上）。cvstart.org 上的厂商价格对照官方定价页重新核验 —— 四个全部未变，CHECKED_ON → 2026-10-30。发布后的漂移清扫修复了 README ×19、CONTEXT.md、CLAUDE.md 与 SDD 手册中 42 行过期的计数/版本（109/104 时代与 v1.262.0 时代的残留）。
+- 文档：help 指南的「118 EN adapters」条目现在在 fr/it/ta 中也带上计数（其余 15 个 locale 早已带上）。reboundops.example 上的厂商价格对照官方定价页重新核验 —— 四个全部未变，CHECKED_ON → 2026-10-30。发布后的漂移清扫修复了 README ×19、CONTEXT.md、CLAUDE.md 与 SDD 手册中 42 行过期的计数/版本（109/104 时代与 v1.262.0 时代的残留）。
 
 ### 备注
 
@@ -359,7 +359,7 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 - **发布评审 + 规格回填（文档，#559/#558）**：`docs/reviews/REVIEW-2026-10-28-v1.261.1.md`（对照各自的规格评审 v1.261.0/v1.261.1 浪潮）以及同一浪潮的 SDD 规格回填 — BACKLOG 尾部现点名了剩余缺口（`sources/habr.mjs` 的专属测试）。
 - **RTL 深度清扫（#571）**：AR 测试骨架走查 39 条路由 × LTR 对 RTL（X 镜像、溢出、裁剪、text-align 特征）— 修复 85 处发现：固定界面元素（toast、侧边栏、抽屉 + 其关闭 ×、docs-FAB、usage-HUD、skip-link）移到 `inset-inline-*`/`border-inline-*`，17 个视图文件 + 2 个库中的表格改用 `text-align: start/end`，移除笼统的 `[dir=rtl] text-align:right`（它与 scan 星级列的居中相冲突），CAR-58 的分数列隔离移到 `ltrNum` span 上。
 - **键盘 a11y 测试骨架（#570）**：`tests/playwright-a11y-keyboard.mjs` 走查 11 条路由（Tab 顺序/陷阱、焦点指示器、Escape 关闭浮层、Enter/Space）— 0 个生产缺陷；回归覆盖是新增的。
-- **i18n 未翻译清扫（#565）**：36 个与英文相同的值翻译覆盖 ×9 个语言（`*.rolePh`、config 键、ta 宣言）+ 一道封闭白名单清扫守卫；站点（cvstart.org）i18n 审计（#568）：20 个键 × 18 个语言完成翻译（整个 `demo.*`/`stats.t.*`/`showcase.tab*` 块此前处处是英文），删除 1 个失效键 ×19。
+- **i18n 未翻译清扫（#565）**：36 个与英文相同的值翻译覆盖 ×9 个语言（`*.rolePh`、config 键、ta 宣言）+ 一道封闭白名单清扫守卫；站点（reboundops.example）i18n 审计（#568）：20 个键 × 18 个语言完成翻译（整个 `demo.*`/`stats.t.*`/`showcase.tab*` 块此前处处是英文），删除 1 个失效键 ×19。
 - **Remote-QA 可观测性（CAR-175，#567）**：摘要点名失败的扫描来源（`stderr samples`、先脱敏后截断）并从提供方用量打印 `tok ~N`；逻辑位于一个纯净的 `summary-parts.mjs` 中，并配一道漂移门槛。
 - **UI.md 嵌套标记列表（一层，#564）**：`  - ` 列表项渲染为嵌套的 `<ul>`（围栏占位符安全）— 每个语言最后 2 处悬空散段就此消失。
 - **Lovable 设计集成 — 阶段 1（#566）/ 阶段 2（分支在途，打标签前落地）**：`public/css/tokens-v3.css` 逐字移植 Lovable 概念（oklch 表面 0–3、带 AA 注记的墨色对、强调色族、ok/warn/danger/info/neutral 的柔和色 + 墨色、分数档位 A–G ×2 主题、密度 + 焦点 + 阴影）；阶段 2 在现有令牌名上激活它（强调色拆分 blue/danger，分数档位 + 提示条基于 cv3 令牌），并同步更新对比度/角色/深色门槛。
@@ -391,7 +391,7 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 
 - **Mobile-390 测试骨架（#552）**：Playwright 扫过每一条 SPA 路由（31 个规范路由 + 8 个模式页 = 39 个哈希），在 390×844 下以种子数据运行 —— 逐路由的水平溢出检查（scrollWidth 对比 clientWidth，1px 容差，点名最宽的元凶），外加 CTA 命中检查（任何吸顶条/抽屉/FAB 都不得遮住主 CTA）；可选启用，缺浏览器二进制时优雅跳过，零网络。
 - **全新 v2 截图 ×48（CAR-140 阶段 A，#551）**：来自播种的 CI 隔离夹具的真实 v2 界面截图 — dashboard ×19 + job-map ×19（job-map-ta 首次亮相，job-map-vi 为新增）+ scan/pipeline/tracker/reports × en/ru —— 供 README、帮助与落地页取用。
-- **cvstart.org 真实截图（CAR-140 阶段 B，#553）**：CAR-140 的占位槽已移除 — 落地页现展示真实的 v2 截图（job-map 展示位 + 截图行，×19 个落地页语言）。
+- **reboundops.example 真实截图（CAR-140 阶段 B，#553）**：CAR-140 的占位槽已移除 — 落地页现展示真实的 v2 截图（job-map 展示位 + 截图行，×19 个落地页语言）。
 - **CAR-137 提示（#550）**：新增 21 个翻译键 ×19（`help.hint.*` ×20 + 模式页 `hintKey`）—— 每个页面现在都在原地自我说明。
 
 ### 备注
@@ -402,7 +402,7 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 
 ## [1.261.0] — 2026-10-28
 
-**全量评审浪潮收官（全部 HIGH + MEDIUM 发现均已落地），加上所有者报告的语言切换修复、评估质量修复、帮助 ×18 扇出与 cvstart.org 落地页 v2 —— 另有 4 份记录这波浪潮的 SDD/OpenSpec 规格。每项修复都经由红→绿的 fix-forward 落地，并经过一轮 GLM-5.3-Flash 全新上下文评审。**
+**全量评审浪潮收官（全部 HIGH + MEDIUM 发现均已落地），加上所有者报告的语言切换修复、评估质量修复、帮助 ×18 扇出与 reboundops.example 落地页 v2 —— 另有 4 份记录这波浪潮的 SDD/OpenSpec 规格。每项修复都经由红→绿的 fix-forward 落地，并经过一轮 GLM-5.3-Flash 全新上下文评审。**
 
 ### 安全
 
@@ -415,7 +415,7 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 ### 新增
 
 - **CAR-147 — 感知语言环境的评估超时上限（#524）**：`evalTimeoutMs(lang)` — ta/hi 由 300 s 提高到 480 s（印度系文字每个音节会切出多个 token，旧的超时墙产出的是 502 + 空报告）；remote-QA 客户端相应等待 540 s。
-- **CAR-133 — cvstart.org 落地页 v2（#532）**：经 reduced-motion 门控的视差 hero、一段明确标注为«模拟»的 scan→evaluate→tracker 流程演示、带实时核实计数的 scroll-reveal 区块，以及为 CAR-140 截图预留的占位槽。
+- **CAR-133 — reboundops.example 落地页 v2（#532）**：经 reduced-motion 门控的视差 hero、一段明确标注为«模拟»的 scan→evaluate→tracker 流程演示、带实时核实计数的 scroll-reveal 区块，以及为 CAR-140 截图预留的占位槽。
 - **CAR-135 — 帮助按 UI v2 重写，×18 扇出完成（#533、#540、#541、#542）**：全部 19 个帮助文件都描述 v2 外壳（可折叠导航、Cmd/Ctrl+K 命令面板、骨架屏、示例+操作的空状态、scan v2 界面外壳、pipeline 分组+撤销、reports v2、看板）；界面标签引用各自的 i18n 键；关于 121 个来源的那句话由注册表实时生成。
 - **规格（SDD/OpenSpec）（#535）**：oct27 wave-two 的补录 + 三份前瞻规格（帮助扇出、写入交接、语言切换不变量）。
 
@@ -574,18 +574,18 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 
 ## [1.255.0] — 2026-10-24
 
-**越南语（Tiếng Việt）作为第19个界面语言加入 — 一个与 EN 完全对齐的 1525 键词典、vi/vi-VN 检测、完整帮助包、README 与 CHANGELOG 镜像、cvstart.org 落地页集成，以及语言切换器中的 🇻🇳。**
+**越南语（Tiếng Việt）作为第19个界面语言加入 — 一个与 EN 完全对齐的 1525 键词典、vi/vi-VN 检测、完整帮助包、README 与 CHANGELOG 镜像、reboundops.example 落地页集成，以及语言切换器中的 🇻🇳。**
 
 ### 新增
 
 - **越南语(`vi`) — 1525/1525 键**，与 `en` 完全对齐；`detect()` 接受 `vi` 与 `vi-VN`；越南语为 LTR(不加入 `RTL_LANGS`)。'Pipeline' 保留为 'Pipeline' — 标准技术外来词，已列入白名单。
 - **完整 docs/help/vi.md**(33 H2 / 125 H3)，外加 README.vi.md 与 CHANGELOG.vi.md 镜像，以及 `prompts.mjs` 中的越南语脚手架字符串(`LOCALE_NAMES` + `SCAFFOLD_STRINGS`)— 越南语 LLM 输出开箱即用。
-- **cvstart.org 落地页越南语版** — `site/src/i18n/vi.json`、sitemap 的 locale 条目和 `dashboard-vi.png` 截图；语言切换器新增 🇻🇳(19 个位置)。
+- **reboundops.example 落地页越南语版** — `site/src/i18n/vi.json`、sitemap 的 locale 条目和 `dashboard-vi.png` 截图；语言切换器新增 🇻🇳(19 个位置)。
 - **枚举门槛 18 → 19** — LANGS、detect 探针、i18n 审计、changelog 对齐、README 翻译块、locale 扫描 — 外加 red-first 的 `tests/i18n-vi-locale.test.mjs`(139 行)。
 
 ### 备注
 
-- cvstart.org 落地页新增 vi — 对 ta 先例的一次有意偏离(该版本刻意保持落地页为 17 种)；已在发布规格中记录。
+- reboundops.example 落地页新增 vi — 对 ta 先例的一次有意偏离(该版本刻意保持落地页为 17 种)；已在发布规格中记录。
 - vi 是拉丁文字，不适用 no-latin-leaks 门槛(它守护非拉丁语言)；拉丁技术词汇在此是常态。
 - 测试下限：5634 → **5642**(1 项跳过 = 可选的布局截图浏览器测试，未变)。
 
@@ -630,7 +630,7 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 ### 新增
 
 - **10 个来源移植自父 1.38.0**，各带 fetch-walk 适配器与 CI 隔离套件（假 fetchImpl、零网络）：**Atlassian**(单一免认证 JSON 源、iCIMS URL、https+icims.com allowlist)、**BWI**(JSON-LD ItemList、JSON.parse 优先)、**Computrabajo**(拉美、实体解码、西语 «remoto» 识别 remote)、**Dover**(按租户 DRF 分页、`Remote (International)` 渲染、UUID 校验板块)、**Google Careers**(按短语首页、卡片雇主优先、查询间去重)、**Kalibrr**(SEA 聚合、feed id 作行 id)、**Magneto365**(拉美、固定翻页节奏)、**Platsbanken**(瑞典 JobTech API、按关键词窗口)、**Tech in Asia**(从网站构建中发现 Algolia 密钥)、**Zoho Recruit**(隐藏输入板块、受限 detail 增强、仅 ISO-4217 币种解析)。
-- 注册表计数：**120 来源 = 115 EN + 5 RU · 115 适配器**；五个计数门从活注册表再生成；`#/scan` 下拉回退、cvstart.org 来源链接与 help §17 ×18 跟随。
+- 注册表计数：**120 来源 = 115 EN + 5 RU · 115 适配器**；五个计数门从活注册表再生成；`#/scan` 下拉回退、reboundops.example 来源链接与 help §17 ×18 跟随。
 
 ### 修复
 
@@ -959,7 +959,7 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 
 ### 备注
 
-- cvstart.org 落地页暂保持 17 个语言——翻译落地页是单独任务；站点内容同步已发布 docs/help/ta.md 与 ta 更新日志。
+- reboundops.example 落地页暂保持 17 个语言——翻译落地页是单独任务；站点内容同步已发布 docs/help/ta.md 与 ta 更新日志。
 - `report-header.js` 的 REPORT_LABELS 仍为 17——泰米尔语报告解析将随父仓库的泰米尔语报告生成一并到来。
 
 ## [1.244.2] — 2026-10-08
@@ -1103,8 +1103,8 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 
 ### 新增
 
-- **[cvstart.org](https://github.com/AnkitParekh007/rebound-ops) 上的职位地图**，覆盖全部 17 种语言，同时出现在英文和俄文 README 中。
-- **全部语言的地图截图**：每种语言一张（`scripts/capture-map-screenshots.mjs`），收录于全部 17 个 README、cvstart.org 以及帮助中新增的小节“如何使用地图”（§33，×17）。
+- **[reboundops.example](https://github.com/AnkitParekh007/rebound-ops) 上的职位地图**，覆盖全部 17 种语言，同时出现在英文和俄文 README 中。
+- **全部语言的地图截图**：每种语言一张（`scripts/capture-map-screenshots.mjs`），收录于全部 17 个 README、reboundops.example 以及帮助中新增的小节“如何使用地图”（§33，×17）。
 
 ### 说明
 
@@ -1291,13 +1291,13 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 ### 修复
 
 - **两个扫描同时运行会让服务器崩溃。** 每个 `GET /api/stream/scan` 都在服务器进程内毫无保护地运行完整扫描器;一次从界面启动的扫描与每小时定时器重叠,进程因 *JavaScript heap out of memory* 退出(两次,期间出现 502 错误)。现在同一时间只运行一个扫描:第二个请求会收到代码为 `SCAN_BUSY` 的 SSE `error`,不会启动任何扫描。部署工作流还会提高服务器的内存上限(`heap_mb`,默认 448 MB)。
-- **cvstart.org 的 `/help` 和 `/changelog` 在手机上会横向滚动**(ja/zh 的 `/changelog` 在桌面上也会):长代码和目录现在会自动换行。
+- **reboundops.example 的 `/help` 和 `/changelog` 在手机上会横向滚动**(ja/zh 的 `/changelog` 在桌面上也会):长代码和目录现在会自动换行。
 - **站点地图的语言替代项中缺少印地语**;网站的 i18n 检查现在会将站点地图与语言注册表比对。
 - **帮助 §19 要求把键添加到"全部 8 个"语言文件** — 实际有 17 个。
 
 ### 新增
 
-- **远程回归测试**(`.github/workflows/remote-qa.yml`):已部署应用的每个路由 × 每种语言(只读),cvstart.org 的每个页面 × 语言 × 手机/桌面,README 和 wiki 中的每个链接,并可按需执行一次真实扫描以及每种语言的实时 AI 调用。
+- **远程回归测试**(`.github/workflows/remote-qa.yml`):已部署应用的每个路由 × 每种语言(只读),reboundops.example 的每个页面 × 语言 × 手机/桌面,README 和 wiki 中的每个链接,并可按需执行一次真实扫描以及每种语言的实时 AI 调用。
 - **服务器部署工作流**(`.github/workflows/deploy.yml`):`recon`、`deploy`(带逐字节精确回滚)和 `verify`(冒烟测试和稳定性报告)。
 - 测试 3481 → 3486。
 
@@ -1347,7 +1347,7 @@ Tests 6905 → 7041 (+136) · Playwright 176（173 通过 / 1 个 opt-in 跳过�
 **针对 v1.237.0 的一次外部 QA 复查补丁。** Jobstreet 的修复首次得到了外部确认：在 AU、NZ、HK 与 MY 主机上，旧的 `/id/job/<id>` 形式会返回一个干净的 404，而新的 `/job/<id>` 能到达一个真实的、受 Cloudflare 保护的路由；在 `id.jobstreet.com` 上情况正好相反。丢失的链接是真实存在的。发现了两处缺陷，都出在 v1.237.0 自身新增的内容里。
 
 ### 修复
-**书籍链接 —— 文案被翻译了，目标网址却没有。** 全部 17 个 SPA 语言与全部 17 个 cvstart.org 语言，都把页脚指向 *Agentic Coding Design Patterns* 的链接指向了英文版，而唯一被翻译的文案——俄语 «Паттерны агентного кодинга»——承诺的却是一本俄语版的书。新增的 `data-i18n-href` 应用器（与 `data-i18n-title` 同形，仅限绝对的 `https://` 取值）与 `footer.patternsUrl` 键，现在会把 `ru` 指向俄语版，其余每个语言都指向英文版。回归测试从两个方向断言这一不变式：被翻译的标题意味着本地化的网址。
+**书籍链接 —— 文案被翻译了，目标网址却没有。** 全部 17 个 SPA 语言与全部 17 个 reboundops.example 语言，都把页脚指向 *Agentic Coding Design Patterns* 的链接指向了英文版，而唯一被翻译的文案——俄语 «Паттерны агентного кодинга»——承诺的却是一本俄语版的书。新增的 `data-i18n-href` 应用器（与 `data-i18n-title` 同形，仅限绝对的 `https://` 取值）与 `footer.patternsUrl` 键，现在会把 `ru` 指向俄语版，其余每个语言都指向英文版。回归测试从两个方向断言这一不变式：被翻译的标题意味着本地化的网址。
 **SEEK —— 正在迁移主机，而传输层拒绝跟随重定向。** `www.seek.com.au` → `au.seek.com`、`www.seek.co.nz` → `nz.seek.com`：详情页面如今已经返回 301，而这两对主机眼下都以 200 提供 v5 搜索 API。由于 `http-json.mjs` 设置了 `redirect:'error'`（一项值得保留的 SSRF 防御），一旦 API 路径开始对旧主机上的 AU/NZ 条目发出重定向，抓取就会失败——而由于白名单里此前只有 `www.` 开头的主机，也就没有人能够完成迁移。`au.seek.com` 与 `nz.seek.com` 现已加入 `ALLOWED_JOBSTREET_HOSTS`；旧主机仍然保留，因此既有配置与已经生成的链接照常可用。仿冒主机（`au.seek.com.evil.com`、`au-seek.com`）依旧会被拒绝。
 **Wiki：** Home 文档地图中的 *Agentic Practices* 一行，是十二行里唯一没有在 `[[…|…]]` 内转义 `|` 的一行，导致 GitHub 截断了该单元格——链接失效，描述被隐藏。只差一个字符。
 
@@ -1523,7 +1523,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 ### 修复
 - **移动端顶栏重新回到一行，操作按钮改为纯图标。** 操作按钮此前被强制放到整宽的第二行，手机上呈现为 `[☰ · 搜索]` 上方、`[🔔 🌙 Doctor 打开 Scan]` 下方——两枚宽胶囊独占一行。现在它们是铃铛和主题开关旁的 36 px 方块（🩺 / ⚡），在 320 px 下全部装进一行。是实测而非目测：文档宽度在 320、360、390、430 px 以及按钮从前会盖住搜索框的 560–760 px 整个区间内都与视口相等。**语言不再对移动端布局产生任何影响**，因为标签被隐藏、按钮是固定方块；超过 900 px 时标签原样回归。无障碍名称取自 `aria-label`，因为 `display:none` 的标签不参与名称计算。
 - **发行版是按上游 1.32.0 构建的，服务器却运行着上游 1.31.0。** 生产服务器的 `/api/health` 返回 `parentVersion: 1.31.0`。已同步 95 个运行时文件并删除 2 个。由针对线上环境的浏览器 QA 发现。
-- **`cvstart.ru` 会给任何路径前置 `/ru/`，完全不看里面已经有什么。** `/ru/help` 变成 `/ru/ru/help`，`/en/help` 变成 `/ru/en/help`，两者皆 404。前者是从主站复制网址就会遇到的；后者更严重，直接让英语访客无法抵达英文版。现在已经带有 16 个语言前缀之一的路径原样通过，`en` 被去掉（cvstart.org 在根目录提供英文，没有 `/en/` 目录），其余仍然获得 `/ru/`。语言判断带锚定，因此 `/enterprise/` 不会被误认为 `en`。
+- **`cvstart.ru` 会给任何路径前置 `/ru/`，完全不看里面已经有什么。** `/ru/help` 变成 `/ru/ru/help`，`/en/help` 变成 `/ru/en/help`，两者皆 404。前者是从主站复制网址就会遇到的；后者更严重，直接让英语访客无法抵达英文版。现在已经带有 16 个语言前缀之一的路径原样通过，`en` 被去掉（reboundops.example 在根目录提供英文，没有 `/en/` 目录），其余仍然获得 `/ru/`。语言判断带锚定，因此 `/enterprise/` 不会被误认为 `en`。
 
 ### 变更
 - **98 份被取代的 QA 提示已移入 `qa/archive/superseded-prompts/`。** `qa/README.md` 自 v1.137.0 起就写明顶层只保留当前发行版的提示——但该规则连续 95 个版本未被执行。
@@ -1539,7 +1539,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 **修复 — v1.231.0 的计数替换改写了所有链接中的账号名。**
 
 ### 修复
-- **每一个 `AnkitParekh007` 链接都变成了 `Fighter92`。** v1.231.0 的来源计数替换在数字边界保护下把 `90` 换成 `92`；该保护能正确跳过 `290` 和 `901`，却会匹配 **`AnkitParekh007`** 里的 `90`——它前面是字母，后面正好是词尾。**17 个 README、17 套帮助文档以及站点帮助镜像中的 562 处链接**，加上**维基里的 138 处**，都指向一个不存在的账号；`providers.png` 横幅和所有“在 GitHub 上编辑”的链接都是 404。是一位用户因为图片没显示而发现的。
+- **每一个 the original author's handle 链接都变成了 `Fighter92`。** v1.231.0 的来源计数替换在数字边界保护下把 `90` 换成 `92`；该保护能正确跳过 `290` 和 `901`，却会匹配 **the original author's handle** 里的 `90`——它前面是字母，后面正好是词尾。**17 个 README、17 套帮助文档以及站点帮助镜像中的 562 处链接**，加上**维基里的 138 处**，都指向一个不存在的账号；`providers.png` 横幅和所有“在 GitHub 上编辑”的链接都是 404。是一位用户因为图片没显示而发现的。
 - **五处历史版本引用发生偏移。** 同一版本的 `85 → 87` 替换把 `v1.85.0` 变成了 `v1.87.0`，凭空造出一个从未发布的版本。
 
 ### 说明
@@ -1770,7 +1770,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 - v1.225.0 的横幅在 GitHub 上不显示:独立的 `images/providers.svg` 有一个无效的 `font-family`(嵌套的双引号),被 GitHub 拒绝;`<img>` 使用了仓库相对 `src`(GitHub 不解析 raw HTML `<img>` 的相对路径);`<p>` 块缺少结尾空行,导致与下一行合并。现在它通过绝对 raw URL 指向已渲染的 `images/providers.png`,并以空行分隔;SVG 也已修正为有效 XML。
 
 ### 说明
-- 仅文档;无代码/测试改动。cvstart.org 展示区与应用内磁贴此前已正确(内联 SVG,非此文件)。  **2784**
+- 仅文档;无代码/测试改动。reboundops.example 展示区与应用内磁贴此前已正确(内联 SVG,非此文件)。  **2784**
 
 ## [1.225.0] — 2026-08-27
 
@@ -1957,10 +1957,10 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 
 ## [1.212.1] — 2026-08-21
 
-**修复 — cvstart.org 落地页少算了扫描器的招聘来源（显示 80 并遗漏 Job Bank（加拿大））；现在重新与应用的 81 一致，若两者不符，站点构建会大声失败。**
+**修复 — reboundops.example 落地页少算了扫描器的招聘来源（显示 80 并遗漏 Job Bank（加拿大））；现在重新与应用的 81 一致，若两者不符，站点构建会大声失败。**
 
 ### 修复
-- **落地页的“招聘来源”计数重新与应用同步。** 在 v1.212.0 之后，cvstart.org 显示 **80** 个招聘板并缺少新的 **Job Bank（加拿大）** 芯片，而应用、扫描下拉框和帮助指南都列出 **81**。落地页通过加载实时扫描器注册表来构建列表，而某个来源因其引入 YAML 依赖的方式在该构建中加载失败，于是被悄悄丢弃。现在 Job Bank 以懒加载方式引入该依赖，与应用其余部分在扫描时的做法一致，所以它始终出现。
+- **落地页的“招聘来源”计数重新与应用同步。** 在 v1.212.0 之后，reboundops.example 显示 **80** 个招聘板并缺少新的 **Job Bank（加拿大）** 芯片，而应用、扫描下拉框和帮助指南都列出 **81**。落地页通过加载实时扫描器注册表来构建列表，而某个来源因其引入 YAML 依赖的方式在该构建中加载失败，于是被悄悄丢弃。现在 Job Bank 以懒加载方式引入该依赖，与应用其余部分在扫描时的做法一致，所以它始终出现。
 - **站点构建现在拒绝发布不匹配的来源计数。** 若注册表枚举出的来源少于磁盘上实际存在的数量（来源加载失败的特征），构建会以清晰的消息失败，而不是悄悄发布错误的数字。
 
 ### 说明
@@ -2464,7 +2464,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 - **评分解析 (FIND-1)** — H1 中包含评分标签词的非英文报告(`# Оценка вакансии: <标题>`)不再把该标题误当作评分。`parseReportHeader` 现在锚定到本地化的**粗体**标签(`**Оценка:** 1.5 / 5`),跳过标题行,并要求标签紧邻冒号 — 因此显示 "Score not detected" 的 RU 报告会展示真实评分。
 - **合法性徽标 (FIND-2)** — 从值中剥离 Markdown 强调,徽标显示 "High Confidence" 而非 "** High Confidence"。
 - **评分溢出** — 带尾随状态文本的评分行("1.8, Status: Evaluated, …")被压缩为仅评分;`.score-pill` 增加了不换行/溢出上限,标题列可收缩,因此彩色徽标不会溢出卡片边缘。
-- **SEO 描述 (FIND-3)** — cvstart.org 的 meta / OG / Twitter 描述(全部 17 种语言)硬编码 "Scan ~55 job boards",而正文按真实注册表计数("~75")。描述现在插入注册表派生的计数,不会再漂移。
+- **SEO 描述 (FIND-3)** — reboundops.example 的 meta / OG / Twitter 描述(全部 17 种语言)硬编码 "Scan ~55 job boards",而正文按真实注册表计数("~75")。描述现在插入注册表派生的计数,不会再漂移。
 
 ### 说明
 - 服务器解析器 + 客户端渲染/CSS + 站点 i18n;无路由 / CSP / SSRF / 父写入变更。测试:`tests/report-header-locale.test.mjs`(+4)。套件:**2448**(+4)。
@@ -2544,10 +2544,10 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 
 ## [1.166.0] — 2026-08-13
 
-**修复 (LOW) — 评分标准术语现在与规范文档一致。** github.com/AnkitParekh007/rebound-ops 描述为"五个维度加上一个整体综合评分",但 Web UI、cvstart.org 和 wiki 都说"六维度评分标准"(5 + 1 = 6,但用词不一致)。
+**修复 (LOW) — 评分标准术语现在与规范文档一致。** github.com/AnkitParekh007/rebound-ops 描述为"五个维度加上一个整体综合评分",但 Web UI、reboundops.example 和 wiki 都说"六维度评分标准"(5 + 1 = 6,但用词不一致)。
 
 ### 修复
-- 采用文档措辞 — **"五个维度加上综合评分"** — 一致应用于 README ×17、cvstart.org 站点 ×17、帮助指南 ×17、`docs/rebound-ops-canonical.md` 和 wiki(Home ×17 + Features)。
+- 采用文档措辞 — **"五个维度加上综合评分"** — 一致应用于 README ×17、reboundops.example 站点 ×17、帮助指南 ×17、`docs/rebound-ops-canonical.md` 和 wiki(Home ×17 + Features)。
 
 ### 说明
 - 仅文档/营销文案;无代码/i18n 键/路由/CSP/SSRF/写入变更。`tests/rubric-terminology.test.mjs`(+2)。套件:**2426** (+2)。
@@ -2631,7 +2631,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 
 ### 修复
 - HelpHint 的 «?» 不再泄漏到 `document.title`。路由器从未处理的 `h1.textContent` 派生标签标题,导致显示为「Vacancy search?」而非「Vacancy search」。现在 `router.js::focusNewView` 克隆标题、移除 `.help-hint` 后再读取文本;页面上可见的 «?» 保持不变。
-- cvstart.org 显示「17 AI providers」而非「7」。`Features.astro` 的 `sub()` 在按卡片替换前就把所有 `{n}` 改为语言数(17);现在 `{n}` 按卡片解析(提供商 → 7,语言 → 17)。
+- reboundops.example 显示「17 AI providers」而非「7」。`Features.astro` 的 `sub()` 在按卡片替换前就把所有 `{n}` 改为语言数(17);现在 `{n}` 按卡片解析(提供商 → 7,语言 → 17)。
 
 ### 说明
 - 无服务器、路由、CSP、SSRF 或 i18n 键变更。套件:**2402** 项测试(+1)。
@@ -2765,11 +2765,11 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 
 ## [1.147.0] — 2026-08-12
 
-**Hermes & Telegram —— 应用内帮助章节 + cvstart.org 界面(Phase 5b，第 2 部分)** —— Hermes 文档工作的第二部分,也是最后一部分:操作说明现已放入应用自己的帮助指南中,覆盖全部 17 种语言,应用内文档助手也据此回答 Hermes 相关问题。仍然仅限文档 —— Hermes LLM 提供方路径仍处于 **计划中 / 尚未接入**(Phase 5)。
+**Hermes & Telegram —— 应用内帮助章节 + reboundops.example 界面(Phase 5b，第 2 部分)** —— Hermes 文档工作的第二部分,也是最后一部分:操作说明现已放入应用自己的帮助指南中,覆盖全部 17 种语言,应用内文档助手也据此回答 Hermes 相关问题。仍然仅限文档 —— Hermes LLM 提供方路径仍处于 **计划中 / 尚未接入**(Phase 5)。
 
 ### 新增
 - **应用内帮助 §30「Hermes & Telegram」× 17 种语言** —— 新的指南章节(Hermes 是什么 + 两种集成形态;在云服务器上运行;经 Hermes 转发到 Telegram + 「不该暴露什么」规则),可从 `#/help` 访问。`docs-assistant` / `DocsFab` 的 grounding 会自动获取它(两者都读取 `docs/help/<lang>.md`)。
-- **cvstart.org —— 指向 Hermes 指南的链接**,跳转到 GitHub 文档。
+- **reboundops.example —— 指向 Hermes 指南的链接**,跳转到 GitHub 文档。
 
 ### 变更
 - 帮助包门槛提升至 **29 → 30 H2 / 105 → 108 H3**(`canonical-docs-coverage`、`help-ui`、`help-ru-config-section`);§30 新增 3 个 H3。
@@ -2791,7 +2791,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 
 ### 说明
 - **目前还没有任何代码调用 Hermes。** 一个哨兵测试(`tests/hermes-docs.test.mjs`)断言「计划中/尚未接入」的诚实标记仍然存在,并确认 `llm-dispatch.mjs` 中没有 Hermes/Nous 分支——因此以后接入该提供方时,必须在同一次改动里同步更新文档 + roadmap。
-- **推迟到 v1.147.0**（Phase 5b，第 2 部分）:应用内帮助中的「Hermes & Telegram」H2 小节 × 17 种语言,以及 cvstart.org 的营销页面。
+- **推迟到 v1.147.0**（Phase 5b，第 2 部分）:应用内帮助中的「Hermes & Telegram」H2 小节 × 17 种语言,以及 reboundops.example 的营销页面。
 - 套件:**2376** 项测试(+4:`tests/hermes-docs.test.mjs`)。
 
 ## [1.145.0] — 2026-08-12
@@ -2922,7 +2922,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 父项目 rebound-ops **v1.26.0** 对齐 —— 五个新的零鉴权扫描来源,以及对 web-ui 已有的四块招聘板所做的正确性修复。注册表现为 **78 个来源 = 73 个英文 + 5 个俄文**(`ALL_ADAPTERS` 73)。
 
 ### 新增
-- **五个新的扫描来源**(每个均含来源 + 适配器 + 一套 CI 隔离测试套件;均已出现在 `#/scan` 的 Source 筛选器与 cvstart.org 落地页中):
+- **五个新的扫描来源**(每个均含来源 + 适配器 + 一套 CI 隔离测试套件;均已出现在 `#/scan` 的 Source 筛选器与 reboundops.example 落地页中):
   - **`join`**(JOIN)—— 从 `join.com/companies/<slug>` 页面的 Next.js `__NEXT_DATA__` 中读取某公司的 JOIN 招聘板(主机锁定、页数封顶)。
   - **`getro`**(Getro)—— 通过公开的 `api.getro.com` POST API 获取风投「人才网络」投资组合招聘板,按最新优先分页;每个职位归属于投资组合中的雇主公司,而非基金本身。
   - **`consider`**(Consider)—— 通过同源 POST 请求获取 getconsider.com 的风投投资组合招聘板;配置驱动的主机由结构化 SSRF 守卫锁定(仅限公开 HTTPS 主机)。
@@ -2952,7 +2952,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 父项目 rebound-ops **v1.25.0** 对齐。
 
 ### 新增
-- **新增扫描来源:getManfred**(`manfred`)—— 面向西班牙/欧盟科技职位、含公开薪资的全板块信息流,来自 `www.getmanfred.com/api/v2/public/offers`(零鉴权,主机锁定 + 仅限 HTTPS,单次请求获取完整目录)。新增来源 + 适配器 + 一套 CI 隔离测试套件(`tests/sources-manfred.test.mjs`);注册表现为 **73 个来源 = 68 个英文 + 5 个俄文**(`ALL_ADAPTERS` 68)。已出现在 `#/scan` 的 Source 筛选器与 cvstart.org 落地页中。
+- **新增扫描来源:getManfred**(`manfred`)—— 面向西班牙/欧盟科技职位、含公开薪资的全板块信息流,来自 `www.getmanfred.com/api/v2/public/offers`(零鉴权,主机锁定 + 仅限 HTTPS,单次请求获取完整目录)。新增来源 + 适配器 + 一套 CI 隔离测试套件(`tests/sources-manfred.test.mjs`);注册表现为 **73 个来源 = 68 个英文 + 5 个俄文**(`ALL_ADAPTERS` 68)。已出现在 `#/scan` 的 Source 筛选器与 reboundops.example 落地页中。
 
 ### 修复
 - **a16z Speedrun 信息流曾悄悄截断为 50 条职位**(#2404)—— 该信息流单页上限为 50 条,但该来源请求的是 `PER_PAGE = 100`,导致翻页在第一页之后就停止。已更正为 50。
@@ -3010,7 +3010,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 ## [1.130.0] — 2026-07-31
 
 ### 新增
-- **从父项目 rebound-ops v1.24.0 移植两个新扫描来源**(均为进程内实现,无新增依赖;两者均出现在 `#/scan` 来源筛选与 cvstart.org 落地页中):
+- **从父项目 rebound-ops v1.24.0 移植两个新扫描来源**(均为进程内实现,无新增依赖;两者均出现在 `#/scan` 来源筛选与 reboundops.example 落地页中):
   - **a16z Speedrun**(`a16z-speedrun-talent`,#2231)— a16z Speedrun *人才网络*板块的全站点 JSON 信息流。主机锁定为 `speedrun-talent-network.com`,仅限 HTTPS,0 起始分页并设页数上限,按公司透传 `q`/配置,故障自降级。
   - **Cryptocurrency Jobs**(`cryptocurrencyjobs`)— Web3 招聘板 `cryptocurrencyjobs.co`,通过其公开 RSS 2.0 订阅源接入(零鉴权)。两轮 XML 实体解码,仅远程职位,雇主名从标题结尾的 `"… at <Company>"` 中解析得出。
   - 注册表总数现为 **72 个来源 = 67 个英文 + 5 个俄文**(`ALL_ADAPTERS` = 67 个英文门户适配器)。
@@ -3094,7 +3094,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 ## [1.125.0] — 2026-07-21
 
 ### 新增
-- **cvstart.org:「求职来源」落地页板块** — 在截图与对比列表之间新增一个板块,将**全部 67 个扫描来源以可点击标签的形式列出**(62 个英文招聘板/ATS,外加单独归在一个小标题下的 5 个俄文招聘板),每个标签都链接到该来源的公开网站。该列表在构建时从实际的适配器注册表(`sync-assets.mjs` → `facts.sources`)同步而来,因此永远不会与应用本身产生偏差;`Sources.astro` 中人工整理的链接映射由新增的 `tests/site-sources.test.mjs` 把关。头部导航新增了 **Sources** 锚点;新增 4 个站点 i18n 键 × 17 种语言。同时修复了落地页 JSON-LD 中 `inLanguage` 列表此前遗漏 `hi` 的问题。
+- **reboundops.example:「求职来源」落地页板块** — 在截图与对比列表之间新增一个板块,将**全部 67 个扫描来源以可点击标签的形式列出**(62 个英文招聘板/ATS,外加单独归在一个小标题下的 5 个俄文招聘板),每个标签都链接到该来源的公开网站。该列表在构建时从实际的适配器注册表(`sync-assets.mjs` → `facts.sources`)同步而来,因此永远不会与应用本身产生偏差;`Sources.astro` 中人工整理的链接映射由新增的 `tests/site-sources.test.mjs` 把关。头部导航新增了 **Sources** 锚点;新增 4 个站点 i18n 键 × 17 种语言。同时修复了落地页 JSON-LD 中 `inLanguage` 列表此前遗漏 `hi` 的问题。
 
 ## [1.124.0] — 2026-07-21
 
@@ -3122,12 +3122,12 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 ## [1.122.0] — 2026-07-16
 
 ### 新增
-- **印地语(हिन्दी)——第 17 种语言** —— 完整的界面词典(约 1,110 个键)、完整的应用内帮助指南(29 个 H2 / 105 个 H3 对等)、`README.hi.md`、新增的 `CHANGELOG.hi.md`(从 v1.122.0 起记录,沿用 de/it/tr 的先例)、cvstart.org 落地页 + 方法论/许可证/更新日志/帮助页面、语言切换器(🇮🇳)、浏览器语言自动检测,以及本地化的仪表盘截图。目前全部 ×16 对等闸门均已升级为 ×17:i18n 词典对等 + 快照、帮助指南 H2/H3 闸门、CHANGELOG 对等、网站 `check-i18n`,以及 Playwright 语言环境全量测试。
+- **印地语(हिन्दी)——第 17 种语言** —— 完整的界面词典(约 1,110 个键)、完整的应用内帮助指南(29 个 H2 / 105 个 H3 对等)、`README.hi.md`、新增的 `CHANGELOG.hi.md`(从 v1.122.0 起记录,沿用 de/it/tr 的先例)、reboundops.example 落地页 + 方法论/许可证/更新日志/帮助页面、语言切换器(🇮🇳)、浏览器语言自动检测,以及本地化的仪表盘截图。目前全部 ×16 对等闸门均已升级为 ×17:i18n 词典对等 + 快照、帮助指南 H2/H3 闸门、CHANGELOG 对等、网站 `check-i18n`,以及 Playwright 语言环境全量测试。
 
 ## [1.121.0] — 2026-07-16
 
 ### 新增
-- **cvstart.org:方法论、许可证与更新日志页面** —— 落地页在全部 16 种语言中新增三个板块,与现有的对比板块并列:**/methodology/**(六维度 0.0–5.0 评分标准、4.0 分投递门槛与绝不去做的规则——是 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) 的本地化摘要版本)、**/license/**(权威 MIT 文本,并指向 NOTICE.md)以及 **/changelog/**(即本文件,按语言环境从仓库的 16 份翻译版更新日志渲染而成)。页头导航新增「方法论」条目,页脚「资源」区块新增相应链接;`sync-assets.mjs` 现在会在构建时把 ×16 更新日志与 LICENSE 同步进落地页,确保这些页面绝不会与仓库内容脱节。
+- **reboundops.example:方法论、许可证与更新日志页面** —— 落地页在全部 16 种语言中新增三个板块,与现有的对比板块并列:**/methodology/**(六维度 0.0–5.0 评分标准、4.0 分投递门槛与绝不去做的规则——是 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) 的本地化摘要版本)、**/license/**(权威 MIT 文本,并指向 NOTICE.md)以及 **/changelog/**(即本文件,按语言环境从仓库的 16 份翻译版更新日志渲染而成)。页头导航新增「方法论」条目,页脚「资源」区块新增相应链接;`sync-assets.mjs` 现在会在构建时把 ×16 更新日志与 LICENSE 同步进落地页,确保这些页面绝不会与仓库内容脱节。
 - **文档中新增方法论链接** —— README(全部 16 种语言)、应用内帮助指南 §1 的权威指南列表(全部 16 种语言)以及 wiki,现在都在既有的 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) 指南旁,链接到 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)(以及 FAQ 与术语表)。
 
 ### 变更
@@ -3136,7 +3136,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 ## [1.120.0] — 2026-07-16
 
 ### 新增
-- **ReboundOps 宣言**(与父项目 v1.20.0 对齐)—— 父项目发布了 ReboundOps 宣言(`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops))，并已在其 README、更新器与 Go 仪表盘中呈现。Web UI 随之跟进:侧边栏页脚新增一个链接以打开宣言页面(全部 16 个语言新增 `footer.manifesto` i18n 键)，应用内帮助指南在全部 16 种语言中新增 §29「ReboundOps 宣言」，README 讲解了宣言是什么以及如何签署，cvstart.org 落地页页脚也链接到了它。
+- **ReboundOps 宣言**(与父项目 v1.20.0 对齐)—— 父项目发布了 ReboundOps 宣言(`MANIFESTO.md` · [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops))，并已在其 README、更新器与 Go 仪表盘中呈现。Web UI 随之跟进:侧边栏页脚新增一个链接以打开宣言页面(全部 16 个语言新增 `footer.manifesto` i18n 键)，应用内帮助指南在全部 16 种语言中新增 §29「ReboundOps 宣言」，README 讲解了宣言是什么以及如何签署，reboundops.example 落地页页脚也链接到了它。
 
 ### 说明
 - 父项目 v1.20.0 还修复了 `upskill` 定向模式下已掌握技能的抑制逻辑、静音了 dotenv 以使 `scan --json` 的 stdout 保持可解析，并修复了 HTML 简历模板中职位标题与其要点分离的问题——这些均为 CLI 侧的改动，web UI 不会调用它们，因此本次无需修改 web-ui 代码。
@@ -3149,7 +3149,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 ## [1.119.4] — 2026-07-13
 
 ### 变更
-- **LICENSE 写明作者** — 版权行现为 *Sergei Emelianov (AnkitParekh007) <https://sergey-cv.com> and rebound-ops-ui contributors*(MIT 规范正文未动)。新增 **NOTICE.md** 详细阐述许可:版权归属、MIT 授权确切涵盖什么(代码、文档、翻译、落地页、wiki)、不涵盖什么(你的运行时数据、父项目、招聘板块内容、商标)、第三方组件表(express/js-yaml — MIT;Astro/Tailwind — MIT;Figtree 与 JetBrains Mono 字体 — SIL OFL 1.1;sharp — Apache-2.0)以及可选的署名行。
+- **LICENSE 写明作者** — 版权行现为 *the original author <https://github.com/AnkitParekh007/rebound-ops> and rebound-ops-ui contributors*(MIT 规范正文未动)。新增 **NOTICE.md** 详细阐述许可:版权归属、MIT 授权确切涵盖什么(代码、文档、翻译、落地页、wiki)、不涵盖什么(你的运行时数据、父项目、招聘板块内容、商标)、第三方组件表(express/js-yaml — MIT;Astro/Tailwind — MIT;Figtree 与 JetBrains Mono 字体 — SIL OFL 1.1;sharp — Apache-2.0)以及可选的署名行。
 
 ## [1.119.3] — 2026-07-13
 
@@ -3160,8 +3160,8 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 
 ### 新增
 - **CONTRIBUTING.md** — 落地页和 README 一直链接的贡献者指南现在真的存在了:安装、项目地图、安全/免构建硬规则、测试层级、添加扫描源的「双注册表」演练、×16 i18n 契约、提交/PR 规范与发布流程。
-- **落地页语言旗帜** — cvstart.org 的语言切换器、页脚语言栅格和「用你的语言阅读」横幅现在在每个语言的自称旁显示其旗帜(与应用语言 `<select>` 相同的区域指示符集;在缺少旗帜字形的平台上退化为区域字母)。
-- **落地页页脚修复** — 失效的 Discussions 链接(仓库未启用该功能)现指向项目 **wiki**,页脚新增作者署名:**Sergei Emelianov**([sergey-cv.com](https://sergey-cv.com/) · [LinkedIn](https://www.linkedin.com/in/sergey-emelyanov-in-job/))。
+- **落地页语言旗帜** — reboundops.example 的语言切换器、页脚语言栅格和「用你的语言阅读」横幅现在在每个语言的自称旁显示其旗帜(与应用语言 `<select>` 相同的区域指示符集;在缺少旗帜字形的平台上退化为区域字母)。
+- **落地页页脚修复** — 失效的 Discussions 链接(仓库未启用该功能)现指向项目 **wiki**,页脚新增作者署名:**the original author**([the original author](https://github.com/AnkitParekh007/rebound-ops) · [LinkedIn](https://github.com/AnkitParekh007/rebound-ops))。
 
 ## [1.119.1] — 2026-07-13
 
@@ -3170,11 +3170,11 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 
 ## [1.119.0] — 2026-07-13
 
-父项目 rebound-ops **v1.19.0** 对齐 + cvstart.org 落地页焕新。
+父项目 rebound-ops **v1.19.0** 对齐 + reboundops.example 落地页焕新。
 
 ### 新增
 - **2 个新扫描提供方** — 美团(`zhaopin.meituan.com`)与腾讯(`careers.tencent.com`):中国科技公司招聘板块的免认证公开 JSON API,按主机自动检测或通过显式 `provider:` 选择,支持按关键词的服务端搜索、分页与按 URL 去重 — 现共 **61 个适配器**(56 个英文 + 5 个俄文)。+20 个测试(**1844**)。
-- **落地页贡献者板块** — cvstart.org 展示所有贡献过代码者的头像(构建时调用 GitHub `/contributors` API,过滤机器人),已本地化到全部 16 种语言,并链接到完整贡献者图谱。
+- **落地页贡献者板块** — reboundops.example 展示所有贡献过代码者的头像(构建时调用 GitHub `/contributors` API,过滤机器人),已本地化到全部 16 种语言,并链接到完整贡献者图谱。
 - **落地页实时 GitHub 星标计数** — 页头徽章现在每次访问都从 GitHub API 在客户端刷新(构建时快照作为回退),每周定时的 Pages 重建保持快照与贡献者列表新鲜;CI 中的 API 调用已使用令牌认证。
 
 ### 修复
@@ -3656,7 +3656,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 
 ## [1.74.3] — 2026-06-18
 
-**docs(parent-source): 将父 `rebound-ops` 仓库指向 [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops) 分叉。** web-ui 现在在所有作为实际来源的位置都将维护者的分叉作为父项目引用:`bin/setup.sh` 安装脚本的 `REBOUND_OPS_REPO` 克隆默认值、12 个 README 中的每个 `git clone` /“构建于其上”/ 入门链接,以及代理文档(`CLAUDE.md`、`AGENTS.md`、`GEMINI.md`、`.github/copilot-instructions.md`、`docs/`)。对作者 santifer 的署名(以及非官方 UI 免责声明)保持不变 —— 仅移动了来源/克隆 URL。`tests/sh-files.test.mjs` 现在断言安装脚本克隆的是分叉。
+**docs(parent-source): 将父 `rebound-ops` 仓库指向 [`AnkitParekh007/rebound-ops`](https://github.com/AnkitParekh007/rebound-ops) 分叉。** web-ui 现在在所有作为实际来源的位置都将维护者的分叉作为父项目引用:`bin/setup.sh` 安装脚本的 `REBOUND_OPS_REPO` 克隆默认值、12 个 README 中的每个 `git clone` /“构建于其上”/ 入门链接,以及代理文档(`CLAUDE.md`、`AGENTS.md`、`GEMINI.md`、`.github/copilot-instructions.md`、`docs/`)。对作者 the original author 的署名(以及非官方 UI 免责声明)保持不变 —— 仅移动了来源/克隆 URL。`tests/sh-files.test.mjs` 现在断言安装脚本克隆的是分叉。
 
 ---
 
@@ -3916,7 +3916,7 @@ fork 自有的、位于 `providers/telegram-channel.mjs` 中的西里尔字母 `
 
 ## [1.59.13] — 2026-05-21
 
-**fix(i18n): 用 @alias 合并真正重复的键 + 个人数据最终清理.** 从测试夹具/QA 报告中移除维护者真实姓名(→ `Jane Doe`),`LICENSE`/`package.json` 改为 `AnkitParekh007` 句柄。`@alias` 机制合并 8 个语言完全相同的 10 个键。`nav.config`/`config.title` 因西班牙语不同而不合并。991 → **994** 测试。(I18N-CL3)
+**fix(i18n): 用 @alias 合并真正重复的键 + 个人数据最终清理.** 从测试夹具/QA 报告中移除维护者真实姓名(→ `Jane Doe`),`LICENSE`/`package.json` 改为 the original author's handle 句柄。`@alias` 机制合并 8 个语言完全相同的 10 个键。`nav.config`/`config.title` 因西班牙语不同而不合并。991 → **994** 测试。(I18N-CL3)
 
 ---
 

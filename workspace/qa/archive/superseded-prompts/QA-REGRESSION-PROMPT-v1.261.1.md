@@ -57,7 +57,7 @@ npm run test:coverage:gate      # ≥ baseline 96/86
    pipeline (ключ `err.pipeline.undo`, toast-окно 950 мс).
 
 ### Сайт / CAR-140
-9. **cvstart.org (#553)**: реальные скриншоты v2, **0 плейсхолдеров**
+9. **reboundops.example (#553)**: реальные скриншоты v2, **0 плейсхолдеров**
    (ScreenshotSlot удалён); job-map showcase показывает настоящие capture ×19
    локалей лендинга; `images/README.md` соответствует содержимому.
 10. **Fresh captures ×48 (#551)**: dashboard ×19 + job-map ×19 +

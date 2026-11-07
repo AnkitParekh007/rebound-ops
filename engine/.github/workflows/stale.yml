@@ -43,4 +43,4 @@ jobs:
           # direction/* and maintainer-commitment mean the ball is in OUR court (ready
           # or queued for merge, CI waiting on us, not triaged yet, a maintainer decision,
           # or a promise we made): our delay must never become the author's stale.
-          exempt-pr-labels: 'pinned,security,adoption/track,adoption/pinged,adoption/warned,adoption/ready,triage/ready,triage/trivial,triage/re-review,triage/ci-hold,triage/new,direction/needs-santiago,direction/review,maintainer-commitment'
+          exempt-pr-labels: 'pinned,security,adoption/track,adoption/pinged,adoption/warned,adoption/ready,triage/ready,triage/trivial,triage/re-review,triage/ci-hold,triage/new,direction/needs-maintainer,direction/review,maintainer-commitment'

@@ -1,9 +1,9 @@
 name: Direction gate
 
-# Check REQUERIDO (ruleset `main`) que impide fusionar lo que Santiago no ha decidido.
-# Cero reglas de contenido: solo lee labels y falla si la PR lleva `direction/needs-santiago`.
+# Check REQUERIDO (ruleset `main`) que impide fusionar lo que el mantenedor no ha decidido.
+# Cero reglas de contenido: solo lee labels y falla si la PR lleva `direction/needs-maintainer`.
 # La política de dirección se evalúa en la sesión del maintainer (policy-check); este check es el ancla
-# dura para la merge queue y el auto-merge. El label lo quita `batch apply` con el OK literal de Santiago.
+# dura para la merge queue y el auto-merge. El label lo quita `batch apply` con el OK literal del mantenedor.
 #
 # merge_group: la PR solo entra en cola con este check en verde, así que en principio ya no lleva el
 # label. El script intenta leer el número de PR del head_ref de la cola (gh-readonly-queue/main/pr-N-…)

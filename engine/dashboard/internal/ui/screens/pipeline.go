@@ -2552,9 +2552,9 @@ func (m PipelineModel) renderHelp() string {
 	// The manifesto segment is an OSC 8 hyperlink (utm_source=dashboard);
 	// terminals without support show the same text, just not clickable. The
 	// gap math uses the plain text so the escapes never skew the layout.
-	const brandPlain = "built on the ReboundOps Manifesto · rebound-ops by santifer.io"
+	const brandPlain = "built on the ReboundOps Manifesto · rebound-ops · maintained by Ankit Parekh"
 	manifestoLink := "\x1b]8;;https://github.com/AnkitParekh007/rebound-ops\x1b\\built on the ReboundOps Manifesto\x1b]8;;\x1b\\"
-	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render(manifestoLink + " · rebound-ops by santifer.io")
+	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render(manifestoLink + " · rebound-ops · maintained by Ankit Parekh")
 
 	keys := joinHelp(budget, []helpPiece{
 		piece("↑↓/jk", i18n.Current.HelpNav, false),

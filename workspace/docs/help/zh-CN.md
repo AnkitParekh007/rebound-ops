@@ -42,7 +42,7 @@
   — 安装 Chromium 并注册用于 PDF 与表单填写的 MCP。
 - [rebound-ops 如何为职位打分](https://github.com/AnkitParekh007/rebound-ops)
   — 评分方法论：六个评分维度、4.0 分投递门槛，以及系统明确拒绝执行
-  的操作。也可在 [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops)
+  的操作。也可在 [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops)
   查看你所用语言的摘要版本。
 
 **核心原则**(摘自

@@ -10,7 +10,7 @@ labels: manifesto-signature
 
 > ReboundOps is the practice of running a job search the way engineers run production: with evidence, with discipline, and with tools on the candidate's side of the table.
 >
-> — Coined by Santiago Fernández de Valderrama Aparicio in
+> — Coined by the original author in
 > [The ReboundOps Manifesto](https://github.com/AnkitParekh007/rebound-ops), July 14, 2026.
 
 ## My signature

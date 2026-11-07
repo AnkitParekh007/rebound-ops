@@ -52,7 +52,7 @@ candidatura localmente sulla tua macchina.
   — la metodologia di valutazione: le cinque dimensioni più un punteggio globale olistico, la soglia di
   candidatura a 4.0 e ciò che il sistema si rifiuta esplicitamente di
   fare. Riassunta anche su
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) nella tua lingua.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) nella tua lingua.
 
 **Principi fondanti** (da
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

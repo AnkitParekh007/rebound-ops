@@ -52,7 +52,7 @@ verfolgt jede Bewerbung lokal auf Ihrem Rechner.
 - [Wie rebound-ops Stellenanzeigen bewertet](https://github.com/AnkitParekh007/rebound-ops)
   — die Bewertungsmethodik: die fünf Dimensionen plus eine ganzheitliche Gesamtbewertung, der 4.0-Bewerbungsschwellenwert
   und was das System ausdrücklich nicht tut. Ebenfalls zusammengefasst unter
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) in Ihrer Sprache.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) in Ihrer Sprache.
 
 **Grundprinzipien** (aus
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

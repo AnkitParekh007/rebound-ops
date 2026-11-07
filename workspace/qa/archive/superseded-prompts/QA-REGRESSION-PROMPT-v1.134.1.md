@@ -30,7 +30,7 @@ npm audit --prefix site                           # 0 vulnerabilities (fast-uri 
 2. **`#/scan` localized strings** — switch language (e.g. `ru`, `ja`, `ar`): the trust-badge tooltip and the relocation column header are now in that language (were English before). `ar` stays RTL-correct.
 3. **`#/dashboard` score header** — the score column header is localized (reuses the tracker `track.col.score` string).
 4. **`#/scan` results still render** — run a scan; a source whose later page fails no longer wipes the already-scraped rows (successfactors partials preserved); a genuinely dead board still surfaces a failure on `#/portals`.
-5. **cvstart.org** (after Pages redeploy) — version badge reads **1.134.1**; the `/changelog/` page shows the `[1.134.1]` entry in every locale.
+5. **reboundops.example** (after Pages redeploy) — version badge reads **1.134.1**; the `/changelog/` page shows the `[1.134.1]` entry in every locale.
 
 ## §3 — Contract & security invariants
 

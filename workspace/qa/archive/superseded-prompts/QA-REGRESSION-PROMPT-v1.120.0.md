@@ -3,7 +3,7 @@
 > Delta-focused sign-off for v1.120.0. Baseline: v1.119.5 (all green).
 > Scope of the release: **no new server routes, no new scan adapters** — the delta is
 > the ReboundOps Manifesto surfacing across the SPA, help guide, READMEs, and the
-> cvstart.org landing, mirroring parent rebound-ops v1.20.0 (which shipped
+> reboundops.example landing, mirroring parent rebound-ops v1.20.0 (which shipped
 > `MANIFESTO.md`, `manifesto.mjs`, and dashboard/README manifesto links).
 
 ## What changed
@@ -19,7 +19,7 @@
    `tests/help-ru-config-section.test.mjs`).
 4. **README ×16**: a "The ReboundOps Manifesto" section after "About rebound-ops".
 5. **CHANGELOG ×16**: the `[1.120.0] — 2026-07-16` entry.
-6. **cvstart.org landing** (`site/`): Community footer column gained a manifesto link
+6. **reboundops.example landing** (`site/`): Community footer column gained a manifesto link
    (`footer.manifesto` in all 16 `site/src/i18n/*.json`, link in `Footer.astro` →
    `https://github.com/AnkitParekh007/rebound-ops`).
 7. **New suite** `tests/manifesto-link.test.mjs` (5 cases) pinning all of the above.

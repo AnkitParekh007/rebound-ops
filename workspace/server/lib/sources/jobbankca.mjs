@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from 'node:fs';
 // NOTE: `js-yaml` is loaded lazily inside resolveProfileKeywords (below), NOT at
 // module top level. The registry enumerates every source with a bare `import()`
 // to read its `meta` — that runs in environments without the repo-root
-// node_modules (the cvstart.org Pages build only `npm ci`s in site/). A
+// node_modules (the reboundops.example Pages build only `npm ci`s in site/). A
 // top-level `import 'js-yaml'` there throws, the registry silently drops this
 // source, and the landing's source count falls out of sync with the app
 // (v1.212.0 shipped 80 on the site vs 81 everywhere else). Keep source modules

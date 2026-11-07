@@ -187,7 +187,7 @@ jobs:
       contents: read
       pull-requests: write
     env:
-      APPROVER_ALLOWLIST: "santifer"
+      APPROVER_ALLOWLIST: "AnkitParekh007"
     steps:
       - name: Gate on allowlist
         id: gate
@@ -298,7 +298,7 @@ jobs:
               { o: context.repo.owner, r: context.repo.repo, n: d.number });
             const disc = info.repository.discussion;
             const asked = disc.comments.nodes.some(c =>
-              c.author && c.author.login === 'santifer' && c.body.includes(MARKER));
+              c.author && c.author.login === 'AnkitParekh007' && c.body.includes(MARKER));
             if (!asked) return;
             if (disc.labels.nodes.some(l => l.name === 'first-public-contribution')) return;
             await github.graphql(

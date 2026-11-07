@@ -1,4 +1,4 @@
-# cvstart.org — marketing landing for rebound-ops-ui
+# reboundops.example — marketing landing for rebound-ops-ui
 
 Static, multilingual (16 locales) marketing site for
 [rebound-ops-ui](https://github.com/AnkitParekh007/rebound-ops), deployed to
@@ -76,4 +76,4 @@ npx astro check
 
 Pushes to `main` that touch `site/**`, `docs/help/**`, or
 `images/dashboard-*.png` trigger the Pages workflow (build → upload →
-deploy). `public/CNAME` pins the custom domain `cvstart.org`.
+deploy). `public/CNAME` pins the custom domain `reboundops.example`.

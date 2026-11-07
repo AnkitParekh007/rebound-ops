@@ -1,4 +1,4 @@
-# SPEC — cvstart.org Pages build green again: JobMapShowcase must not import bare `astro`
+# SPEC — reboundops.example Pages build green again: JobMapShowcase must not import bare `astro`
 
 - **Status:** In progress
 - **Release:** post-v1.241.1 fixup (no version bump — CI-only, nothing user-facing in the app)
@@ -7,7 +7,7 @@
 
 ## Goal
 
-`Deploy landing to GitHub Pages` passes again on `main`, so cvstart.org ships the
+`Deploy landing to GitHub Pages` passes again on `main`, so reboundops.example ships the
 v1.241.1 changelog + job-map showcase in all 17 languages.
 
 ## Context
@@ -66,7 +66,7 @@ resolution.
 
 ## Risks and invariants touched
 
-- TRACEABILITY row "site (cvstart.org) builds and deploys from `site/**`" —
+- TRACEABILITY row "site (reboundops.example) builds and deploys from `site/**`" —
   guarded by criterion 4; nothing else in the invariant→gate matrix touches
   `.astro` type-checking.
 

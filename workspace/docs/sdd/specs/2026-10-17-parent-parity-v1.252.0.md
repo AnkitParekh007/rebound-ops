@@ -18,7 +18,7 @@
    `telegram-channel.mjs` цел (ADR-0002).
 2. **Релиз web-ui v1.252.0** — док-поезд: CHANGELOG ×18, README ×18, QA-промпт
    v1.252.0 (v1.251.1 в архив), спека, PROJECT-CONTEXT/CONVENTIONS, site mirrors.
-3. **Деплой** local + resumecraft.ru с `parent_ref=139efe1b` → health
+3. **Деплой** local + reboundops.example с `parent_ref=139efe1b` → health
    `parentVersion: 1.37.0`.
 
 ## Инварианты

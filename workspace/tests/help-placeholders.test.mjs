@@ -10,7 +10,7 @@
  *
  *   • the app (#/help) — public/js/views/help.js substitutes the ACTIVE
  *     locale's label through I18n.t before UI.md();
- *   • cvstart.org — site/scripts/sync-assets.mjs substitutes at sync time
+ *   • reboundops.example — site/scripts/sync-assets.mjs substitutes at sync time
  *     (site i18n value when one exists, EN dict value otherwise);
  *   • server-side readers — server/lib/help-markdown.mjs ::
  *     substituteHelpPlaceholdersEn() gives the docs-assistant corpus the EN

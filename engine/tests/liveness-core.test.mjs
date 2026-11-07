@@ -391,7 +391,7 @@ expired('This job listing is closed as of today.') === 'expired'
 // distinction is measured here, not just in the tier assertion below,
 // because a future refactor that put both banners back in one tier would
 // keep the surface result === 'expired' green while breaking the whole
-// invariant santifer's #4194 review is about.
+// invariant the original author's #4194 review is about.
 const padding = 'Job description follows. '.repeat(20);
 for (const { text, expectedCode, label } of [
   {
@@ -443,7 +443,7 @@ classifyLiveness({
 
 console.log('\nliveness-core — SOFT_EXPIRED_PATTERNS tier: weak signals must lose to a visible apply control (#4194)');
 
-// santifer's #4194 review fixtures. Each is a body a live posting can
+// the original author's #4194 review fixtures. Each is a body a live posting can
 // legitimately carry (carousel item, filter chip, footer FAQ), and each
 // has a working apply control. Before the tier move, the bare "\bjob
 // expired\b" pattern lived in HARD_EXPIRED and fired here BEFORE the

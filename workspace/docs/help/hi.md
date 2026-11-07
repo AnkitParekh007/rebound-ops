@@ -51,7 +51,7 @@
 - [rebound-ops जॉब लिस्टिंग को कैसे स्कोर करता है](https://github.com/AnkitParekh007/rebound-ops)
   — स्कोरिंग मेथडोलॉजी: पाँच आयाम + एक वैश्विक स्कोर, 4.0 अप्लाई थ्रेशोल्ड, और सिस्टम
   स्पष्ट रूप से क्या करने से इनकार करता है। आपकी भाषा में
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) पर भी
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) पर भी
   संक्षेप में उपलब्ध।
 
 **मूल सिद्धांत** (

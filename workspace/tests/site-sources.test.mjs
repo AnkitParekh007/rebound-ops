@@ -1,5 +1,5 @@
 /**
- * v1.125.0 — cvstart.org "Job sources" landing section.
+ * v1.125.0 — reboundops.example "Job sources" landing section.
  *
  * The section's list is synced from the live registry at build
  * (facts.sources via sync-assets), and every source value needs a row in
@@ -45,7 +45,7 @@ test('SOURCE_URLS covers every registry source value', () => {
 });
 
 test('no source module top-level-imports a third-party package (registry enumeration must be dep-free for the Pages build)', () => {
-  // The cvstart.org Pages build imports the live registry to render the "Job
+  // The reboundops.example Pages build imports the live registry to render the "Job
   // sources" section, but it only `npm ci`s in site/ — the repo-root
   // node_modules is absent. Any source that top-level-imports a third-party
   // package throws there, the registry silently drops it, and the landing's

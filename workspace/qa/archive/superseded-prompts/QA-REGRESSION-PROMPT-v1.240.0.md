@@ -73,4 +73,4 @@ doctor, ATS payload, tracker scripts, Go dashboard, `sg` mode).
 
 - [ ] §0 gates green with the counts above
 - [ ] §2 steps 1–4 in a real browser
-- [ ] `/api/health` on resumecraft.ru reports 1.240.0 and `parentVersion` 1.35.0
+- [ ] `/api/health` on reboundops.example reports 1.240.0 and `parentVersion` 1.35.0

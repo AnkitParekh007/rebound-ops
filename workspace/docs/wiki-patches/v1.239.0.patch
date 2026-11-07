@@ -87,7 +87,7 @@ index 51df628..bd9ee8e 100644
 -> Aktuel udgivelse: **v1.238.0** · Node ≥ 18 · Express 4 + vanilla-JS SPA · 98 scanner-adaptere · 37 rutemoduler · 17 sprog i grænsefladen · 3481 enhedstests.
 +> Aktuel udgivelse: **v1.239.0** · Node ≥ 18 · Express 4 + vanilla-JS SPA · 103 scanner-adaptere · 37 rutemoduler · 17 sprog i grænsefladen · 3774 enhedstests.
  >
- > _Uofficiel UI — ikke tilknyttet eller godkendt af rebound-ops / santifer._
+ > _Uofficiel UI — ikke tilknyttet eller godkendt af rebound-ops / the original author._
  
 @@ -16,7 +16,7 @@ CLI'en ejer fortsat slash-kommandoer og formularudfyldning; SPA'en giver et visu
  
@@ -118,7 +118,7 @@ index 2811147..7b7d62d 100644
 -> Aktuelles Release: **v1.238.0** · Node ≥ 18 · Express 4 + Vanilla-JS-SPA · 98 Scanner-Adapter · 37 Routenmodule · 17 UI-Sprachen · 3481 Unit-Tests.
 +> Aktuelles Release: **v1.239.0** · Node ≥ 18 · Express 4 + Vanilla-JS-SPA · 103 Scanner-Adapter · 37 Routenmodule · 17 UI-Sprachen · 3774 Unit-Tests.
  >
- > _Inoffizielle Oberfläche — nicht mit rebound-ops / santifer verbunden und nicht von ihnen unterstützt._
+ > _Inoffizielle Oberfläche — nicht mit rebound-ops / the original author verbunden und nicht von ihnen unterstützt._
  
 @@ -16,7 +16,7 @@ Die CLI bleibt für Slash-Befehle und das Ausfüllen von Formularen zuständig;
  
@@ -149,7 +149,7 @@ index f9afd98..2ff0464 100644
 -> Versión actual: **v1.238.0** · Node ≥ 18 · Express 4 + SPA en JavaScript vanilla · 98 adaptadores de escaneo · 37 módulos de rutas · 17 idiomas de interfaz · 3481 tests unitarios.
 +> Versión actual: **v1.239.0** · Node ≥ 18 · Express 4 + SPA en JavaScript vanilla · 103 adaptadores de escaneo · 37 módulos de rutas · 17 idiomas de interfaz · 3774 tests unitarios.
  >
- > _Interfaz no oficial — sin afiliación ni respaldo de rebound-ops / santifer._
+ > _Interfaz no oficial — sin afiliación ni respaldo de rebound-ops / the original author._
  
 @@ -16,7 +16,7 @@ La CLI sigue siendo dueña de los comandos slash y el rellenado de formularios;
  
@@ -180,7 +180,7 @@ index 899fbf2..1761f26 100644
 -> Version actuelle : **v1.238.0** · Node ≥ 18 · Express 4 + SPA en JavaScript vanilla · 98 adaptateurs de scan · 37 modules de routes · 17 langues d'interface · 3481 tests unitaires.
 +> Version actuelle : **v1.239.0** · Node ≥ 18 · Express 4 + SPA en JavaScript vanilla · 103 adaptateurs de scan · 37 modules de routes · 17 langues d'interface · 3774 tests unitaires.
  >
- > _Interface non officielle — sans affiliation ni approbation de rebound-ops / santifer._
+ > _Interface non officielle — sans affiliation ni approbation de rebound-ops / the original author._
  
 @@ -16,7 +16,7 @@ La CLI reste maîtresse des commandes slash et du remplissage de formulaires ; l
  
@@ -211,7 +211,7 @@ index c7de5f2..69dc6cc 100644
 -> Versione attuale: **v1.238.0** · Node ≥ 18 · Express 4 + SPA in JavaScript vanilla · 98 adattatori di scansione · 37 moduli di route · 17 lingue dell'interfaccia · 3481 test unitari.
 +> Versione attuale: **v1.239.0** · Node ≥ 18 · Express 4 + SPA in JavaScript vanilla · 103 adattatori di scansione · 37 moduli di route · 17 lingue dell'interfaccia · 3774 test unitari.
  >
- > _Interfaccia non ufficiale — non affiliata né approvata da rebound-ops / santifer._
+ > _Interfaccia non ufficiale — non affiliata né approvata da rebound-ops / the original author._
  
 @@ -16,7 +16,7 @@ La CLI resta responsabile dei comandi slash e della compilazione dei moduli; la
  
@@ -242,7 +242,7 @@ index 9d3864e..3b38af0 100644
 -> Aktualne wydanie: **v1.238.0** · Node ≥ 18 · Express 4 + SPA w czystym JS · 98 adapterów skanera · 37 modułów tras · 17 języków interfejsu · 3481 testów jednostkowych.
 +> Aktualne wydanie: **v1.239.0** · Node ≥ 18 · Express 4 + SPA w czystym JS · 103 adapterów skanera · 37 modułów tras · 17 języków interfejsu · 3774 testów jednostkowych.
  >
- > _Nieoficjalny interfejs — bez powiązań i bez rekomendacji rebound-ops / santifer._
+ > _Nieoficjalny interfejs — bez powiązań i bez rekomendacji rebound-ops / the original author._
  
 @@ -16,7 +16,7 @@ CLI nadal odpowiada za komendy slash i wypełnianie formularzy; SPA daje wizualn
  
@@ -273,7 +273,7 @@ index 100cda5..cb9192f 100644
 -> Versão atual: **v1.238.0** · Node ≥ 18 · Express 4 + SPA em JavaScript vanilla · 98 adaptadores de varredura · 37 módulos de rotas · 17 idiomas de interface · 3481 testes unitários.
 +> Versão atual: **v1.239.0** · Node ≥ 18 · Express 4 + SPA em JavaScript vanilla · 103 adaptadores de varredura · 37 módulos de rotas · 17 idiomas de interface · 3774 testes unitários.
  >
- > _Interface não oficial — sem afiliação ou endosso de rebound-ops / santifer._
+ > _Interface não oficial — sem afiliação ou endosso de rebound-ops / the original author._
  
 @@ -16,7 +16,7 @@ A CLI continua dona dos comandos slash e do preenchimento de formulários; a SPA
  
@@ -304,7 +304,7 @@ index fcb3a50..4e55fba 100644
 -> Güncel sürüm: **v1.238.0** · Node ≥ 18 · Express 4 + saf JS SPA · 98 tarayıcı adaptörü · 37 rota modülü · 17 arayüz dili · 3481 birim testi.
 +> Güncel sürüm: **v1.239.0** · Node ≥ 18 · Express 4 + saf JS SPA · 103 tarayıcı adaptörü · 37 rota modülü · 17 arayüz dili · 3774 birim testi.
  >
- > _Resmî olmayan arayüz — rebound-ops / santifer ile bağlantılı değildir ve onlar tarafından onaylanmamıştır._
+ > _Resmî olmayan arayüz — rebound-ops / the original author ile bağlantılı değildir ve onlar tarafından onaylanmamıştır._
  
 @@ -16,7 +16,7 @@ Slash komut modları ve form doldurma CLI'da kalır; SPA aynı verilerin üzerin
  
@@ -335,7 +335,7 @@ index 608e7c7..bf0ef3d 100644
 -> Текущий релиз: **v1.238.0** · Node ≥ 18 · Express 4 + SPA на ванильном JS · 98 адаптеров сканера · 37 модуль маршрутов · 17 локалей интерфейса · 3481 юнит-тест.
 +> Текущий релиз: **v1.239.0** · Node ≥ 18 · Express 4 + SPA на ванильном JS · 103 адаптеров сканера · 37 модуль маршрутов · 17 локалей интерфейса · 3774 юнит-тест.
  >
- > _Неофициальный UI — не аффилирован с rebound-ops / santifer и не одобрен ими._
+ > _Неофициальный UI — не аффилирован с rebound-ops / the original author и не одобрен ими._
  
 @@ -16,7 +16,7 @@ CLI по-прежнему отвечает за slash-команды и запо
  
@@ -366,7 +366,7 @@ index 52aa66b..cb5e352 100644
 -> Поточний реліз: **v1.238.0** · Node ≥ 18 · Express 4 + SPA на ванільному JS · 98 адаптерів сканера · 37 модуль маршрутів · 17 мов інтерфейсу · 3481 юніт-тест.
 +> Поточний реліз: **v1.239.0** · Node ≥ 18 · Express 4 + SPA на ванільному JS · 103 адаптерів сканера · 37 модуль маршрутів · 17 мов інтерфейсу · 3774 юніт-тест.
  >
- > _Неофіційний UI — не афілійований із rebound-ops / santifer і не схвалений ними._
+ > _Неофіційний UI — не афілійований із rebound-ops / the original author і не схвалений ними._
  
 @@ -16,7 +16,7 @@ CLI, як і раніше, відповідає за slash-команди та 
  
@@ -397,7 +397,7 @@ index 5aa4f78..23f9893 100644
 -> الإصدار الحالي: **v1.238.0** · Node ≥ 18 · Express 4 + تطبيق صفحة واحدة بجافاسكريبت خام · 98 محوِّل مسح · 37 وحدة مسارات · 17 لغة للواجهة · 3481 اختبار وحدة.
 +> الإصدار الحالي: **v1.239.0** · Node ≥ 18 · Express 4 + تطبيق صفحة واحدة بجافاسكريبت خام · 103 محوِّل مسح · 37 وحدة مسارات · 17 لغة للواجهة · 3774 اختبار وحدة.
  >
- > _واجهة غير رسمية — غير تابعة لـ rebound-ops / santifer وغير معتمدة منهما._
+ > _واجهة غير رسمية — غير تابعة لـ rebound-ops / the original author وغير معتمدة منهما._
  
 @@ -16,7 +16,7 @@
  
@@ -428,7 +428,7 @@ index ca93f76..cd305cc 100644
 -> वर्तमान रिलीज़: **v1.238.0** · Node ≥ 18 · Express 4 + वैनिला-JS SPA · 98 स्कैनर एडेप्टर · 37 रूट मॉड्यूल · 17 UI भाषाएं · 3481 यूनिट टेस्ट।
 +> वर्तमान रिलीज़: **v1.239.0** · Node ≥ 18 · Express 4 + वैनिला-JS SPA · 103 स्कैनर एडेप्टर · 37 रूट मॉड्यूल · 17 UI भाषाएं · 3774 यूनिट टेस्ट।
  >
- > _अनौपचारिक UI — rebound-ops / santifer से संबद्ध नहीं और न ही उनके द्वारा अनुमोदित।_
+ > _अनौपचारिक UI — rebound-ops / the original author से संबद्ध नहीं और न ही उनके द्वारा अनुमोदित।_
  
 @@ -16,7 +16,7 @@ CLI slash-कमांड मोड और फ़ॉर्म-फ़िलिं
  
@@ -459,7 +459,7 @@ index 774bf56..931387c 100644
 -> 最新リリース: **v1.238.0** · Node ≥ 18 · Express 4 + バニラ JS SPA · スキャナーアダプター 98 個 · ルートモジュール 37 個 · UI ロケール 17 言語 · ユニットテスト 3481 件。
 +> 最新リリース: **v1.239.0** · Node ≥ 18 · Express 4 + バニラ JS SPA · スキャナーアダプター 103 個 · ルートモジュール 37 個 · UI ロケール 17 言語 · ユニットテスト 3774 件。
  >
- > _非公式 UI — rebound-ops / santifer とは提携しておらず、承認も受けていません。_
+ > _非公式 UI — rebound-ops / the original author とは提携しておらず、承認も受けていません。_
  
 @@ -16,7 +16,7 @@
  
@@ -490,7 +490,7 @@ index 05379fb..53e6008 100644
 -> 当前版本：**v1.238.0** · Node ≥ 18 · Express 4 + 原生 JS SPA · 98 个扫描适配器 · 37 个路由模块 · 17 种界面语言 · 3481 个单元测试。
 +> 当前版本：**v1.239.0** · Node ≥ 18 · Express 4 + 原生 JS SPA · 103 个扫描适配器 · 37 个路由模块 · 17 种界面语言 · 3774 个单元测试。
  >
- > _非官方界面 — 与 rebound-ops / santifer 无隶属或背书关系。_
+ > _非官方界面 — 与 rebound-ops / the original author 无隶属或背书关系。_
  
 @@ -16,7 +16,7 @@ CLI 继续负责斜杠命令模式和表单填写；SPA 则在同一份数据之
  
@@ -521,7 +521,7 @@ index dc679c6..c788396 100644
 -> 目前版本：**v1.238.0** · Node ≥ 18 · Express 4 + 原生 JS SPA · 98 個掃描配接器 · 37 個路由模組 · 17 種介面語言 · 3481 個單元測試。
 +> 目前版本：**v1.239.0** · Node ≥ 18 · Express 4 + 原生 JS SPA · 103 個掃描配接器 · 37 個路由模組 · 17 種介面語言 · 3774 個單元測試。
  >
- > _非官方介面 — 與 rebound-ops / santifer 無隸屬或背書關係。_
+ > _非官方介面 — 與 rebound-ops / the original author 無隸屬或背書關係。_
  
 @@ -16,7 +16,7 @@ CLI 繼續負責斜線指令模式與表單填寫；SPA 則在同一份資料之
  
@@ -583,7 +583,7 @@ index 45c0fed..1047f0b 100644
 -> Current release: **v1.238.0** · Node ≥ 18 · Express 4 + vanilla-JS SPA · 98 scanner adapters · 37 route modules · 17 UI locales · 3481 unit tests.
 +> Current release: **v1.239.0** · Node ≥ 18 · Express 4 + vanilla-JS SPA · 103 scanner adapters · 37 route modules · 17 UI locales · 3774 unit tests.
  >
- > _Unofficial UI — not affiliated with or endorsed by rebound-ops / santifer._
+ > _Unofficial UI — not affiliated with or endorsed by rebound-ops / the original author._
  
 @@ -20,7 +20,7 @@ The CLI keeps owning slash-command modes and form-fill (via Playwright MCP); the
  

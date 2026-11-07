@@ -37,7 +37,7 @@ node tools/i18n-audit.mjs                    # dictionary clean (no NEW i18n key
 
 ## §4 — Not in this release (see `docs/UX-ROADMAP.md` Phase 5 / 5b)
 
-- **v1.147.0 (Phase 5b, part 2):** the in-app help "Hermes & Telegram" H2 §30 ×17 (H2/H3 gate 29→30, 105→108) + `DocsFab`/docs-assistant grounding + the cvstart.org marketing surface.
+- **v1.147.0 (Phase 5b, part 2):** the in-app help "Hermes & Telegram" H2 §30 ×17 (H2/H3 gate 29→30, 105→108) + `DocsFab`/docs-assistant grounding + the reboundops.example marketing surface.
 - **Phase 5 (blocked):** the actual Hermes/Nous LLM-provider integration — needs the API-contract spike (base URL, auth, OpenAI-compatibility, model ids, streaming, tool-calling) confirmed first.
 
 ## §5 — Sign-off

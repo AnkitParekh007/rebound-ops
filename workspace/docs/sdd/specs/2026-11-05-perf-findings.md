@@ -2,7 +2,7 @@
 
 - **Status:** Done (investigation; fixes are future work)
 - **Release:** unplanned (analysis branch `analysis/car236-perf-probe`, no PR by design)
-- **Related:** Linear CAR-236 (prod pages like `#/pipeline` load slowly on resumecraft.ru); v1.238.3 report-list cache (`store.mjs`); `#/pipeline` mount fan-out (CAR-116)
+- **Related:** Linear CAR-236 (prod pages like `#/pipeline` load slowly on reboundops.example); v1.238.3 report-list cache (`store.mjs`); `#/pipeline` mount fan-out (CAR-116)
 - **Owner:** maintainer (picks which ranked fix ships first)
 
 ## Goal

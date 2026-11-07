@@ -46,7 +46,7 @@ copy, PROGRESS status).
 - `node evals/workflow/run.mjs` → **14 pass · 0 fail** (after the QA-prompt +
   baselines fix: the first run failed `qa-prompt-mandatory` and
   `no-blanket-version-sweep` — both were real doc-train gaps, fixed).
-- Prod (resumecraft.ru): `/api/health` = `1.244.2`; Playwright smoke
+- Prod (reboundops.example): `/api/health` = `1.244.2`; Playwright smoke
   **15/15**; targeted checks — `.scan-terminal` ✓, `.scan-launcher` ✓,
   `.reposts` ✓, salary cells one-line ✓.
 - Site build: 86 pages, green.

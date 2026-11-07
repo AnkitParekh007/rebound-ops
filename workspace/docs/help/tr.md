@@ -50,7 +50,7 @@ her başvuruyu makinenizde yerel olarak takip eder.
 - [rebound-ops iş ilanlarını nasıl puanlar](https://github.com/AnkitParekh007/rebound-ops)
   — puanlama metodolojisi: beş boyut ve bütünsel bir genel puan, 4.0 başvuru eşiği ve sistemin
   kesinlikle yapmayı reddettiği şeyler. Kendi dilinizde
-  [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) adresinde de özetlenmiştir.
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) adresinde de özetlenmiştir.
 
 **Tanımlayıcı ilkeler** (kaynak:
 [github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):

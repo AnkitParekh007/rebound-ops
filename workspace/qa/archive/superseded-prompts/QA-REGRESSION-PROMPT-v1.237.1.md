@@ -46,7 +46,7 @@ both host pairs serve the v5 API at 200 (verified 2026-09-22). `http-json.mjs` u
 1. **SPA footer, language = Русский:** the 📘 link's `href` must end in `/ru/`. Switch to any
    other language: it must end in `/en/`. Switch back: `/ru/` again (the applier runs on every
    language change, not only at boot).
-2. **cvstart.org/ru/** footer: the book link → `/ru/`. **cvstart.org/** (and any other locale)
+2. **reboundops.example/ru/** footer: the book link → `/ru/`. **reboundops.example/** (and any other locale)
    → `/en/`.
 3. `#/scan` with a Jobstreet entry whose `api:` uses **`au.seek.com`**: the entry is accepted
    (no "untrusted hostname"), the scan runs, result links are `https://au.seek.com/job/<id>`.
@@ -73,7 +73,7 @@ both host pairs serve the v5 API at 200 (verified 2026-09-22). `http-json.mjs` u
 ## §5 — Sign-off
 
 - [ ] §0 gates green at 3210
-- [ ] ru footer → `/ru/`, every other locale → `/en/`, on both the SPA and cvstart.org
+- [ ] ru footer → `/ru/`, every other locale → `/en/`, on both the SPA and reboundops.example
 - [ ] `au.seek.com` accepted as a Jobstreet endpoint; `www.seek.com.au` still accepted
 - [ ] Wiki Agentic Practices row renders
 - [ ] docs ×17, site ×17 carry v1.237.1

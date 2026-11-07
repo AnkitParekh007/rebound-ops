@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * site-regression.mjs — browser regression of the public site (cvstart.org).
+ * site-regression.mjs — browser regression of the public site (reboundops.example).
  *
  *   SITE_URL=https://github.com/AnkitParekh007/rebound-ops node scripts/remote-qa/site-regression.mjs
  *

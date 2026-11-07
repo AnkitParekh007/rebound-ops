@@ -1,6 +1,6 @@
 # QA REGRESSION PROMPT — rebound-ops-ui **v1.119.0** (release delta driver)
 
-Delta driver for the v1.119.0 release — **parent rebound-ops v1.19.0 parity + cvstart.org landing refresh**. Run on top of the definitive whole-project prompt (`qa/QA-REGRESSION-PROMPT.md`); only the deltas below need fresh eyes.
+Delta driver for the v1.119.0 release — **parent rebound-ops v1.19.0 parity + reboundops.example landing refresh**. Run on top of the definitive whole-project prompt (`qa/QA-REGRESSION-PROMPT.md`); only the deltas below need fresh eyes.
 
 - **Version under test:** `package.json` **1.119.0** · `parentVersion` **1.19.0** · **31 route modules** · **61 adapters (56 EN + 5 RU)**.
 - **Baseline:** **1844** `node --test` cases (was 1824) · CHANGELOG/README/help parity ×16 at v1.119.0.
@@ -22,7 +22,7 @@ New: `meituan` (zhaopin.meituan.com) and `tencent` (careers.tencent.com) — the
 2. The graceful CAPTCHA/4xx fallback contract is unchanged (403/non-JSON → `[]` + `lastWorkdayFallback`; `strict:true` throws).
 3. Glints POSTs carry the same browser-like UA + `origin`/`referer: glints.com` (parent parity). Both consume the shared `BROWSER_LIKE_USER_AGENT` export from `server/lib/http-json.mjs` — one constant, no per-file Chrome-version drift.
 
-## §3 — cvstart.org landing: live stars + contributors
+## §3 — reboundops.example landing: live stars + contributors
 
 1. `site/scripts/sync-assets.mjs` snapshots `facts.stars` AND `facts.contributors` (GitHub `/contributors`, bots filtered, top 24; authenticated via `GITHUB_TOKEN` in CI). Guard suite `tests/site-scripts.test.mjs` still green.
 2. `GitHubButton.astro` renders the star badge with `[data-gh-stars]`; `site/src/scripts/site.js` refreshes it client-side from `api.github.com` on load (build-time value = fallback; badge hidden only when both are absent).
@@ -43,7 +43,7 @@ node --test tests/help-ru-config-section.test.mjs tests/canonical-docs-coverage.
 
 ## §5 — Sign-off
 
-`npm test` green (≥1844) · `npm run test:ci` green · Playwright suite green · smoke/comprehensive E2E green · CI matrix (Node 18/20/22) + CodeQL green · Pages deploy green and cvstart.org shows the contributors block with a live star count.
+`npm test` green (≥1844) · `npm run test:ci` green · Playwright suite green · smoke/comprehensive E2E green · CI matrix (Node 18/20/22) + CodeQL green · Pages deploy green and reboundops.example shows the contributors block with a live star count.
 
 ---
 

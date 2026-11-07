@@ -43,7 +43,7 @@ npm run test:coverage:gate      # 98.28/89.85 ≥ baseline 96/86
 11. **R3 (#527)**: `--accent` определён (map focus-rings живые); css-token-drift
     гейт зелёный.
 12. **R4 (#538)**: assessments/mode-page/pipeline-preview — Skeleton-блоки.
-13. **CAR-133 (#532)**: cvstart.org — параллакс под reduced-motion, SIMULATED
+13. **CAR-133 (#532)**: reboundops.example — параллакс под reduced-motion, SIMULATED
     demo-лейбл, 6 CAR-140 слотов.
 14. **CAR-135 (#533/#540/#541/#542)**: все 19 help-файлов — v2-контент, H2=33/H3=125,
     «121 источников» из живого реестра.

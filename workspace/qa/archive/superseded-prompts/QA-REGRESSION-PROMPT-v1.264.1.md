@@ -1,7 +1,7 @@
 # QA Regression Prompt — v1.264.1
 
 > Release: **v1.264.1** (2026-10-31) · wave PR **#611** (squash → `58a48f15`) + CAR-137/138 tail (exact FAQ counts)
-> Prod target: resumecraft.ru = **1.264.1**, parent 1.38.0 @ `0595b5d1`
+> Prod target: reboundops.example = **1.264.1**, parent 1.38.0 @ `0595b5d1`
 > Tests: **7081** unit (0 fail) · Playwright **176** · registry 123 = 118 EN + 5 RU · 118 adapters · coverage 98.5/90.1
 
 ## What shipped (verify these first)
@@ -15,7 +15,7 @@
    No behavioural change for normal runs (90–140 s); the point is that **no locale dies at exactly 300 s**
    anymore. (Historic transients: es/zh-CN `502 · 300 s · 0 ch` on v1.264.0 — those specific locales
    must now survive a slow run.)
-3. **CAR-217 — exact FAQ counts on cvstart.org.** Open cvstart.org (EN): the FAQ answer «Which job
+3. **CAR-217 — exact FAQ counts on reboundops.example.** Open reboundops.example (EN): the FAQ answer «Which job
    boards can it scan?» must read «**123** job-board sources: **118** international … plus **5** Russian»
    (not «~120 adapters»). Other locales keep the rounded `~…` wording (documented, not a bug).
 
@@ -29,7 +29,7 @@
 - [ ] Mobile 390 px: sidebar drawer (✕ works), scan table, tracker, help — no horizontal overflow.
 - [ ] `#/health` all green; `/api/health` reports `1.264.1`.
 - [ ] LLM pages live-evaluate once (any provider) — answer, score block, no warnings band.
-- [ ] cvstart.org: landing, /help, /methodology, /changelog (EN paginated mirrors carry 477+1 = **478** entries after this release).
+- [ ] reboundops.example: landing, /help, /methodology, /changelog (EN paginated mirrors carry 477+1 = **478** entries after this release).
 
 ## Browser automation
 

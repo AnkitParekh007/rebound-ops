@@ -2306,7 +2306,7 @@
 * use candidate name from profile.yml in PDF filename ([7bcbc08](https://github.com/AnkitParekh007/rebound-ops/commit/7bcbc08ca6184362398690234e49df0ac157567f))
 * use execFileSync to prevent shell injection in test-all.mjs ([c99d5a6](https://github.com/AnkitParekh007/rebound-ops/commit/c99d5a6526f923b56c3790b79b0349f402fa00e2))
 * use fileURLToPath for cross platform compatible paths in tracker scripts ([#32](https://github.com/AnkitParekh007/rebound-ops/issues/32)) ([#58](https://github.com/AnkitParekh007/rebound-ops/issues/58)) ([ab77510](https://github.com/AnkitParekh007/rebound-ops/commit/ab775102f4586ae4663a593b519927531be27122))
-* use hi@santifer.io in English README ([5518d3d](https://github.com/AnkitParekh007/rebound-ops/commit/5518d3dd07716137b97bb4d8c7b5264b94e2b9e9))
+* use the original author in English README ([5518d3d](https://github.com/AnkitParekh007/rebound-ops/commit/5518d3dd07716137b97bb4d8c7b5264b94e2b9e9))
 
 
 ### Performance Improvements

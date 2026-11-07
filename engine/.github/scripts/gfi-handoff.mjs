@@ -10,7 +10,7 @@
 //   GraphQL replaceActorsForAssignable(actorIds:[<id del Bot copilot-swe-agent>]) con header
 //           GraphQL-Features: issues_copilot_assignment_api_support,coding_agent_model_selection
 //   Solo admite tokens user-to-server (PAT / OAuth / GitHub App user token). GITHUB_TOKEN es server-to-server y
-//   NO arranca al agente. Por eso hace falta el secret COPILOT_ASSIGN_TOKEN (fine-grained PAT de Santiago,
+//   NO arranca al agente. Por eso hace falta el secret COPILOT_ASSIGN_TOKEN (fine-grained PAT del mantenedor,
 //   permisos Issues: write y Pull requests: write en el repo). Sin él, el script solo informa (no cambia labels).
 //   Comprobación de que el agente está habilitado: suggestedActors(capabilities:[CAN_BE_ASSIGNED]) contiene
 //   login `copilot-swe-agent` (comprobado el 22-sep en AnkitParekh007/rebound-ops: id BOT_kgDOC9w8XQ).

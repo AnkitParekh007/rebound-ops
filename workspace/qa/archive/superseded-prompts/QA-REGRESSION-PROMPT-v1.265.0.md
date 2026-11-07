@@ -1,7 +1,7 @@
 # QA Regression Prompt — v1.265.0
 
 > Release: **v1.265.0** (2026-11-01) · parent-sync wave against rebound-ops @ `fe857ecf`
-> Prod target: resumecraft.ru = **1.265.0**, parent 1.38.0 @ `fe857ecf`
+> Prod target: reboundops.example = **1.265.0**, parent 1.38.0 @ `fe857ecf`
 > Tests: **7135** unit (0 fail) · Playwright **176** (174 harness: 173 pass / 0 fail / 1 opt-in skip · + e2e 21/0 · e2e-comprehensive 23/23) · registry **125 = 120 EN + 5 RU · 120 adapters** · coverage ≥ 98/89
 
 ## What shipped (verify these first)
@@ -25,7 +25,7 @@
 
 - [ ] All views render; 19 locales switch cleanly (no Latin leaks, RTL holds); dark/light across sidebar/tracker/scan.
 - [ ] `#/health` all green; `/api/health` reports `1.265.0`.
-- [ ] cvstart.org: mirrors stamped `v1.265.0`; the Sources section shows 125.
+- [ ] reboundops.example: mirrors stamped `v1.265.0`; the Sources section shows 125.
 - [ ] README ×19 banners name v1.265.0 (lead) / v1.264.3 (previous); badges tests-7135 / release-v1.265.0.
 
 ## Not in scope (by design)

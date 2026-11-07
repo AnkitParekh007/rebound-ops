@@ -44,7 +44,7 @@ const SUSPECT_PATTERNS = [
   // emails
   /[a-z0-9._%+-]+@(?:gmail|yandex|mail|outlook|proton|protonmail|hotmail)\.[a-z]{2,}/i,
   // GitHub handles that look personal
-  /github\.com\/(?!rebound-ops|santifer|AnkitParekh007|anthropic|openai|google)[\w-]+/i,
+  /github\.com\/(?!rebound-ops|the original author|the original author|anthropic|openai|google)[\w-]+/i,
   // LinkedIn profile slugs
   /linkedin\.com\/in\/[\w-]+/i,
   // Specific company-targeting that looks like maintainer's job hunt
@@ -77,7 +77,7 @@ Per-key generic placeholders (apply uniformly across all 8 locales):
 | `project.ideaPh` (if leaks) | `"Build a CLI that…"` | `"Сделать CLI, который…"` | Verify already generic |
 | `followup.companyPh` | `"Stripe"` | `"Stripe"` | A well-known company name as example is OK (no personal data) |
 
-**Important.** If your `git log -p public/js/i18n-dict.js` shows the commit that introduced `"AWS Solutions Architect Associate"` was authored by you (`AnkitParekh007` / your email), the data is in public git history. Note this in the PR but do NOT rewrite history — that breaks downstream forks and the public-already.
+**Important.** If your `git log -p public/js/i18n-dict.js` shows the commit that introduced `"AWS Solutions Architect Associate"` was authored by you (the original author's handle / your email), the data is in public git history. Note this in the PR but do NOT rewrite history — that breaks downstream forks and the public-already.
 
 ### Test · `tests/i18n-no-personal-data.test.mjs`
 

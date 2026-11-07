@@ -17,7 +17,7 @@
  * the TOP of each file: a locale seeded mid-history (de with a single entry
  * at v1.85.0, ta at v1.245.0, vi at v1.255.0) stays partial forever — every
  * release prepends one entry and nothing backfills the tail — while this gate
- * keeps passing. The cvstart.org changelog pages render whatever the locale
+ * keeps passing. The reboundops.example changelog pages render whatever the locale
  * file holds, so de shipped with 252 of EN's 465 releases. Each locale is now
  * audited against the full EN release SET — missing versions, versions
  * unknown to EN (a typo'd heading), and order/duplicate drift all fail;

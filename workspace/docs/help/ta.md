@@ -26,7 +26,7 @@
   — Chromium நிறுவல் + PDF மற்றும் படிவ-நிரப்புதலுக்கு MCP பதிவு.
 - [How rebound-ops scores job listings](https://github.com/AnkitParekh007/rebound-ops)
   — மதிப்பீட்டு முறையியல்: ஐந்து பரிமாணங்கள் + ஒருங்கிணைந்த மொத்த மதிப்பெண், 4.0 விண்ணப்ப வரம்பு,
-  மற்றும் அமைப்பு வெளிப்படையாக செய்ய மறுப்பது என்ன. [cvstart.org/methodology](https://github.com/AnkitParekh007/rebound-ops) இல் உங்கள் மொழியிலும் சுருக்கம் உண்டு.
+  மற்றும் அமைப்பு வெளிப்படையாக செய்ய மறுப்பது என்ன. [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) இல் உங்கள் மொழியிலும் சுருக்கம் உண்டு.
 
 **வரையறுக்கும் கொள்கைகள்**
 ([github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops) இலிருந்து):

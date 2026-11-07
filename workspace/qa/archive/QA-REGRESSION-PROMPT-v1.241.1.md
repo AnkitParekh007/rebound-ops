@@ -1,7 +1,7 @@
 # QA regression — v1.241.1
 
 Patch on v1.241.0: live evaluations end to end in every locale, long multi-location
-postings on the job map, deploy vs. the hourly scan, job map on cvstart.org.
+postings on the job map, deploy vs. the hourly scan, job map on reboundops.example.
 Counts unchanged: **109** sources / **104** adapters.
 
 ## §0 — Gates
@@ -26,12 +26,12 @@ gh workflow run remote-qa.yml --ref main -f live=true -f scan=false   # all 4 jo
 5. **Deploy during the hourly scan** (≈ :04–:17): the deploy log shows `timers held` /
    `waiting for: rebound-ops-scan.service`, the scan unit finishes `success`, and
    `systemctl list-timers | grep rebound-ops` lists both timers again afterwards.
-6. **cvstart.org:** `/#job-map` and `/<lang>/#job-map` show that language's screenshot (`images/job-map-<locale>.png`, ×17).
+6. **reboundops.example:** `/#job-map` and `/<lang>/#job-map` show that language's screenshot (`images/job-map-<locale>.png`, ×17).
 7. **Docs:** every README ×17 has the 🗺️ map section with its own screenshot; help §33 ×17 has "How to use the map" (125 H3 per bundle); the wiki has the [Job map](https://github.com/AnkitParekh007/rebound-ops/wiki/Job-Map) page linked from the sidebar and every Home.
 
 ## §2 — Manual browser pass
 
-`#/evaluate` in en, ru, hi, ja, ar; `#/map` in en and ru; cvstart.org at 1280 px and 390 px.
+`#/evaluate` in en, ru, hi, ja, ar; `#/map` in en and ru; reboundops.example at 1280 px and 390 px.
 
 ## §3 — Contract / security invariants
 

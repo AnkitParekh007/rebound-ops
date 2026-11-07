@@ -269,7 +269,7 @@ sit beneath them.
 
 An earlier version of this subsection carried a jurisdiction table of
 category-regulation flags (`floor_categories`, `void_doctrine`). Per
-maintainer direction on PR #2042 (santifer, 2026-07-29, reasoning in
+maintainer direction on PR #2042 (the original author, 2026-07-29, reasoning in
 **#2280**), that table is gone and is not coming back in any shape —
 including a flags-only shape. The reasoning: whether a jurisdiction
 regulates a given category at all, and whether it carries a

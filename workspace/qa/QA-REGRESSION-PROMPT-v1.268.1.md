@@ -1,6 +1,6 @@
 # QA Regression Prompt — v1.268.1 (patch: the v1.268.0 contract fixed)
 
-> Basis: the prod regression of resumecraft.ru per `qa/QA-REGRESSION-PROMPT-v1.268.0.md`, 2026-11-05, Chrome + live calls `save:false`. Verdict: **not accepted** — the §0 score-spread gate was red and both migration runners were dead in dry-run. This patch fixes the contract; no new features (the stats overhaul and the kanban funnel are separate tracked work — CAR-247 / CAR-237).
+> Basis: the prod regression of reboundops.example per `qa/QA-REGRESSION-PROMPT-v1.268.0.md`, 2026-11-05, Chrome + live calls `save:false`. Verdict: **not accepted** — the §0 score-spread gate was red and both migration runners were dead in dry-run. This patch fixes the contract; no new features (the stats overhaul and the kanban funnel are separate tracked work — CAR-247 / CAR-237).
 
 ## §0 Local gates (the numbers this release carries)
 

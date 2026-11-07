@@ -21,7 +21,7 @@ node scripts/check-changelog-parity.mjs        # 16 non-EN at v1.229.0
 - **Garena** (`provider: garena`) — single company. `office` shapes the job **link**, never the listing; a wrong office breaks links, not results.
 - **MokaHR** (`provider: mokahr`) — the response is an **AES-128-CBC envelope with the key alongside it**. Obfuscation, not security, but a plain JSON parse sees nothing. Two tenants are refused at config time because robots.txt excludes their careers path.
 
-**Check:** all four appear in the `#/scan` Source dropdown (live registry *and* `FALLBACK_SOURCES`, whose parity the drift gate proves) and on cvstart.org's source list.
+**Check:** all four appear in the `#/scan` Source dropdown (live registry *and* `FALLBACK_SOURCES`, whose parity the drift gate proves) and on reboundops.example's source list.
 
 ## §2 — Security invariants to re-check
 Every source pins its host by **equality or an explicit allowlist**, never `endsWith` on a bare domain; all are HTTPS-only with `redirect: 'error'`. Garena additionally refuses `.`/`..` as URL segments outright — `encodeURIComponent` leaves them intact, so escaping alone would still hand the URL a traversal segment. MokaHR's `siteId` reaches a request **body**, which is why its tenant parse is strict about a positive integer.
