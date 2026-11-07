@@ -74,7 +74,7 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 
 | # | Gap | Response |
 |---|---|---|
-| Q1 | ~~No explicit conformance target; axe covers only serious/critical rules~~ Target + manual script documented; axe tags now include WCAG 2.2 AA for serious/critical | Declare **WCAG 2.2 AA** as target ([manual QA](accessibility-manual-qa.md)); extend axe beyond serious/critical with a triaged baseline later; human screen-reader pass (NVDA + VoiceOver) remains a gate (#9) |
+| Q1 | ~~No explicit conformance target~~ Target + manual script + axe WCAG 2.2 AA tags; residual moderate/minor gated by [`e2e/a11y-baseline.json`](../e2e/a11y-baseline.json) | Human screen-reader pass (NVDA + VoiceOver) remains a gate (#9); do not grow the baseline without triage notes |
 
 ### 2.7 Documentation drift — resolved (B0, 5 Nov 2026)
 

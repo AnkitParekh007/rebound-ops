@@ -1,6 +1,11 @@
 # Accessibility manual QA (pilot gate)
 
-Automated Playwright axe checks cover **serious/critical** findings for WCAG 2.A / 2.AA / 2.1 AA / 2.2 AA tags on the recovery onboarding path. They are **not** a substitute for human assistive-technology testing.
+Automated Playwright axe checks cover WCAG 2.A / 2.AA / 2.1 AA / 2.2 AA tags on the recovery onboarding path:
+
+- **Serious/critical** findings always fail CI.
+- **Moderate/minor** findings fail unless listed in [`e2e/a11y-baseline.json`](../e2e/a11y-baseline.json) after triage (empty means none are tolerated).
+
+They are **not** a substitute for human assistive-technology testing.
 
 ## Target
 

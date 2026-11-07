@@ -1,0 +1,4 @@
+{
+  "description": "Allowlist of triaged moderate/minor axe findings (rule|css-target). Serious and critical findings must never appear here — fix them instead.",
+  "allowed": []
+}

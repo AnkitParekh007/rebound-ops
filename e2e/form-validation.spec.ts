@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { useFullForm } from './steps';
-import AxeBuilder from '@axe-core/playwright';
+import { expectAxeClean } from './a11y';
 
 test('contract validation blocks invalid intake locally with accessible inline errors', async ({ page }) => {
   const created: string[] = [];
@@ -20,8 +20,7 @@ test('contract validation blocks invalid intake locally with accessible inline e
   await expect(page.getByLabel('Available hours per week')).toHaveAccessibleDescription('Enter 20 or less.');
   expect(created, 'no API call for an invalid form').toEqual([]);
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
-  expect(results.violations.filter(v => ['serious', 'critical'].includes(v.impact ?? ''))).toEqual([]);
+  await expectAxeClean(page, 'invalid-intake-form');
 
   await role.fill('Fictional Platform Engineer');
   await page.getByLabel('Available hours per week').fill('4');
