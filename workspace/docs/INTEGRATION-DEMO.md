@@ -115,21 +115,18 @@ before use (the demo journey does not need them).
   * `reboundops-logo-on-light.png` / `reboundops-logo-on-dark.png` — full lock-up
     on `#/start`, swapped by theme
   The previous favicon PNGs stay on disk; only `index.html` links changed.
-* **Palette** sampled from the logo: orange `#E8541F`, deep brown `#220B08`,
-  cream `#FAF6F0`. `public/css/reboundops.css` re-points **both** workspace
-  token families — the `--cv3-*` set and the legacy app.css neutrals
-  (`--hof`, `--paper`, `--beach`, `--slate`, `--elev`, `--foggy`, shadows) that
-  most components read — plus the "Ask the docs" launcher tokens (`--fab-*`).
-  The previous cool blue-grey neutrals become warm cream/brown tints; dark mode is
-  built on the logo's deep brown instead of blue-black. Three small rule
-  overrides: the sidebar rail uses the logo background, the active nav icon is
-  orange, and the scan terminal's hard-coded blue-black becomes logo brown. No
-  layout or component structure changed.
-* **Contrast** (all WCAG AA, computed): body text 17:1 light / 16:1 dark; muted
-  text ≥4.9:1; input borders ≥3.1:1. The pure logo orange is 3.7:1 on white, so
-  it is used for the logo, icons and decoration; text-bearing fills use
-  `#C9441A` (white text 4.9:1) in light and `#F26A2E` with brown text (6.1:1) in
-  dark.
+* **Palette** from the logo: orange `#E8541F` (accents), deep brown `#220B08`
+  and cream `#FAF6F0` (logo artwork). Page surfaces are deliberately plain:
+  white with neutral greys in light mode, a near-neutral charcoal (`#121010`)
+  in dark mode — no tinted page, sidebar, hero or banner backgrounds. The orange
+  is reserved for actions, links, focus rings and highlights.
+  `public/css/reboundops.css` sets both workspace token families (`--cv3-*` and
+  the app.css neutrals) plus the chat-launcher tokens; it also clears the
+  dashboard hero's decorative fill and blur planes and the tinted "no AI key"
+  banner. No layout or component structure changed.
+* **Contrast** (all WCAG AA, computed): body text 18:1 light / 16.7:1 dark;
+  muted text ≥5.4:1; input borders ≥3.1:1; white on the light accent `#C2410C`
+  5.2:1; brown ink on the dark accent `#F26A2E` 6.1:1.
 * **Colour audit:** a headless check of `#/dashboard`, `#/scan`, `#/tracker`,
   `#/pipeline`, `#/evaluate`, `#/config` and `#/cv` in both themes found no
   remaining blue/purple-hue backgrounds, text or borders. Semantic colours

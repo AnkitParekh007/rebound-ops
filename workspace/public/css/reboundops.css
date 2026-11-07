@@ -9,74 +9,75 @@
  *
  * Palette sampled from the supplied logo (public/brand/, originals in
  * docs/reboundops-next/brand/): orange #E8541F (range #D04018–#F87830),
- * deep brown #220B08, cream #FAF6F0. Neutrals are warm tints of those two,
- * replacing upstream's blue-grey (hue 250) greys.
+ * deep brown #220B08, cream #FAF6F0.
  *
  * The pure logo orange is 3.7:1 on white, so it is used for the logo, icons
  * and decoration; text-bearing fills use a deeper/lighter step.
- * Contrast (WCAG 2.x, computed — scratch check in the demo report):
- *   light  ink #2A140F on paper #FFFDFA .... 17.2:1   muted #75625A ..... 5.7:1
- *          muted on raised #F4ECE3 ......... 4.9:1    input line ....... 3.6:1
- *          #fff on accent #C9441A .......... 4.9:1    accent text ...... 4.8:1
- *          orange icon on brown nav pill ... 5.7:1    #9A3412 on soft .. 6.4:1
- *   dark   ink #FAF1E8 on paper #241310 .... 16.0:1   muted #C2AD9F .... 8.3:1
- *          #220B08 on accent #F26A2E ....... 6.1:1    accent text ...... 5.9:1
- *          input line #7E6052 .............. 3.1:1    #FDBA8C on soft .. 9.4:1
+ * Neutral surfaces (plain white / near-neutral charcoal, no tinted page
+ * backgrounds); the logo orange is reserved for actions and highlights.
+ * Contrast (WCAG 2.x, computed):
+ *   light  ink #1C1412 on #FFFFFF ........... 18.1:1   muted #6B635E ..... 5.9:1
+ *          muted on raised #F5F4F3 ......... 5.4:1    input line ....... 3.3:1
+ *          #fff on accent #C2410C .......... 5.2:1    accent on raised . 4.7:1
+ *          orange icon on ink nav pill ..... 5.9:1    #9A3412 on soft .. 6.4:1
+ *   dark   ink #F4F0ED on #121010 .......... 16.7:1   muted #A8A09B .... 6.9:1
+ *          #220B08 on accent #F26A2E ....... 6.1:1    accent text ...... 6.2:1
+ *          input line #6E6560 .............. 3.1:1    #FDBA8C on soft .. 9.4:1
  */
 :root {
-  /* brand */
+  /* brand (logo) */
   --rb-orange: #E8541F;
   --rb-terracotta: var(--rb-orange);
   --rb-cream: #FAF6F0;
   --rb-brown: #220B08;
   --rb-glow: rgba(232, 84, 31, .14);
-  /* accent (actions) */
-  --cv3-accent: #C9441A;
-  --cv3-accent-hover: #A93812;
+  /* accent — the logo orange family, reserved for actions and highlights */
+  --cv3-accent: #C2410C;
+  --cv3-accent-hover: #A3360A;
   --cv3-accent-ink: #ffffff;
   --cv3-accent-soft: #FDECE3;
   --cv3-accent-soft-ink: #9A3412;
-  /* neutrals — cream / brown instead of upstream blue-grey */
-  --cv3-surface-0: #FAF6F0;
-  --cv3-surface-1: #FFFDFA;
-  --cv3-surface-2: #F4ECE3;
-  --cv3-surface-3: #ECE1D5;
-  --cv3-ink: #2A140F;
-  --cv3-ink-2: #5E4A41;
-  --cv3-ink-3: #75625A;
-  --cv3-line: #EADDD1;
-  --cv3-line-strong: #DCC9BA;
-  --cv3-input-line: #9A8274;
-  --cv3-neutral: #8A7468;
-  --cv3-neutral-soft: #F3ECE6;
-  --cv3-neutral-ink: #5E4A41;
-  --cv3-shadow-1: 0 1px 0 rgba(42, 20, 15, .04), 0 1px 2px rgba(42, 20, 15, .07);
-  --cv3-shadow-2: 0 1px 0 rgba(42, 20, 15, .04), 0 12px 24px rgba(42, 20, 15, .10);
+  /* neutrals — plain white page, neutral greys; no tinted page backgrounds */
+  --cv3-surface-0: #FFFFFF;
+  --cv3-surface-1: #FFFFFF;
+  --cv3-surface-2: #F5F4F3;
+  --cv3-surface-3: #ECEAE8;
+  --cv3-ink: #1C1412;
+  --cv3-ink-2: #57504B;
+  --cv3-ink-3: #6B635E;
+  --cv3-line: #E7E4E2;
+  --cv3-line-strong: #D6D2CF;
+  --cv3-input-line: #948B85;
+  --cv3-neutral: #857C77;
+  --cv3-neutral-soft: #F2F1F0;
+  --cv3-neutral-ink: #57504B;
+  --cv3-shadow-1: 0 1px 0 rgba(28, 20, 18, .04), 0 1px 2px rgba(28, 20, 18, .06);
+  --cv3-shadow-2: 0 1px 0 rgba(28, 20, 18, .04), 0 12px 24px rgba(28, 20, 18, .08);
   /* legacy app.css neutrals (most components still read these) */
-  --hof: #2A140F;
-  --foggy: #75625A;
-  --foggy-strong: #5E4A41;
-  --beach: #FAF6F0;
-  --slate: #EADDD1;
-  --elev: #F4ECE3;
-  --paper: #FFFDFA;
+  --hof: #1C1412;
+  --foggy: #6B635E;
+  --foggy-strong: #57504B;
+  --beach: #FFFFFF;
+  --slate: #E7E4E2;
+  --elev: #F5F4F3;
+  --paper: #FFFFFF;
   --arches: #E8541F;
-  --shadow-sm: 0 1px 2px rgba(42, 20, 15, .08);
-  --shadow-md: 0 6px 16px rgba(42, 20, 15, .12);
-  --shadow-lg: 0 8px 28px rgba(42, 20, 15, .18);
-  /* "Ask the docs" launcher — logo orange instead of blue/purple */
+  --shadow-sm: 0 1px 2px rgba(28, 20, 18, .07);
+  --shadow-md: 0 6px 16px rgba(28, 20, 18, .10);
+  --shadow-lg: 0 8px 28px rgba(28, 20, 18, .16);
+  /* "Ask the docs" launcher — logo orange gradient */
   --fab-grad: linear-gradient(135deg, #F87830 0%, #E8541F 45%, #B8380F 100%);
-  --fab-glow: 0 6px 26px rgba(232, 84, 31, .42);
-  --fab-accent: #C9441A;
+  --fab-glow: 0 6px 22px rgba(232, 84, 31, .35);
+  --fab-accent: #C2410C;
   --fab-panel-bg: var(--paper);
-  --fab-panel-head: linear-gradient(180deg, rgba(232, 84, 31, .10), rgba(250, 246, 240, 0));
-  --fab-bubble-bot: #F4ECE3;
-  --fab-border: rgba(42, 20, 15, .12);
-  /* recovery views */
+  --fab-panel-head: transparent;
+  --fab-bubble-bot: #F5F4F3;
+  --fab-border: rgba(28, 20, 18, .12);
+  /* recovery views — no tinted fills */
   --rb-card: var(--paper);
-  --rb-muted: #5E4A41;
-  --rb-border: #EADDD1;
-  --rb-soft: var(--rb-cream);
+  --rb-muted: #57504B;
+  --rb-border: #E7E4E2;
+  --rb-soft: transparent;
 }
 /* Same selectors as the upstream sheets so the later sheet (this one) wins. */
 [data-theme="dark"],
@@ -88,42 +89,42 @@
   --cv3-accent-ink: #220B08;
   --cv3-accent-soft: #3B1A10;
   --cv3-accent-soft-ink: #FDBA8C;
-  /* neutrals — the logo's deep-brown night instead of blue-black */
-  --cv3-surface-0: #1A0A07;
-  --cv3-surface-1: #241310;
-  --cv3-surface-2: #301B15;
-  --cv3-surface-3: #3B231B;
-  --cv3-ink: #FAF1E8;
-  --cv3-ink-2: #D9C6B9;
-  --cv3-ink-3: #C2AD9F;
-  --cv3-line: #43291F;
-  --cv3-line-strong: #573629;
-  --cv3-input-line: #7E6052;
-  --cv3-neutral: #B49C8E;
-  --cv3-neutral-soft: #3A251E;
-  --cv3-neutral-ink: #D9C6B9;
-  --cv3-shadow-1: 0 0 0 1px rgba(250, 241, 232, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
-  --cv3-shadow-2: 0 0 0 1px rgba(250, 241, 232, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
-  --hof: #FAF1E8;
-  --foggy: #C2AD9F;
-  --foggy-strong: #D9C6B9;
-  --beach: #1A0A07;
-  --slate: #43291F;
-  --elev: #301B15;
-  --paper: #241310;
+  /* neutrals — near-neutral charcoal (a trace of the logo's brown), no tinted fills */
+  --cv3-surface-0: #121010;
+  --cv3-surface-1: #1A1717;
+  --cv3-surface-2: #242020;
+  --cv3-surface-3: #2E2A29;
+  --cv3-ink: #F4F0ED;
+  --cv3-ink-2: #CEC6C1;
+  --cv3-ink-3: #A8A09B;
+  --cv3-line: #2E2927;
+  --cv3-line-strong: #3D3734;
+  --cv3-input-line: #6E6560;
+  --cv3-neutral: #A8A09B;
+  --cv3-neutral-soft: #262222;
+  --cv3-neutral-ink: #CEC6C1;
+  --cv3-shadow-1: 0 0 0 1px rgba(244, 240, 237, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
+  --cv3-shadow-2: 0 0 0 1px rgba(244, 240, 237, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
+  --hof: #F4F0ED;
+  --foggy: #A8A09B;
+  --foggy-strong: #CEC6C1;
+  --beach: #121010;
+  --slate: #2E2927;
+  --elev: #242020;
+  --paper: #121010;
   --arches: #F87830;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .45);
   --shadow-md: 0 6px 16px rgba(0, 0, 0, .55);
   --shadow-lg: 0 8px 28px rgba(0, 0, 0, .7);
   --fab-accent: #FDBA8C;
-  --fab-panel-bg: var(--paper);
-  --fab-panel-head: linear-gradient(180deg, rgba(242, 106, 46, .16), rgba(36, 19, 16, 0));
-  --fab-bubble-bot: #301B15;
-  --fab-border: rgba(250, 241, 232, .10);
-  --rb-card: var(--paper);
-  --rb-muted: #D9C6B9;
-  --rb-border: #43291F;
-  --rb-soft: #2E1A14;
+  --fab-panel-bg: #1A1717;
+  --fab-panel-head: transparent;
+  --fab-bubble-bot: #242020;
+  --fab-border: rgba(244, 240, 237, .10);
+  --rb-card: transparent;
+  --rb-muted: #CEC6C1;
+  --rb-border: #2E2927;
+  --rb-soft: transparent;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
@@ -134,57 +135,63 @@
     --cv3-accent-ink: #220B08;
     --cv3-accent-soft: #3B1A10;
     --cv3-accent-soft-ink: #FDBA8C;
-    /* neutrals — the logo's deep-brown night instead of blue-black */
-    --cv3-surface-0: #1A0A07;
-    --cv3-surface-1: #241310;
-    --cv3-surface-2: #301B15;
-    --cv3-surface-3: #3B231B;
-    --cv3-ink: #FAF1E8;
-    --cv3-ink-2: #D9C6B9;
-    --cv3-ink-3: #C2AD9F;
-    --cv3-line: #43291F;
-    --cv3-line-strong: #573629;
-    --cv3-input-line: #7E6052;
-    --cv3-neutral: #B49C8E;
-    --cv3-neutral-soft: #3A251E;
-    --cv3-neutral-ink: #D9C6B9;
-    --cv3-shadow-1: 0 0 0 1px rgba(250, 241, 232, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
-    --cv3-shadow-2: 0 0 0 1px rgba(250, 241, 232, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
-    --hof: #FAF1E8;
-    --foggy: #C2AD9F;
-    --foggy-strong: #D9C6B9;
-    --beach: #1A0A07;
-    --slate: #43291F;
-    --elev: #301B15;
-    --paper: #241310;
+    /* neutrals — near-neutral charcoal (a trace of the logo's brown), no tinted fills */
+    --cv3-surface-0: #121010;
+    --cv3-surface-1: #1A1717;
+    --cv3-surface-2: #242020;
+    --cv3-surface-3: #2E2A29;
+    --cv3-ink: #F4F0ED;
+    --cv3-ink-2: #CEC6C1;
+    --cv3-ink-3: #A8A09B;
+    --cv3-line: #2E2927;
+    --cv3-line-strong: #3D3734;
+    --cv3-input-line: #6E6560;
+    --cv3-neutral: #A8A09B;
+    --cv3-neutral-soft: #262222;
+    --cv3-neutral-ink: #CEC6C1;
+    --cv3-shadow-1: 0 0 0 1px rgba(244, 240, 237, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
+    --cv3-shadow-2: 0 0 0 1px rgba(244, 240, 237, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
+    --hof: #F4F0ED;
+    --foggy: #A8A09B;
+    --foggy-strong: #CEC6C1;
+    --beach: #121010;
+    --slate: #2E2927;
+    --elev: #242020;
+    --paper: #121010;
     --arches: #F87830;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, .45);
     --shadow-md: 0 6px 16px rgba(0, 0, 0, .55);
     --shadow-lg: 0 8px 28px rgba(0, 0, 0, .7);
     --fab-accent: #FDBA8C;
-    --fab-panel-bg: var(--paper);
-    --fab-panel-head: linear-gradient(180deg, rgba(242, 106, 46, .16), rgba(36, 19, 16, 0));
-    --fab-bubble-bot: #301B15;
-    --fab-border: rgba(250, 241, 232, .10);
-    --rb-card: var(--paper);
-    --rb-muted: #D9C6B9;
-    --rb-border: #43291F;
-    --rb-soft: #2E1A14;
+    --fab-panel-bg: #1A1717;
+    --fab-panel-head: transparent;
+    --fab-bubble-bot: #242020;
+    --fab-border: rgba(244, 240, 237, .10);
+    --rb-card: transparent;
+    --rb-muted: #CEC6C1;
+    --rb-border: #2E2927;
+    --rb-soft: transparent;
   }
 }
 
 /* ── brand accents on the ReboundOps shell ── the sidebar rail takes the
    logo's own background (cream / deep brown); the active nav pill is logo
    brown (light) and carries an orange icon. */
-.sidebar { background: var(--beach); }
+.sidebar { background: var(--paper); }
+/* No decorative page backgrounds: the dashboard hero card and the top
+   "no AI key" notice lose their tinted fills and keep a hairline instead. */
+.dash-hero { background: transparent; }
+.v2-dash-planes { display: none; }  /* decorative blurred tint planes behind the hero */
+#onboarding-banner.onboarding-warn { background: transparent; color: var(--hof); border-bottom: 1px solid var(--slate); }
+#onboarding-banner.onboarding-warn .btn-dark { background: var(--cv3-accent); color: var(--cv3-accent-ink); }
+#onboarding-banner.onboarding-warn .btn-dark:hover { background: var(--cv3-accent-hover); }
 .nav-item.active .nav-ico { color: var(--rb-orange); }
 [data-theme="dark"] .nav-item.active .nav-ico { color: #C9441A; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) .nav-item.active .nav-ico { color: #C9441A; }
 }
-/* Scan terminal: upstream hard-codes a blue-black console; use the logo's
-   deep brown with warm greys (meta #B49C8E on #1A0A07 = 7.6:1). */
-.scan-terminal { background: var(--rb-brown); border-color: rgba(250, 241, 232, .10); }
+/* Scan terminal: a neutral charcoal console (meta #B49C8E on #1A1717 = 6.9:1). */
+.scan-terminal { background: #1A1717; border-color: rgba(244, 240, 237, .10); }
 .scan-terminal .console .meta { color: #B49C8E; }
 
 /* ── logo ── the R mark is a full-colour transparent PNG: show it whole,
