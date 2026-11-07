@@ -1,172 +1,253 @@
 # ReboundOps
 
-**Your experience is the starting point. Action is the outcome.**
+**Your experience. Your next chapter.**
 
-[Visit rebound-ops.org](https://rebound-ops.org) · Marketing site source and build instructions: [`marketing-website/`](marketing-website/README.md).
+A local-first toolkit for experienced software professionals navigating a layoff, a career change or their next job search. Review what your experience supports, choose a direction to explore, and manage the practical work of finding and applying for roles.
 
-An open-source career recovery assistant for experienced software professionals who are navigating layoffs or career changes.
+[Website](https://rebound-ops.org) · [Product screenshots](https://rebound-ops.org/screenshots/) · [Setup help](https://rebound-ops.org/help/) · [CI](https://github.com/AnkitParekh007/rebound-ops/actions/workflows/ci.yml) · [Roadmap](docs/roadmap.md)
 
-## Phase 2 — Angular + local API preview
+## What you can do
 
-The original **Phase 1 prototype**, feature-tested by its solo maintainer but not yet validated with external participants, remains available at the repository root. Phase 2 adds a typed Angular frontend and a Fastify API, with shared Zod contracts and explicit state transitions. AI remains **disabled by default**; a separate optional Anthropic adapter requires local configuration and explicit per-request consent. The recovery app (`apps/`, `packages/`) has no résumé uploads, hosted accounts, salary predictions, scraped job offers or automated applications; the optional job-search workspace described below is separate and works differently.
+| Work area | Capabilities in this repository |
+| --- | --- |
+| **Career recovery** | Guided intake, practical constraints, possible directions and a seven-day plan bounded by your available time. |
+| **Evidence review** | Record achievements, attach exact quotations from pasted source excerpts, correct claims and explicitly review their status. |
+| **Opportunity discovery** | Scan configured public job sources, filter results and organize selected opportunities in a pipeline. |
+| **Job review** | Compare requirements with your experience, save evaluation reports and research a company before deciding what to do next. |
+| **Application preparation** | Edit your CV, use CV Studio, prepare tailored documents and work through application checklists. AI and browser-based exports need their own setup. |
+| **Application tracking** | Maintain statuses, notes and follow-up context; review your recorded search activity. |
+| **Interview and development tools** | Prepare for interviews, practise responses, draft networking plans and explore learning or project ideas. |
+| **Local data controls** | Recovery-session JSON backups, Markdown summaries and opt-in disk saving; file-based CV, tracker and reports for the job-search workspace. |
+
+AI assistance is optional. Recovery directions are hypotheses to explore, and job-review scores are advisory signals—not hiring probabilities or guarantees. You choose what to pursue and submit applications yourself.
+
+## Quick start
 
 ### Requirements
 
-- Node.js **22.22.3+** (22.x), **24.15.0+** (24.x), or a supported future 26.x
-- npm (bundled with Node)
-- All services run on your own computer.
+- **Node.js 24.15.0+ recommended.** The root application also supports Node 22.22.3+ and 26+, as declared in [package.json](package.json).
+- **npm**, included with Node.js.
+- **Bash and curl** for the integrated demo launcher. On Windows, use WSL or a compatible Bash environment; the Angular development commands below do not require Bash.
+- An AI provider key is **not required** for the recovery workflow.
 
-### Install
+### 1. Install the repository
 
 ```sh
 git clone https://github.com/AnkitParekh007/rebound-ops.git
 cd rebound-ops
 npm ci
+npm ci --prefix workspace --ignore-scripts
 ```
 
-Start everything with one command:
+This monorepo already contains the recovery app, job-search workspace and engine. No second repository or remote installer is needed.
+
+### 2. Start the integrated recovery and job-search demo
 
 ```sh
-npm run dev
+bash scripts/start-demo.sh
 ```
 
-This builds the shared contracts, then runs the typed API (http://127.0.0.1:4174) and the Angular UI (http://127.0.0.1:4200) together. Their logs appear in one terminal, prefixed `[api]` and `[web]`. Press **Ctrl+C** once to stop both.
+Open **http://127.0.0.1:4317/#/start**.
 
-Visit **http://127.0.0.1:4200**.
+The launcher builds the recovery API and starts both local services. Keep its terminal open; press **Ctrl+C** to stop them. Start with the fictional example to explore the screens before entering your own information.
 
-To run them separately (for example, to restart only the API), use `npm run dev:api` and `npm run dev:web` in two terminals after `npm run build:contracts`.
+### Choose the app mode that fits your task
 
-For a production-local build, run `npm run build` followed by `npm run start -w @reboundops/api`. The Fastify process serves the compiled Angular site and API at **http://127.0.0.1:4174**.
+| Mode | Command from the repository root | Address | Use it for |
+| --- | --- | --- | --- |
+| **Integrated workspace** | `bash scripts/start-demo.sh` | `http://127.0.0.1:4317/#/start` | Recovery screens followed by discovery, CV and application tools. |
+| **Angular recovery app** | `npm run dev` | `http://127.0.0.1:4200` | The fuller evidence workflow, exact citations, requirement review, backups and opt-in persistence. |
+| **Production-local recovery app** | `npm run build`, then `npm run start -w @reboundops/api` | `http://127.0.0.1:4174` | Serve the compiled Angular app and recovery API from one local process. |
 
-### What you can do
+The integrated workspace and Angular frontend are separate interfaces. Their recovery API is shared, but the integrated bridge exposes a narrower set of operations. Job-search files and recovery-session records are **not automatically synchronized**.
 
-1. Answer a few guided questions about your situation (or use one full form): experience, practical constraints and 1–15 achievement claims with self-reported provenance. See [guided first visit](docs/onboarding.md).
-2. Paste up to three private résumé/project-note excerpts and correct individual claims with exact, uniquely matched source quotations (or leave them manually sourced).
-3. Confirm, reject or leave each claim unverified. Corrections reset confirmation and revoke dependent job-requirement links.
-4. Compare three kinds of next step: **similar work to before**, **a new kind of work** and **a stepping-stone role** (internally Return, Shift and Bridge), as options to try rather than predictions, with their unknowns stated plainly.
-5. Paste up to three real job targets and review their requirements against participant-confirmed achievements.
-6. Choose a direction and get a seven-day plan bounded by your available hours.
-7. Mark actions complete, record feedback and export a Markdown summary with evidence quotations and correction history.
-8. Download or restore a private JSON session backup, or delete the memory-only API session.
-9. Optionally answer a private pilot feedback questionnaire and download its responses; nothing is collected or shared automatically.
+[Integrated demo guide](workspace/docs/INTEGRATION-DEMO.md) · [Demo walkthrough](workspace/docs/DEMO-WALKTHROUGH.md) · [Guided recovery onboarding](docs/onboarding.md)
 
-Sessions are **memory-only by default**. With a configured private REBOUNDOPS_DATA_DIR, you can explicitly opt individual sessions into durable disk saving. Saved sessions survive API restarts; disabling saving removes the stored file. Private JSON backup/restore remains available. The browser does not send telemetry or data to an AI provider automatically. External AI calls are possible only when specifically enabled and approved via a payload preview. **Do not enter credentials, private employer information, sensitive résumés or anything you need to recover later.** The initial API has no login or encryption and is intended only for personal localhost testing.
+## A practical workflow
 
-### Optional durable local sessions
+1. **Describe your starting point.** Record your role, priorities, practical constraints and the time you can spend each week.
+2. **Review your evidence.** Add achievements and check their wording. In the Angular app, connect claims to exact quotations from pasted résumé or project-note excerpts.
+3. **Explore a direction.** Compare returning to similar work, shifting toward different work or trying a stepping-stone role. Review the assumptions and unknowns before selecting one.
+4. **Make the next week manageable.** Generate a time-bounded plan, choose the next action and record progress or reflections.
+5. **Work the search.** Use the job-search workspace to discover roles, review requirements, prepare application materials and maintain application records.
+6. **Adjust from what happened.** Revisit your plan and search activity using your actual notes and outcomes.
 
-With the API stopped, configure a private directory outside the repository:
+The recovery app supports up to 15 achievement claims, three pasted source documents and three job targets per session. Confirming a claim records your review; it does not independently verify it. Correcting a confirmed claim resets its confirmation and revokes dependent requirement links.
 
-~~~sh
-REBOUNDOPS_DATA_DIR="$HOME/.reboundops/sessions" npm run dev
-~~~
+## Workspace guide
 
-Then select **Enable local disk saving for this session** in the UI. Only explicitly selected sessions survive restarts. Resume them from the intake page. Deleting a saved session removes its disk file; downloaded backups remain separate. Files are **not encrypted**.
+With the integrated demo running, these routes open inside the workspace:
 
-See [local saving and recovery](docs/local-persistence.md).
+| Page | Route | What to expect |
+| --- | --- | --- |
+| **My next step** | `#/recovery` | Your recovery snapshot, selected direction and next planned action. |
+| **Directions** | `#/directions` | Options to explore, their assumptions and missing evidence. |
+| **Evidence** | `#/evidence` | Review the achievements in your recovery session. |
+| **Search workbench** | `#/dashboard` | Connect your next recovery action with opportunity, CV and application decisions. |
+| **Scan** | `#/scan` | Search enabled sources and filter the returned opportunities. |
+| **Pipeline** | `#/pipeline` | Organize job URLs waiting for review. |
+| **Evaluate** | `#/evaluate` | Review a job description using configured AI assistance or a manual prompt. |
+| **CV / CV Studio** | `#/cv`, `#/cv-studio` | Maintain your CV and prepare application material. |
+| **Applications** | `#/tracker` | Review statuses, notes and follow-up context. |
+| **Reports** | `#/reports` | Browse saved job-review reports. |
+| **Mock interview** | `#/mock-interview` | Practise interview responses with configured assistance. |
+| **Settings / Help** | `#/config`, `#/help` | Configure providers and read the in-app guide. |
 
-### Optional private pilot feedback
+Additional tools include statistics, interview preparation, networking, career planning, usage reporting and source configuration. Availability depends on the tool's configuration and supporting data. See the [workspace documentation](workspace/README.md).
 
-After creating a session, participants may use the **Private pilot feedback** section to record clarity, confusion, action attempts and willingness to use the app again. Answers exist **only in the open browser page**. They are not sent to the API, stored in session JSON backups or shared with an AI provider. A participant must explicitly choose to export a local Markdown report; they separately decide whether to share it. The file is unencrypted, and it should be redacted before sharing.
+## Screenshots
 
-This supports a facilitator-run pilot, **not** passive analytics or automatic participant recruitment. Read the [pilot runbook](docs/external-pilot-runbook.md). Real-world outcomes and user validation still require volunteers and meaningful consent.
+These bundled captures use fictional demonstration data. The [website gallery](https://rebound-ops.org/screenshots/) shows the source commit and capture date for automatically generated production screenshots.
 
-### Local developer preview candidate (unpublished)
+![ReboundOps search workbench with a recovery action and practical job-search decisions](marketing-website/public/assets/dashboard.png)
 
-This repository can prepare an **unpublished v0.2.0-rc1 archive** containing the compiled Angular site, localhost API, shared contracts, pinned npm lockfile and selected documentation. Credentials, user sessions and node_modules are not bundled. Use Node 24.
+<details>
+<summary>View recovery planning and application tracking</summary>
 
-~~~sh
-npm ci
+### Recovery plan
+
+![ReboundOps recovery plan using a fictional career example](marketing-website/public/assets/plan.png)
+
+### Applications
+
+![ReboundOps application tracker with fictional companies and statuses](marketing-website/public/assets/tracker.png)
+
+</details>
+
+## Configure your job search
+
+The workspace uses `engine/` as its default job-search data directory.
+
+| File or location | Purpose |
+| --- | --- |
+| `engine/cv.md` | Your working CV. |
+| `engine/config/profile.yml` | Search preferences and profile configuration. |
+| `engine/portals.yml` | Enabled sources, company boards and search filters. |
+| `engine/data/pipeline.md` | Opportunities waiting for review. |
+| `engine/data/applications.md` | Application records. |
+| `engine/reports/` | Saved evaluation reports. |
+| `engine/output/` | Generated application documents. |
+| `engine/.env` | Workspace provider configuration; keep actual keys out of Git. |
+
+Replace example profile information with your own before relying on an evaluation. Review bundled pipeline records too: fixture URLs and example companies are not real opportunities.
+
+Supported source adapters include Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Personio and others. Coverage depends on enabled boards, source availability and filters; a listed adapter does not imply access to every employer or a partnership.
+
+For a prepared data directory outside the checkout, the workspace supports `REBOUND_OPS_ROOT`. Recovery-session saving uses the separate `REBOUNDOPS_DATA_DIR` setting.
+
+[Engine setup](engine/docs/SETUP.md) · [Source configuration examples](workspace/docs/portals-examples.md) · [Supported coding assistants](engine/docs/SUPPORTED_CLIS.md)
+
+The engine also provides command-line scripts and assistant modes. Follow its setup guide for tool-specific dependencies and run commands in the documented engine context; the root `npm ci` installs the recovery application's npm workspaces, not every optional engine tool.
+
+## Optional AI assistance
+
+### Recovery app
+
+The recovery API's Anthropic adapter requires both `REBOUNDOPS_AI_ENABLED=true` and `ANTHROPIC_API_KEY` in the API process environment. The root `.env.example` documents settings; it is not automatically loaded to enable AI.
+
+For each request, the app previews the exact payload before a separate consent action sends it. The payload includes the selected job requirements and confirmed achievement claims. Suggestions do not automatically change your session. There is a ten-attempt limit per API process; it is not a persistent spending limit.
+
+### Job-search workspace
+
+Configure the desired provider in **Settings → API keys** at `#/config`. The workspace supports multiple provider integrations, including Anthropic, OpenAI, Gemini and OpenRouter, with manual-prompt paths for supported actions when no provider is configured.
+
+Workspace AI actions have their own data handling and can use your CV, profile or job description. The recovery app's exact-payload consent flow does not cover every workspace tool. Review the action and configuration before running it. Browser and document-generation features may need additional dependencies.
+
+Provider API charges are separate from consumer ChatGPT or Claude subscriptions. The recovery adapter has mock evaluations and guardrail tests; live paid-provider compatibility still needs its own validation.
+
+[Recovery AI guide](docs/ai-provider.md) · [AI evaluation methodology](docs/ai-evaluation.md) · [Workspace configuration](workspace/README.md#configuration)
+
+## Local data, backups and privacy
+
+- **Recovery sessions start in memory.** Restarting the API clears memory-only sessions. Download a JSON backup when you need to keep one.
+- **Disk saving is optional.** Configure a private `REBOUNDOPS_DATA_DIR`, then explicitly enable saving for the session in the Angular app. See [local persistence](docs/local-persistence.md).
+- **Workspace records are files.** CV edits, application records, reports and generated documents can persist in the configured job-search directory.
+- **Local does not mean offline.** Scans contact job sources; enabled AI actions send data to your chosen provider. Optional integrations have their own external requests.
+- **The app is intended for personal localhost use.** It has no hosted-account authentication, and saved files and exported backups are not encrypted. Do not expose these services directly to the internet.
+- **Keep personal records and keys out of commits.** Use fictional data for issues, screenshots and shared demonstrations.
+
+[Privacy guidance](docs/privacy.md) · [Backup and schema compatibility](docs/schema-migrations.md) · [Security policy](SECURITY.md)
+
+## Repository layout
+
+```text
+apps/web/                 Angular recovery application
+apps/api/                 Local Fastify API
+packages/contracts/       Shared schemas, workflow rules and migrations
+workspace/                Express + vanilla-JS job-search workspace
+engine/                   Job-search scripts, provider adapters and data files
+marketing-website/        Static public website and screenshot automation
+src/                      Earlier browser-only prototype
+examples/                 Fictional recovery scenarios
+evals/                    Synthetic AI evaluation fixtures and harness
+scripts/                  Development, packaging and release checks
+e2e/                      Recovery browser journeys and accessibility checks
+docs/                     Architecture, setup, privacy and pilot documentation
+```
+
+[Architecture](docs/architecture.md) · [Frontend architecture](docs/frontend-architecture.md) · [Evidence provenance](docs/evidence-provenance.md) · [Requirement review](docs/job-requirements.md)
+
+## Development and checks
+
+```sh
 npm test
 npm run build:web
+
+# Install browser dependencies before running the complete browser suite.
+npx playwright install --with-deps chromium firefox webkit
+npm run test:e2e
+
+npm run audit:release
+```
+
+The workspace has a separate test suite:
+
+```sh
+npm --prefix workspace test
+```
+
+GitHub Actions is configured for recovery unit/API tests, Angular builds, cross-browser journeys, accessibility checks, Node compatibility and platform packaging checks. See the [actual run results](https://github.com/AnkitParekh007/rebound-ops/actions) for current status.
+
+To build an unpublished local recovery preview archive:
+
+```sh
+npm run build
 npm run package:preview
 npm run smoke:preview
-~~~
-
-The archive and SHA-256 sidecar are created under dist/preview. Successful `main` CI runs also attach a 14-day downloadable GitHub Actions artifact (ZIP with the archive and checksum). [See how to download and verify it](docs/preview-quickstart.md). **No GitHub Release, npm package, public website or beta is published by these commands.** The extracted archive has a manifest verifier and can install production-only npm dependencies, then start the API and site together at http://127.0.0.1:4174.
-
-See the [quick start](docs/preview-quickstart.md), [draft release notes](docs/preview-release-notes.md), [security triage](docs/preview-security-review.md) and [manual QA handoff](docs/preview-manual-qa.md). Publication requires separate owner approval. Real device and assistive-tech testing and unresolved moderate advisory disposition remain open.
-
-### Tests
-
-```sh
-npm test          # contracts, API, AI-eval harness and Angular unit tests (Vitest)
-npm run build:web
-npm run test:e2e  # install Chromium first: npx playwright install chromium
 ```
 
-GitHub Actions runs the unit/API suite, Angular production build and Playwright workflows in **Chromium, Firefox and WebKit**, a Node 22 compatibility job, CodeQL security analysis, plus a check for accidentally committed private files. Actions are pinned to commit SHAs and kept current by Dependabot. Run `npm run audit:release` to repeat the hygiene check locally. This is not a vulnerability scan or human screen-reader test.
+[Preview installation and verification](docs/preview-quickstart.md) · [Contributing](CONTRIBUTING.md) · [Release checklist](docs/release-checklist.md)
 
-## Recovery + job-search demo (`workspace/`, `engine/`)
+## Website and automatic updates
 
-This repository also contains the **ReboundOps Workspace** (`workspace/`, an Express + vanilla-JS job-search UI) and the **ReboundOps engine** (`engine/`, the job-search data folder and CLI scripts it uses). A same-origin bridge connects the Workspace to the recovery API, so one browser journey runs goal → recovery → direction → seven-day plan → job-search workspace:
-
-```sh
-scripts/start-demo.sh        # then open http://127.0.0.1:4317/#/start
-```
-
-Details, security model and tests: [workspace/docs/INTEGRATION-DEMO.md](workspace/docs/INTEGRATION-DEMO.md); walkthrough: [workspace/docs/DEMO-WALKTHROUGH.md](workspace/docs/DEMO-WALKTHROUGH.md).
-
-Unlike the recovery app, the Workspace and engine **can**, when you ask them to: scan public job-board APIs, import a CV file, store your CV, tracker and reports as local files in `engine/`, and call an AI provider if you add a key (none is set by default). They never submit applications for you. They are derived from MIT-licensed third-party projects — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## Reliability and packaging notes
-
-The API rejects non-local Host headers, unauthorized request origins and browser cross-site requests. Saved sessions are checked for unexpected disk changes before writes and deletion; storage failures return a generic error rather than exposing private filesystem paths. These checks assume a single-process localhost installation.
-
-A root npm workspace **package-lock.json** now pins dependency versions and integrity hashes. Use `npm ci` for clean installs; CI uses `npm ci` rather than resolving fresh versions. The dependency review checks license metadata and npm security advisories for both runtime and all dependencies. Locks improve reproducibility, but native OS packages, registry integrity, new advisories and independent security review remain separate concerns. See [reliability hardening](docs/reliability-hardening.md) and [dependency review](docs/dependency-security-review.md).
-
-## Optional AI evidence review (disabled by default)
-
-Phase 2 includes an **opt-in**, server-side Anthropic adapter. It is disabled unless both `REBOUNDOPS_AI_ENABLED=true` and `ANTHROPIC_API_KEY` are set in the **local API process environment**. The sample `.env.example` does not automatically load or enable AI.
-
-For each user-supplied job target, **Preview optional AI review payload** shows the exact JSON that would be transmitted: job title, requirement text, and *only participant-confirmed achievement claims*. The preview is a local operation and sends nothing externally. A separate **I consent: send this exact payload** click is required for each request. There are no automatic model calls, sessions are not changed by suggestions, and local API calls are limited to ten AI attempts per process. Provider billing, if enabled, is separate from ChatGPT/Claude consumer subscriptions.
-
-See [the AI integration and safety guide](docs/ai-provider.md) before enabling this feature. The provider integration includes adversarial mock tests, an in-process attempt limit, and token usage reporting, but has not been verified against a live paid API account.
-
-## Original Phase 1 prototype (founder feature-tested)
-
-The original static version is preserved:
+[rebound-ops.org](https://rebound-ops.org) hosts the static marketing site, not your career records or the local application API.
 
 ```sh
-python3 -m http.server 4173
-# open http://localhost:4173
+node marketing-website/build.mjs
+node marketing-website/check.mjs
 ```
 
-It requires no dependencies or API key. It keeps information in a browser tab and supports fictional examples, route selection, a time-limited plan and export.
+Pushes and merged pull requests to `main` trigger the marketing workflow: test the app, capture product views with synthetic data, validate screenshot provenance, build the website and deploy through GitHub Pages. Publication requires a successful workflow. Pull requests produce review artifacts without publishing production.
 
-## Architecture and roadmap
+[Website source and build guide](marketing-website/README.md) · [Deployment automation](marketing-website/AUTOMATION.md)
 
-- [Phase 2 implementation notes](docs/phase-2.md)
-- [Evidence provenance and correction guide](docs/evidence-provenance.md)
-- [Job requirement comparison guide](docs/job-requirements.md)
-- [AI provider setup, privacy and safety](docs/ai-provider.md)
-- [Synthetic AI evaluation and live-test approval gate](docs/ai-evaluation.md)
-- [Fictional recovery journeys](examples/fictional-journeys.md)
-- [Cloud acceptance test report (synthetic, not participant validation)](docs/cloud-acceptance-report.md)
-- [Release reliability and threat boundaries](docs/reliability-hardening.md)
-- [Locked dependency security and license review](docs/dependency-security-review.md)
-- [Unpublished developer preview candidate](docs/preview-quickstart.md)
-- [Facilitated pilot protocol](docs/pilot-evaluation-pack.md) · [Blank scorecard](docs/pilot-scorecard.md)
-- [External-user pilot launch runbook and invitation text](docs/external-pilot-runbook.md)
-- [Release preview script and decision gate](docs/public-preview-kit.md)
-- [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release checklist](docs/release-checklist.md)
-- [Decision record: local-first architecture](docs/adr-0001-local-first.md)
-- [Private data and backup guidance](docs/privacy.md)
-- [Opt-in local saving and recovery](docs/local-persistence.md) · [Schema versioning and migrations](docs/schema-migrations.md)
-- [Architecture](docs/architecture.md) · [Frontend architecture](docs/frontend-architecture.md)
-- [Original roadmap](docs/roadmap.md)
-- [Pilot procedure](docs/manual-pilot.md)
-- [Evaluation rubric](docs/evaluation-rubric.md)
+## Troubleshooting
 
-**Next gates:** external participant discovery and complete human journeys, screen-reader and manual cross-platform usability, a live AI golden-set evaluation with explicit key/budget approval, and an owner release decision (gates G1–G4 in the [roadmap](docs/roadmap.md)). Engineering hardening (schema migrations, frontend architecture and unit tests, CI supply-chain controls, AI evaluation harness, SBOM and provenance) is done, but exact citations, opt-in persistence and the rest of the workflow still need real-user evaluation.
+| Problem | Check |
+| --- | --- |
+| Recovery service is offline | Start the integrated demo or `npm run dev`; check the API terminal. Default recovery API port: `4174`. |
+| Port is already in use | Stop the earlier local process. The integrated demo normally uses `4317` and `4174`; Angular development also uses `4200`. |
+| Scan returns no useful jobs | Check enabled boards and filters in `engine/portals.yml`, source health and your profile. An empty result is not proof that no suitable roles exist. |
+| AI action is unavailable | Check the configuration for that specific app. Recovery AI and workspace provider settings are separate. |
+| A session disappeared | Memory-only sessions do not survive API restarts. Restore your JSON backup or resume an explicitly saved session in the Angular app. |
+| Installation or a tool fails | Use the Node version required by the relevant package and consult the workspace or engine setup guide. |
 
-## Authorship and foundations
+## Project status
 
-ReboundOps provides an evidence-led recovery journey and integrates modified [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) and [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops) components under MIT. Upstream authorship remains credited; creator outcomes and manifesto history are not ReboundOps results. See [PROVENANCE.md](PROVENANCE.md), [the source ledger](provenance.json), [product principles](docs/principles.md) and [original notices](THIRD_PARTY_NOTICES.md).
+ReboundOps is a developer preview with recovery workflows and integrated job-search tools.
 
-## Principles
-
-Evidence over invented fit scores. User choices over automated decisions. Actions completed over vanity metrics. Transparent handling of uncertainty, privacy and cost.
+Engineering checks and fictional demonstrations are not participant validation or proof of job-search outcomes. External user evaluation, manual accessibility checks and live-provider validation remain documented work in the [roadmap](docs/roadmap.md).
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+MIT. See the [root license](LICENSE) and the applicable [workspace](workspace/LICENSE) and [engine](engine/LICENSE) licenses. Component-specific terms also apply to their distributions.
