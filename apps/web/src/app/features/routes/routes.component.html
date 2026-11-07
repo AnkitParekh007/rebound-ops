@@ -1,0 +1,18 @@
+@let current = session();
+<section class="panel" aria-labelledby="routes-heading">
+  <div class="panel-top"><div><p class="eyebrow">Your options</p><h2 id="routes-heading">Which option would you like to try first?</h2></div></div>
+  <p class="muted">These are three kinds of next step to try for a week, not a verdict on you or a prediction about real jobs. Your achievements are listed for you to review; they are never counted as proof that you fit a role. You can come back and choose a different one later; that starts a new plan.</p>
+  <div class="routes">
+    @for (route of current.routes; track route.id) {
+      <article class="route">
+        <div class="route-type">{{ titles[route.id] }}</div>
+        <h3>{{ route.target }}</h3>
+        <p><strong>What we don't know yet</strong><br>{{ route.uncertainty }}</p>
+        <p><strong>What you would need to show</strong><br>{{ route.missingProof[0] }}</p>
+        <p><strong>A small way to try it</strong><br>{{ route.nextTest }}</p>
+        <small>{{ route.candidateEvidenceIds.length }} of your achievements to look at</small>
+        <button class="primary full" type="button" [disabled]="store.busy()" (click)="chooseRoute(route.id)">{{ choose(route.id) }}</button>
+      </article>
+    }
+  </div>
+</section>

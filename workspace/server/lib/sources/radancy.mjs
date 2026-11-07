@@ -1,0 +1,518 @@
+// @ts-check
+/**
+ * Radancy (TalentBrew) source — the career sites Radancy hosts for large
+ * employers (careers.munichre.com and its ERGO brands, plus many others). The
+ * search-results page is SERVER-rendered and paginates over bare HTTP:
+ *
+ *   GET {origin}/{lang}/search-jobs?p={N}      # 1-based; past-the-end → empty
+ *
+ * Each posting is one <li class="search-results-list__item …"> holding:
+ *   <a class="search-results-list__job-link …" href="/{lang}/job/{city}/{slug}/{cat}/{id}"
+ *      data-job-id="{id}">{Title}</a>
+ *   <li class="…__job-info--location"><i></i><span>{City, Country}</span></li>
+ * The generic `search-results-list__` class prefix is the stable TalentBrew
+ * markup (a second, module-numbered `job-list-NN-list__` prefix rides
+ * alongside it and varies per site) — we anchor on the generic one.
+ *
+ * Implements the web-ui source
+ * contract (rich job objects + `meta`). The list carries no posting date, so
+ * `date` is always ''. Branded hosts carry no stable Radancy token, so there
+ * is NO host regex / auto-detection — tenants are wired with an explicit
+ * `provider: radancy` and a search-jobs `api:`/careers_url; the endpoint is
+ * then pinned to the tenant host the adapter derived from the entry (same
+ * model as successfactors), enforced HTTPS + `redirect:'error'` and a
+ * /search-jobs path shape via assertRadancyUrl. Safety caps: MAX_PAGES=200,
+ * DEFAULT_MAX_JOBS=2000 (overridable per-entry via
+ * `max_pages` / `max_jobs`).
+ *
+ * Two markup generations, two transports:
+ *   (a) MODERN markup — <li class="search-results-list__item"> with a
+ *       `search-results-list__job-link` anchor. Parsed by parseModernResults().
+ *   (b) LEGACY markup — a bare <li> holding the anchor itself, no list-item
+ *       class to split on (careers.unitedhealthgroup.com, kaiserpermanentejobs.org).
+ *       Parsed by parseLegacyResults(); parseResults() tries modern first, then
+ *       falls back to legacy. search.jobs.barclays is the same family in a
+ *       card layout: the title sits in <strong> inside the anchor and the
+ *       location is a SIBLING <div class="job-location"> after </a>, so the
+ *       legacy parser also looks between one anchor and the next, and accepts
+ *       span, p or div as the location element (the class is the stable part).
+ *       On legacy tenants the ?p=N page is catastrophically
+ *       heavy (a facet blob repeated per page), so fetchRadancy prefers the JSON
+ *       results-fragment endpoint (buildFragmentUrl/readFragmentTotals) when the
+ *       caller supplies a `fetchJson` capability, and falls back to ?p=N otherwise.
+ *
+ * Used by the radancy adapter (server/lib/portals/adapters/radancy.mjs).
+ */
+import { randomUUID } from 'node:crypto';
+import { fetchJson, fetchText, delay } from '../http-json.mjs';
+import { decodeEntities } from '../html-entities.mjs';
+
+export const meta = {
+  value: 'radancy',
+  label: 'Radancy',
+  region: 'en',
+};
+
+// Endpoint path shape the fetcher accepts (defence in depth — radancy has no
+// pinnable vendor host, so we pin the URL SHAPE instead). resolveListUrl()
+// hands back a list URL with NO language segment (`/search-jobs`), a regional
+// one (`/en-us/search-jobs`) or a derived `/{lang}/search-jobs` — so the shape
+// is "ends in /search-jobs". The resolver and this guard MUST stay consistent,
+// or every scan of such a tenant dies at the guard (v1.242.0 sources-6).
+export const RADANCY_LIST_RE = /\/search-jobs\/?$/i;
+
+const MAX_PAGES = 200; // safety cap (~15/page ⇒ up to ~3000 postings)
+const DEFAULT_MAX_JOBS = 2000; // default cap on total postings pulled
+const PAGE_DELAY_MS = 150; // polite pacing — full walks are >100 sequential requests
+
+// Page size for the JSON results-fragment transport. 100 is honored live by the
+// known legacy tenants (UHG, Kaiser); the plain ?p=N HTML page hard-codes 15.
+const FRAGMENT_RECORDS_PER_PAGE = 100;
+
+const REMOTE_RE = /remote|anywhere|distributed|home\s*office/i;
+
+// The documented TalentBrew envelope (v1.242.0 Phase 2): the search-results
+// section renders on every results page — even when the board is empty. A
+// page-1 200 whose document lacks it is a Cloudflare challenge / interstitial
+// or a markup change, never an empty board. Exported for tests.
+export const RADANCY_RESULTS_ENVELOPE_RE = /id=["']search-results["']/i;
+
+function clean(s) {
+  return decodeEntities(s.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Resolve one page-controlled href to the job URL, or null. The href is page
+ * content, not a trusted field: it must become an https: URL ON THE TENANT
+ * ORIGIN the endpoint was pinned to — a `javascript:`/`data:` href, a
+ * scheme-relative `//evil.com/…`, an `http:` one or an absolute link to
+ * another host can never become the job URL (Phase-2, sources-6).
+ * @param {string} href @param {string} origin
+ */
+function resolveJobUrl(href, origin) {
+  let resolved;
+  let base;
+  try {
+    resolved = new URL(href, origin);
+    base = new URL(origin);
+  } catch {
+    return null;
+  }
+  return resolved.protocol === 'https:' && resolved.origin === base.origin ? resolved.href : null;
+}
+
+/**
+ * Resolve the search-jobs list URL from api:/careers_url; default /en.
+ * @param {any} company portals.yml entry
+ */
+export function resolveListUrl(company) {
+  const raw = String(company.api || company.careers_url || '').trim();
+  let u;
+  try {
+    u = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== 'https:') return null; // https only (web-ui hardening)
+  if (/\/search-jobs\/?$/.test(u.pathname)) return `${u.origin}${u.pathname.replace(/\/$/, '')}`;
+  // Accept regional locales (`/en-us/careers` → `/en-us/search-jobs`) — a bare
+  // 2-letter capture would drop the region and land on the wrong locale board.
+  const lang = (u.pathname.match(/^\/([a-z]{2}(?:-[a-z]{2})?)(?:\/|$)/i) || [])[1] || 'en';
+  return `${u.origin}/${lang.toLowerCase()}/search-jobs`;
+}
+
+/**
+ * Defence-in-depth guard on the endpoint built by the adapter: HTTPS, a real
+ * host, and the /{lang}/search-jobs list-path shape.
+ * @param {string} url
+ */
+export function assertRadancyUrl(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`radancy: invalid URL: ${url}`);
+  }
+  if (parsed.protocol !== 'https:') throw new Error(`radancy: URL must use HTTPS: ${url}`);
+  if (!parsed.hostname) throw new Error(`radancy: URL has no hostname: ${url}`);
+  if (!RADANCY_LIST_RE.test(parsed.pathname)) {
+    throw new Error(`radancy: endpoint must be a /{lang}/search-jobs list URL: ${url}`);
+  }
+  return url;
+}
+
+/**
+ * Build one rich job object from parsed fields — the shared shape BOTH the
+ * modern and legacy parsers emit, so the emitted contract stays identical
+ * regardless of which markup generation a tenant serves.
+ * @param {string} id @param {string} title @param {string} url
+ * @param {string} location @param {string} companyName
+ */
+function makeJob(id, title, url, location, companyName) {
+  const isRemote = REMOTE_RE.test(title) || REMOTE_RE.test(location);
+  return {
+    id: `radancy-${id}`,
+    title,
+    company: companyName,
+    url,
+    salary: '',
+    location,
+    isRemote,
+    workplaceType: isRemote ? 'Remote' : '',
+    relocates: false,
+    date: '', // the SSR list carries no posting date
+    snippet: '',
+    source: 'radancy',
+  };
+}
+
+/**
+ * Parse one search-results page (or results fragment) into rich job objects.
+ * Radancy tenants serve two markup generations, so we try the MODERN
+ * `search-results-list__item` markup first (existing tenants keep their exact
+ * behavior) and fall back to the LEGACY bare-anchor markup only when the modern
+ * parser finds nothing. Exported for unit tests.
+ * @param {string} html @param {string} origin @param {string} [companyName]
+ */
+export function parseResults(html, origin, companyName = '') {
+  const modern = parseModernResults(html, origin, companyName);
+  return modern.length ? modern : parseLegacyResults(html, origin, companyName);
+}
+
+/**
+ * Parse the MODERN `search-results-list__item` markup. Anchors on the stable
+ * generic `search-results-list__` class prefix, reads title + location within
+ * one <li>, resolves the relative href against the tenant origin. Rows without
+ * a title or a resolvable URL are dropped; ids dedup within the page.
+ * @param {string} html @param {string} origin @param {string} [companyName]
+ */
+export function parseModernResults(html, origin, companyName = '') {
+  if (typeof html !== 'string') return [];
+  const out = [];
+  const seen = new Set();
+  // Split on the stable generic list-item class; slice(0) is the page head.
+  const blocks = html.split(/<li class="search-results-list__item/).slice(1);
+  for (const block of blocks) {
+    const link = block.match(/search-results-list__job-link[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+    if (!link) continue;
+    const href = decodeEntities(link[1]);
+    const dataIdM = block.match(/data-job-id="([^"]+)"/);
+    const hrefIds = [...href.matchAll(/\/(\d+)(?=[/?#]|$)/g)];
+    const id = dataIdM ? dataIdM[1] : (hrefIds.length ? hrefIds[hrefIds.length - 1][1] : href);
+    if (seen.has(id)) continue;
+    const title = clean(link[2]);
+    if (!title) continue;
+    const url = resolveJobUrl(href, origin);
+    if (!url) continue;
+    const locM = block.match(/__job-info--location[\s\S]*?<span>([\s\S]*?)<\/span>/);
+    const location = locM ? clean(locM[1]) : '';
+    seen.add(id);
+    out.push(makeJob(id, title, url, location, companyName));
+  }
+  return out;
+}
+
+// The element carrying the location varies per tenant (span on UHG/KP, div on
+// Barclays); the class is the stable part.
+const LEGACY_LOCATION_RE = /class="[^"]*\bjob-location\b[^"]*"[^>]*>([\s\S]*?)<\/(?:span|p|div)>/i;
+
+/**
+ * Parse the LEGACY markup, seen live on careers.unitedhealthgroup.com,
+ * www.kaiserpermanentejobs.org and search.jobs.barclays: the anchor IS the row,
+ * with no list-item class to split on —
+ *   <li><a href="/job/{city}/{slug}/{org}/{id}" data-job-id="{id}">
+ *        <h2>{Title}</h2>
+ *        <span class="job-id job-info">{reqNo}</span>      (UHG only)
+ *        <span class="job-location">{City, State}</span>
+ *      </a>
+ *      <button class="js-save-job-btn" data-job-id="{id}">…</button></li>
+ * Anchored on <a> carrying BOTH data-job-id and a /job/ href, so the sibling
+ * save-job <button> (which repeats data-job-id) can't produce a phantom row.
+ * Attribute order is not assumed; ids dedup within the page.
+ * @param {string} html @param {string} origin @param {string} [companyName]
+ */
+export function parseLegacyResults(html, origin, companyName = '') {
+  if (typeof html !== 'string') return [];
+  const out = [];
+  const seen = new Set();
+  // Anchors never nest, so a non-greedy run to </a> is a safe row boundary.
+  const anchors = [...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)];
+  for (const [n, a] of anchors.entries()) {
+    const attrs = a[1];
+    const inner = a[2];
+    const idM = attrs.match(/data-job-id="([^"]+)"/i);
+    if (!idM) continue;
+    const hrefM = attrs.match(/href="([^"]+)"/i);
+    if (!hrefM) continue;
+    const href = decodeEntities(hrefM[1]);
+    if (!/\/job\//.test(href)) continue;
+    const id = idM[1];
+    if (seen.has(id)) continue;
+
+    // Title lives in the heading. Falling back to the anchor's full text would
+    // swallow the req-number and location spans (UHG renders both inside the
+    // anchor), so strip element content first and only then accept bare text.
+    const headM = inner.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/i);
+    const title = clean(headM ? headM[1] : inner.replace(/<span[\s\S]*?<\/span>/gi, ' '));
+    if (!title) continue;
+
+    const url = resolveJobUrl(href, origin);
+    if (!url) continue;
+    // Barclays puts job-location AFTER the anchor rather than inside it, so
+    // fall back to the markup up to the next anchor (to the end of the page for
+    // the last row — the results fragment carries nothing else after it).
+    const locM = inner.match(LEGACY_LOCATION_RE)
+      || html.slice(a.index + a[0].length, anchors[n + 1]?.index ?? html.length).match(LEGACY_LOCATION_RE);
+    const location = locM ? clean(locM[1]) : '';
+    seen.add(id);
+    out.push(makeJob(id, title, url, location, companyName));
+  }
+  return out;
+}
+
+/**
+ * Build the JSON results-fragment URL for a given 1-based page.
+ *
+ * SearchResultsModuleName MUST be sent — without it the server returns an empty
+ * result set (silent, not an error). SearchFiltersModuleName is deliberately
+ * ABSENT — sending it re-attaches a multi-megabyte facet blob to every page.
+ *
+ * `_` is a random cache-buster, not a documented TalentBrew parameter. A caching
+ * layer in front of the JSON route replays stale responses on some tenants: the
+ * same posting comes back several pages later while another is never served at
+ * all. The parent reproduced it 9 runs out of 9 on careers.munichre.com, found
+ * `Cache-Control`/`Pragma` request headers made no difference, and a random
+ * per-request parameter — forcing a cache-key miss — fixed it. It must be unique
+ * per CALL, never derived from `page`: a deterministic extra parameter still
+ * gives the cache a stable key and therefore a stable, wrong mapping.
+ * Ported from parent rebound-ops #3839.
+ * @param {string} listUrl Base search-jobs URL (no trailing slash).
+ * @param {number} page 1-based page number.
+ * @param {number} [recordsPerPage]
+ */
+export function buildFragmentUrl(listUrl, page, recordsPerPage = FRAGMENT_RECORDS_PER_PAGE) {
+  const q = new URLSearchParams({
+    ActiveFacetID: '0',
+    CurrentPage: String(page),
+    RecordsPerPage: String(recordsPerPage),
+    Distance: '50',
+    RadiusUnitType: '0',
+    Keywords: '',
+    Location: '',
+    ShowRadius: 'False',
+    IsPagination: 'True',
+    CustomFacetName: '',
+    FacetTerm: '',
+    FacetType: '0',
+    SearchResultsModuleName: 'Search Results',
+    SortCriteria: '0',
+    SortDirection: '0',
+    SearchType: '5',
+    _: randomUUID(),
+  });
+  return `${listUrl}/results?${q.toString()}`;
+}
+
+/**
+ * Read the server's own result/page totals out of a results fragment. The
+ * fragment re-embeds <section id="search-results" data-total-results
+ * data-total-pages …>, so pagination can be bounded by the server's own count.
+ * @param {string} html
+ * @returns {{totalResults: number|null, totalPages: number|null}}
+ */
+export function readFragmentTotals(html) {
+  if (typeof html !== 'string') return { totalResults: null, totalPages: null };
+  const num = (re) => {
+    const m = html.match(re);
+    if (!m) return null;
+    const n = Number(m[1]);
+    return Number.isInteger(n) && n >= 0 ? n : null;
+  };
+  return {
+    totalResults: num(/data-total-results="(\d+)"/),
+    totalPages: num(/data-total-pages="(\d+)"/),
+  };
+}
+
+/** Resolve the page cap: positive integer `max_pages`, else default. */
+function resolveMaxPages(company) {
+  const v = company && company.max_pages;
+  if (Number.isInteger(v) && v > 0) return Math.min(v, MAX_PAGES);
+  return MAX_PAGES;
+}
+
+/** Resolve the total-postings cap: positive integer `max_jobs`, else default. */
+function resolveMaxJobs(company) {
+  const v = company && company.max_jobs;
+  if (Number.isInteger(v) && v > 0) return v;
+  return DEFAULT_MAX_JOBS;
+}
+
+/**
+ * Fetch + normalize a Radancy tenant's postings.
+ *
+ * Preferred transport: the JSON results fragment (buildFragmentUrl) — on the
+ * legacy-markup tenants the plain ?p=N HTML page carries a multi-megabyte facet
+ * blob per page, so the fragment is dramatically cheaper. It is attempted BY
+ * DEFAULT (v1.242.0 sources-6); `opts.fetchJson` still overrides the transport
+ * for tests. Any failure — non-JSON, no results, endpoint absent —
+ * falls through to the ?p=N walk below, so tenants without the fragment
+ * endpoint are unaffected.
+ *
+ * Fallback transport: walk ?p=N (1-based) until an empty page, a no-fresh-ids
+ * page (server clamped ?p= to the last page, or looped), or maxJobs. A page-1
+ * 200 that cannot speak the search-results envelope THROWS (a challenge is
+ * not an empty board); a transient mid-scan failure keeps the jobs collected
+ * so far — it never discards earlier pages.
+ * @param {string} endpoint search-jobs list URL (from buildEndpoint)
+ * @param {{ fetchImpl?: Function, fetchJson?: Function, signal?: AbortSignal, company?: object }} [opts]
+ */
+export async function fetchRadancy(endpoint, opts = {}) {
+  const { fetchImpl = fetch, signal, company = {} } = opts;
+  assertRadancyUrl(endpoint);
+  const origin = new URL(endpoint).origin;
+  const name = (company && typeof company.name === 'string' && company.name.trim()) ? company.name.trim() : 'Radancy';
+
+  const maxPages = resolveMaxPages(company);
+  const maxJobs = resolveMaxJobs(company);
+  const jobs = [];
+  const seen = new Set();
+
+  // Dedupe-and-append helper shared by both transports. Returns the count of
+  // rows that were fresh (not previously seen) this call.
+  const push = (rows) => {
+    let fresh = 0;
+    for (const row of rows) {
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      fresh++;
+      jobs.push(row);
+    }
+    return fresh;
+  };
+
+  // Proof of life across BOTH transports: any resolved request — including a
+  // fragment 200 that parses to zero rows — proves the tenant is reachable, so
+  // a later HTML page-1 failure must not read as "unreachable". Only when NO
+  // request on either transport ever resolved does a page-1 failure THROW, so
+  // scan/portal-health record a failure instead of "live but empty"
+  // (meituan/tencent idiom).
+  let succeededOnce = false;
+
+  // ── Preferred transport: the JSON results fragment ─────────────────────────
+  // The fragment transport is the DEFAULT (v1.242.0 sources-6): no production
+  // caller passes fetchJson, so gating it on the option kept the preferred,
+  // dramatically cheaper transport dead in prod. Any failure — non-JSON, HTTP
+  // error, endpoint absent — still falls through to the ?p=N walk below.
+  const fetchJsonImpl = typeof opts.fetchJson === 'function'
+    ? opts.fetchJson
+    : (url, init) => fetchJson(fetchImpl, url, init);
+  if (fetchJsonImpl) {
+    const fragHeaders = { accept: 'application/json', 'x-requested-with': 'XMLHttpRequest' };
+    try {
+      const first = await fetchJsonImpl(buildFragmentUrl(endpoint, 1), { signal, redirect: 'error', headers: fragHeaders });
+      // Proof of life only for a WELL-FORMED fragment response: a string
+      // `results` — even "" (zero rows) — counts, but a missing/non-string
+      // `results` or a response that crashes parsing leaves this false, so a
+      // failing HTML fallback still surfaces the malformed initial response
+      // instead of returning [].
+      const firstIsString = typeof first?.results === 'string';
+      const firstHtml = firstIsString ? first.results : '';
+      const firstRows = firstHtml ? parseResults(firstHtml, origin, name) : [];
+      if (firstIsString) succeededOnce = true;
+      if (firstRows.length) {
+        const { totalResults, totalPages } = readFragmentTotals(firstHtml);
+        // Bound by the server's own page count when it gives one; the local caps
+        // still apply so a bogus total can't drive an unbounded walk.
+        const lastPage = Math.min(totalPages ?? maxPages, maxPages);
+        push(firstRows);
+
+        // Why the walk stopped, so the truncation warning can be honest about
+        // whose limit was reached. 'end' means the tenant ran out of postings;
+        // 'cap' means OUR max_jobs/max_pages did. Only 'cap' is the caller's to
+        // act on.
+        let stopReason = jobs.length >= maxJobs ? 'cap' : 'end';
+        for (let page = 2; page <= lastPage && jobs.length < maxJobs; page++) {
+          await delay(PAGE_DELAY_MS, signal);
+          let rows;
+          try {
+            const json = await fetchJsonImpl(buildFragmentUrl(endpoint, page), { signal, redirect: 'error', headers: fragHeaders });
+            const frag = typeof json?.results === 'string' ? json.results : '';
+            rows = frag ? parseResults(frag, origin, name) : [];
+          } catch {
+            break; // a mid-walk blip shouldn't discard earlier pages
+          }
+          if (rows.length === 0) { stopReason = 'end'; break; }
+          if (push(rows) === 0) { stopReason = 'end'; break; } // server clamped the page — stop
+          if (jobs.length >= maxJobs) { stopReason = 'cap'; break; }
+        }
+        // Bounded by our own max_pages rather than the tenant's page count:
+        // also our limit, so also worth reporting.
+        if (stopReason === 'end' && totalPages && lastPage < totalPages) stopReason = 'cap';
+
+        // Never truncate silently on OUR OWN limit — report the count actually
+        // RETURNED. `jobs.length` is the pre-slice buffer: the page loop only
+        // checks `jobs.length < maxJobs` BEFORE fetching, so the final page can
+        // push it past the cap; logging the pre-slice length would overstate
+        // delivery in the one message whose whole job is to be accurate about
+        // what the caller did not get.
+        //
+        // `totalResults` is CONTEXT ONLY and never decides whether to warn.
+        // The parent checked `data-total-results` against 9 live tenants: 5
+        // matched, but 4 — a small one and a huge one both — fell short of the
+        // banner by 10-56% with no duplicate rows anywhere. The banner
+        // overstates what the tenant's own search index serves, so comparing
+        // the accumulated count against it false-positived on a majority of
+        // tenants. Ported from parent rebound-ops #3839.
+        const returned = Math.min(jobs.length, maxJobs);
+        if (stopReason === 'cap') {
+          console.error(
+            `⚠️  radancy: ${name} truncated at ${returned}${totalResults ? ` of ${totalResults}` : ''} postings`
+            + ' (max_jobs/max_pages reached) — raise max_jobs/max_pages on this entry for more',
+          );
+        }
+        return jobs.slice(0, maxJobs);
+      }
+    } catch {
+      // fall through to the HTML transport
+    }
+  }
+
+  // ── Fallback transport: the ?p=N HTML walk ─────────────────────────────────
+  // A page-1 failure here — when NO request on either transport ever resolved
+  // (no fragment endpoint / it threw) — means the board is unreachable, not
+  // empty: THROW. A resolved fragment request above, or a mid-scan failure
+  // here, keeps the partials collected so far instead.
+  for (let page = 1; page <= maxPages; page++) {
+    if (page > 1) await delay(PAGE_DELAY_MS, signal);
+    let rows;
+    try {
+      const html = await fetchText(fetchImpl, `${endpoint}?p=${page}`, {
+        signal,
+        redirect: 'error',
+        headers: { accept: 'text/html' },
+      });
+      rows = parseResults(html, origin, name);
+      // Phase-2: a page-1 200 with zero cards is only "empty" when the page
+      // still carries the documented search-results envelope (it renders even
+      // on an empty board). Without it this is a Cloudflare challenge or a
+      // markup change — never an empty board — so it must throw. Only when
+      // nothing on either transport has resolved yet: a well-formed fragment
+      // response is already authoritative about the board being empty.
+      if (page === 1 && rows.length === 0 && !succeededOnce && !RADANCY_RESULTS_ENVELOPE_RE.test(html)) {
+        throw new TypeError(`radancy: page 1 of ${endpoint} has no search-results container — challenge/interstitial or markup change, not an empty board`);
+      }
+    } catch (err) {
+      if (!succeededOnce) throw err;
+      console.warn(`  ⚠ radancy: ${name} — page ${page} failed after ${jobs.length} postings; keeping partials (${err.message})`);
+      break; // keep jobs collected so far — a transient mid-scan failure shouldn't discard earlier pages
+    }
+    succeededOnce = true;
+    if (rows.length === 0) break; // past the last page
+
+    // No new ids → the server clamped ?p= to the last page (or looped). Stop.
+    if (push(rows) === 0) break;
+    if (jobs.length >= maxJobs) break;
+  }
+  return jobs.slice(0, maxJobs);
+}

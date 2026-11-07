@@ -1,0 +1,267 @@
+/**
+ * hh.ru scanner — scrapes the public search HTML at
+ * https://hh.ru/search/vacancy?text=<query>
+ *
+ * Why HTML and not the API:
+ *   The JSON API (api.hh.ru/vacancies) now returns a bare
+ *   `{"errors":[{"type":"forbidden"}]}` (403) to every programmatic client —
+ *   from any IP (US, RU datacenter, RU residential, RU mobile) and with any
+ *   User-Agent. That bare `forbidden` is NOT in hh.ru's documented error
+ *   catalogue (UA problems are 400 `bad_user_agent`, auth is 403 `oauth/…`),
+ *   so it's an edge/anti-bot block on the API endpoint, not something a proxy
+ *   or token fixes. The *website* (hh.ru/search/vacancy), however, serves
+ *   server-rendered HTML with full results to any client carrying a browser
+ *   User-Agent — works from any IP, no proxy, no key. So we scrape that, the
+ *   same way the Habr Career adapter scrapes its search page.
+ *
+ * The page is server-rendered — we parse vacancy cards with regex
+ * (intentionally not pulling in cheerio/JSDOM to keep deps minimal).
+ */
+import { decodeEntities } from '../html-entities.mjs';
+import { fetchTextFollowSameHost } from '../http-json.mjs';
+
+const HH_SITE = 'https://hh.ru/search/vacancy';
+
+const UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+  '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+// v1.69.0 (P-14) — self-describing adapter metadata; see ashby.mjs for the rationale.
+export const meta = {
+  value: 'hh.ru',
+  label: 'hh.ru',
+  region: 'ru',
+  configKey: 'hh',
+};
+
+const AREA_MOSCOW = 1;
+const AREA_RUSSIA = 113;
+const AREA_REMOTE = 1001;
+
+// Hard safety cap on pagination depth per query, so a broad query can't spin
+// forever. hh.ru's own result window also tops out near 2000 (page×per_page),
+// and the "no new vacancies" guard below usually stops us long before this.
+const MAX_PAGES = 50;
+
+/**
+ * Search hh.ru for one query string. Walks ALL result pages (`&page=0,1,2…`)
+ * until a page yields no new vacancies (empty or all-duplicate) or MAX_PAGES
+ * is hit. Returns deduplicated normalized job objects.
+ *
+ * Options:
+ *   area       — hh.ru area id (default 113 = Russia-wide)
+ *   perPage    — items_on_page (default 50)
+ *   onlyRemote — restrict to remote (schedule=remote)
+ *   maxPages   — pagination cap (default MAX_PAGES)
+ *   fetchImpl  — override for tests (default: global fetch)
+ *   signal     — AbortSignal propagated to fetch
+ */
+export async function searchHH(query, opts = {}) {
+  const {
+    area = AREA_RUSSIA,
+    perPage = 50,
+    onlyRemote = false,
+    maxPages = MAX_PAGES,
+    fetchImpl = fetch,
+    signal,
+  } = opts;
+
+  const out = [];
+  const seen = new Set();
+
+  for (let page = 0; page < maxPages; page++) {
+    const params = new URLSearchParams({
+      text: query,
+      items_on_page: String(perPage),
+      area: String(area),
+      page: String(page),
+    });
+    if (onlyRemote) params.set('schedule', 'remote');
+
+    // FULL-R2: the guarded transport with the manual same-host redirect
+    // contract. Node's default 'follow' would bounce the request to ANY host
+    // the upstream names; here a 3xx is followed only when its Location stays
+    // on *.hh.ru over https (hh.ru legitimately redirects a regional Russian
+    // IP to sochi.hh.ru / spb.hh.ru / …), each hop re-guarded, and an
+    // off-host redirect is refused (thrown with .status/.location, never
+    // fetched). maxRedirects=2 because the result window walk paginates via
+    // &page= — every hop is a fresh search request, not a redirect chain.
+    // Initialised by the destructuring below; the only read is `finalUrl || ''`
+    // (a same-host 3xx chain always yields a final URL, and the catch paths
+    // throw or break before reaching it).
+    let finalUrl;
+    let pageHtml = '';
+    try {
+      ({ url: finalUrl, text: pageHtml } = await fetchTextFollowSameHost(fetchImpl, `${HH_SITE}?${params}`, {
+        signal,
+        allowSubdomains: true,
+        maxRedirects: 2,
+        headers: {
+          'User-Agent': UA,
+          'Accept-Language': 'ru-RU,ru;q=0.9',
+          Accept: 'text/html',
+        },
+      }));
+    } catch (e) {
+      // The refusal itself can BE the vpncheck: a redirect whose Location
+      // names the interstitial must fail page 0 with the geo-block flag even
+      // though the interstitial was never fetched.
+      const location = e?.location || '';
+      if (/\/vpnche{1,2}ck/.test(location)) {
+        if (page === 0) {
+          const err = new Error(
+            `hh.ru: VPN-check interstitial (HTTP ${e.status}) — network flagged as VPN/proxy`,
+          );
+          err.status = e.status;
+          err.geoBlocked = true;
+          throw err;
+        }
+        break;
+      }
+      if (page === 0) {
+        if (typeof e?.status !== 'number') throw e; // network-level: surface raw
+        const err = new Error(`hh.ru: HTTP ${e.status}`);
+        err.status = e.status;
+        // Keep the refused redirect target on the surfaced error — where the
+        // walk stopped matters for diagnosis (FULL-R2 review finding 6).
+        err.location = e.location ?? null;
+        // 403 = anti-bot challenge; 451 = regional legal block (hh.ru started
+        // serving 451 stubs to non-Russian IPs in July 2026). Both mean "this
+        // network can't scan hh right now" — flag so the run disables the source.
+        err.geoBlocked = e.status === 403 || e.status === 451;
+        throw err;
+      }
+      break;
+    }
+
+    // hh.ru 302-redirects networks it flags as VPN/proxy (datacenter egress
+    // IPs) to an interstitial at /vpncheeck ("VPN мешает работе сайта").
+    // Under the manual same-host contract the interstitial (itself on hh.ru)
+    // is followed and its FINAL url names it — without this check the scan
+    // silently reports 0 hits. Detect it via the response's final URL and
+    // treat it like the geo-block: fail page 0 loudly so the run disables hh
+    // with an honest hint. (`/vpncheck` included in case hh fixes the typo
+    // in the route.)
+    if (/\/vpnche{1,2}ck/.test(finalUrl || '')) {
+      if (page === 0) {
+        const err = new Error(
+          `hh.ru: VPN-check interstitial (HTTP 200) — network flagged as VPN/proxy`,
+        );
+        err.status = 200;
+        err.geoBlocked = true;
+        throw err;
+      }
+      break;
+    }
+
+    let added = 0;
+    for (const job of parseHhCards(pageHtml)) {
+      if (seen.has(job.id)) continue;
+      seen.add(job.id);
+      out.push(job);
+      added++;
+    }
+    // No new vacancies on this page → we've reached the end (or hh started
+    // repeating the last page past the result window). Stop.
+    if (added === 0) break;
+  }
+
+  return out;
+}
+
+// Zero-width / directional marks + BOM that hh.ru sprinkles into markup.
+const ZWSP = /[​-‏⁠﻿]/g;
+
+// Tag-stripping with entity decoding. v1.242.0: the 8-form local ENTITY map
+// is replaced by the shared single-pass decoder (html-entities.mjs), so
+// numeric refs and the full named table decode — a European/RU title like
+// `D&eacute;veloppeur` or `&#8212;` no longer ships as literal entities into
+// scan history and the tracker. Decoding CANNOT resurrect the stripped tags
+// into live markup: the strip runs AGAIN after the decode (`&lt;script&gt;`
+// arrives as `<script>` and is stripped as a tag), and the final bracket
+// pass keeps the no-`<>` output guarantee. One decode pass only — `&amp;lt;`
+// stays single-decoded (`&lt;`), exactly as before.
+function stripTags(s) {
+  return decodeEntities(s.replace(/<[^>]*>/g, ' '))
+    .replace(/<[^>]*>/g, ' ')
+    .replace(ZWSP, '')
+    .replace(/[<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function qaText(block, qa) {
+  const m = block.match(
+    new RegExp('data-qa="' + qa + '[^"]*"[^>]*>([\\s\\S]*?)</(?:a|span|div)>'),
+  );
+  return m ? stripTags(m[1]) : '';
+}
+
+// Salary amount, not the "Выплаты: …" payment-frequency label. hh.ru hides
+// most salaries, so this is best-effort: a currency run inside the card.
+function extractSalary(block) {
+  const m = block.match(
+    /(?:от|до)?\s?[\d   ]{4,}(?:\s?[–—-]\s?[\d   ]{4,})?\s?(?:₽|руб|€|\$|USD|EUR|KZT|BYN|тенге|сом)/i,
+  );
+  return m ? stripTags(m[0]) : '';
+}
+
+/**
+ * Parse vacancy cards from an hh.ru search-results HTML page.
+ * Pure function — exported for testing.
+ *
+ * Each card container carries data-qa="vacancy-serp__vacancy" (ad blocks use
+ * a different marker and link to adsrv.hh.ru/click?…, so they're skipped
+ * naturally — we only accept `*.hh.ru/vacancy/<id>` title links).
+ *
+ * The host is matched as `(?:<sub>.)?hh.ru` on purpose: from a Russian
+ * residential IP hh.ru 302-redirects the search to a REGIONAL subdomain
+ * (sochi.hh.ru, spb.hh.ru, …) and the vacancy links come back on that
+ * subdomain — a hard `https://hh.ru/vacancy/` anchor silently matched zero
+ * and the scan reported 0 hits (v1.118.4). The numeric id is canonicalized to
+ * https://hh.ru/vacancy/<id> in the output, which resolves from any region.
+ * The ad path is `/click?…`, never `/vacancy/<digits>`, so ads stay excluded.
+ */
+export function parseHhCards(html) {
+  if (!html) return [];
+  const out = [];
+  const seen = new Set();
+  const blocks = html.split('data-qa="vacancy-serp__vacancy"').slice(1);
+
+  for (const b of blocks) {
+    const tm = b.match(
+      /data-qa="serp-item__title[^"]*"[^>]*href="((?:https?:)?\/\/(?:[a-z0-9-]+\.)?hh\.ru\/vacancy\/(\d+)[^"]*)"[\s\S]*?>([\s\S]*?)<\/a>/,
+    );
+    if (!tm) continue;
+
+    const id = tm[2];
+    if (seen.has(id)) continue;
+    seen.add(id);
+
+    const title = stripTags(tm[3]);
+    if (!title) continue;
+
+    const remote = /удал[её]н/i.test(b);
+
+    out.push({
+      id: `hh-${id}`,
+      title,
+      company:
+        qaText(b, 'vacancy-serp__vacancy-employer-text') ||
+        qaText(b, 'vacancy-serp__vacancy-employer'),
+      url: `https://hh.ru/vacancy/${id}`,
+      salary: extractSalary(b),
+      location: qaText(b, 'vacancy-serp__vacancy-address'),
+      isRemote: remote,
+      workplaceType: remote ? 'Remote' : 'Onsite',
+      relocates: false,
+      date: '',
+      snippet: qaText(b, 'vacancy-serp__vacancy_snippet_responsibility'),
+      source: 'hh.ru',
+    });
+  }
+
+  return out;
+}
+
+export const HH = { searchHH, parseHhCards, AREA_MOSCOW, AREA_RUSSIA, AREA_REMOTE };

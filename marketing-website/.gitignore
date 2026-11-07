@@ -1,0 +1,4 @@
+# This buildless site's dist directory is authored source and must be tracked.
+!dist/
+!dist/**
+.generated/

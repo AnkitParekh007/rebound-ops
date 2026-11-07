@@ -1,0 +1,169 @@
+/**
+ * Docs assistant route (v1.102.0). Grounded "ask the help guide" chat. CI-isolated:
+ * the help docs come from WEB_UI_ROOT (this repo), not the parent project, so the
+ * retrieval is deterministic. No provider keys → the honest manual prompt.
+ */
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+let server; let baseUrl;
+let splitSections; let topSections; let buildAskPrompt; let resolveHelpFile; let tokenize;
+
+before(async () => {
+  // Scrub EVERY provider credential (any *_API_KEY, Ollama URL, provider
+  // pin) — a hand-kept list silently goes stale as providers are added.
+  for (const k of Object.keys(process.env)) {
+    if (/_API_KEY$|^OLLAMA_BASE_URL$|^LLM_PROVIDER$/.test(k)) delete process.env[k];
+  }
+  const root = mkdtempSync(join(tmpdir(), 'docs-asst-'));
+  writeFileSync(join(root, 'cv.md'), '# CV\n');
+  process.env.REBOUND_OPS_ROOT = root;
+  ({ splitSections, topSections, buildAskPrompt, resolveHelpFile, tokenize } = await import('../server/lib/routes/docs-assistant.mjs'));
+  const { createApp } = await import('../server/index.mjs');
+  const app = createApp();
+  await new Promise((r) => { server = app.listen(0, '127.0.0.1', () => { baseUrl = `http://127.0.0.1:${server.address().port}`; r(); }); });
+});
+after(() => { delete process.env.REBOUND_OPS_ROOT; return new Promise((r) => server.close(r)); });
+
+const post = (p, b) => fetch(`${baseUrl}${p}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+
+test('resolveHelpFile falls back to en.md and is path-traversal safe', () => {
+  assert.ok(resolveHelpFile('en'));
+  assert.ok(resolveHelpFile('zz-unknown'));                 // → en.md fallback
+  // A traversal attempt must resolve to a real file INSIDE docs/help (never
+  // /etc/passwd). Assert the actual return (no `|| fallback` masking a null).
+  const traversed = resolveHelpFile('../../etc/passwd');
+  assert.ok(traversed, 'traversal input must still resolve (to the en.md fallback), not null');
+  assert.match(traversed, /docs[/\\]help[/\\][a-zA-Z0-9_-]+\.md$/); // stayed inside docs/help
+  assert.doesNotMatch(traversed, /etc[/\\]passwd/);                 // never escaped
+});
+
+test('splitSections splits on ## and keeps ### inside their parent', () => {
+  const secs = splitSections('# Title\n\n## One\nintro\n### Sub A\nbody a\n## Two\nintro two\n');
+  assert.equal(secs.length, 2);
+  assert.equal(secs[0].title, 'One');
+  assert.match(secs[0].body, /Sub A/);      // ### stays inside its ## parent
+  assert.equal(secs[1].title, 'Two');
+});
+
+test('an oversized section is split at its ### boundaries, a small one is not', () => {
+  // Small: ### belongs with its parent (the case above). Large: the ### is the
+  // only way in, because a section past the context budget cannot be inlined.
+  const big = 'x'.repeat(7000);
+  const secs = splitSections(`## Big\npreamble\n### Sub A\n${big}\n### Sub B\nbody b\n`);
+  const titles = secs.map((x) => x.title);
+  assert.ok(titles.includes('Big'), 'the preamble keeps the parent title');
+  assert.ok(titles.includes('Big › Sub A'), 'sub-sections are titled Parent › Sub');
+  assert.ok(titles.includes('Big › Sub B'));
+});
+
+test('a section with no ### is left whole even when oversized', () => {
+  const secs = splitSections(`## Solid\n${'y'.repeat(7000)}\n`);
+  assert.equal(secs.length, 1, 'nothing to split on — do not mangle it');
+  assert.equal(secs[0].title, 'Solid');
+});
+
+test('an oversized top-ranked section no longer empties the context', () => {
+  // The regression: `break` on the first section that did not fit ended the
+  // loop, so the assistant answered "no matching help sections" while the
+  // answer sat in the section it had just refused to inline.
+  const huge = { title: 'Huge', body: '## Huge\n' + 'z'.repeat(20000) };
+  const small = { title: 'Small', body: '## Small\nthe answer is here\n' };
+  const p = buildAskPrompt([huge, small], 'where is the answer?', 'en');
+  assert.match(p, /HELP SECTION: Huge \(truncated\)/, 'the top section is truncated, never silently dropped');
+  assert.ok(p.length > 500, 'the context must not come back empty');
+});
+
+test('the real EN guide can answer a telegram_channels question', () => {
+  // FIND-1: this returned "no matching help sections were found" in English
+  // while working in Russian — the EN §5 had grown to 16 KB against a 14 KB
+  // budget. A corpus-level guard, because the unit tests above pass on
+  // synthetic input regardless of what the shipped guide looks like.
+  const md = readFileSync(resolve(process.cwd(), 'docs/help/en.md'), 'utf-8');
+  const secs = splitSections(md);
+  for (const q of ['telegram_channels', 'how do I scan a public telegram channel?']) {
+    const prompt = buildAskPrompt(topSections(secs, q), q, 'en');
+    assert.ok(prompt.includes('telegram_channels'),
+      `EN help must ground "${q}" in the telegram_channels section`);
+  }
+});
+
+test('topSections ranks the section whose title/body matches the question', () => {
+  const secs = [
+    { title: 'Scanning job portals', body: '## Scanning job portals\nRun a scan of Greenhouse and Lever.\n' },
+    { title: 'Your two-pager', body: '## Your two-pager\nWhat you want from a role.\n' },
+    { title: 'Health', body: '## Health\nServer status.\n' },
+  ];
+  const top = topSections(secs, 'how do I scan job portals?', 2);
+  assert.equal(top[0].title, 'Scanning job portals');
+});
+
+// CAR-103: the word regex `[\p{L}\p{N}]` dropped combining marks (\p{M}) —
+// Devanagari matras and Tamil vowel signs split words into sub-3-codepoint
+// fragments, so a Hindi question matched 0 sections and a Tamil one matched
+// irrelevant ones.
+test('CAR-103: tokenize keeps combining marks (Devanagari matras, Tamil signs)', () => {
+  assert.deepEqual(tokenize('स्कैन'), ['स्कैन']);
+  assert.deepEqual(tokenize('தேடல்'), ['தேடல்']);
+  // Base forms still match inflected bodies through substring scoring.
+  assert.deepEqual(tokenize('पाइपलाइन'), ['पाइपलाइन']);
+});
+
+test('CAR-103: a Hindi question with matras finds its section', () => {
+  const secs = [
+    { title: 'स्कैन सेटिंग्स', body: '## स्कैन सेटिंग्स\nस्कैन को कॉन्फ़िगर करने का तरीका यहाँ है।\n' },
+    { title: 'Tracker', body: '## Tracker\nHow the tracker works.\n' },
+  ];
+  const picked = topSections(secs, 'मैं स्कैन सेटिंग्स कैसे बदलूं?');
+  assert.equal(picked[0].title, 'स्कैन सेटिंग्स');
+});
+
+test('CAR-103: a Tamil question with vowel signs finds its section', () => {
+  const secs = [
+    { title: 'தேடல் அமைப்புகள்', body: '## தேடல் அமைப்புகள்\nதேடலை வடிகட்டுவது எப்படி.\n' },
+    { title: 'Tracker', body: '## Tracker\nHow the tracker works.\n' },
+  ];
+  const picked = topSections(secs, 'தேடலை வடிகட்டுவது எப்படி?');
+  assert.equal(picked[0].title, 'தேடல் அமைப்புகள்');
+});
+
+test('buildAskPrompt grounds on the excerpts and forbids invention', () => {
+  const p = buildAskPrompt([{ title: 'Scanning', body: '## Scanning\nRun a scan.\n' }], 'how do I scan?', 'en');
+  assert.match(p, /ONLY the help-guide/i);
+  assert.match(p, /do NOT invent/i);
+  assert.match(p, /HELP SECTION: Scanning/);
+  assert.match(p, /QUESTION: how do I scan\?/);
+});
+
+test('POST /ask without run → manual prompt grounded in real help sections', async () => {
+  const r = await post('/api/docs-assistant/ask', { question: 'How do I scan job portals?' });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.mode, 'manual');
+  assert.ok(Array.isArray(j.sections) && j.sections.length > 0);  // retrieval found real sections
+  assert.match(j.prompt, /help-guide/i);
+  assert.match(j.message, /No API key set/, 'no provider configured → the no-key hint');
+  assert.equal(j.answer, undefined);                              // nothing answered/invented with no key
+});
+
+test('POST /ask with run:true and no key → provider cascade falls back to manual', async () => {
+  // run:true skips the "preview only" short-circuit, so this is the path
+  // that actually exercises "no provider key" (runActiveProvider → manual).
+  const r = await post('/api/docs-assistant/ask', { question: 'How do I scan job portals?', run: true });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.mode, 'manual');
+  assert.match(j.message, /No provider available/);
+  assert.match(j.prompt, /help-guide/i);
+  assert.equal(j.answer, undefined);
+});
+
+test('POST /ask rejects an empty question', async () => {
+  const r = await post('/api/docs-assistant/ask', { question: '  ' });
+  assert.equal(r.status, 400);
+});

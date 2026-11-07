@@ -1,0 +1,60 @@
+  <section class="panel" aria-labelledby="intake-heading">
+    <div class="panel-top">
+      <div><p class="eyebrow">01 / Starting point</p><h2 id="intake-heading">What can you build on?</h2></div>
+      <span class="note">{{ store.apiAvailable() ? 'Local API ready' : 'API offline' }}</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="fields">
+        <div class="field">
+          <label>Recent role <input type="text" formControlName="role" [attr.aria-invalid]="!!error('role')" [attr.aria-describedby]="error('role') ? 'intake-role-error' : null" required maxlength="120" placeholder="e.g. Senior Frontend Engineer"></label>
+          @if (error('role'); as message) { <span class="field-error" id="intake-role-error">{{ message }}</span> }
+        </div>
+        <div class="field">
+          <label>Location or work preference <input type="text" formControlName="location" [attr.aria-invalid]="!!error('location')" [attr.aria-describedby]="error('location') ? 'intake-location-error' : null" maxlength="160"></label>
+          @if (error('location'); as message) { <span class="field-error" id="intake-location-error">{{ message }}</span> }
+        </div>
+        <div class="field">
+          <label>Available hours per week <input type="number" formControlName="weeklyHours" [attr.aria-invalid]="!!error('weeklyHours')" [attr.aria-describedby]="error('weeklyHours') ? 'intake-weeklyHours-error' : null" min="1" max="20" required></label>
+          @if (error('weeklyHours'); as message) { <span class="field-error" id="intake-weeklyHours-error">{{ message }}</span> }
+        </div>
+        <div class="field">
+          <label>Income urgency
+            <select formControlName="urgency">
+              <option value="soon">As soon as practical</option>
+              <option value="quarter">Within three months</option>
+              <option value="flexible">Flexible</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Priorities and constraints <textarea formControlName="priorities" [attr.aria-invalid]="!!error('priorities')" [attr.aria-describedby]="error('priorities') ? 'intake-priorities-error' : null" rows="2" maxlength="1200"></textarea></label>
+        @if (error('priorities'); as message) { <span class="field-error" id="intake-priorities-error">{{ message }}</span> }
+      </div>
+      <div class="field">
+        <label>Demonstrated achievements — one per line <textarea formControlName="evidenceText" [attr.aria-invalid]="!!error('evidenceText')" [attr.aria-describedby]="error('evidenceText') ? 'intake-evidenceText-error' : null" rows="4" maxlength="7500" placeholder="Describe work you can support with evidence, without confidential details."></textarea></label>
+        @if (error('evidenceText'); as message) { <span class="field-error" id="intake-evidenceText-error">{{ message }}</span> }
+      </div>
+      <p class="hint">These are user-entered claims, not independently verified facts. You can mark each line as confirmed or rejected below.</p>
+      <div class="fields">
+        <div class="field">
+          <label>Adjacent direction <input formControlName="shiftTarget" [attr.aria-invalid]="!!error('shiftTarget')" [attr.aria-describedby]="error('shiftTarget') ? 'intake-shiftTarget-error' : null" maxlength="140" placeholder="AI application engineering"></label>
+          @if (error('shiftTarget'); as message) { <span class="field-error" id="intake-shiftTarget-error">{{ message }}</span> }
+        </div>
+        <div class="field">
+          <label>Contract / bridge direction <input formControlName="bridgeTarget" [attr.aria-invalid]="!!error('bridgeTarget')" [attr.aria-describedby]="error('bridgeTarget') ? 'intake-bridgeTarget-error' : null" maxlength="140" placeholder="Frontend consulting"></label>
+          @if (error('bridgeTarget'); as message) { <span class="field-error" id="intake-bridgeTarget-error">{{ message }}</span> }
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit" [disabled]="store.busy() || !store.apiAvailable()">{{ store.session() ? 'Update intake' : 'Create recovery session' }} <span aria-hidden="true">→</span></button>
+        <button class="secondary" type="button" (click)="demo()">Use fictional example</button>
+        <button class="minimal" type="button" (click)="clear()">Clear form</button>
+      </div>
+    </form>
+    @if (!store.session()) {
+      <p class="intake-switch">Prefer to be guided? <button type="button" class="minimal" (click)="guided.emit()">Answer a few questions instead</button></p>
+      <rb-resume />
+    }
+  </section>

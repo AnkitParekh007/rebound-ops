@@ -1,0 +1,409 @@
+# API Reference — rebound-ops-ui
+
+> **Актуально на v1.261.2: 39 route-модулей (`server/lib/routes/*.mjs`, по одному `register*Routes(app)` на файл в `server/index.mjs`), ~119 endpoint-регистраций.** Полный актуальный перечень — `grep 'Routes(app)' server/index.mjs`; детали каждого эндпоинта (валидация, формат тела) — в самом `server/lib/routes/<topic>.mjs`. Разделы ниже описывают стабильное ядро API и могут отставать от кода в деталях новых модулей (map, geocode, liveness, funded, outcome, assessments, cv-sync, cv-studio, usage, followup, discover-ats и др. — см. их заголовочные комментарии).
+
+> Complete inventory of the routes exposed by `server/index.mjs`. Source of truth is the code; this doc is the contract. If a PR adds, removes, or changes a route, this doc updates in the same PR.
+
+All paths are prefixed with `http://127.0.0.1:4317` (default). Body / query types are described informally; see the route handler for exact validation.
+
+## Cross-cutting security envelope (v1.21.0+)
+
+- **DNS-rebind safety:** `/api/pipeline/preview` and `/api/auto-pipeline` route through `server/lib/safe-fetch.mjs::safeGet` — one DNS lookup, pinned TCP connection. Per-hop redirect revalidation. Fail-CLOSED on lookup error.
+- **Path-traversal sanitization:** every `:name` / `:slug` / `?slug=` / `?name=` route param goes through `sanitizePathName()` from `server/lib/security.mjs`. Empty result → 400.
+- **Rate limiting:** `/api/evaluate`, `/api/deep`, `/api/mode/:slug`, `/api/auto-pipeline` wear `llmRateLimit` from `server/lib/rate-limit.mjs`. **No-op on loopback (`HOST=127.0.0.1`); 10 req/min/IP on public bind (`HOST=0.0.0.0`).** Configurable via `LLM_RATE_LIMIT="N/Ws"`. 429 + `Retry-After` + `X-RateLimit-*` headers on overflow.
+- **Concurrent writes:** `/api/tracker` (POST), `/api/pipeline` (POST + DELETE), and `/api/auto-pipeline`'s tracker step are wrapped in `withFileLock(path, fn)` from `server/lib/file-lock.mjs`. Read-modify-write on the same data file is serialized per-process. Independent files run in parallel.
+
+## Categories
+
+1. [Configuration](#configuration)
+2. [Activity log](#activity-log)
+3. [Health & dashboard](#health--dashboard)
+4. [Tracker](#tracker)
+5. [Pipeline](#pipeline)
+6. [Reports](#reports)
+7. [JDs](#jds)
+8. [CV](#cv)
+9. [Profile](#profile)
+10. [Portals](#portals)
+11. [Modes](#modes)
+12. [Buffered script runners](#buffered-script-runners)
+13. [Streaming script runners (SSE)](#streaming-script-runners-sse)
+14. [Output PDFs](#output-pdfs)
+15. [In-process scanners](#in-process-scanners)
+16. [Evaluate](#evaluate)
+17. [Deep research](#deep-research)
+18. [Interview prep](#interview-prep)
+19. [Generic mode prompts](#generic-mode-prompts)
+20. [Help](#help)
+
+---
+
+## Configuration
+
+### `GET /api/config`
+
+Returns known env-config keys with values pulled from `<parent>/.env` first, falling back to `process.env`. Secret keys are masked.
+
+```json
+{
+  "envFile": "/path/to/.env",
+  "keys": ["GEMINI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "..."],
+  "secretKeys": ["GEMINI_API_KEY", "ANTHROPIC_API_KEY"],
+  "values": { "GEMINI_API_KEY": "AIza••••", "ANTHROPIC_MODEL": "claude-sonnet-4-6" }
+}
+```
+
+### `POST /api/config`
+
+Body: `{ <KEY>: <value>, ... }`. Only `KNOWN_KEYS` are accepted; unknown keys are silently dropped. Validates via `validateConfig`. Writes to `<parent>/.env` and updates `process.env` in-place. Empty string deletes the key.
+
+Errors: `400 { error: 'validation failed', details: [...] }`.
+
+---
+
+## Activity log
+
+### `GET /api/activity?limit=N&type=<prefix>`
+
+Returns the last `N` (default 200) state-changing requests. Filterable by action prefix.
+
+```json
+{ "events": [ { "ts": "2026-05-07T10:11:12Z", "action": "POST /api/tracker", "ip": "127.0.0.1", "...": "..." } ] }
+```
+
+---
+
+## Health & dashboard
+
+### `GET /api/health`
+
+Liveness + setup readiness. Required checks affect `ok`; optional checks affect `warnings`.
+
+```json
+{
+  "ok": true,
+  "warnings": 1,
+  "version": "1.7.2",
+  "parentVersion": "1.7.0",
+  "checks": [
+    { "name": "Node version", "required": true, "ok": true, "value": "v20.20.0" },
+    { "name": "GEMINI_API_KEY", "required": false, "ok": false, "value": "unset (manual mode)" }
+  ]
+}
+```
+
+When `HOST=0.0.0.0`, absolute paths and Node version are replaced with `"hidden"` to reduce LAN fingerprinting.
+
+### `GET /api/dashboard`
+
+Aggregates application counts, status histogram, average score, recent applications, recent pipeline URLs, last report.
+
+### `GET /api/status/providers` (v1.55.3)
+
+Read-only LLM-provider readiness for the SPA onboarding banner / chip and the `⚡ Run live` cost hint. No secrets — only provider names + the active model id.
+
+```json
+{ "activeProvider": "openai", "activeModel": "gpt-5-codex", "keysConfigured": ["anthropic", "openai"] }
+```
+
+`keysConfigured` uses the same effective-env view as the `llm.mjs` gate sites (`process.env` ∨ parent `.env`). `activeProvider` is what the OR-router would actually pick (`selectActiveProvider()` walks `providerOrder()`, honoring an `LLM_PROVIDER` pin); `null` when no key is set anywhere.
+
+---
+
+## Tracker
+
+### `GET /api/tracker` → `{ rows: Application[] }`
+
+Parses `data/applications.md` into rows.
+
+**Optional server-side pagination (v1.55.8).** With **no** query params the response is exactly `{ rows: [...] }` (back-compat — every legacy caller untouched). Pass `?page=&pageSize=&status=` to get a paginated envelope:
+
+```json
+{ "rows": [ ...slice ], "total": 23, "page": 1, "pageSize": 25, "funnel": { "Applied": 12, "Interview": 5, "Offer": 2 } }
+```
+
+`pageSize` is clamped to `[1, 500]`, `page` to `≥1`; `status` filters `rows`+`total`; `funnel` is the whole-history status→count breakdown (independent of the page/filter, so the `#/tracker` funnel chips are always accurate).
+
+### `POST /api/tracker`
+
+Body: `{ company, role, score?, status?, url?, reportSlug?, notes?, date? }`. Required: `company`, `role`. Status whitelist: `Evaluated, Applied, Responded, Interview, Offer, Hired, Rejected, Discarded, SKIP`. Dedup by `(company, role)` case-insensitive — returns `{ deduped: true, existingNum }` instead of creating a duplicate. Auto-numbers (zero-padded), bootstraps the table header if missing.
+
+### `POST /api/tracker/status`
+
+Inline status edit (BACKLOG v1.246.0 #2). Body: `{ row, state, note?, dryRun? }`. `row` — integer ≥ 1; `state` — canonicalized through `server/lib/states.mjs` (aliases/case folded, unknown → **400**); `note` — control-char-guarded, ≤ 200 chars. Relays the parent's canonical writer `set-status.mjs --row N <State> [--note] [--dry-run] --json` via `runTrackedScript` (the script takes the `applications.md` lock itself, so the relay serializes with every web-ui writer; web-ui never writes the tracker directly). Fail-soft: non-JSON / non-zero exit / missing script → **502** `{ error, code, detail }` (stderr sanitized). Success → the parent script's `{ ok, row, state, … }` passthrough (`dryRun` echoed). Drives the inline status `<select>` on `#/tracker` (`track.inlineStatus*` keys ×19).
+
+### `POST /api/runners/report-links`
+
+Dry-run/repair for dead tracker report links (BACKLOG v1.246.0 #4, parent `fix-report-links.mjs`). Body `{ mode: 'dry-run' | 'apply' }` — **dry-run is the default**. Apply rewrites only a single-link Report cell to `—` and runs inside `withFileLock(PATHS.applications, …)` (the parent script is deliberately NOT in `TRACKER_MUTATING` — the registry lock would nest with this one and deadlock). Plain-text parent output is parsed into `{ rows: [{num, detail}], summary }` and returned verbatim as `output`; exit ≠ 0 / timeout / missing script → **502** `{ error, code, output, detail }`. Drives the Repair card on `#/health` (`rlinks.*` ×19).
+
+### `POST /api/runners/report-dates`
+
+Dry-run/repair for report filename-vs-header date mismatches (CAR-233). Scans `reports/*.md` for `001-acme-2026-06-01.md`-shaped files whose `**Date:**` header disagrees with the filename stamp. Body `{ mode: 'dry-run' | 'apply' }` — **dry-run is the default**, returns `{ mode, count, rows }` without writing. Apply rewrites ONLY the `**Date:**` line to the filename date (CAR-101's `fixReportHeaderDate`), writes **one timestamped `.bak-…`** snapshot per run and commits each file atomically (temp-then-rename). Wrong `mode` → **400**.
+
+### `POST /api/runners/company-fix`
+
+Dry-run/repair for tracker Company cells (CAR-232 — the CAR-127/128 tail: rows filed under a source name like `hh`/`hh.ru`, or under the role title). Resolves each row's company from its linked report's H1 (`# Evaluation: {Company} — {Role}`); a row whose report is missing or unresolvable is reported with `fixed: null` — **never guessed**. Body `{ mode: 'dry-run' | 'apply' }` — **dry-run is the default**. Apply rewrites only the Company cell (line-surgical, every other byte identical; a `|` in the resolved company is flattened — a phantom column is worse than a renamed cell), under `withFileLock(PATHS.applications, …)` with a timestamped `.bak-…` backup and an atomic temp-then-rename commit. Returns `{ mode, count, changed, rows }`. Wrong `mode` → **400**. Route-level contract: `tests/runners-data-migrations.test.mjs`.
+
+### `GET /api/liveness?url=<URL>`
+
+Zero-token, zero-browser "still live?" check for an ATS-hosted posting (Greenhouse / Lever / Ashby / Workday / SmartRecruiters public JSON). SSRF-safe: `isValidJobUrl` gate + fixed known hosts + `safeGet` + a cross-origin-redirect guard. Returns `{ result: 'live'|'expired'|'uncertain', code, reason, provider }`. An unrecognized ATS host or an inconclusive probe still returns **200** with `result: 'uncertain'`, `code: 'inconclusive'`, `provider: null` (no Playwright fallback at this rung). A loopback / `file:` / private / template URL → **400** `{ error }`. Drives the "still live?" badge on `#/tracker` and scan results.
+
+---
+
+## Pipeline
+
+### `GET /api/pipeline` → `{ urls: string[] }`
+
+### `POST /api/pipeline`
+
+Body: `{ url }` (alias `text`). Validated by `isValidJobUrl()`. Dedups silently.
+
+### `GET /api/pipeline/preview?url=<URL>`
+
+Server-side fetch of a JD page. Returns stripped text (script/style/tags removed, HTML entities decoded, capped at 8 KB). Hard-timeout 15 s. Used by the pipeline split-pane preview.
+
+### `DELETE /api/pipeline?url=<URL>`
+
+---
+
+## Reports
+
+### `GET /api/reports` → `{ reports: ReportSummary[] }`
+
+### `GET /api/reports/:slug`
+
+Returns `{ slug, ...parseReportHeader(text), markdown }`. `:slug` is sanitized (`[^\w\-.]/g`) and may or may not include `.md` suffix.
+
+---
+
+## JDs
+
+### `GET /api/jds` → `{ jds: { name, size, mtime }[] }`
+
+### `GET /api/jds/:name` → `text/plain`
+
+### `DELETE /api/jds/:name`
+
+Requires `.txt` suffix and sanitized name.
+
+### `POST /api/jds`
+
+Body: `{ text, slug? }`. If `slug` supplied, normalised via `slugify`; non-empty result required. Returns `{ ok, name, warning? }`.
+
+### `GET /api/jds/:name/skill-gap`
+
+Classifies a stored JD's required skills against `cv.md` → `{ existing, supportedByResume, gap, lowConfidence }`. Zero-token relay of the parent `jd-skill-gap.mjs` (`--json`); fail-soft `{ available:false }` when the parent script is absent. Feeds the "Skill gap" panel in `#/cv-studio`.
+
+### `GET /api/jds/:name/reuse`
+
+Deterministic "reuse a past CV?" hint — Jaccard similarity + seniority guard vs. previously tailored JDs. Returns `{ available: true, best: { name?, decision: 'reuse'|'reuse-with-edits'|'regenerate', score, reason }, comparedCount }`; fail-soft `{ available: false, reason }` when the parent `jd-similarity.mjs` is absent (`script-not-found`), there are no prior JDs (`no-prior-jds`), or every comparison errored (`script-error`, with `detail`). Zero-token relay. Surfaced in `#/cv-studio`.
+
+---
+
+## CV
+
+### `GET /api/cv` → `{ markdown }`
+
+### `PUT /api/cv`
+
+Body: `{ markdown }` or raw `text/markdown`. Max 1 MB. Sanitised via `stripDangerousMarkdown` before write. Response includes `sanitized: boolean` indicating whether anything was stripped.
+
+### `GET /api/cv-sync-check`
+
+Setup doctor: relays the parent `cv-sync-check.mjs` (no `--json` — the route parses its `ERROR:` / `WARN:` lines and lets the banner, not the exit code, decide success) → `{ ok, errors, warnings }` scanning `cv.md` / `profile.yml` completeness plus example-data and hardcoded-metric leftovers. Read-only; fail-soft `{ available:false }`. Surfaced as the "Setup doctor" panel in `#/config`.
+
+---
+
+## Profile
+
+### `GET /api/profile` → `{ profile, raw }`
+
+Reads `config/profile.yml`. `profile` is parsed YAML; `raw` is the source string (so the SPA can show "edit raw" without re-emitting YAML it can't round-trip).
+
+---
+
+## Portals
+
+### `GET /api/portals` → `{ portals, raw }`
+
+Reads `portals.yml`.
+
+### `POST /api/portals/discover`
+
+Body: `{ company }` (required, length-bounded). Probes a company's public ATS boards (Greenhouse / Ashby / Lever) via the SSRF-safe `safeGet` → `{ company, results: [{ vendor, label, slug, careers_url, jobCount }] }` (note `vendor`, not `provider`). Read-only preview, zero-LLM; no write. Powers the "Discover ATS board" flow in `#/portals`.
+
+### `POST /api/portals/track`
+
+Body: `{ name, careers_url, provider? }` — `name` and `careers_url` are required (`careers_url` must be an https URL on a known ATS host — Greenhouse/Ashby/Lever — that a scanner adapter actually claims), `provider` is optional. Explicit user write that appends the chosen board to `portals.yml`. Every field passes a `hasControlChar` guard (rejects TAB/newline/control bytes → **400** before any write) and `provider` is YAML-escaped via `yamlScalar`.
+
+---
+
+## Modes
+
+### `GET /api/modes` → `{ modes: string[] }`
+
+Lists `modes/<name>.md` slugs (no extension).
+
+### `GET /api/modes/:name` → `text/plain`
+
+Sanitized name. Returns the raw mode prompt template.
+
+---
+
+## Buffered script runners
+
+All `POST` (no body required). Spawn `node <script>` in the parent project, capture stdout/stderr, return when finished or after 60 s timeout.
+
+| Route | Script |
+|---|---|
+| `POST /api/run/doctor` | `doctor.mjs` |
+| `POST /api/run/verify` | `verify-pipeline.mjs` |
+| `POST /api/run/normalize` | `normalize-statuses.mjs` |
+| `POST /api/run/dedup` | `dedup-tracker.mjs` |
+| `POST /api/run/merge` | `merge-tracker.mjs` |
+| `POST /api/run/sync-check` | `cv-sync-check.mjs` |
+
+Response: `{ code, stdout, stderr, killed?: boolean }`.
+
+---
+
+## Streaming script runners (SSE)
+
+`Content-Type: text/event-stream`. Events: `start`, `log` (`{ stream: 'stdout'|'stderr', line }`), `done` (`{ code, ... }`), `error`.
+
+| Route | Script | Notes |
+|---|---|---|
+| `GET /api/stream/scan` | `scan.mjs` | Query: `dryRun=1`, `company=<name>`. |
+| `GET /api/stream/liveness` | `check-liveness.mjs` | |
+| `GET /api/stream/pdf` | `generate-pdf.mjs` | Requires Playwright in parent `node_modules`. |
+
+---
+
+## Output PDFs
+
+### `GET /api/output/pdfs` → `{ files: { name, size, mtime }[] }`
+
+### `GET /api/output/pdfs/:name`
+
+Sets `Content-Disposition: attachment`. Sanitized name; must end with `.pdf`.
+
+---
+
+## In-process scanners
+
+Run in this Node process — do not spawn `scan.mjs`. Same SSE event shape as streaming runners.
+
+### `GET /api/stream/scan?source=ats|regional|both`
+
+Consolidated SSE entrypoint (v1.18.0 — the legacy `/api/stream/scan-{en,ru}` aliases were retired after their Sunset window expired).
+
+- `source=ats` — Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday (v1.14+).
+- `source=regional` — 5 RU adapters since v1.29.0: hh.ru + Habr Career + Trudvsem + GetMatch + GeekJob. Driven by `russian_portals:` in `portals.yml` (`sources: ["hh", "habr", "trudvsem", "getmatch", "geekjob"]` — default if unset).
+- `source=both` (default) — ATS phase first, then regional, in one SSE connection. The server emits one `done` per phase. **v1.29.2 multi-phase contract:** the first `done` carries `final: false` and the second `final: true`. SSE consumers (`API.stream` in `public/js/api.js`) close the EventSource only when `data.final !== false`. Pre-v1.29.2 the client closed on the first `done` and silently dropped the regional phase — guarded by `tests/scan-stream-multi-phase.test.mjs`.
+
+Queries: `dryRun=1` (skip writes to `data/scan-history.tsv` + `data/last-scan.json`), `company=<slug>` (ATS-only narrow). Honors `AbortSignal` from client disconnect; in-flight upstream fetches abort instead of running to completion (REVIEW-B3).
+
+### `GET /api/scan/sources` → `{ sources: [{ value, label, region, configKey? }, ...] }` *(v1.29.0)*
+
+Canonical source registry, served from `server/lib/sources/registry.mjs`. Returns **121 entries** (116 EN-region incl. RSS + 5 RU) — the list auto-grows as adapters are added. The `#/scan` source-filter dropdown fetches this on mount and rebuilds its `<option>` list dynamically. **Since v1.69.0 (P-14)** the registry auto-discovers adapters: dropping a `<slug>.mjs` with an `export const meta = { value, label, region, configKey? }` block into `server/lib/sources/` adds it here automatically — no registry edit (`_`-prefixed helper files are skipped). `Cache-Control: max-age=60`.
+
+### `GET /api/scan/regional/config` → `{ sources, area, per_page, only_remote, queries }`
+
+Effective `russian_portals:` config from `portals.yml`. (Legacy alias `/api/scan-ru/config` retired in v1.20.0.)
+
+### `GET /api/scan-results` → contents of `data/last-scan.json` + `workdayFallback` (v1.17+)
+
+---
+
+## Evaluate
+
+### `POST /api/evaluate`
+
+Body: `{ jd, save? }`. JD sanitised + length-checked (≥50 chars after sanitisation).
+
+- If `GEMINI_API_KEY` set → spawn `gemini-eval.mjs --file <tmp>` (timeout 120 s). Response: `{ mode: 'gemini', ...runResult }`.
+- Else → return `{ mode: 'manual', prompt }` for copy-paste.
+- If `save: true`, the JD is also persisted under `jds/jd-<date>-<ts>.txt`.
+
+### `POST /api/evaluate/test-gemini`
+
+Smoke test. 400 if `GEMINI_API_KEY` not set. Otherwise runs `gemini-eval.mjs` against a hardcoded short JD; returns a 200-char sample of the response so the user can verify the key is wired up.
+
+---
+
+## Deep research
+
+### `POST /api/deep`
+
+Body: `{ company, role?, run? }`. Builds a deep-research prompt.
+
+- `run: true` + `ANTHROPIC_API_KEY` → runs via Anthropic SDK (`maxTokens: 8192`). Persists Markdown to `interview-prep/<company>-<role>.md`.
+- `run: true` + `GEMINI_API_KEY` (no Anthropic) → runs via `gemini-eval.mjs`.
+- `run: true` with no keys, or `run` falsey → returns the assembled `prompt` for manual paste.
+
+Response: `{ mode: 'anthropic'|'gemini'|'manual', prompt, markdown?, saved?, code? }`.
+
+---
+
+## Interview prep
+
+### `GET /api/interview-prep` → `{ files: { name, size, mtime }[] }`
+
+### `GET /api/interview-prep/:name` → `{ name, markdown }`
+
+### `DELETE /api/interview-prep/:name`
+
+Sanitized name; must end with `.md`.
+
+---
+
+## Generic mode prompts
+
+### `POST /api/mode/:slug`
+
+`MODE_ALLOWLIST = ['batch', 'contacto', 'followup', 'interview-prep', 'patterns', 'project', 'training']`.
+
+Reads `modes/<slug>.md`, prepends the request body as a JSON context block via `buildModePrompt(template, slug, context)`. Same Anthropic / Gemini / manual fallback as `/api/deep`.
+
+---
+
+## Help
+
+### `GET /api/help/:lang` → `{ lang, markdown }`
+
+Reads `web-ui/docs/help/<lang>.md`. Falls back to `en.md` if requested locale missing. `:lang` sanitized to `[a-zA-Z0-9_-]+`.
+
+---
+
+## Skills log
+
+### `GET /api/assessments` → `{ assessments, aggregates, quality }`
+
+Relays the parent `assessment-log.mjs` (its **bare/default output IS the JSON list** — there is no `--json` flag). Each entry is `{ date, company, reportNum, platform, subject, threshold, score, staleNote }` (numeric fields `null` when unset). Read-only; fail-soft `{ available:false }`.
+
+### `POST /api/assessments`
+
+Explicit append. Body: `{ company, platform, subject, report?, threshold?, score?, stale? }` — required `company`/`platform`/`subject`; `stale` is the free-text "stale note" (mapped to `--stale`). Shells `assessment-log.mjs add …` with fields passed as **array args** (spawn, no shell). Every text field passes a `hasControlChar` guard (a TAB would break a TSV column, a newline would inject a row → **400** before any write); `threshold`/`score` are whitelisted to numeric **0–100**. Appends an 8-column row to the parent `data/assessments.tsv`. Surfaced as the "Skills log" view at `#/assessments`.
+
+---
+
+## Error envelope
+
+All error responses are JSON:
+
+```json
+{ "error": "<short message>", "details": [ "..." ] }
+```
+
+Status codes:
+
+| Code | When |
+|---|---|
+| 200 | Success (even when behavior was a no-op or dedup). |
+| 400 | Validation failed. |
+| 404 | Resource missing. |
+| 413 | Body too large. |
+| 500 | Unexpected exception. |
+| 502 | Upstream LLM call failed (Anthropic / Gemini). |
+
+Conventions enforced by `web-ui-route-reviewer`. New routes keep this envelope.

@@ -1,0 +1,38 @@
+{
+  "name": "rebound-ops",
+  "version": "0.2.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "description": "Evidence-led career recovery: Angular app, localhost API and typed contracts",
+  "scripts": {
+    "dev": "npm run build:contracts && concurrently --names api,web --prefix-colors cyan,magenta --kill-others-on-fail \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:web": "npm run start -w @reboundops/web",
+    "test:e2e": "playwright test",
+    "dev:api": "npm run dev -w @reboundops/api",
+    "build:contracts": "npm run build -w @reboundops/contracts",
+    "build:api": "npm run build -w @reboundops/api",
+    "build:web": "npm run build -w @reboundops/web",
+    "build": "npm run build:contracts && npm run build:api && npm run build:web",
+    "test": "npm run build:contracts && npm run build:api && node --test tests/*.test.mjs packages/contracts/tests/*.test.mjs apps/api/tests/*.test.mjs evals/ai-review/*.test.mjs scripts/*.test.mjs && npm run test:web",
+    "test:web": "npm run test -w @reboundops/web",
+    "test:pilot": "node --test tests/*.test.mjs",
+    "audit:release": "node scripts/release-audit.mjs",
+    "review:deps": "node scripts/dependency-review.mjs",
+    "package:preview": "node scripts/package-preview.mjs",
+    "smoke:preview": "node scripts/smoke-preview.mjs",
+    "eval:ai": "node evals/ai-review/run.mjs",
+    "eval:ai:live": "node evals/ai-review/run.mjs --mode live"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^24.0.0",
+    "concurrently": "^10.0.6",
+    "typescript": "~6.0.0"
+  },
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || >=26"
+  }
+}

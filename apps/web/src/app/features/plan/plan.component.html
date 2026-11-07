@@ -1,0 +1,29 @@
+@if (session().plan; as plan) {
+  <section class="panel" aria-labelledby="plan-heading">
+    <div class="panel-top">
+      <div><p class="eyebrow">04 / Next seven days</p><h2 id="plan-heading">Make progress manageable</h2></div>
+      <span class="time-pill">{{ plan.plannedMinutes }} / {{ plan.budgetMinutes }} min budgeted</span>
+    </div>
+    <p class="muted">Complete one useful action rather than chasing an artificial employability score.</p>
+    <ol class="plan-list">
+      @for (action of plan.actions; track action.id) {
+        <li>
+          <label class="task">
+            <input type="checkbox" [checked]="action.completed" [disabled]="store.busy()" (change)="toggleAction(action.id, !action.completed)">
+            <span><small>Day {{ action.day }} · {{ action.minutes }} minutes</small><strong>{{ action.title }}</strong></span>
+          </label>
+        </li>
+      }
+    </ol>
+    <p class="progress" aria-live="polite">{{ store.completedCount() }} of {{ plan.actions.length }} actions completed</p>
+    <label>Check-in notes and real-world outcomes <textarea [formControl]="notes" [attr.aria-invalid]="!!error()" [attr.aria-describedby]="error() ? 'plan-notes-error' : null" rows="3" maxlength="2000" placeholder="What happened? What would you change?"></textarea></label>
+    @if (error(); as message) { <span class="field-error" id="plan-notes-error">{{ message }}</span> }
+    <div class="actions">
+      <button class="primary" type="button" [disabled]="store.busy()" (click)="saveReview()">Save check-in</button>
+      <button class="secondary" type="button" [disabled]="store.busy()" (click)="download()">Export Markdown</button>
+    </div>
+    @if (session().reviewNotes) {
+      <p class="saved-review"><strong>Last saved check-in:</strong> {{ session().reviewNotes }}</p>
+    }
+  </section>
+}

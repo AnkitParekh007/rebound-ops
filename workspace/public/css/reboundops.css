@@ -1,0 +1,227 @@
+/* ReboundOps Next — brand theme + recovery views.
+ *
+ * Theme is token-only: both ReboundOps token families (the cv3 set in
+ * tokens-v3.css and the legacy app.css neutrals most components still read)
+ * plus the "Ask the docs" launcher tokens are re-pointed at the ReboundOps
+ * logo palette. No ReboundOps component, layout or dashboard rule changes
+ * except two brand accents (sidebar rail, active nav icon) below.
+ * Loaded after tokens-v3.css (accent wins), before motion.css (stays last).
+ *
+ * Palette sampled from the supplied logo (public/brand/, originals in
+ * docs/reboundops-next/brand/): orange #E8541F (range #D04018–#F87830),
+ * deep brown #220B08, cream #FAF6F0.
+ *
+ * The pure logo orange is 3.7:1 on white, so it is used for the logo, icons
+ * and decoration; text-bearing fills use a deeper/lighter step.
+ * Neutral surfaces (plain white / near-neutral charcoal, no tinted page
+ * backgrounds); the logo orange is reserved for actions and highlights.
+ * Contrast (WCAG 2.x, computed):
+ *   light  ink #1C1412 on #FFFFFF ........... 18.1:1   muted #6B635E ..... 5.9:1
+ *          muted on raised #F5F4F3 ......... 5.4:1    input line ....... 3.3:1
+ *          #fff on accent #C2410C .......... 5.2:1    accent on raised . 4.7:1
+ *          orange icon on ink nav pill ..... 5.9:1    #9A3412 on soft .. 6.4:1
+ *   dark   ink #F4F0ED on #121010 .......... 16.7:1   muted #A8A09B .... 6.9:1
+ *          #220B08 on accent #F26A2E ....... 6.1:1    accent text ...... 6.2:1
+ *          input line #6E6560 .............. 3.1:1    #FDBA8C on soft .. 9.4:1
+ */
+:root {
+  /* brand (logo) */
+  --rb-orange: #E8541F;
+  --rb-terracotta: var(--rb-orange);
+  --rb-cream: #FAF6F0;
+  --rb-brown: #220B08;
+  --rb-glow: rgba(232, 84, 31, .14);
+  /* accent — the logo orange family, reserved for actions and highlights */
+  --cv3-accent: #C2410C;
+  --cv3-accent-hover: #A3360A;
+  --cv3-accent-ink: #ffffff;
+  --cv3-accent-soft: #FDECE3;
+  --cv3-accent-soft-ink: #9A3412;
+  /* neutrals — plain white page, neutral greys; no tinted page backgrounds */
+  --cv3-surface-0: #FFFFFF;
+  --cv3-surface-1: #FFFFFF;
+  --cv3-surface-2: #F5F4F3;
+  --cv3-surface-3: #ECEAE8;
+  --cv3-ink: #1C1412;
+  --cv3-ink-2: #57504B;
+  --cv3-ink-3: #6B635E;
+  --cv3-line: #E7E4E2;
+  --cv3-line-strong: #D6D2CF;
+  --cv3-input-line: #948B85;
+  --cv3-neutral: #857C77;
+  --cv3-neutral-soft: #F2F1F0;
+  --cv3-neutral-ink: #57504B;
+  /* info callouts: neutral surface + logo-orange edge (was blue, hue 245) */
+  --cv3-info: #E8541F;
+  --cv3-info-soft: #F5F4F3;
+  --cv3-info-ink: #57504B;
+  --cv3-shadow-1: 0 1px 0 rgba(28, 20, 18, .04), 0 1px 2px rgba(28, 20, 18, .06);
+  --cv3-shadow-2: 0 1px 0 rgba(28, 20, 18, .04), 0 12px 24px rgba(28, 20, 18, .08);
+  /* legacy app.css neutrals (most components still read these) */
+  --hof: #1C1412;
+  --foggy: #6B635E;
+  --foggy-strong: #57504B;
+  --beach: #FFFFFF;
+  --slate: #E7E4E2;
+  --elev: #F5F4F3;
+  --paper: #FFFFFF;
+  --arches: #E8541F;
+  --shadow-sm: 0 1px 2px rgba(28, 20, 18, .07);
+  --shadow-md: 0 6px 16px rgba(28, 20, 18, .10);
+  --shadow-lg: 0 8px 28px rgba(28, 20, 18, .16);
+  /* "Ask the docs" launcher — logo orange gradient */
+  --fab-grad: linear-gradient(135deg, #F87830 0%, #E8541F 45%, #B8380F 100%);
+  --fab-glow: 0 6px 22px rgba(232, 84, 31, .35);
+  --fab-accent: #C2410C;
+  --fab-panel-bg: var(--paper);
+  --fab-panel-head: transparent;
+  --fab-bubble-bot: #F5F4F3;
+  --fab-border: rgba(28, 20, 18, .12);
+  /* recovery views — no tinted fills */
+  --rb-card: var(--paper);
+  --rb-muted: #57504B;
+  --rb-border: #E7E4E2;
+  --rb-soft: transparent;
+}
+/* Same selectors as the upstream sheets so the later sheet (this one) wins. */
+[data-theme="dark"],
+:root[data-theme="dark"] {
+  --rb-orange: #F26A2E;
+  --rb-glow: rgba(242, 106, 46, .16);
+  --cv3-accent: #F26A2E;
+  --cv3-accent-hover: #F8803E;
+  --cv3-accent-ink: #220B08;
+  --cv3-accent-soft: #3B1A10;
+  --cv3-accent-soft-ink: #FDBA8C;
+  /* neutrals — near-neutral charcoal (a trace of the logo's brown), no tinted fills */
+  --cv3-surface-0: #121010;
+  --cv3-surface-1: #1A1717;
+  --cv3-surface-2: #242020;
+  --cv3-surface-3: #2E2A29;
+  --cv3-ink: #F4F0ED;
+  --cv3-ink-2: #CEC6C1;
+  --cv3-ink-3: #A8A09B;
+  --cv3-line: #2E2927;
+  --cv3-line-strong: #3D3734;
+  --cv3-input-line: #6E6560;
+  --cv3-neutral: #A8A09B;
+  --cv3-neutral-soft: #262222;
+  --cv3-neutral-ink: #CEC6C1;
+  --cv3-info: #F26A2E;
+  --cv3-info-soft: #242020;
+  --cv3-info-ink: #CEC6C1;
+  --cv3-shadow-1: 0 0 0 1px rgba(244, 240, 237, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
+  --cv3-shadow-2: 0 0 0 1px rgba(244, 240, 237, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
+  --hof: #F4F0ED;
+  --foggy: #A8A09B;
+  --foggy-strong: #CEC6C1;
+  --beach: #121010;
+  --slate: #2E2927;
+  --elev: #242020;
+  --paper: #121010;
+  --arches: #F87830;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .45);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, .55);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, .7);
+  --fab-accent: #FDBA8C;
+  --fab-panel-bg: #1A1717;
+  --fab-panel-head: transparent;
+  --fab-bubble-bot: #242020;
+  --fab-border: rgba(244, 240, 237, .10);
+  --rb-card: transparent;
+  --rb-muted: #CEC6C1;
+  --rb-border: #2E2927;
+  --rb-soft: transparent;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --rb-orange: #F26A2E;
+    --rb-glow: rgba(242, 106, 46, .16);
+    --cv3-accent: #F26A2E;
+    --cv3-accent-hover: #F8803E;
+    --cv3-accent-ink: #220B08;
+    --cv3-accent-soft: #3B1A10;
+    --cv3-accent-soft-ink: #FDBA8C;
+    /* neutrals — near-neutral charcoal (a trace of the logo's brown), no tinted fills */
+    --cv3-surface-0: #121010;
+    --cv3-surface-1: #1A1717;
+    --cv3-surface-2: #242020;
+    --cv3-surface-3: #2E2A29;
+    --cv3-ink: #F4F0ED;
+    --cv3-ink-2: #CEC6C1;
+    --cv3-ink-3: #A8A09B;
+    --cv3-line: #2E2927;
+    --cv3-line-strong: #3D3734;
+    --cv3-input-line: #6E6560;
+    --cv3-neutral: #A8A09B;
+    --cv3-neutral-soft: #262222;
+    --cv3-neutral-ink: #CEC6C1;
+    --cv3-info: #F26A2E;
+    --cv3-info-soft: #242020;
+    --cv3-info-ink: #CEC6C1;
+    --cv3-shadow-1: 0 0 0 1px rgba(244, 240, 237, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
+    --cv3-shadow-2: 0 0 0 1px rgba(244, 240, 237, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
+    --hof: #F4F0ED;
+    --foggy: #A8A09B;
+    --foggy-strong: #CEC6C1;
+    --beach: #121010;
+    --slate: #2E2927;
+    --elev: #242020;
+    --paper: #121010;
+    --arches: #F87830;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .45);
+    --shadow-md: 0 6px 16px rgba(0, 0, 0, .55);
+    --shadow-lg: 0 8px 28px rgba(0, 0, 0, .7);
+    --fab-accent: #FDBA8C;
+    --fab-panel-bg: #1A1717;
+    --fab-panel-head: transparent;
+    --fab-bubble-bot: #242020;
+    --fab-border: rgba(244, 240, 237, .10);
+    --rb-card: transparent;
+    --rb-muted: #CEC6C1;
+    --rb-border: #2E2927;
+    --rb-soft: transparent;
+  }
+}
+
+/* ── brand accents on the ReboundOps shell ── the sidebar rail takes the
+   logo's own background (cream / deep brown); the active nav pill is logo
+   brown (light) and carries an orange icon. */
+.sidebar { background: var(--paper); }
+/* No decorative page backgrounds: the dashboard hero card and the top
+   "no AI key" notice lose their tinted fills and keep a hairline instead. */
+.dash-hero { background: transparent; }
+.v2-dash-planes { display: none; }  /* decorative blurred tint planes behind the hero */
+#onboarding-banner.onboarding-warn { background: transparent; color: var(--hof); border-bottom: 1px solid var(--slate); }
+#onboarding-banner.onboarding-warn .btn-dark { background: var(--cv3-accent); color: var(--cv3-accent-ink); }
+#onboarding-banner.onboarding-warn .btn-dark:hover { background: var(--cv3-accent-hover); }
+.nav-item.active .nav-ico { color: var(--rb-orange); }
+[data-theme="dark"] .nav-item.active .nav-ico { color: #C9441A; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .nav-item.active .nav-ico { color: #C9441A; }
+}
+/* Scan terminal: a neutral charcoal console (meta #B49C8E on #1A1717 = 6.9:1). */
+.scan-terminal { background: #1A1717; border-color: rgba(244, 240, 237, .10); }
+.scan-terminal .console .meta { color: #B49C8E; }
+
+/* ── logo ── the R mark is a full-colour transparent PNG: show it whole,
+   not cover-cropped into the upstream accent circle. */
+.logo .logo-mark { border-radius: 0; background: transparent; object-fit: contain; }
+.logo-text .rb-ops { color: var(--rb-orange); }
+/* ── context strip (shown on ReboundOps views after a plan exists) ── */
+.rb-strip {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+  margin: 0 0 4px; padding: 8px 14px; border-radius: 10px;
+  background: var(--rb-soft); border: 1px solid var(--rb-border);
+  color: var(--hof); font-size: 13px; line-height: 1.4;
+}
+.rb-strip[hidden] { display: none; }
+.rb-strip__brand { font-weight: 700; color: var(--cv3-accent-soft-ink); }
+.rb-strip__item b { font-weight: 600; }
+.rb-strip a { margin-inline-start: auto; color: var(--cv3-accent-soft-ink); font-weight: 600; }
+
+/* The recovery screens are styled by journey.css (docs/design-system.md). */
+
+/* Map attribution link: the map library hard-codes blue (#0078A8) and loads after
+   this sheet, so match with higher specificity instead of relying on order. */
+html .leaflet-container .leaflet-control-attribution a { color: var(--cv3-accent); }

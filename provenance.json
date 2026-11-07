@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "importCommit": "62d207957a5000e58ba2dc0a3fd18ca339e98c09",
+  "components": [
+    {
+      "path": "workspace",
+      "upstream": "https://github.com/AnkitParekh007/rebound-ops",
+      "authors": ["Ankit Parekh ", "rebound-ops contributors"],
+      "license": "MIT",
+      "importedSourceRevision": null,
+      "revisionNote": "The exact upstream import revision was not recorded. The comparison revision is not asserted to be the import revision.",
+      "comparisonRevision": "ecfdd654cb62e2747f2bff7dc6dcc0087a9a6340",
+      "localChanges": ["recovery journey", "local API bridge", "search workbench", "contextual tool guidance", "branding", "in-app provenance", "integration tests"],
+      "notices": ["workspace/LICENSE", "workspace/THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md"]
+    },
+    {
+      "path": "engine",
+      "upstream": "https://github.com/rebound-ops-hq/rebound-ops",
+      "authors": ["Ankit Parekh", "rebound-ops contributors"],
+      "license": "MIT",
+      "importedSourceRevision": null,
+      "revisionNote": "The exact upstream import revision was not recorded. The comparison revision is not asserted to be the import revision.",
+      "comparisonRevision": "2440c47758b5c9cb517b8862d2dd20ff938092e6",
+      "localChanges": ["monorepo integration", "adapted project configuration", "corrected provenance and documentation"],
+      "notices": ["engine/LICENSE", "THIRD_PARTY_NOTICES.md"]
+    }
+  ]
+}

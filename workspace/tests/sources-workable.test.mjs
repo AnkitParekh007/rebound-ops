@@ -1,0 +1,480 @@
+/**
+ * Workable source tests — v1.25.0 parity (parent commit 5ab8425, "use the
+ * public widget API so large accounts are scanned").
+ *
+ * The source now hits the public, no-auth account *widget* API
+ *   GET https://apply.workable.com/api/v1/widget/accounts/<slug>?details=true
+ * which returns the account's FULL posting list in one request, instead of the
+ * old offset/limit-capped v3 endpoint that silently missed jobs on large
+ * accounts. The adapter still hands us the v3 URL, so the source derives the
+ * <slug> and rebuilds the host-pinned widget URL.
+ *
+ * HARDENING parity (parent rebound-ops commit feabcd4, "harden workable with
+ * retry, headers, and serialization"): the widget request now carries
+ * browser-like headers (shared BROWSER_LIKE_USER_AGENT + accept-language +
+ * origin + a per-account referer), retries transient failures (429 / 5xx /
+ * network) via the shared `fetchJsonWithRetry`, and is serialized process-wide
+ * against apply.workable.com. A permanent 4xx is not retried; the dead-board
+ * throw still fires once the retry budget is spent.
+ *
+ * All tests inject a fake `fetchImpl` — CI-isolated, no network. Failure-path
+ * tests pass `retryDelayMs: 0` so retries don't wait real time.
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  fetchWorkable,
+  parseWorkableWidget,
+  resolveWorkableSlug,
+  meta,
+} from '../server/lib/sources/workable.mjs';
+import { buildLocationFilter } from '../server/lib/location-filter.mjs';
+
+// The v3 endpoint the adapter builds (locked by adapter-registry.test.mjs).
+const ADAPTER_V3_URL = 'https://apply.workable.com/api/v3/accounts/optimile/jobs?details=true';
+const EXPECTED_WIDGET_URL = 'https://apply.workable.com/api/v1/widget/accounts/optimile?details=true';
+
+const okJson = (data, capture) => async (url, options) => {
+  if (capture) { capture.url = url; capture.options = options; }
+  return { ok: true, json: async () => data };
+};
+
+const WIDGET_PAYLOAD = {
+  name: 'Optimile',
+  jobs: [
+    {
+      title: 'Senior AI PM',
+      shortcode: 'ABC123',
+      shortlink: 'https://apply.workable.com/j/ABC123',
+      url: 'https://apply.workable.com/j/ABC123',
+      city: 'Ghent',
+      country: 'Belgium',
+      published_on: '2026-04-01',
+      description: '<p>Own the roadmap. Visa sponsorship available.</p>',
+    },
+    {
+      title: 'Tech Lead',
+      shortcode: 'DEF456',
+      shortlink: 'https://apply.workable.com/j/DEF456',
+      telecommuting: true,
+      published_on: '2026-03-25',
+    },
+    // dropped: off-domain permalink (SSRF hygiene)
+    { title: 'Evil Role', shortlink: 'https://evil.example/j/X', url: 'https://evil.example/j/X' },
+    // dropped: no title
+    { title: '   ', shortlink: 'https://apply.workable.com/j/NOPE' },
+    // dropped: duplicate of the first job's URL
+    { title: 'Senior AI PM (dupe)', shortlink: 'https://apply.workable.com/j/ABC123' },
+  ],
+};
+
+// ── meta is untouched ────────────────────────────────────────────────
+test('workable: meta value/label unchanged', () => {
+  assert.equal(meta.value, 'workable');
+  assert.equal(meta.label, 'Workable');
+  assert.equal(meta.region, 'en');
+});
+
+// ── endpoint switch: v3 in → widget out, host-pinned + redirect:error ──
+test('workable: fetch derives the slug and calls the widget API (not v3)', async () => {
+  const cap = {};
+  await fetchWorkable(ADAPTER_V3_URL, { fetchImpl: okJson(WIDGET_PAYLOAD, cap) });
+  assert.equal(cap.url, EXPECTED_WIDGET_URL, 'should rewrite the v3 URL to the widget endpoint');
+  const u = new URL(cap.url);
+  assert.equal(u.protocol, 'https:', 'widget fetch must be HTTPS');
+  assert.equal(u.hostname, 'apply.workable.com', 'widget host must be pinned');
+  assert.equal(cap.options?.redirect, 'error', 'must refuse server-side redirects (SSRF guard)');
+});
+
+// ── parsing / normalization ───────────────────────────────────────────
+test('workable: keeps only valid, on-domain, titled, deduped jobs', async () => {
+  const jobs = await fetchWorkable(ADAPTER_V3_URL, { fetchImpl: okJson(WIDGET_PAYLOAD) });
+  assert.equal(jobs.length, 2, `expected 2 jobs, got ${jobs.length}: ${JSON.stringify(jobs.map((j) => j.title))}`);
+  assert.deepEqual(jobs.map((j) => j.title), ['Senior AI PM', 'Tech Lead']);
+});
+
+test('workable: formats location (city, country) and Remote for telecommuting', async () => {
+  const jobs = await fetchWorkable(ADAPTER_V3_URL, { fetchImpl: okJson(WIDGET_PAYLOAD) });
+  assert.equal(jobs[0].location, 'Ghent, Belgium');
+  assert.equal(jobs[0].isRemote, false);
+  assert.equal(jobs[0].workplaceType, 'Onsite');
+  assert.equal(jobs[1].location, 'Remote');
+  assert.equal(jobs[1].isRemote, true);
+  assert.equal(jobs[1].workplaceType, 'Remote');
+});
+
+test('workable: maps shortcode → id, permalink → url, published_on → date', async () => {
+  const jobs = await fetchWorkable(ADAPTER_V3_URL, { fetchImpl: okJson(WIDGET_PAYLOAD) });
+  assert.equal(jobs[0].id, 'wk-ABC123');
+  assert.equal(jobs[0].url, 'https://apply.workable.com/j/ABC123');
+  assert.equal(jobs[0].date, '2026-04-01');
+  assert.equal(jobs[0].source, 'workable');
+  assert.equal(jobs[0].company, ''); // backfilled downstream from the tracked entry
+});
+
+test('workable: detects relocation intent from the description', async () => {
+  const jobs = await fetchWorkable(ADAPTER_V3_URL, { fetchImpl: okJson(WIDGET_PAYLOAD) });
+  assert.equal(jobs[0].relocates, true);  // "Visa sponsorship available"
+  assert.equal(jobs[1].relocates, false);
+});
+
+test('workable: a state alone is the place; with a city, the state stays off (upstream #6140)', () => {
+  const jobs = parseWorkableWidget({
+    jobs: [{
+      title: 'Eng', shortcode: 'S1', shortlink: 'https://apply.workable.com/j/S1',
+      city: 'Austin', state: 'TX', country: 'USA',
+    }],
+  });
+  // Upstream #6140: when a city is set the state stays off the string —
+  // adding it would rewrite history keys that already stored "city, country".
+  assert.equal(jobs[0].location, 'Austin, USA');
+  const stateOnly = parseWorkableWidget({
+    jobs: [{
+      title: 'Eng', shortcode: 'S2', shortlink: 'https://apply.workable.com/j/S2',
+      city: '', state: 'Queensland', country: 'Australia',
+    }],
+  });
+  assert.equal(stateOnly[0].location, 'Queensland, Australia',
+    'a state with no city is the place, not the country alone');
+});
+
+// ── multi-country fan-out (parent parity b07171d1, #4806) ──────────────
+// The widget API returns a multi-country posting as ONE ENTRY PER LOCATION,
+// all sharing the same shortlink and differing only in city/state/country.
+// Real shape, captured live upstream 2026-08-21 from
+//   apply.workable.com/api/v1/widget/accounts/digitalgenius?details=true
+// ("Implementation Engineer" 801183DB79). First-wins-on-URL dedup kept only
+// the first location, so an EU allow-list dropped a posting that had three
+// viable EU alternatives. The payload interleaves two fanned-out postings —
+// the fold must key on the URL, not on adjacency.
+const FAN_OUT_PAYLOAD = {
+  name: 'DigitalGenius',
+  jobs: [
+    {
+      title: 'Implementation Engineer', shortcode: '801183DB79',
+      shortlink: 'https://apply.workable.com/j/801183DB79',
+      city: 'London', country: 'United Kingdom', published_on: '2026-06-30',
+    },
+    {
+      title: 'Solutions Engineer', shortcode: 'E8064EA4C7',
+      shortlink: 'https://apply.workable.com/j/E8064EA4C7',
+      country: 'Romania', published_on: '2026-06-12',
+    },
+    {
+      title: 'Implementation Engineer', shortcode: '801183DB79',
+      shortlink: 'https://apply.workable.com/j/801183DB79',
+      country: 'Romania', published_on: '2026-06-30',
+    },
+    {
+      title: 'Implementation Engineer', shortcode: '801183DB79',
+      shortlink: 'https://apply.workable.com/j/801183DB79',
+      country: 'Poland', published_on: '2026-06-30',
+    },
+    {
+      title: 'Solutions Engineer', shortcode: 'E8064EA4C7',
+      shortlink: 'https://apply.workable.com/j/E8064EA4C7',
+      country: 'Portugal', published_on: '2026-06-12',
+    },
+    {
+      title: 'Implementation Engineer', shortcode: '801183DB79',
+      shortlink: 'https://apply.workable.com/j/801183DB79',
+      country: 'Croatia', published_on: '2026-06-30',
+    },
+  ],
+};
+
+test('workable: a multi-country fan-out keeps all of its locations (interleaved postings stay separate)', () => {
+  const jobs = parseWorkableWidget(FAN_OUT_PAYLOAD);
+  assert.equal(
+    jobs.length,
+    2,
+    `each fan-out must collapse into one job, got ${jobs.length}: ${JSON.stringify(jobs.map((j) => `${j.title}@${j.location}`))}`,
+  );
+  const impl = jobs.find((j) => j.title === 'Implementation Engineer');
+  assert.equal(impl?.location, 'London, United Kingdom · Romania · Poland · Croatia',
+    'every fanned-out location must survive, joined in payload order');
+  // The interleaved second posting must not absorb the first one's locations.
+  const solutions = jobs.find((j) => j.title === 'Solutions Engineer');
+  assert.equal(solutions?.location, 'Romania · Portugal',
+    'interleaved fan-outs are keyed on URL, not adjacency');
+});
+
+test('workable: fanned-out siblings take every non-location field from the first entry', () => {
+  const jobs = parseWorkableWidget(FAN_OUT_PAYLOAD);
+  const impl = jobs.find((j) => j.title === 'Implementation Engineer');
+  assert.equal(impl?.id, 'wk-801183DB79');
+  assert.equal(impl?.url, 'https://apply.workable.com/j/801183DB79');
+  assert.equal(impl?.date, '2026-06-30');
+});
+
+test('workable: repeated siblings collapse and location-less siblings add nothing', () => {
+  const jobs = parseWorkableWidget({
+    jobs: [
+      { title: 'Ops Lead', shortlink: 'https://apply.workable.com/j/N1', country: 'Spain' },
+      { title: 'Ops Lead', shortlink: 'https://apply.workable.com/j/N1', country: 'Spain' },
+      { title: 'Ops Lead', shortlink: 'https://apply.workable.com/j/N1', city: '', country: '' },
+      { title: 'Ops Lead', shortlink: 'https://apply.workable.com/j/N1', country: 'Italy' },
+    ],
+  });
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].location, 'Spain · Italy', 'the cell never says "Spain · Spain"');
+});
+
+test('workable: a location-less remote fan-out keeps its "Remote" cell (no fallback regression)', () => {
+  const jobs = parseWorkableWidget({
+    jobs: [
+      { title: 'Remote Dev', shortlink: 'https://apply.workable.com/j/R1', telecommuting: true },
+      { title: 'Remote Dev', shortlink: 'https://apply.workable.com/j/R1', telecommuting: true },
+    ],
+  });
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].location, 'Remote');
+  assert.equal(jobs[0].isRemote, true);
+});
+
+// The point of the fix: ask the real consumer, not a reimplementation of it.
+// buildLocationFilter (location-filter.mjs) is exactly what en-scanner.mjs
+// runs over every emitted location cell. v1.248.1 (CAR-60) added the parent's
+// `always_allow` tier, so the consumer check now runs in the parent's own
+// form: block the sibling countries, always_allow the home region — the
+// merged cell survives because the home region is an option. The EU
+// allow-list form from the interim port is kept as a second consumer verdict.
+test('workable: the merged location survives a location_filter that rejects the pre-fix string', () => {
+  const euFilter = buildLocationFilter({ allow: ['Romania', 'Poland', 'Croatia'] });
+  const preFix = 'London, United Kingdom';
+  const merged = parseWorkableWidget(FAN_OUT_PAYLOAD)
+    .find((j) => j.title === 'Implementation Engineer')?.location;
+  assert.equal(euFilter(preFix), false, 'pre-fix cell must be rejected by the EU allow-list');
+  assert.equal(euFilter(merged), true, 'merged cell must survive the EU allow-list');
+});
+
+test('workable: parent-form consumer check — always_allow UK beats blocked sibling countries (v1.248.1)', () => {
+  const parentForm = buildLocationFilter({
+    block: ['romania', 'poland', 'croatia'],
+    always_allow: ['united kingdom'],
+  });
+  const merged = parseWorkableWidget(FAN_OUT_PAYLOAD)
+    .find((j) => j.title === 'Implementation Engineer')?.location;
+  assert.equal(parentForm(merged), true,
+    'always_allow [united kingdom] rescues the merged cell even though romania/poland/croatia are blocked');
+  assert.equal(parentForm('Warsaw, Poland'), false, 'a pure blocked location still rejects');
+  assert.equal(parentForm('London, United Kingdom'), true, 'the plain home-region cell passes');
+});
+
+// ── telecommuting + a state-only place (upstream #6140) ────────────────
+// telecommuting is a per-job flag, and it can ride on ANY fan-out sibling —
+// the folded posting must say Remote once even when the first entry carried a
+// city. A state with no city (Queensland, Oregon) is the place when the city
+// is blank; when the city IS set, the state stays off the string, matching the
+// markdown feed's "city, country" shape and the keys already stored from it.
+// Hybrid is not this flag: telecommuting false stays place-only.
+test('workable: telecommuting and a state-only place survive the folded location', () => {
+  const jobs = parseWorkableWidget({
+    jobs: [
+      { title: 'Field Coordinator', shortlink: 'https://apply.workable.com/j/B1', city: 'Bend', state: 'Oregon', country: 'United States', telecommuting: true },
+      { title: 'Regional Lead', shortlink: 'https://apply.workable.com/j/B2', city: '', state: 'Oregon', country: 'United States', telecommuting: true },
+      { title: 'Desk Analyst', shortlink: 'https://apply.workable.com/j/B3', city: 'Vancouver', state: 'British Columbia', country: 'Canada', telecommuting: false },
+      { title: 'State Only', shortlink: 'https://apply.workable.com/j/B4', city: '', state: 'Queensland', country: 'Australia', telecommuting: true },
+      { title: 'Already Remote', shortlink: 'https://apply.workable.com/j/B5', city: 'Oslo', country: 'Norway', telecommuting: true },
+      { title: 'Already Remote', shortlink: 'https://apply.workable.com/j/B5', telecommuting: true },
+      { title: 'Mixed Desk', shortlink: 'https://apply.workable.com/j/B6', city: 'Ghent', country: 'Belgium', telecommuting: false },
+      { title: 'Mixed Desk', shortlink: 'https://apply.workable.com/j/B6', city: 'Oslo', country: 'Norway', telecommuting: true },
+    ],
+  });
+  const locs = Object.fromEntries(jobs.map((j) => [j.title, j.location]));
+  assert.equal(jobs.length, 6, 'the two fan-outs collapse (B5 and B6)');
+  assert.equal(locs['Field Coordinator'], 'Bend, United States · Remote',
+    'a city is the place; the state stays off; Remote is appended once');
+  assert.equal(locs['Regional Lead'], 'Oregon, United States · Remote',
+    'a state with no city is the place, not the country alone');
+  assert.equal(locs['Desk Analyst'], 'Vancouver, Canada',
+    'telecommuting false is hybrid/onsite — no Remote marker');
+  assert.equal(locs['State Only'], 'Queensland, Australia · Remote');
+  assert.equal(locs['Already Remote'], 'Oslo, Norway · Remote',
+    'an empty-place sibling must not double the marker');
+  assert.equal(locs['Mixed Desk'], 'Ghent, Belgium · Oslo, Norway · Remote',
+    'a sibling carrying the flag marks the whole folded posting');
+  const mixed = jobs.find((j) => j.title === 'Mixed Desk');
+  assert.equal(mixed.isRemote, true, 'a sibling-carried flag drives isRemote too');
+  assert.equal(mixed.workplaceType, 'Remote');
+});
+
+// The point of the fix: ask the real consumer. A Remote allow-list is exactly
+// what dropped these before the marker existed.
+test('workable: the telecommuting marker survives a Remote allow-list', () => {
+  const allowRemote = buildLocationFilter({ allow: ['remote'] });
+  assert.equal(allowRemote('Bend, United States'), false, 'precondition: the city-only cell was dropped');
+  const merged = parseWorkableWidget({
+    jobs: [
+      { title: 'Field Coordinator', shortlink: 'https://apply.workable.com/j/B1', city: 'Bend', country: 'United States', telecommuting: true },
+    ],
+  })[0];
+  assert.equal(allowRemote(merged.location), true, 'the marked cell passes');
+});
+
+// ── large account: the whole point of the widget switch ────────────────
+test('workable: a large account is scanned fully (no cap, single request)', async () => {
+  const big = { name: 'Huge', jobs: [] };
+  for (let i = 0; i < 259; i++) {
+    big.jobs.push({
+      title: `Role ${i}`,
+      shortcode: `SC${i}`,
+      shortlink: `https://apply.workable.com/j/SC${i}`,
+      city: 'Remote',
+    });
+  }
+  let calls = 0;
+  const jobs = await fetchWorkable(ADAPTER_V3_URL, {
+    fetchImpl: async () => { calls++; return { ok: true, json: async () => big }; },
+  });
+  assert.equal(jobs.length, 259, 'every posting must survive — no offset/limit cap');
+  assert.equal(calls, 1, 'widget API returns the full list in a single request (no pagination loop)');
+});
+
+// ── parseWorkableWidget robustness ─────────────────────────────────────
+// v1.242.0 Phase 2: the documented widget envelope is REQUIRED — a malformed
+// 200 throws instead of silently reading as an empty board.
+test('workable: parseWorkableWidget throws a labelled error on a malformed payload', () => {
+  for (const bad of [null, undefined, {}, { jobs: 'nope' }, { jobs: null }, []]) {
+    assert.throws(
+      () => parseWorkableWidget(bad),
+      (err) => {
+        assert.match(err.message, /Workable/);
+        return true;
+      },
+      `expected a throw for ${JSON.stringify(bad)}`,
+    );
+  }
+});
+
+test('workable: parseWorkableWidget still parses a valid payload', () => {
+  const jobs = parseWorkableWidget({
+    name: 'Optimile',
+    jobs: [{ title: 'Dev', shortcode: 'S1', shortlink: 'https://apply.workable.com/j/S1' }],
+  });
+  assert.equal(jobs.length, 1);
+});
+
+test('workable: fetchWorkable surfaces a malformed 200 as a throw (dead-board contract)', async () => {
+  await assert.rejects(
+    () => fetchWorkable(ADAPTER_V3_URL, { fetchImpl: okJson({ name: 'X' }), retryDelayMs: 0 }),
+    /Workable/,
+  );
+});
+
+test('workable: normalizes a published_on datetime to YYYY-MM-DD UTC', () => {
+  const jobs = parseWorkableWidget({
+    name: 'X',
+    jobs: [{
+      title: 'T',
+      shortcode: 'S9',
+      shortlink: 'https://apply.workable.com/j/S9',
+      published_on: '2026-04-01T23:30:00Z',
+    }],
+  });
+  assert.equal(jobs[0].date, '2026-04-01');
+});
+
+// ── slug resolution across URL shapes ──────────────────────────────────
+test('workable: resolveWorkableSlug handles every workable.com URL shape', () => {
+  assert.equal(resolveWorkableSlug(ADAPTER_V3_URL), 'optimile');
+  assert.equal(resolveWorkableSlug(EXPECTED_WIDGET_URL), 'optimile');
+  assert.equal(resolveWorkableSlug('https://apply.workable.com/api/v3/accounts/foo-corp/jobs?details=true'), 'foo-corp');
+  assert.equal(resolveWorkableSlug('https://foocorp.workable.com/careers'), 'foocorp');
+  assert.equal(resolveWorkableSlug('https://apply.workable.com/optimile'), 'optimile');
+});
+
+test('workable: resolveWorkableSlug rejects off-domain / malformed / traversal', () => {
+  assert.equal(resolveWorkableSlug('https://evil.example/api/v3/accounts/foo/jobs'), null);
+  assert.equal(resolveWorkableSlug('not a url'), null);
+  assert.equal(resolveWorkableSlug(''), null);
+  assert.equal(resolveWorkableSlug('https://apply.workable.com/api/v3/accounts/..%2f..%2fetc/jobs'), null);
+});
+
+// ── dead-board contract: a total fetch failure THROWS, not [] ──────────
+test('workable: a transient 5xx is retried, then throws with the status attached (dead board)', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    () => fetchWorkable(ADAPTER_V3_URL, {
+      fetchImpl: async () => { attempts++; return { ok: false, status: 503, json: async () => ({}) }; },
+      retryDelayMs: 0,
+    }),
+    (err) => {
+      assert.match(err.message, /HTTP 503/);
+      assert.equal(err.status, 503);
+      return true;
+    },
+  );
+  assert.ok(attempts >= 2, `a transient 5xx must be retried before the dead-board throw (attempts=${attempts})`);
+});
+
+test('workable: a permanent 404 throws immediately WITHOUT retrying (dead board)', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    () => fetchWorkable(ADAPTER_V3_URL, {
+      fetchImpl: async () => { attempts++; return { ok: false, status: 404, json: async () => ({}) }; },
+      retryDelayMs: 0,
+    }),
+    (err) => {
+      assert.match(err.message, /HTTP 404/);
+      assert.equal(err.status, 404);
+      return true;
+    },
+  );
+  assert.equal(attempts, 1, 'a permanent 4xx must not be retried');
+});
+
+// ── HARDENING: browser-like headers on the widget request ──────────────
+test('workable: sends browser-like UA + accept-language + origin + per-account referer', async () => {
+  const cap = {};
+  await fetchWorkable(ADAPTER_V3_URL, { fetchImpl: okJson(WIDGET_PAYLOAD, cap), retryDelayMs: 0 });
+  const h = cap.options?.headers || {};
+  assert.match(h['user-agent'] || '', /Mozilla\/5\.0/, 'must send a browser-like User-Agent');
+  assert.equal(h['accept-language'], 'en-US,en;q=0.9', 'must send accept-language');
+  assert.equal(h.origin, 'https://apply.workable.com', 'must send the workable origin');
+  assert.equal(h.referer, 'https://apply.workable.com/optimile/', 'must send a per-account referer matching the slug');
+});
+
+// ── HARDENING: retry a transient 429 and recover on the widget API ─────
+test('workable: retries a transient 429 on the widget API and recovers', async () => {
+  let attempts = 0;
+  const jobs = await fetchWorkable(ADAPTER_V3_URL, {
+    retryDelayMs: 0,
+    fetchImpl: async () => {
+      attempts++;
+      if (attempts === 1) return { ok: false, status: 429, json: async () => ({}) };
+      return { ok: true, json: async () => WIDGET_PAYLOAD };
+    },
+  });
+  assert.equal(attempts, 2, 'should retry once and recover on the second attempt');
+  assert.equal(jobs.length, 2, 'recovered payload must parse into the same 2 jobs');
+});
+
+// ── HARDENING: process-wide serialization of concurrent requests ───────
+test('workable: serializes concurrent requests process-wide (no in-flight overlap)', async () => {
+  let inFlight = 0;
+  let overlapped = false;
+  const slowFetch = async () => {
+    inFlight++;
+    if (inFlight > 1) overlapped = true;
+    await new Promise((r) => setTimeout(r, 10));
+    inFlight--;
+    return { ok: true, json: async () => WIDGET_PAYLOAD };
+  };
+  await Promise.all([
+    fetchWorkable(ADAPTER_V3_URL, { fetchImpl: slowFetch, retryDelayMs: 0 }),
+    fetchWorkable('https://apply.workable.com/api/v3/accounts/other-co/jobs?details=true', { fetchImpl: slowFetch, retryDelayMs: 0 }),
+  ]);
+  assert.equal(overlapped, false, 'two concurrent workable.fetch() calls must not overlap in-flight');
+});
+
+test('workable: an unresolvable slug throws before any fetch', async () => {
+  let called = false;
+  await assert.rejects(
+    () => fetchWorkable('https://evil.example/careers', {
+      fetchImpl: async () => { called = true; return { ok: true, json: async () => ({}) }; },
+    }),
+    /cannot derive account slug/,
+  );
+  assert.equal(called, false, 'fetch must not run for a non-workable URL');
+});

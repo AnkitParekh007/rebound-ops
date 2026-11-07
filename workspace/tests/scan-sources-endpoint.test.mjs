@@ -1,0 +1,104 @@
+/**
+ * v1.29.0 — `GET /api/scan/sources` returns the canonical source registry.
+ *
+ * Single source of truth for the SPA's #/scan source-filter dropdown.
+ * Adding a new adapter = one entry in `server/lib/sources/registry.mjs`,
+ * dropdown updates automatically.
+ */
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+
+let server;
+let baseUrl;
+
+before(async () => {
+  const dir = mkdtempSync(resolve(tmpdir(), 'scan-sources-'));
+  mkdirSync(resolve(dir, 'config'), { recursive: true });
+  mkdirSync(resolve(dir, 'data'), { recursive: true });
+  mkdirSync(resolve(dir, 'modes'), { recursive: true });
+  writeFileSync(resolve(dir, 'cv.md'), '# x\n');
+  writeFileSync(resolve(dir, 'config', 'profile.yml'), 'candidate:\n  full_name: T\n');
+  writeFileSync(resolve(dir, 'portals.yml'), 'tracked_companies: []\n');
+  writeFileSync(resolve(dir, 'data', 'applications.md'), '');
+  writeFileSync(resolve(dir, 'data', 'pipeline.md'), '');
+  writeFileSync(resolve(dir, 'modes', 'oferta.md'), 'x\n');
+  process.env.REBOUND_OPS_ROOT = dir;
+  const { createApp } = await import('../server/index.mjs');
+  const app = createApp();
+  await new Promise((r) => {
+    server = app.listen(0, '127.0.0.1', () => {
+      baseUrl = `http://127.0.0.1:${server.address().port}`;
+      r();
+    });
+  });
+});
+
+after(() => {
+  delete process.env.REBOUND_OPS_ROOT;
+  return new Promise((r) => server.close(r));
+});
+
+test('GET /api/scan/sources returns the registry list with EN + RU sources', async () => {
+  const r = await fetch(baseUrl + '/api/scan/sources');
+  assert.equal(r.status, 200);
+  const d = await r.json();
+  assert.ok(Array.isArray(d.sources), 'sources must be array');
+  // Sanity: every registry entry has {value, label, region}.
+  for (const s of d.sources) {
+    assert.ok(typeof s.value === 'string' && s.value.length > 0);
+    assert.ok(typeof s.label === 'string' && s.label.length > 0);
+    assert.ok(s.region === 'en' || s.region === 'ru', `bad region: ${s.region}`);
+  }
+});
+
+test('GET /api/scan/sources includes the 5 RU sources (v1.29.0 baseline)', async () => {
+  const r = await fetch(baseUrl + '/api/scan/sources');
+  const d = await r.json();
+  const ruValues = d.sources.filter((s) => s.region === 'ru').map((s) => s.value).sort();
+  assert.deepEqual(
+    ruValues,
+    ['geekjob', 'getmatch', 'habr-career', 'hh.ru', 'trudvsem'],
+    `RU sources mismatch: ${ruValues.join(',')}`,
+  );
+});
+
+test('GET /api/scan/sources includes the EN ATS + aggregator sources', async () => {
+  const r = await fetch(baseUrl + '/api/scan/sources');
+  const d = await r.json();
+  const enValues = d.sources.filter((s) => s.region === 'en').map((s) => s.value).sort();
+  assert.deepEqual(
+    enValues,
+    [
+    '4dayweek', 'a16z-speedrun-talent', 'adp-workforcenow', 'agenticjobs', 'alibaba', 'amazon',
+    'apple', 'applicantpro', 'applitrack', 'arbeitnow', 'arbeitsagentur', 'ashby',
+    'atlassian', 'avature', 'bamboohr', 'beesite', 'breezy', 'builtin',
+    'bulldogjob', 'bwi', 'careerviet', 'collage', 'comeet', 'computrabajo',
+    'consider', 'cryptocurrencyjobs', 'csod', 'darwinbox', 'dassault', 'deel',
+    'deutschebahn', 'dover', 'eightfold', 'eploy', 'feishu-jobs', 'flowxtra',
+    'garena', 'gem', 'generalist-world', 'germantechjobs', 'getonbrd', 'getro',
+    'glints', 'google', 'greenhouse', 'gupy', 'hackernews', 'hecklerkoch',
+    'higheredjobs', 'himalayas', 'hiringroom', 'ibm', 'icims', 'itviec',
+    'jazzhr', 'jibeapply', 'jobbankca', 'jobicy', 'jobspresso', 'jobstreet',
+    'jobvite', 'join', 'joinup', 'justjoin', 'kalibrr', 'keka',
+    'landingjobs', 'larajobs', 'lever', 'magneto', 'manfred', 'meituan',
+    'mokahr', 'mycareersfuture', 'neogov', 'nodesk', 'nofluffjobs', 'occ',
+    'oraclecloud', 'pageup', 'paylocity', 'peoplesoft', 'personio', 'phenom',
+    'pinpoint', 'platsbanken', 'prevueaps', 'pythonorg', 'radancy', 'recruitee',
+    'redrover', 'remoteok', 'remotive', 'remotli', 'rheinmetall', 'rippling',
+    'rss', 'schoolspring', 'senjob', 'smartrecruiters', 'softgarden', 'solidjobs',
+    'startup-jobs', 'successfactors', 'taleo', 'teamtailor', 'techinasia', 'telegram',
+    'telegram-channel', 'tencent', 'thehub', 'themuse', 'tkms', 'torre',
+    'trakstar', 'ultipro', 'vdab', 'weworkremotely', 'workable', 'workday',
+    'workingnomads', 'wttj', 'yourator', 'zoho-recruit'
+  ],
+  );
+});
+
+test('GET /api/scan/sources sends a short Cache-Control', async () => {
+  const r = await fetch(baseUrl + '/api/scan/sources');
+  const cc = r.headers.get('cache-control') || '';
+  assert.match(cc, /max-age=\d+/);
+});

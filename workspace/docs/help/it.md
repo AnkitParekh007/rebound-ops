@@ -1,0 +1,2562 @@
+# Guida — rebound-ops-ui
+
+<p align="center"><img src="https://raw.githubusercontent.com/AnkitParekh007/rebound-ops/main/workspace/images/providers.png" alt="Works with 18 LLM providers — Anthropic, OpenAI, Gemini, Qwen, OpenRouter, GitHub, DeepSeek, Kimi, MiniMax, Mistral, Ollama and more" width="760"></p>
+
+Una guida completa a ogni pagina, dal momento in cui avvii
+l'applicazione fino a ottenere un colloquio. Ogni intestazione `##` qui
+sotto corrisponde a una voce della barra laterale o a una fase del
+flusso di lavoro. Alla prima esecuzione leggila dall'alto verso il
+basso; in seguito passa a una sezione specifica tramite l'indice nella
+barra laterale della guida.
+
+> **Come orientarsi (la shell v2).** La barra laterale è organizzata in
+> gruppi richiudibili — **Sourcing**, **Decision**, **Application**,
+> **Networking**, **Analytics**, **Setup** (`nav.group.*`) — che si
+> aprono quando entri in una sezione e restano dove li hai lasciati.
+> stellina su qualsiasi pagina per fissarla nei **Preferiti**, e
+> **Cmd/Ctrl+K** (o il pulsante **Menu dei comandi** in cima alla
+> barra laterale, `nav.v2.palette`) per saltare con ricerca fuzzy a
+> qualsiasi pagina da qualsiasi punto. Ogni pagina mostra il titolo
+> all'istante e riempie righe grigie con shimmer mentre i dati
+> caricano — la navigazione non appare mai vuota. E nessuna pagina ti
+> accoglie con un vuoto nudo: le quattro che partono vuote —
+> **Auto-pipeline**, **Checklist di candidatura**, **Batch** e
+> **Funded companies** — mostrano un esempio svolto più l'unica azione
+> che le riempie (`v2empty.exampleTag`).
+
+> **Destinatari:** chiunque abbia appena inserito questa UI dentro un
+> checkout di `rebound-ops` ed eseguito `bash bin/start.sh`. Non si
+> presuppone alcuna conoscenza pregressa di rebound-ops.
+
+### Informazioni su rebound-ops
+
+[rebound-ops](https://github.com/AnkitParekh007/rebound-ops) è un sistema di ricerca di lavoro
+open source che gira come slash command dentro qualsiasi CLI di coding AI (Claude Code, Cursor, Codex, OpenCode, Antigravity CLI, Grok Build CLI, Qwen Code, Kimi, GitHub Copilot CLI, Gemini CLI (legacy) — anche altre CLI compatibili con Claude funzionano tramite la stessa superficie di slash command). È indipendente dal modello. Valuta
+ogni offerta di lavoro rispetto al tuo CV con una rubrica a sei
+dimensioni da 0.0 a 5.0, genera curriculum PDF su misura e traccia ogni
+candidatura localmente sulla tua macchina.
+
+**Riferimento canonico (leggili in quest'ordine alla prima installazione):**
+
+- [What is rebound-ops](https://github.com/AnkitParekh007/rebound-ops)
+  — il sistema, i principi e l'inventario dei concetti.
+- [Scan job portals](https://github.com/AnkitParekh007/rebound-ops)
+  — scopri offerte di lavoro; popola il Pipeline.
+- [Apply for a job](https://github.com/AnkitParekh007/rebound-ops)
+  — flusso completo di candidatura con lettura del modulo tramite Playwright.
+- [Batch-evaluate offers](https://github.com/AnkitParekh007/rebound-ops)
+  — valuta 10+ JD in una volta con `batch-runner.sh`.
+- [Set up Playwright](https://github.com/AnkitParekh007/rebound-ops)
+  — installa Chromium + registra l'MCP per PDF e compilazione moduli.
+- [Come rebound-ops valuta gli annunci di lavoro](https://github.com/AnkitParekh007/rebound-ops)
+  — la metodologia di valutazione: le cinque dimensioni più un punteggio globale olistico, la soglia di
+  candidatura a 4.0 e ciò che il sistema si rifiuta esplicitamente di
+  fare. Riassunta anche su
+  [reboundops.example/methodology](https://github.com/AnkitParekh007/rebound-ops) nella tua lingua.
+
+**Principi fondanti** (da
+[github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):
+
+- **Open source, sul serio** — MIT, nessun piano a pagamento, nessuna
+  lista d'attesa, nessuna telemetria, nessun account. Il sistema opera
+  senza livelli a pagamento, account o telemetria. I contributi al
+  codice passano una revisione della community prima del rilascio.
+- **Sovranità dei dati** — `cv.md`, `config/profile.yml`, `data/`,
+  `reports/`, `interview-prep/` non lasciano mai il tuo portatile a meno
+  che tu non li invii esplicitamente. Lo esegui localmente sulla tua
+  macchina, conservando la piena sovranità sui dati.
+- **Architettura agnostica rispetto all'AI** — rebound-ops NON include un
+  modello. Funziona come comandi dentro le CLI di coding AI esistenti.
+  Cambia provider (Anthropic ↔ Gemini ↔ OpenAI) e la tua cronologia di
+  valutazioni resta coerente.
+- **Candidature controllate dall'uomo** — rebound-ops redige le risposte
+  e apre il modulo, ma **sei tu a fare clic su Invia**. Il sistema non si
+  candida mai automaticamente. Il sistema fornisce struttura e
+  valutazione; gli esseri umani mantengono l'autorità finale sull'invio.
+- **Ricerca strutturata** — costruito per una ricerca di lavoro attiva e
+  deliberata con molte candidature; non è uno strumento a invio singolo,
+  non è un motore di raccomandazione. La configurazione richiede ~15
+  minuti e presuppone dimestichezza con il terminale.
+
+**Cosa rebound-ops NON è** (obiettivi esplicitamente esclusi):
+
+- Non è un candidatore automatico. Non invierà moduli al posto tuo.
+- Non è un ricostruttore di curriculum. Adatta per singola JD; non
+  inventa esperienza.
+- Non è un ottimizzatore LinkedIn. Il tuo profilo è affar tuo.
+- Non è un sostituto del foglio di calcolo che si nasconde dietro una UI
+  SaaS. I dati sono semplice markdown sul tuo filesystem.
+
+**Concetti chiave** (inventario completo — ogni artefatto che
+rebound-ops tocca):
+
+| Concetto | Cos'è |
+|---|---|
+| **Mode** | Un template di prompt sotto `modes/<slug>.md`. Integrati: `oferta`, `deep`, `apply`, `pipeline`, `batch`, `contacto`, `followup`, `interview-prep`, `patterns`, `project`, `training`, `ofertas`, `auto-pipeline`, `pdf`, `latex`, `scan`, `tracker`. |
+| **Archetype** | Un profilo di ruolo target in `config/profile.yml`. La rubrica pesa le corrispondenze di competenze rispetto all'archetipo attivo — **il singolo campo più importante**. |
+| **Pipeline** | `data/pipeline.md` — casella di posta di URL di JD in attesa di essere valutate. |
+| **Tracker** | `data/applications.md` — tabella GFM storica di ogni valutazione + stato della candidatura. |
+| **Report** | `reports/<NNN>-<company>-<DATE>.md` — valutazione A–F completa per JD, con punteggio + legittimità nell'intestazione. |
+| **Scan history** | `data/scan-history.tsv` — log solo in accodamento; previene i duplicati tra le scansioni. |
+| **Proof points** | Blocchi di evidenza STAR+R estratti da `cv.md`, riutilizzati nella valutazione, nelle risposte di candidatura, nella preparazione ai colloqui. |
+| **JD store** | `jds/jd-<date>-<ts>.txt` — descrizioni di lavoro alla lettera salvate durante la valutazione per la tracciabilità. |
+| **Interview-prep** | `interview-prep/<company>-<role>.md` — brief di ricerca approfondita e one-pager per round. |
+| **Batch additions** | `batch/tracker-additions/*.tsv` — righe in attesa messe in coda da `batch-runner.sh` per l'unione nel tracker. |
+
+### rebound-ops vs rebound-ops-ui (questa app)
+
+| | rebound-ops (CLI) | rebound-ops-ui (questa app) |
+|---|---|---|
+| Dove gira | dentro Claude Code / Cursor / Codex / OpenCode / Antigravity CLI / Grok Build CLI / Qwen Code / Kimi / GitHub Copilot CLI / Gemini CLI (legacy) | `http://127.0.0.1:4317` nel tuo browser |
+| Superficie | slash command `/rebound-ops <mode>` | barra laterale con una pagina per flusso di lavoro |
+| Compilazione moduli | sì, tramite Playwright MCP | no — genera la checklist, la completi nella CLI |
+| PDF | `generate-pdf.mjs` | `📄 Generate PDF` su `#/cv`, `#/reports/:slug`, `#/evaluate`, `#/deep`, `#/interview-prep` |
+| File di dati | condivisi con rebound-ops-ui | condivisi con rebound-ops |
+
+
+rebound-ops-ui è **pura aggiunta**. Nulla dentro `rebound-ops/`
+cambia. Entrambe le superfici condividono gli stessi `cv.md`, `config/profile.yml`,
+`portals.yml`, `data/`, `reports/`, `interview-prep/`, `modes/`.
+
+### Soglie di azione per punteggio
+
+Una volta che una JD ha una valutazione, il punteggio determina cosa
+fare dopo (tabella canonica da
+[github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops)):
+
+| Punteggio | Passo successivo |
+|---|---|
+| **≥ 4.5** | Esegui `/rebound-ops apply` — alta compatibilità, procedi subito. |
+| **4.0 – 4.4** | Candidati, oppure `/rebound-ops contacto` prima per un contatto caldo. |
+| **3.5 – 3.9** | Esegui `/rebound-ops deep` — ricerca l'azienda / ruolo prima di decidere. |
+| **< 3.5** | Salta a meno che tu non abbia una ragione personale specifica. |
+
+
+`#/dashboard` e `#/tracker` di rebound-ops-ui evidenziano ogni riga pari
+o superiore a 4.0 così puoi scegliere l'azione senza rieseguire nulla.
+
+### Documentazione esterna
+
+Il riferimento completo per il motore rebound-ops sottostante
+(scansione, rubrica di valutazione, elaborazione batch, flusso di
+candidatura, configurazione di Playwright) è su
+[github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops):
+
+- [What is rebound-ops](https://github.com/AnkitParekh007/rebound-ops)
+- [Scan job portals](https://github.com/AnkitParekh007/rebound-ops)
+- [Apply for a job](https://github.com/AnkitParekh007/rebound-ops)
+- [Batch-evaluate offers](https://github.com/AnkitParekh007/rebound-ops)
+- [Set up Playwright](https://github.com/AnkitParekh007/rebound-ops)
+
+---
+
+## 1. Avvio rapido — passo per passo completo, da "crea il CV" a "candidato e messaggio inviato"
+
+Questo è il playbook canonico, pulsante per pulsante. Seguilo in ordine
+la prima volta. Ogni passo indica il percorso esatto, il pulsante
+esatto e ciò che vedrai in caso di successo. Le sezioni 2–16 qui sotto
+approfondiscono ogni fase.
+
+**Chiedi alla guida.** Apri **Chiedi alla guida 💬** (barra laterale, sotto Aiuto) e scrivi una domanda — risponde solo da questa guida nella tua lingua e non legge mai il tuo CV. Lo stesso assistente è a un tocco da ogni pagina: un pulsante di chat con un robot fluttua nell'angolo in basso a destra (in basso a sinistra nelle lingue da destra a sinistra); toccalo per chiedere senza lasciare ciò che stai facendo.
+
+> **Avvio e inizializzazione con un solo comando.** Da un terminale puoi
+> fare l'intero bootstrap senza toccare la UI:
+>
+> ```bash
+> rebound-ops-ui setup      # install deps → doctor → run the server
+> rebound-ops-ui init       # pick LLM provider + paste its key (echo suppressed)
+> rebound-ops-ui doctor     # re-verify any time (exit 0 ⇔ all required green)
+> rebound-ops-ui run        # just launch the server at http://127.0.0.1:4317
+> rebound-ops-ui open       # open + RAISE the dashboard tab in your browser
+> ```
+>
+> Dopo `setup`/`run` la scheda del browser viene aperta **e portata in primo piano**
+> automaticamente (v1.43.0); `rebound-ops-ui open` fa lo
+> stesso su richiesta così non devi mai cercare la scheda della
+> dashboard. `NO_OPEN=1` disabilita l'apertura automatica per avvii
+> headless/CI.
+>
+> `setup` esegue l'intera catena da solo. `init` scrive la chiave nel
+> `rebound-ops/.env` del progetto padre attraverso lo stesso percorso
+> validato che usa la scheda API-keys di `#/config`, e imposta
+> `LLM_PROVIDER`
+> (`auto` | `claude` | `gemini`) che le route live evaluate / deep / mode /
+> auto-pipeline rispettano. Forma per CI:
+> `rebound-ops-ui init --provider claude --anthropic-key sk-ant-… --yes`.
+> Preferisci la UI? Continua con i passi qui sotto.
+
+### A. Configurazione (fai questi una volta sola, ~5 minuti)
+
+**rebound-ops-ui deve trovarsi in `rebound-ops/web-ui/`** (annidato dentro il progetto padre rebound-ops). Legge i tuoi `cv.md`, `config/` e `data/` dalla cartella padre tramite `../` e non funziona in modo autonomo. Se `rebound-ops-ui init` non viene trovato dopo un pull, esegui `cd rebound-ops/web-ui && npm install && npx rebound-ops-ui init`.
+
+**Passo 1 — Apri l'app su `http://127.0.0.1:4317`.** Se non è in
+esecuzione, in un terminale esegui `bash bin/start.sh` dalla radice del
+repo. Si carica la Dashboard (`#/dashboard`).
+
+**Passo 2 — Fai clic su `❤ Health` nella barra laterale sinistra.** Ogni
+controllo richiesto deve essere verde:
+
+- `cv.md`, `config/profile.yml`, `portals.yml` esistono
+- Chiave API impostata (almeno una tra `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`)
+- Playwright installato (richiesto solo se userai Generate PDF)
+
+Se qualcosa è rosso, la pagina ti dice il file o la variabile d'ambiente
+esatta da correggere. Non procedere finché Health non è verde.
+
+**Passo 3 — Fai clic su `⚒ App settings` nella barra laterale.** Arrivi
+sulla scheda **{{t:config.tabApi}}**.
+- Incolla `ANTHROPIC_API_KEY` (preferita — miglior punteggio su testi
+  lunghi) e/o `GEMINI_API_KEY`. Ottieni le chiavi da
+  <https://console.anthropic.com/settings/keys> o
+  <https://aistudio.google.com/apikey>.
+- Fai clic su **💾 Save**. Poi fai clic su **▶ Test Anthropic** (o Gemini) — un
+  minuscolo round-trip conferma che la chiave funziona.
+
+**Passo 4 — Passa alla scheda `Profile` nella stessa pagina.** È
+l'editor YAML diretto per `config/profile.yml`. Modifica come minimo:
+- `candidate.full_name` — sostituisci qualsiasi segnaposto ("Jane Smith") con
+  il tuo vero nome
+- `candidate.email`, `linkedin`, `github` — usati nelle lettere di presentazione
+- `target.roles` — i titoli di lavoro a cui ti candiderai
+- `target.comp_total_min_usd` — retribuzione totale minima; le offerte al di sotto di questa
+  vengono segnalate nella sezione D di ogni valutazione
+- `target.archetypes` — i pattern di carriera che accetti (il campo
+  singolo di maggior impatto)
+
+Fai clic su **💾 Save**. Il server valida lo YAML e appone
+l'intestazione canonica `# Rebound-Ops Profile Configuration`.
+
+### B. CV (fai questo una volta sola, ~10 minuti)
+
+**Passo 5 — Fai clic su `✎ CV` nella barra laterale.** Due colonne:
+editor a sinistra, anteprima in tempo reale a destra.
+
+**Passo 6 — Scegli un percorso per riempire l'editor:**
+- **Carica un curriculum esistente** — fai clic su **📁 Upload CV**, scegli uno tra
+  `.docx / .odt / .rtf / .pdf / .html / .txt / .md`. Il
+  server converte in markdown tramite pandoc o pdftotext, sanifica l'XSS
+  e inserisce il risultato nell'editor. **Rivedi la conversione** —
+  i PDF in particolare possono perdere fedeltà nel layout.
+- **Incolla markdown direttamente** — la textarea è un editor markdown;
+  il pannello di destra è ciò che l'LLM (e il tuo futuro recruiter) vedrà.
+- **Consigli sul tono:** un punto elenco = una realizzazione con una metrica. Mantieni
+  sotto le 1500 parole. Sezioni in quest'ordine: Summary, Experience,
+  Projects, Education, Skills.
+
+**Passo 7 — Fai clic su `💾 Save` (in alto a destra della pagina CV).** Il server
+sanifica (rimuove `<script>` / `javascript:` / gestori inline) e
+scrive `cv.md`. Toast: *"Saved"*.
+
+**Passo 8 (opzionale) — Fai clic su `📄 Generate PDF`.** Esegue
+`generate-pdf.mjs` nel padre (Playwright richiesto) e
+**il nuovo PDF viene scaricato automaticamente** nel tuo browser al termine. L'elenco in
+fondo alla pagina conserva ogni file generato in precedenza.
+
+### C. Trova offerte di lavoro (~2 minuti per scansione)
+
+**Passo 9 — Fai clic su `🌐 Scansione` nella barra laterale.** Conferma che `portals.yml`
+elenchi i board che ti interessano (sezione 5 di questa guida). Premi il
+pulsante **🌐 Scansiona ora**. Un log SSE in tempo reale scorre mentre lo scanner
+percorre Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday (board inglesi) e hh.ru / Habr
+Career (board russi se abilitati).
+
+**Passo 10 — Quando la scansione termina, rivedi i risultati.** Fai clic su qualsiasi
+tag azienda per filtrare; fai clic sull'icona ↗ per aprire la pagina
+carriere dell'azienda in una nuova scheda. Ogni offerta di lavoro che ha superato
+il filtro sul titolo è messa in coda nel Pipeline. Ogni riga di risultato
+mantiene l'annuncio su due righe compatte — il titolo in alto, sotto una riga
+di dettaglio di piccole icone (corrispondenza del titolo, potenziamento per
+seniority, punteggio di corrispondenza, fonte e data) — e gli elenchi di
+risultati lunghi sono impaginati.
+
+### D. Valuta le offerte (~30 secondi per JD)
+
+**Passo 11 — Fai clic su `Pipeline` nella barra laterale.** Vedi ogni URL
+messo in coda dallo scanner. Fai clic su una voce per visualizzare l'anteprima della JD in linea.
+
+**Passo 12 — Fai clic su `▶ Evaluate` accanto a qualsiasi JD.** Questo salta a
+`#/evaluate`. Con una chiave API impostata, gira in tempo reale; senza, ottieni
+un prompt manuale da incollare nel tuo LLM. La modalità in tempo reale produce un
+**punteggio 0–5** rispetto al tuo CV nelle sezioni A–G (Role / Company /
+Compensation / Risk / Stretch / Cultural fit / Verdict). Il salvataggio finisce
+in `reports/<date>-<slug>.md`.
+
+**Passo 13 — Fai clic su `Reports` nella barra laterale** e rivedi l'ultima
+valutazione. Qualsiasi cosa sotto il tuo `comp_total_min_usd` è segnalata in rosso
+nella sezione D. Qualsiasi cosa con `Verdict: pursue` è la tua rosa di candidati.
+
+### E. Decidi e ricerca in modo approfondito l'azienda in rosa (~3 minuti)
+
+**Passo 14 — Scegli un'offerta di lavoro che vale la pena perseguire. Fai clic su `Deep research` nella barra laterale.**
+Inserisci il nome dell'azienda e il ruolo. Il modello
+produce un brief aziendale a 7 sezioni (missione, notizie recenti, tech
+stack, segnali di assunzione, benchmark retributivi, rischi, angolazione consigliata).
+Il salvataggio finisce in `interview-prep/<company>-<role>.md`.
+
+### F. Candidati (~5 minuti per candidatura)
+
+**Passo 15 — Fai clic su `Apply checklist` nella barra laterale.** Incolla l'URL
+dell'offerta di lavoro + JD. L'assistente genera una checklist di candidatura
+passo per passo:
+- Bozza di lettera di presentazione su misura (usa i tuoi `cv.md` + `profile.yml`)
+- Parole chiave specifiche da rispecchiare dalla JD
+- File da allegare (PDF del CV — vedi passo 8)
+- Dove candidarsi (l'URL carriere canonico, non i reindirizzamenti
+  degli aggregatori)
+- Promemoria: **MAI inviare automaticamente** — la revisione finale e l'invio sono
+  sempre manuali.
+
+**Passo 16 — Apri la pagina carriere in una nuova scheda.** Usa la
+apply checklist come tua lista di cose da fare. Invia tramite il modulo
+effettivo dell'azienda. Allega il PDF generato al passo 8.
+
+**Passo 17 — Contatta un vero essere umano.** Apri la modalità **Outreach**
+(`#/contacto` nella barra laterale). Il modello redige un breve messaggio LinkedIn /
+email su misura per il brief aziendale del passo 14. Personalizza
+l'apertura (un dettaglio specifico dal tuo brief di ricerca approfondita).
+Invialo.
+
+### G. Traccia e fai il follow-up (continuo)
+
+**Passo 18 — Fai clic su `Tracker` nella barra laterale** e aggiungi una riga per
+la candidatura: azienda, ruolo, punteggio, stato `Applied`, link al
+rapporto, link al brief di ricerca approfondita. La data è compilata automaticamente.
+
+**Passo 19 — Una settimana dopo: apri la modalità `Follow-up`** (`#/followup`).
+Redige un'email di verifica cortese che fa riferimento alla candidatura originale.
+Invia. Aggiorna lo stato nel tracker a `Followed up`.
+
+**Passo 20 — Quando ricevi un invito a colloquio, esegui la modalità `Interview prep`**
+(`#/interview-prep`). Genera una preparazione mirata per la
+specifica azienda + fase (system design / behavioral / coding).
+Attinge automaticamente dal brief di ricerca approfondita.
+
+**Passo 21 — Hai ottenuto l'offerta? Aggiorna lo stato nel Tracker a `Offer`** e
+rivisita la sezione retribuzione del tuo rapporto di valutazione — il tuo numero
+minimo di accettazione è proprio lì.
+
+### TL;DR — l'ordine della barra laterale corrisponde al flusso di lavoro
+
+`Health → App settings → Profile → CV → Scan → Pipeline → Evaluate
+→ Reports → Deep research → Apply checklist → Outreach → Tracker
+→ Follow-up → Interview prep → Activity log`
+
+La barra laterale raggruppa queste stesse pagine per fase
+(**Sourcing** → **Decision** → **Application** → …), così l'ordine del
+workflow e l'ordine del menu coincidono sempre; **Cmd/Ctrl+K** apre il
+**Menu dei comandi** (`nav.v2.palette`) se preferisci digitare tre
+lettere anziché cercare nella lista. Tutto qui. 21 passi, pulsante per
+pulsante, da zero all'offerta.
+
+### Auto-pipeline con un clic (`#/auto`) — la scorciatoia in 21 passi
+
+Se vuoi solo valutare in fretta un'offerta specifica, salta la guida
+manuale. **Barra laterale → ✨ Auto-pipeline** (o il pulsante ✨ sulla
+Dashboard) apre una schermata dedicata: incolla l'URL del lavoro, premi **Enter**
+o fai clic su **Esegui auto-pipeline** (`auto.run`), e il server esegue l'intera catena
+in un'unica passata osservabile:
+
+1. **Validazione URL** (`auto.step.validate`) — controllo SSRF-safe (`isValidJobUrl`); rifiuta
+   loopback / `file:` / IP privati / caratteri di script.
+2. **Recupero descrizione** (`auto.step.fetch`) — `safeGet` (con DNS bloccato, reindirizzamenti
+   rivalidati) scarica + sanifica la JD.
+3. **Valutazione sul tuo CV** (`auto.step.evaluate`) — Anthropic (preferito) → ripiego
+   su Gemini → prompt manuale se non c'è chiave.
+4. **Salvataggio report** (`auto.step.report`) — scrive `reports/<slug>.md` con punteggio +
+   legittimità nell'intestazione.
+5. **Aggiunta al tracker** (`auto.step.tracker`) — accoda una riga a `data/applications.md`.
+
+Il feedback in tempo reale è uno **stepper** verticale (ogni passo si
+illumina in corso → fatto / fallito; `aria-current` segna il passo attivo e
+una live-region educata per screen reader annuncia ogni transizione). In
+caso di successo la card del risultato porta direttamente al rapporto
+salvato (**View report**, `auto.viewReport`) e al **tracker**
+(`auto.viewTracker`). Un passo
+fallito è marcato in rosso con il suo messaggio e il pulsante si riabilita così
+puoi correggere l'URL e riprovare senza ricaricare. Avviare una nuova passata
+mentre una è ancora in corso è sicuro: la più vecchia si marca
+**Sostituito — è stata richiesta una passata più recente** (`auto.superseded`) invece di
+spendere due volte su una risposta stantia.
+
+La pagina vuota è onesta sul suo unico campo: l'etichetta **Esempio** e il
+pulsante **Incolla URL di esempio** (`v2empty.auto.tryExample`) riempiono
+l'input con un'offerta campione —
+**non parte nulla finché non premi Esegui** (`v2empty.auto.hint`), così guardare non costa nulla.
+
+**Nessuna chiave API?** La pipeline gira in **modalità manuale**: i passi 3–5
+si comprimono e ottieni una card di prompt pronta da incollare (copia in Claude
+Code / Anthropic / Gemini). Nessuna chiamata LLM in tempo reale, nessuna spesa.
+
+`#/auto` è collegabile: `#/auto?url=<encoded>&go=1` apre la schermata e
+avvia automaticamente. Il pulsante ✨ della dashboard e questa voce della barra laterale portano
+entrambi qui (un unico flusso coerente — il modale transitorio pre-1.34 è stato promosso
+a questa pagina).
+> **CLI (v1.38.0).** Un comando fa la catena: `rebound-ops-ui setup` (bootstrap → install → start). Verbi autonomi: `rebound-ops-ui doctor` (controllo env/chiavi/tooling — stesso motore della pagina Health; exit 1 su qualsiasi errore richiesto), `rebound-ops-ui run`, `rebound-ops-ui init` (procedura guidata provider+chiave, v1.39.0).
+> **Provider (v1.39.0).** La scheda API-keys aggiunge un select `LLM_PROVIDER` (`auto` = default Anthropic→Gemini · `claude` · `gemini`) e un campo `OPENAI_API_KEY` (lato CLI Codex/OpenCode). `rebound-ops-ui init` è una procedura guidata interattiva per lo stesso.
+>
+> **Provider (v1.57.0).** La valutazione in tempo reale headless ora copre **Anthropic → Gemini → OpenAI → Qwen → OpenRouter → GitHub Models → Hermes → DeepSeek → GLM (Z.ai) → Kimi (Moonshot) → MiniMax → Mistral → Grok (xAI) → Together → Fireworks → Ollama → BytePlus Ark → Volcengine Ark** (l'ordine `auto`; `LLM_PROVIDER` ne fissa uno). **OpenRouter** — una sola `OPENROUTER_API_KEY` fa da facciata a 300+ modelli; il menu a tendina `OPENROUTER_MODEL` carica il catalogo in tempo reale di OpenRouter (proxy lato server, ripiego offline curato). Corretto anche: le chiavi incollate con un newline finale / spazi circostanti ora vengono ripulite prima della validazione, così `/#/config` non mostra più "validation failed" per nessun provider.
+
+
+
+---
+
+## 2. App settings & API keys (`#/config`)
+
+> **Novità in v1.55 → v1.56.** Con **nessuna** chiave LLM impostata, un banner rosso su ogni schermata spiega che ⚡ Run-live è in modalità prompt manuale e collega qui; una volta impostata una chiave diventa un chip discreto che indica il provider attivo. Prima di qualsiasi pulsante ⚡ Run-live (`#/auto`, `#/evaluate`, `#/deep`, mode) appare una stima onesta del costo (es. "Estimated cost: OpenAI gpt-5-codex · ~$0.04/eval", o una nota di assenza di costo API in modalità manuale). `#/scan` nasconde i filtri secondari dietro un pannello **Advanced filters**; `#/tracker` aggiunge chip a imbuto cliccabili + paginazione lato server opzionale; `#/pipeline` virtualizza oltre le 1000 righe.
+
+**Strumenti CLI IA.** La scheda **Strumenti CLI IA** mostra quali CLI di agente (Claude Code, Cursor, Codex, Gemini, OpenCode, Copilot, Qwen, Antigravity, Kimi CLI, Grok Build CLI) sono installati sul server — una scansione del PATH in sola lettura, senza eseguirli. **Aspetto → Mostra i logo delle aziende** (disattivato per impostazione predefinita) mostra la favicon di ogni azienda nella tabella di scansione, recuperata dal suo dominio (mai un servizio di terze parti).
+
+Tre schede:
+
+1. **{{t:config.tabApi}}** — modulo a campi strutturati sul file `.env`
+   del progetto padre (lo stesso file che gli script Node di rebound-ops leggono
+   all'avvio). Raggruppati: API keys / Runtime / Regional sources. La scheda
+   espone anche i selettori di modello per provider — `OPENAI_MODEL`
+   (OpenAI/Codex) insieme a `ANTHROPIC_MODEL` e `GEMINI_MODEL`.
+2. **Profile** — **modulo campo per campo** su `config/profile.yml`
+   (web-ui 1.32.0). Il salvataggio **unisce** nel file — i tuoi archetipi,
+   proof point e qualsiasi chiave personalizzata sono preservati intatti.
+3. **Modes** — **modulo a campi strutturati** per `modes/_profile.md`
+   (web-ui 1.54.3), derivato dallo schema documentato. Le sezioni di tipo
+   elenco — **Target Roles / Adaptive Framing / Comp Targets** —
+   sono rese come input a voci ripetibili (aggiungi/rimuovi righe); le sezioni
+   in prosa — **Exit Narrative / Location Policy** — sono rese come
+   textarea etichettate; qualsiasi sezione sconosciuta o non-elenco ripiega su
+   una textarea etichettata alla lettera. Il salvataggio **unisce comunque per sezione** —
+   il preambolo, le sezioni intatte e qualsiasi sezione personalizzata sono
+   preservati byte per byte. Un pannello *Advanced: raw markdown* rimane
+   per le modifiche all'intero file — aggiungere/rimuovere sezioni o modificare
+   il preambolo.
+
+Un salvataggio in qualsiasi scheda si propaga immediatamente — nessun riavvio del server.
+
+**Configurare il tuo provider LLM (passo per passo).** La valutazione in tempo reale ⚡ della web UI gira *headless* e usa una sola chiave API. Funziona con "OR" — imposta **una qualsiasi** di queste e funziona; con diverse impostate, `auto` le preferisce in quest'ordine: Anthropic → Gemini → OpenAI → Qwen → OpenRouter → GitHub Models → Hermes → DeepSeek → GLM (Z.ai) → Kimi (Moonshot) → MiniMax → Mistral → Grok (xAI) → Together → Fireworks → Ollama → BytePlus Ark → Volcengine Ark. (rebound-ops in sé è agnostica rispetto alla CLI — la esegui anche dentro Claude Code, Cursor, Codex, Gemini, OpenCode, Antigravity, Grok Build, Qwen, Copilot o Kimi; questo è separato da questa chiave headless.)
+
+1. Apri `#/config` → la scheda **{{t:config.tabApi}}**.
+2. Scegli il tuo provider in **`LLM_PROVIDER`**: `auto` (usa qualunque chiave sia impostata), o forzane uno con `claude` / `gemini` / `openai` / `qwen`.
+3. Compila la chiave + modello per il provider che hai scelto:
+   - **Anthropic** — imposta `ANTHROPIC_API_KEY` (console.anthropic.com), opzionalmente `ANTHROPIC_MODEL` (default `claude-sonnet-4-6`).
+   - **Gemini** — imposta `GEMINI_API_KEY` (aistudio.google.com/apikey), opzionalmente `GEMINI_MODEL` (default `gemini-3.6-flash`).
+   - **OpenAI** — imposta `OPENAI_API_KEY` (platform.openai.com), opzionalmente `OPENAI_MODEL` (default `gpt-5-codex`).
+   - **Qwen** — imposta `QWEN_API_KEY` (Alibaba Model Studio / DashScope, dashscope.console.aliyun.com), opzionalmente `QWEN_MODEL` (default `qwen-max`). Per l'endpoint della Cina continentale imposta `QWEN_BASE_URL` nel `.env` grezzo.
+4. Fai clic su **Salva**. Le chiavi vengono scritte nel `.env` del progetto padre; la modifica ha effetto immediato — nessun riavvio del server necessario.
+5. Verifica su `#/evaluate`: incolla un URL/descrizione di lavoro e premi **⚡ Esegui in tempo reale**. L'intestazione del risultato mostra quale provider ha girato (`anthropic` / `gemini` / `openai` / `qwen`). Nessuna chiave impostata da nessuna parte → ottieni invece il prompt manuale da copia-incolla.
+
+I segreti vengono mascherati dopo il salvataggio e mai registrati nei log. I campi model-id (`*_MODEL`) non sono segreti.
+
+### Scheda Profile (modulo a campi — v1.32.0)
+
+Prima di v1.32.0 questa scheda era una singola textarea YAML grezza dove ogni
+impostazione viveva in un unico blob indifferenziato. Ora è un modulo
+strutturato, con campi raggruppati in tre sezioni comprimibili:
+
+- **Candidate** — Full name (obbligatorio), Email, Phone, Location,
+  LinkedIn, GitHub, Portfolio URL, X / Twitter.
+- **Narrative** — Headline, Exit story.
+- **Compensation** — Target range, Currency, Walk-away minimum,
+  Location flexibility.
+- **Editor di array strutturati** (web-ui 1.35.0) — editor con
+  aggiunta/rimozione riga per i campi a forma di elenco, così anche questi non
+  richiedono più lo YAML grezzo: **Target roles** + **Superpowers** (elenchi di stringhe);
+  **Archetypes** (righe name / level / fit); **Proof points** (righe name /
+  url / hero-metric). Le righe vuote vengono scartate; un elenco svuotato
+  rimuove la chiave in modo pulito. Stessa garanzia di unione-non-sostituzione — ogni
+  array che non tocchi sopravvive intatto.
+
+Come il salvataggio è sicuro:
+
+- Il modulo invia solo i 14 percorsi scalari modellati come
+  `{ fields: { "candidate.full_name": … } }`. Il server
+  **legge il `config/profile.yml` esistente, imposta/cancella solo quelle foglie, e ri-serializza l'intero oggetto**
+  — così gli array annidati che il modulo
+  non modella (`target_roles.archetypes`, `narrative.proof_points`,
+  `narrative.superpowers`) e qualsiasi chiave personalizzata aggiunta a mano
+  **sopravvivono al round-trip intatti**. Svuotare un campo rimuove quella
+  chiave in modo pulito (nessun residuo `phone: ""`).
+- La validazione richiede comunque un nome completo; l'intestazione `# Rebound-Ops Profile
+  Configuration` viene apposta automaticamente.
+- Un compromesso: un salvataggio del modulo a campi
+  **ri-serializza lo YAML, quindi i commenti `#` inline vengono persi**. Per preservare i commenti o per modificare array
+  annidati, usa il pannello **Advanced: edit raw YAML** in
+  fondo alla scheda — è l'editor dell'intero file pre-1.32, invariato
+  (sostituisce l'intero file al salvataggio).
+- Il riepilogo di sola lettura su `#/profile` è il compagno visivo.
+
+### Chiavi riconosciute
+
+Le chiavi che servono più spesso. È una selezione, non il registro: `#/config` elenca **tutte** le chiavi riconosciute, raggruppate e con un suggerimento per ciascuna.
+
+| Chiave | Cosa fa | Dove ottenerla |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Abilita le chiamate live all'SDK Anthropic. Preferita quando sono impostate sia Anthropic + Gemini — output strutturato su testi lunghi migliore per il punteggio JD e la ricerca approfondita. | <https://console.anthropic.com/settings/keys> |
+| `ANTHROPIC_MODEL` | Sovrascrive il default `claude-sonnet-4-6`. Prova `claude-opus-4-7` per ragionamenti più difficili, `claude-haiku-4-5-20251001` per economico-e-veloce. | — |
+| `GEMINI_API_KEY` | Ripiego quando non c'è chiave Anthropic. Usato da `gemini-eval.mjs` per la modalità `oferta`. Il free tier va bene per volumi bassi. | <https://aistudio.google.com/apikey> |
+| `GEMINI_MODEL` | Sovrascrive il modello Gemini di default. | — |
+| `PORT` | Porta di bind di Express. Default 4317. | — |
+| `HOST` | Indirizzo di bind. Default `127.0.0.1`. Impostare `0.0.0.0` espone la UI sulla LAN — **ancora nessun gate di autenticazione**, vedi il documento Production-readiness. | — |
+
+### Comportamento
+
+- **Read** (`GET /api/config`) restituisce ogni chiave riconosciuta. Le chiavi
+  segrete (`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) sono **mascherate** — vedi
+  `sk-ant•••••••a1b2`, mai il valore completo.
+- **Salva** (`POST /api/config`) valida ogni valore, scrive in
+  `<parent>/.env`, e applica immediatamente al processo in esecuzione.
+  Nessun riavvio necessario.
+- **Un valore vuoto elimina** la chiave — l'impostazione torna a *non impostata* e il valore predefinito del progetto vale di nuovo.
+- **I menù a tendina iniziano con «Usa il valore predefinito (…)».** Sceglierlo significa che la chiave **non è** nel `.env`: l'app usa il predefinito del progetto e continuerai a ricevere quello nuovo ogni volta che il progetto lo cambia. Scegliere lo stesso valore dall'elenco sotto lo **fissa**: resterà anche dopo che il predefinito sarà cambiato.
+- **Un campo che non tocchi non viene mai scritto.** Un campo non impostato mostra il predefinito perché tu veda cosa userà il server; quel valore mostrato non viene salvato a meno che tu non modifichi davvero il campo.
+- **Il salvataggio riporta cosa è cambiato.** Il messaggio conta le chiavi scritte *e* quelle rimosse, quindi svuotare un campo mostra `· 1`, non `· 0`.
+
+### Pulsanti smoke-test
+
+Dopo il salvataggio, fai clic su **▶ Test Anthropic** o **▶ Test Gemini** — entrambi
+lanciano un minuscolo prompt (≤256 token in output) così spendi essenzialmente
+nulla mentre confermi che la chiave è collegata correttamente. Restituisce un
+campione di ~200 caratteri in caso di successo.
+
+### Dottore di configurazione — individua un CV o profilo incompleto
+
+La scheda **Dottore di configurazione** su `#/config` esegue un controllo in sola lettura che i tuoi `cv.md` e `config/profile.yml` siano davvero compilati, e avvisa quando restano dati di esempio o segnaposto, oppure metriche scritte a mano nei tuoi file di prompt (`modes/_shared.md`, `modes/_writing.md`, `batch/batch-prompt.md`). Separa gli **errori** (manca qualcosa di cui la pipeline ha bisogno, ad esempio nessun `cv.md`) dagli **avvisi** (dati di esempio ancora presenti, un CV che sembra troppo corto, una metrica sospetta). Non scrive nulla e non invia nulla da nessuna parte — legge e riferisce soltanto. Premi **Ricontrolla** dopo aver modificato quei file. In un'installazione autonoma senza il progetto padre, la scheda mostra invece una riga attenuata "non disponibile".
+
+---
+
+## 3. Profile (`#/profile` — raggiungibile anche come `#/settings`)
+
+Una vista a card di riepilogo di sola lettura di `config/profile.yml`. **Per modificare**,
+vai su **App settings → scheda Profile** (`#/config` → Profile) — poiché
+web-ui 1.32.0 quello è un modulo campo per campo (Candidate / Narrative /
+Compensation), non un blob YAML grezzo. I salvataggi si uniscono nello stesso file;
+questa pagina ri-analizza al ricaricamento.
+
+I campi che contano di più:
+
+- `candidate.full_name` — usato in ogni prompt.
+  **Sostituisci il template `Jane Smith`** prima di scansionare qualcosa sul serio, altrimenti le tue
+  lettere di presentazione generate usciranno sotto il nome segnaposto.
+- `candidate.email`, `linkedin`, `github` — richiamati nella generazione della lettera
+  di presentazione e nella apply checklist.
+- `target.roles` — titoli di lavoro accettati. Il filtro positivo dello scanner
+  li usa implicitamente (via `portals.yml::title_filter`).
+- `target.comp_total_min_usd` — retribuzione totale minima. La sezione D di ogni
+  valutazione segnala le offerte al di sotto.
+- `target.archetypes` — il campo *più importante*. Sono i
+  pattern di carriera che accetti (es. `Tech-Lead-Backend`,
+  `Founding-Engineer`, `Data-Platform`). Ogni JD è confrontata con
+  essi e l'archetipo di migliore compatibilità finisce nell'intestazione del rapporto.
+
+La pagina Health mostra un controllo **Profile customized** che fallisce
+finché `full_name` corrisponde a un nome segnaposto noto.
+
+---
+
+## 4. CV (`#/cv`)
+
+Unica fonte di verità per ogni valutazione, ricerca approfondita e lettera
+di presentazione. Vive in `cv.md` alla radice del progetto padre.
+
+### Opzioni di modifica
+
+- **Incollalo direttamente** — la textarea a sinistra è un editor markdown.
+  Il pannello di destra riflette ciò che l'LLM (e il tuo futuro
+  recruiter) vede.
+- **📁 Upload CV** — scegli un file locale in uno di questi formati e
+  il server lo converte in markdown per te:
+  - **Formati di testo** — `.md`, `.markdown`, `.txt`, `.html`, `.htm`
+    vengono passati direttamente (l'HTML passa via pandoc → GFM markdown).
+  - **Formati Office** — `.docx`, `.odt`, `.rtf` vengono
+    convertiti tramite **pandoc** (`brew install pandoc` su macOS,
+    `apt install pandoc` su Linux).
+  - **PDF** — `.pdf` viene estratto tramite **pdftotext** da Poppler
+    (`brew install poppler` / `apt install poppler-utils`).
+  - Il markdown convertito finisce nell'editor; fai clic su **💾 Save**
+    per persistere. Il risultato è sanificato (stessa rimozione XSS dell'incolla).
+  - Limite massimo: **10 MB** per upload. File più grandi → 413.
+- **Da LinkedIn** — percorso più facile: apri Claude Code nel progetto
+  padre, esegui `/rebound-ops`, incolla il tuo URL LinkedIn e chiedi
+  `extract my CV from this and write it to cv.md`.
+
+### Cosa viene sanificato
+
+Lato server, ogni PUT a `/api/cv` passa attraverso `stripDangerousMarkdown`:
+
+- Tag `<script>`, `<iframe>`, `<object>`, `<embed>`, `<svg>`, `<style>`,
+  `<form>` — rimossi interamente.
+- Gestori di eventi inline (`onclick=`, `onerror=`, ecc.) — rimossi.
+- Schemi URI `javascript:`, `vbscript:`, `data:text/html` — neutralizzati.
+
+La risposta include `sanitized: true` ogni volta che uno dei suddetti è stato
+rimosso, così sai se la fonte aveva qualcosa di pericoloso.
+
+Dimensione massima del corpo: 1 MB. Qualsiasi cosa più grande restituisce 413.
+
+### Altri pulsanti
+
+- **sync-check** — esegue `cv-sync-check.mjs` nel progetto padre.
+  Segnala incongruenze: un progetto elencato nel tuo CV ma non negli
+  archetipi di `data/applications.md`, ecc.
+- **📄 Genera PDF** — trasmette `generate-pdf.mjs`. L'output finisce in
+  `output/*.pdf`. Richiede Playwright (la pagina Health mostra se è
+  installato nei `node_modules` del padre). Al termine della generazione,
+  il PDF **più recente** viene scaricato automaticamente nella tua cartella Downloads
+  predefinita; l'elenco in pagina conserva ogni file generato in precedenza.
+
+### Consigli su tono / formato
+
+- Un punto elenco = una realizzazione con una metrica.
+  *"Reduced p99 latency by 38%"* batte *"improved performance"* per
+  ogni rubrica di valutazione.
+- Sezioni in quest'ordine: **Summary** (3–5 righe), **Experience**
+  (in ordine cronologico inverso), **Projects** (max 5), **Education**,
+  **Skills** (deduplicate, niente minestrone di parole d'ordine).
+- Mantienilo sotto le 1500 parole. La rubrica di punteggio usa informazione
+  densa; un CV dispersivo viene penalizzato per il rumore.
+
+---
+
+## 5. Portali & sorgenti (`portals.yml`)
+
+La configurazione dello scanner vive in `portals.yml` alla radice del padre. Contano
+tre sezioni. Le tre sezioni della SPA (sotto) corrispondono allo schema canonico
+di github.com/AnkitParekh007/rebound-ops da
+[scan-job-portals](https://github.com/AnkitParekh007/rebound-ops)
+1:1.
+
+> **Scorciatoia:** l'URL `#/portals` ora risolve direttamente su **App settings**
+> e (quando una sorgente regionale è configurata) salta al
+> gruppo **Regional sources** — così un link `#/portals` segnalibro o
+> digitato non dà più 404 (v1.42.0).
+
+### `title_filter`
+
+```yaml
+title_filter:
+  positive: [backend, engineer, senior, tech lead, golang, php]
+  negative: [junior, intern, frontend, ios, android, java]
+  seniority_boost: [Senior, Staff, Lead, Principal]
+```
+
+Un'offerta di lavoro scansionata passa quando il suo titolo contiene **almeno una keyword positive**
+E **nessuna** delle keyword negative. Regola entrambe.
+Le keyword sono sottostringhe case-insensitive.
+
+`seniority_boost` è la terza chiave del title-filter. Le keyword elencate
+qui non filtrano nulla — spingono i lavori corrispondenti più in alto nei
+risultati così un "Senior Backend Engineer" finisce sopra un "Engineer".
+Default: `["Senior", "Staff", "Lead"]`. Regola per corrispondere a come i tuoi
+ruoli target sono intitolati.
+
+Inizia con 3–5 keyword positive per chiarezza; allarga in seguito.
+
+### `location_filter` (opzionale — web-ui 1.33.0, padre #570)
+
+```yaml
+location_filter:
+  allow:
+    - "Remote"
+    - "United States"
+    - "Atlanta"
+  block:
+    - "India"
+    - "London"
+    - "Germany"
+```
+
+Filtra le offerte di lavoro scansionate in base alla loro stringa di **location**
+(sottostringa case-insensitive), applicato sia dalla scansione ATS sia da quella regionale.
+Semantica, identica alla `scan.mjs` canonica di rebound-ops:
+
+- Nessuna chiave `location_filter` → ogni location passa (default).
+- Un'offerta di lavoro con una location **vuota/mancante** → passa (i dati mancanti
+  non sono penalizzati).
+- Una corrispondenza con keyword `block` → **rifiutata** (block ha precedenza su
+  allow).
+- Una corrispondenza `always_allow` → **passa** anche quando corrisponde anche un `block` — la via di fuga per le stringhe di localizzazione multipaese (v1.248.1).
+- Una corrispondenza `block_hard` → **rifiutata**, e `always_allow` non può prevalere.
+- `allow` vuoto → passa (block l'ha già lasciata passare).
+- `allow` non vuoto → deve corrispondere ad **almeno una** keyword.
+
+Chiave di primo livello in `portals.yml` (fratello di `title_filter`, non annidato
+sotto `russian_portals`). Usalo per scartare lavori che hanno superato il
+title filter ma sono in una regione che non puoi accettare.
+
+Inizia con 3–5 keyword positive per chiarezza; allarga in seguito.
+
+**`content_filter` (opzionale — web-ui 1.75.0, padre #974).** Un fratello di
+primo livello di `location_filter` con gli stessi elenchi di keyword `positive` / `negative`,
+ma confrontati con il testo della **descrizione / snippet** di un'offerta invece
+della sua location:
+
+```yaml
+content_filter:
+  positive: ["python", "machine learning"]
+  negative: ["security clearance", "on-site only"]
+```
+
+Semantica identica a `location_filter`: nessuna chiave → tutto passa; un'offerta
+con una descrizione **vuota/mancante** passa (i dati mancanti non sono penalizzati); una
+corrispondenza `negative` → rifiutata; `positive` vuoto → passa; `positive` non vuoto →
+deve corrispondere ad almeno una keyword (sottostringa case-insensitive). Applicato sia
+dalla scansione ATS sia da quelle regionali. Solo le sorgenti che forniscono una descrizione/snippet
+(es. RSS) sono interessate — ogni altra offerta passa — così abilitarlo non
+scarta mai silenziosamente righe da sorgenti che non portano un corpo. Usalo per scartare
+un'offerta che passa il titolo ma il cui corpo rivela un ostacolo insormontabile.
+
+**`trust_filter` (opzionale — web-ui 1.76.0, padre rebound-ops v1.13.0).** Un
+blocco di primo livello che **annota** (non scarta mai) ogni offerta scansionata con un
+punteggio di fiducia (0–100), un livello (`high` / `medium` / `low`) e flag. Disattivato a meno che non sia
+presente e non disabilitato:
+
+```yaml
+trust_filter:
+  enabled: true
+  suspicious_domains: ["bit.ly", "tinyurl.com"]   # optional — overrides the default shortener list
+  ats_allowlist: ["greenhouse.io", "ashbyhq.com"] # optional — overrides the default ATS host allowlist
+```
+
+Euristiche: URL di candidatura mancante (−40), URL non valido (−50), dominio
+di accorciamento sospetto (−25), disallineamento azienda↔dominio (−15, saltato per host ATS noti).
+Le offerte sotto `high` ottengono un badge **⚠ score** neutrale rispetto alla lingua nella tabella `#/scan`
+(il tooltip elenca i codici flag), così puoi individificare a occhio le righe a bassa fiducia
+senza che nulla venga filtrato. Ometti del tutto il blocco per mantenere il
+comportamento pre-1.76 (nessuna annotazione, nessun badge).
+
+### `years_min` (opzionale — web-ui 1.262.0)
+
+```yaml
+years_min: 3
+```
+
+Salta le offerte la cui descrizione dichiara un'esperienza minima sotto la
+tua soglia. Il parser legge solo i requisiti dichiarati — un'offerta senza un
+numero dichiarato passa sempre (mai scartata su un'ipotesi). Le righe saltate
+vengono registrate in `data/scan-history.tsv` come `skipped_experience`, uno
+stato puramente osservativo che non blocca mai un URL: l'offerta riappare
+quindi in una scansione successiva.
+
+### `search_queries`
+
+```yaml
+search_queries:
+  - name: "Greenhouse — Rails Engineer"
+    query: 'site:job-boards.greenhouse.io "Rails Engineer" OR "Ruby on Rails" remote'
+    enabled: true
+  - name: "Ashby — Senior Backend"
+    query: 'site:jobs.ashbyhq.com "Senior Backend" remote'
+    enabled: false
+```
+
+`search_queries` guidano la scansione Opzione B basata su AI (`/rebound-ops scan`
+dentro Claude Code / Cursor / Codex). NON vengono eseguite dallo scansionatore in-process
+`npm run scan` (che colpisce solo le API dei board pubblici). Usale quando
+vuoi scoprire ruoli in aziende non ancora presenti in
+`tracked_companies`. Imposta `enabled: false` per mantenere una voce senza
+eseguirla.
+
+### `tracked_companies`
+
+```yaml
+tracked_companies:
+  - { name: Stripe,     enabled: true, careers_url: https://job-boards.greenhouse.io/stripe }
+  - { name: Linear,     enabled: true, careers_url: https://jobs.ashbyhq.com/linear }
+  - { name: JetBrains,  enabled: true, careers_url: https://jobs.lever.co/jetbrains }
+```
+
+Campi obbligatori per voce: `name` e `careers_url`. Opzionali:
+`api` (endpoint esplicito Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday),
+`enabled: true|false` per includere/escludere senza eliminare
+la voce. Lo scanner ATS rileva l'ATS dal pattern dell'URL
+(`job-boards.greenhouse.io/<slug>` → Greenhouse, ecc.) e recupera l'API
+boards pubblica di ogni azienda direttamente. Le aziende senza un
+ATS riconoscibile vengono saltate (la card **Active Companies** su `/#/scan` le mostra
+in grigio con `○`).
+
+**Provider ATS per-tenant (v1.76.0 — parità con padre rebound-ops v1.13.0).** Altri sei
+ATS si auto-rilevano direttamente da `careers_url` (o un `api:` esplicito), nessun
+`provider:` necessario:
+
+```yaml
+tracked_companies:
+  - { name: Acme,    enabled: true, careers_url: https://acme.bamboohr.com }          # BambooHR
+  - { name: Foo,     enabled: true, careers_url: https://foo.breezy.hr }              # Breezy HR
+  - { name: Bar,     enabled: true, careers_url: https://bar.jobs.personio.de }       # Personio (XML feed)
+  - { name: Baz,     enabled: true, careers_url: https://baz.recruitee.com }          # Recruitee
+  - { name: SolidCo, enabled: true, careers_url: https://solid.jobs/public-api/offers/it }  # SolidJobs
+  # Comeet needs the full careers-api URL (uid + token aren't in the branded page):
+  - { name: ComeetCo, enabled: true, api: https://www.comeet.co/careers-api/2.0/company/<uid>/positions?token=<token> }
+```
+
+Ognuno fissa il suo host con una regex ancorata + `redirect:'error'` (SSRF-safe). Vedi
+`docs/portals-examples.md` per voci più complete da copia-incolla.
+
+**Fissare (pin) un tenant Personio (v1.237.0).** Molte aziende incorporano la
+loro board Personio come **iframe** in una pagina carriere brandizzata, quindi
+`careers_url` punta al dominio proprio dell'azienda mentre il feed vive in
+realtà su `<slug>.jobs.personio.de`. Senza un pin quelle board non si
+risolvono in nulla. Indica esplicitamente lo slug del tenant e prevale su
+`careers_url`:
+
+```yaml
+tracked_companies:
+  - { name: Acme, enabled: true, provider: personio, personio: acme, careers_url: https://acme.com/careers }
+```
+
+Lo slug ha un charset ristretto (lettere, cifre e trattini, non può iniziare
+con un trattino, massimo 63 caratteri) e l'URL risultante passa comunque per
+la stessa allowlist degli host e il controllo HTTPS — uno slug che contiene un
+punto, una barra, `@` o `:` viene rifiutato e la voce ricade su `careers_url`.
+
+**Mostrare il tipo di impiego nel titolo (Jobstreet / SEEK, v1.237.0).**
+Attivalo con `appendWorkType` e i tipi di impiego dell'annuncio vengono
+aggiunti al titolo, così i filtri sul titolo e il triage li vedono già al
+momento della scansione. Disattivato di default:
+
+```yaml
+tracked_companies:
+  - name: Acme
+    enabled: true
+    provider: jobstreet
+    jobstreet: { siteKey: AU-Main, appendWorkType: true }   # → "Strategy Consultant [Part time]"
+```
+
+`siteKey` seleziona il mercato: `ID-Main` (id.jobstreet.com), `SG-Main`,
+`MY-Main`, `HK-Main` (hk.jobsdb.com), `AU-Main` (au.seek.com, www.seek.com.au) e `NZ-Main`
+(nz.seek.com, www.seek.co.nz). Il link dell'offerta viene costruito per mercato — solo gli
+host indonesiani usano il prefisso di locale `/id/`, quindi un link costruito
+con quel prefisso per qualsiasi altro mercato restituisce 404 (corretto in
+v1.237.0).
+
+### `rss` (board RSS / Atom)
+
+```yaml
+tracked_companies:
+  - { name: LaraJobs, enabled: true, provider: rss, rss: https://larajobs.com/feed }
+  - { name: WeWorkRemotely, enabled: true, provider: rss, rss: https://weworkremotely.com/remote-jobs.rss }
+```
+
+Punta lo scanner a qualsiasi job board che pubblica un feed RSS/Atom (LaraJobs, WeWorkRemotely, RemoteOK, golangprojects, …) aggiungendo una voce con `provider: rss` più una chiave `rss:` (o `feed_url:`) — **nessuna modifica al codice**. L'adattatore RSS analizza ogni `<item>` (CDATA + entità HTML, titoli/aziende con i tag rimossi), lo normalizza in un lavoro, ed esegue lo stesso flusso `title_filter` / `location_filter` + dedup + accodamento-pipeline delle sorgenti ATS. **RSS** appare poi come sorgente selezionabile nel menu a tendina dei filtri di `#/scan`. (web-ui v1.62.x)
+
+
+### `telegram_channels` (canali Telegram pubblici con offerte)
+
+```yaml
+telegram_channels:
+  enabled: true
+  max_posts: 100          # default cap per channel (hard cap 300)
+  channels:
+    - { name: "PHP jobs", channel: rabotaphp }
+    - { name: "Salary PM", channel: salary_pm, max_posts: 50 }
+```
+
+Scansiona qualsiasi canale Telegram **pubblico** elencandolo qui — senza token di bot né chiave API. Ogni canale viene letto dalla sua anteprima pubblica `https://t.me/s/<canale>`, semplice HTML reso dal server. `channel:` accetta qualsiasi forma (`rabotaphp`, `@rabotaphp` o un link `t.me/…` completo); `max_posts:` limita quanti post recenti vengono letti (100 di default, tetto rigido 300). I canali stanno in un blocco di primo livello dedicato invece che in `tracked_companies`, perché un canale non è un datore di lavoro e non ha un URL carriere da rilevare.
+
+**Un post di canale è prosa, non una scheda di lavoro**: non ci sono campi strutturati. La fonte prende il titolo dalla prima riga sostanziale, legge azienda / luogo / retribuzione solo da etichette esplicite (`Компания:`, `Локация:`) e lascia il testo completo nella descrizione. Separare le offerte vere da pubblicità e digest è compito del tuo `title_filter`. Un canale privato o inesistente viene segnalato come **errore**, mai come «nessuna offerta». **Telegram** compare poi come fonte selezionabile nel filtro di `#/scan`. (web-ui v1.228.0)
+
+
+### `russian_portals`
+
+```yaml
+russian_portals:
+  sources: ["hh", "habr", "trudvsem", "getmatch", "geekjob"]      # or just one
+  area: 113                 # 1=Moscow, 2=SPb, 113=Russia, 1001=remote
+  per_page: 50
+  only_remote: false
+  queries:
+    - "Senior PHP"
+    - "Senior Go"
+    - "Тимлид PHP"
+```
+
+`queries` sono corrispondenze di sottostringa case-insensitive contro i titoli
+delle offerte di lavoro su hh.ru e Habr Career.
+**Attenzione alla sovrapposizione con la lista negativa** — se `"Senior PHP"` è in `queries` ma `"php"` finisce in
+`title_filter.negative`, la scansione restituirà zero risultati e la
+console ti avviserà del conflitto.
+
+
+### Configurare i portali russi — guida dettagliata alla configurazione
+
+v1.29.0 include 5 adattatori in lingua russa. Due non hanno bisogno di altro che dello UA di default (`habr-career`, scraping HTML; `trudvsem`, API open-data governativa — nessuna chiave, nessun gate IP). Due sono scraping HTML di board tecnici (`getmatch`, `geekjob` — anche questi senza chiave). Uno è l'API canonica di hh.ru che può dare 403 da IP non russi a meno che tu non imposti una variabile d'ambiente `HH_USER_AGENT` tramite **App settings → {{t:config.tabApi}}** (o esegua il server da un IP russo / nodo di uscita VPN).
+
+#### Inventario delle sorgenti
+
+| Chiave sorgente | Etichetta visualizzata | Tipo | Auth | Restrizione geografica |
+|---|---|---|---|---|
+| `hh` | hh.ru | JSON API | `HH_USER_AGENT` opzionale | gli IP non-RU possono dare 403 |
+| `habr` | Habr Career | HTML | nessuna | nessuna |
+| `trudvsem` | Trudvsem | JSON API (open-data) | nessuna | nessuna |
+| `getmatch` | GetMatch | HTML | nessuna | nessuna |
+| `geekjob` | GeekJob | HTML | nessuna | nessuna |
+
+#### Passo 1 — Apri `portals.yml`
+
+Il file vive nella radice del padre `rebound-ops/` (NON dentro `web-ui/`). Se non esiste ancora, copia l'esempio fornito con il progetto padre:
+
+```bash
+# from the parent rebound-ops/ root (NOT web-ui/)
+cp templates/portals.example.yml portals.yml
+$EDITOR portals.yml
+```
+
+#### Passo 2 — Abilita tutte e 5 le sorgenti
+
+Aggiungi o aggiorna il blocco `russian_portals` per elencare ogni sorgente che vuoi scansionare. L'ordine nell'array è irrilevante; lo scanner le percorre in ordine di registro.
+
+```yaml
+russian_portals:
+  sources: ["hh", "habr", "trudvsem", "getmatch", "geekjob"]
+  area: 113                  # 1=Moscow, 2=SPb, 113=Russia, 1001=remote
+  per_page: 50               # how many vacancies per query per source
+  only_remote: false         # set true to keep only remote postings
+  queries:
+    - "Senior PHP"
+    - "Senior Go"
+    - "Backend Senior"
+    - "Тимлид PHP"
+```
+
+#### Passo 3 — Regola query e filtri
+
+`queries` sono le stringhe che lo scanner usa per cercare su ogni sorgente. Ogni query viene eseguita una volta su ogni sorgente — quindi 4 query × 5 sorgenti = 20 chiamate per scansione. Mantieni l'elenco focalizzato (3–7 query) per tenere il tempo di scansione sotto il minuto. `area` è il codice regione di hh.ru (le altre sorgenti lo ignorano). `per_page` limita quante offerte di lavoro ogni sorgente restituisce per query. `only_remote: true` filtra ogni risultato a solo-remoto a livello di adattatore (la tabella dei risultati ha comunque un chip Remote separato).
+
+#### Insidie comuni
+
+**Collisione con la lista negativa.** Se una parola da una query (`"php"`, `"senior"`) appare anche in `title_filter.negative`, ogni risultato viene filtrato prima che tu lo veda. Lo scanner emette un avviso di collisione su stderr al momento della scansione — cerca la riga `⚠ config: query "Senior PHP" contains "php" which is in the negative list`. Correggi rimuovendo la parola in conflitto da `negative`:
+
+```yaml
+title_filter:
+  positive: [backend, senior, lead, php, go, golang, python]
+  negative: [junior, intern, frontend, ios, android]
+russian_portals:
+  queries:
+    - "Senior PHP"     # OK — "php" no longer in negative list
+    - "Senior Go"
+```
+
+#### Disabilitare temporaneamente una sorgente
+
+Per disabilitare una sorgente senza eliminarne i dati, basta togliere la sua chiave da `sources`:
+
+```yaml
+russian_portals:
+  sources: ["hh", "habr", "trudvsem"]   # only 3 of 5 sources will run
+```
+
+#### Verificare la configurazione
+
+Dopo aver salvato `portals.yml`:
+
+```bash
+# 1. Save portals.yml.
+# 2. In the SPA, switch to #/scan.
+# 3. Click 🌐 Scan now.
+# 4. Watch the SSE log for the per-source line per query:
+#       "Senior PHP"
+#         hh.ru    18
+#         habr     21
+#         trudvsem  3
+#         getmatch  0
+#         geekjob   2
+#    A value of 0 is normal for some queries — it just means that
+#    source had no matches. A "geo-blocked" or "timeout" line means
+#    the adapter reached the site but couldn't read results.
+```
+
+### Flusso di bootstrap CLI ([scan-job-portals](https://github.com/AnkitParekh007/rebound-ops))
+
+La configurazione canonica di rebound-ops (eseguita una volta dalla radice del padre):
+
+```bash
+cp templates/portals.example.yml portals.yml
+$EDITOR portals.yml
+```
+
+Questo è l'intero bootstrap. Modifica le tre sezioni (`title_filter`,
+`tracked_companies`, `search_queries`, opzionale `russian_portals`),
+salva, e sei pronto a scansionare.
+
+### Comportamento di bootstrap della SPA
+
+Alla prima esecuzione il server accoda un blocco `russian_portals:` documentato
+a `portals.yml` se manca — idempotente (il secondo avvio è un no-op
+perché la riga letterale `russian_portals:` è ora presente). Le sezioni
+inglesi NON vengono iniettate automaticamente; provengono dal
+`templates/portals.example.yml` che hai copiato secondo il bootstrap canonico
+sopra.
+
+**Cooldown di ri-candidatura (v1.84.0).** Aggiungi un blocco `re_apply_windows:` a
+`config/profile.yml` per impedire alla scansione di far riemergere ruoli a cui ti sei già
+candidato. Per azienda imposti `last_apply_date` (`YYYY-MM-DD`),
+`same_role_days` (durata del cooldown), `applied_to:` (una lista di titoli di ruolo a cui ti sei
+candidato), e un opzionale `cross_role_bucket` (keyword con underscore, es.
+`backend_em`). Finché `today` è prima di `last_apply_date + same_role_days`, qualsiasi
+ruolo scansionato in quell'azienda il cui titolo corrisponde a `applied_to` (sottostringa) o
+alle keyword del bucket viene **saltato** — il log della scansione mostra `Cooldown skipped: N`
+e quelle righe non raggiungono mai la tabella dei risultati o `pipeline.md`. La corrispondenza dell'azienda
+è insensibile alla punteggiatura e attenta ai confini di parola (`Acme Inc` corrisponde a
+`Acme, Inc.`). Nessuna chiave `re_apply_windows:` → nessun cooldown (il default).
+
+**Retribuzione in `pipeline.md` (v1.84.0).** Quando un'offerta scansionata porta un
+salario, viene accodata a `data/pipeline.md` come colonna finale opzionale —
+`url | salary` — accanto all'URL. L'URL resta la chiave di dedup (la colonna del salario
+viene rimossa quando la pipeline viene riletta), la cella è sanificata così non
+può iniettare una riga o una formula di foglio di calcolo, e le pipeline esistenti con solo URL
+continuano a funzionare invariate.
+
+### Scopri la bacheca ATS di un'azienda
+
+In cima a `#/portals` c'è un riquadro **Scopri bacheca ATS**. Digita il nome di un'azienda (per esempio "Stripe") e l'app sonda Greenhouse, Ashby e Lever alla ricerca di una bacheca di offerte pubblica con quel nome — sola lettura, senza IA, senza browser. Per ogni fornitore che ha una bacheca *e* al momento elenca almeno un'offerta aperta ottieni una corrispondenza con il fornitore, l'URL delle carriere e il numero di offerte aperte. Premi **Aggiungi ai monitorati** e quella bacheca viene aggiunta a `tracked_companies:` nel tuo `portals.yml`, così lo scanner inizia a sorvegliarla dalla prossima scansione. I duplicati vengono rilevati (vedrai "Già monitorata") e si possono aggiungere solo host ATS noti — gli URL arbitrari vengono rifiutati. Vengono sondati solo Greenhouse, Ashby e Lever; un'azienda su un altro portale, o senza offerte pubblicate proprio ora, non mostrerà corrispondenze.
+
+---
+
+## 6. Health (`#/health`)
+
+Ogni gate di configurazione, in badge OK / OPTIONAL / FAIL. Leggi questo prima di
+aprire qualsiasi issue "non funziona".
+
+**Uso e costo IA.** La pagina **Uso IA** (💳, accanto a Salute) mostra i token delle generazioni IA live per provider su 24h/7g/30g/sempre, con un costo stimato in USD da una tabella prezzi modificabile (mai fatturato). Un contatore **UTILIZZO** compatto è anche fissato in fondo alla barra laterale sinistra su ogni pagina — gli stessi totali di token 24h/7g/30g e un costo stimato di 24 ore, aggiornato dal vivo; il menu resta sempre libero sopra di esso, e cliccando la sua intestazione si comprime.
+
+### Controlli richiesti (il sistema non può funzionare senza questi)
+
+- `Node version` ≥ 18 — il server usa `fetch` nativo e
+  `node:test`.
+- `Project root` — che `REBOUND_OPS_ROOT` (env o auto-rilevato)
+  esista.
+- `cv.md`, `config/profile.yml`, `portals.yml`,
+  `data/applications.md`, `data/pipeline.md`, `modes/oferta.md`.
+
+### Controlli opzionali (solo avvisi)
+
+- `Profile customized` — `candidate.full_name` non è il segnaposto
+  del template.
+- `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` — impostate in `.env`.
+- `Playwright (parent node_modules)` — richiesto per la generazione PDF
+  e `check-liveness.mjs`. Installa con
+  `cd $REBOUND_OPS_ROOT && npm install && npx playwright install chromium`.
+- `Parent project dependencies` — `cd $REBOUND_OPS_ROOT && npm install`
+  se mancanti.
+- Cartelle `data/`, `reports/`, `output/`, `jds/` — create automaticamente alla
+  prima scrittura.
+
+Quando il server è esposto oltre il loopback (`HOST=0.0.0.0`) i
+percorsi assoluti e la versione esatta di Node sono sostituiti con `"hidden"` nella
+risposta così un vicino curioso non può profilare la tua installazione.
+
+### Pulsanti di esecuzione
+
+- **Esegui doctor** esegue `node doctor.mjs` e mostra l'output in un modale.
+- **▶ Verify pipeline** esegue `node verify-pipeline.mjs`.
+
+---
+
+## 7. Scan (`#/scan`)
+
+Lo scanner esplora ogni board abilitato, deduplica rispetto alla tua
+cronologia, e scrive i risultati in `data/last-scan.json` e
+`data/pipeline.md`.
+
+**Cerca + Escludi.** La casella Cerca tratta le virgole come OR ("ruoli da trovare"); il nuovo campo Escludi nasconde le righe che corrispondono a una parola separata da virgole. Entrambi si salvano con le tue ricerche.
+
+### Scansione con un clic (SPA)
+
+**🌐 Scansiona** esegue ogni sorgente abilitata in un'unica passata:
+
+- Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday (la scansione ATS) per ogni azienda in
+  `tracked_companies` con un URL ATS riconoscibile.
+- Gli aggregatori v1.75.0 per ogni voce `tracked_companies` che aderisce a uno: RemoteOK / Remotive / Working Nomads (feed remoti a livello di board, `provider: <slug>`) e IBM / Arbeitsagentur / Glints / Jobstreet · SEEK (config-driven, blocco `<provider>:` per voce).
+- API hh.ru + Habr Career + Trudvsem + GetMatch + GeekJob per ogni query in `russian_portals`.
+
+**Due fasi, un clic (v1.29.2).** Il singolo pulsante 🌐 Scansiona guida SIA la scansione ATS SIA quella regionale in un unico stream SSE. Vedrai due intestazioni di fase nel log, in ordine:
+
+1. `▶ ATS scan (Greenhouse + Ashby + Lever)` — board ATS EN.
+2. `▶ Regional scan (hh.ru + Habr Career)` — 5 sorgenti RU dal registro.
+
+Ogni fase termina con un riepilogo `✓ done · NEW=N`. Se vedi solo la fase ATS, la tua build è precedente alla v1.29.2 — aggiorna. Prima di v1.29.2 il client SSE si chiudeva al primo evento `done` e la fase regionale veniva silenziosamente scartata (`tests/scan-stream-multi-phase.test.mjs` è la rete di regressione).
+
+Il log SSE in tempo reale scorre nel pannello di destra mentre la scansione gira. Fai clic su
+**Ferma** (o naviga semplicemente altrove) per interrompere — il server annulla le
+richieste HTTPS in volo tramite `AbortController`.
+
+### Filtrare i risultati
+
+Sotto il log, la tabella dei risultati rende le righe da `data/last-scan.json`.
+
+> **v1.76.0 — nessun limite ai risultati.** Le build precedenti memorizzavano al massimo 2000 righe corrispondenti
+> per regione (`MAX_STORED_RESULTS`), nascondendo silenziosamente la coda di una scansione grande.
+> Quel limite è **sparito**: ogni offerta corrispondente viene memorizzata e la tabella semplicemente
+> le pagina (200 per pagina — usa i controlli del pager sotto la tabella).
+> Nulla viene scartato; giri solo le pagine.
+
+> **v1.78.1 — auto-refresh in tempo reale.** La tabella dei risultati ora si aggiorna automaticamente
+> mentre una scansione gira e ancora una volta subito dopo che termina — nessun ricaricamento manuale o
+> cambio pagina necessario. La cache viene azzerata all'inizio di ogni scansione e riempita.
+
+> **v1.85.0 — Max per sorgente & quarantena sorgente.** Il campo **Max per source**
+> accanto al pulsante Scan limita quanti lavori ogni board contribuisce (vuoto/0 =
+> illimitato, il default) — utile quando un board enorme dominerebbe altrimenti.
+> Separatamente, qualsiasi sorgente che restituisce un **404 / 410** permanente viene scritta in
+> `data/scan-quarantine.json` e saltata nelle scansioni successive (auto-riparante: riprovata
+> dopo 14 giorni), così gli slug morti smettono di intasare il log. Disabilita con
+> `scan_quarantine: false` in `portals.yml`.
+
+Mentre la tabella carica (e a ogni refresh) vedi righe grigie con shimmer
+invece di un pannello vuoto, e il titolo di pagina c'è dal primo frame —
+una scansione lenta non sembra mai una pagina morta.
+
+Il chrome v2 dei risultati tiene i controlli a vista:
+
+- **Filtri attivi** (`scan.v2.activeFilters`) — ogni filtro applicato appare come chip rimovibile sopra la tabella; clic sulla **✕** di una chip (**Rimuovi filtro**, `scan.v2.removeFilter`) per togliere solo quella, o **Azzera tutto** (`scan.v2.resetAll`) per pulire tutto.
+- **Ordina per** (`scan.v2.sortBy`) — clic su un'intestazione di colonna
+  (azienda, ruolo, stipendio, età) per ordinare; di nuovo per invertire.
+- **Vista rapida** (`scan.v2.quickView`) — clic su una riga per espandere la descrizione inline (**Descrizione**, `scan.v2.description`) senza uscire dalla pagina; gli annunci senza corpo catturato lo dichiarano (`scan.v2.noDescription`) invece di mostrare una card vuota.
+- **Log** (`scan.v2.log`) — collassa/espande il log di scansione in
+  streaming per dare la larghezza piena alla tabella.
+
+Ogni riga porta le proprie azioni: **Valuta** (`scan.v2.evaluate`) salta
+diritto a una valutazione punteggiata di quell'annuncio,
+**Al pipeline** (`scan.v2.toPipeline`) accoda l'URL (con toast di già-in-coda,
+`scan.v2.pipelineDup`), **Apri annuncio ↗** (`scan.v2.openPosting`) apre
+la pagina carriere in una nuova scheda, e la ☆ segna nei preferiti.
+
+**Ricerca + Escludi.** La casella **Ricerca** è il tuo filtro «ruoli da
+trovare» — digita uno o più termini **separati da virgole** e una riga
+appare se coincide con **uno qualsiasi** (OR); un `-parola` iniziale
+**esclude** quel termine (`scan.v2.moreHint`). La casella separata
+**Escludi** (`scan.lblExclude`) fa lo stesso per termini interi: parole
+separate da virgole che **nascondono** qualsiasi riga la cui azienda /
+ruolo / sede li contiene (es. escludi `senior, staff, java`). Entrambe
+si ricordano nelle tue ricerche salvate insieme ai filtri remoto /
+sorgente / paese / età / stipendio.
+
+Filtri (sempre visibili: ricerca, escludi, tipo, sorgente, paese;
+tutto il resto vive dietro **Filtri avanzati**, `scan.advancedFilters` —
+l'intero pannello è raggruppato sotto **Filtri dei risultati**,
+`scan.filtersGroup`):
+
+- **Testo libero** — corrispondenza di sottostringa contro titolo / azienda.
+- Menu a tendina **Source** — tutte le sorgenti che il registro conosce
+  (123 al momento: 118 EN + 5 RU, **All sources** predefinito). È
+  popolato in tempo reale da `GET /api/scan/sources`, così un adapter
+  appena rilasciato appare qui senza cambiare l'app — la lista non è
+  mai cablata a mano.
+- Menu a tendina **Remote / Hybrid / Onsite**.
+- Menu a tendina **Country** — un filtro geografico popolato dai paesi rilevati nei risultati correnti, ciascuno mostrato con la sua emoji bandiera e un conteggio (es. `🇩🇪 Germany (12)`). Scegline uno per mantenere solo i ruoli legati a quel paese. Il rilevamento mappa la location in testo libero di un'offerta (nomi/alias di paesi + ~100 principali città del mercato del lavoro) a un paese; è conservativo e non indovina mai, così un'offerta la cui location non può essere risolta — o un annuncio puramente "Remote" — resta sotto **All countries**. Combinalo con il menu a tendina del tipo di lavoro per trovare ruoli legati a un paese *e* remoti.
+- Menu a tendina **Posted within** — un filtro sull'età lato client (Last 24 hours / 7 days / 30 days). Le righe la cui `pubDate` è più vecchia vengono nascoste; le righe **senza data indicata passano** (i dati mancanti non sono penalizzati).
+- **Stipendio da / Stipendio a** (`scan.salaryFrom` / `scan.salaryTo`) — limiti numerici semplici confrontati con gli importi analizzati dal testo dell'annuncio (la valuta si ignora, `scan.v2.salaryHint`); spunta **Includi lavori senza stipendio** (`scan.v2.includeNoSalary`) per evitare che il filtro stipendio scarti le righe senza cifre.
+- **Seniority** menu a tendina (`scan.lblSeniority`) — Lead / Staff / Senior / Mid / Junior / Intern, rilevato dal titolo.
+- **★ Favorites** — fai clic sulla ☆ in qualsiasi riga per aggiungere un lavoro ai preferiti (memorizzato in `localStorage` per URL); spunta **★ Favorites** (`scan.favOnly`) nel pannello dei filtri per mostrare solo le righe con stella. Le stelle sopravvivono a scansioni e ricaricamenti.
+- **Saved searches** (`scan.savedSearches`) — dai un nome al set di filtri corrente e **Salva ricerca** (`scan.saveSearch`); le salvate si caricano con un clic (`scan.v2.loadSearch`) ed eliminarne una chiede conferma (`scan.v2.deleteSearchConfirm`). Memorizzato in `localStorage`; un valore corrotto/modificato si azzera in modo pulito a vuoto.
+- **Stack chip** (PHP / Go / Backend / Senior / …) — rilevati automaticamente
+  per riga da `Skills.detectTech` e `Skills.detectLevel`. Intersezione a selezione
+  multipla — selezionare `PHP + Senior` mostra le righe che hanno ENTRAMBI.
+- **Chip dinamici** sotto quelli statici dello stack — i primi 25 token
+  capitalizzati più frequenti dai titoli, così la UI si adatta a
+  qualunque ruolo tu effettivamente scansioni (marketing, design, finanza…)
+  invece di essere bloccata sul vocabolario dell'ingegnere backend.
+
+### Card Active Companies
+
+Una card comprimibile che elenca ogni azienda in `portals.yml` con il suo
+stato di scansione:
+
+- tag verde ✓ — supporto API diretto (uno dei 118 adattatori EN, da Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday).
+- tag grigio ○ — ripiego sul prompt di ricerca web (nessuna corrispondenza API).
+
+**Fai clic sul nome dell'azienda** → riempie il filtro dei risultati sopra con quel
+nome. **Fai clic sull'icona ↗** → apre il `careers_url` dell'azienda in una
+nuova scheda.
+
+### Flusso di scansione CLI ([scan-job-portals](https://github.com/AnkitParekh007/rebound-ops))
+
+Due modi per scansionare dal lato CLI (entrambi depositano gli URL nello stesso
+`data/pipeline.md` che la SPA legge):
+
+**Opzione A — script diretto (~30 s, zero token AI):**
+
+```bash
+npm run scan                          # all Greenhouse/Ashby/Lever boards
+npm run scan -- --dry-run             # preview without persisting
+npm run scan -- --company Anthropic   # narrow to one tracked company
+```
+
+Funziona solo per Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday (URL ATS riconoscibili).
+Nessun token AI consumato — colpisce le API dei board pubblici direttamente.
+
+**Opzione B — scansione browser basata su AI:**
+
+```
+/rebound-ops scan
+```
+
+Dentro Claude Code / Cursor / Codex / OpenCode / Antigravity CLI / Grok Build CLI / Qwen Code / Kimi / GitHub Copilot CLI (Gemini CLI legacy). Usa token del modello.
+Visita ogni pagina `tracked_companies` direttamente e può scoprire board
+non-API (pagine carriere, ATS custom, portali regionali). Più lento ma
+più ampio. Utile quando una scansione ATS non restituisce nulla per un target che
+sai stia assumendo.
+
+**Output (entrambi i percorsi)** — nuovi URL di JD accodati a `data/pipeline.md`,
+ogni URL visitato registrato in `data/scan-history.tsv` (dedup su tutte le
+scansioni future), riepilogo stampato: aziende scansionate · lavori trovati ·
+filtrati per titolo · duplicati saltati · nuove offerte aggiunte.
+
+**Soglie di azione per punteggio** (applica dopo che `/rebound-ops pipeline`
+valuta in batch i nuovi URL):
+
+| Punteggio | Passo successivo consigliato |
+|---|---|
+| **≥ 4.5** | `/rebound-ops apply` — alta compatibilità, procedi subito |
+| **4.0 – 4.4** | candidati, oppure `/rebound-ops contacto` per un contatto caldo |
+| **3.5 – 3.9** | `/rebound-ops deep` — ricerca prima |
+| **< 3.5** | salta a meno che tu non abbia una ragione personale specifica |
+
+
+`#/dashboard` e `#/tracker` della SPA evidenziano ogni riga pari o
+superiore a 4.0 così puoi scegliere l'azione senza rieseguire nulla.
+
+### Comandi di follow-up
+
+Dopo il punteggio, i follow-up canonici sono:
+
+- `/rebound-ops apply` — Compila la candidatura con risposte su misura
+- `/rebound-ops contacto` — Redige outreach LinkedIn / email
+- `/rebound-ops deep` — Ricerca a fondo azienda / ruolo
+- `/rebound-ops tracker` — Visualizza lo stato della pipeline
+
+---
+### hh.ru — scansionato dal sito web (da luglio 2026 serve un IP russo)
+
+hh.ru viene scansionato leggendo il sito pubblico di ricerca (`hh.ru/search/vacancy`), come Habr Career — senza chiave né configurazione. **Da luglio 2026, però, hh.ru restituisce HTTP 451 (blocco legale regionale) agli IP fuori dalla Russia**: la scansione funziona quindi solo da un IP russo — esegui il server dalla Russia o tramite una VPN con uscita russa. Al primo 451 (o 403 anti-bot) lo scanner disattiva hh.ru per il resto dell'esecuzione e lo segnala nel log, così le altre fonti russe completano comunque. L'API JSON (`api.hh.ru`) *non* viene usata di proposito: restituisce `403 forbidden` a qualsiasi client programmatico, a prescindere da IP o User-Agent.
+
+Anche da una rete che *sembra* corretta, hh.ru può considerare l'IP di uscita un VPN/proxy (qualsiasi IP di datacenter/hosting conta) e reindirizzare la scansione con 302 verso un interstitial `/vpncheeck` (“VPN мешает работе сайта”) che risponde HTTP 200 con **zero** vacancy. Lo scanner rileva questo redirect, disabilita hh.ru per il resto dell'esecuzione e lo segnala nel log. La soluzione è lato rete: assicurati che il traffico esca davvero da un IP residenziale — un VPN o proxy di sistema spesso resta attivo anche con l'interruttore del browser spento (verifica il tuo IP di uscita reale, ad es. su api.ipify.org).
+
+## 8. Pipeline (`#/pipeline`)
+
+Casella di posta di URL in attesa di essere valutati. Vive in `data/pipeline.md`.
+
+**Striscia di panoramica.** Una striscia compatta in alto mostra la pipeline a colpo d'occhio — quante URL **nella casella** (`pipe.ovInbox`), quante **tracciate** (`pipe.ovTracked`) e i conteggi **Applied / Responded / Interview / Offer** dal tracker. Ogni chip collega diretto a `#/tracker` (le chip di stato lo aprono filtrato). Degrada al solo conteggio della casella se il tracker non si può leggere.
+
+### Aggiungere URL
+
+Tre modi:
+
+- Digita / incolla un URL nell'input + fai clic su **Aggiungi URL** (`pipe.add`).
+- Usa il **menu dei comandi**: **Cmd/Ctrl+K** (o il pulsante **Menu dei comandi** della barra laterale, `nav.v2.palette`), incolla qualsiasi link `http(s)://…` e il menu offre **Auto-pipeline: {url}** (`nav.v2.evalUrl`) — Enter esegue l'intera catena su di esso. Qualsiasi altro testo + Enter salta a `#/scan` con quel termine pre-compilato.
+- Esegui una Scan (vedi sopra) — i risultati freschi vanno alla pipeline
+  automaticamente.
+
+Ogni URL passa attraverso `isValidJobUrl()` lato server. Loopback
+(`localhost`, `127.0.0.1`), `file://`, `javascript:`, letterali IP, e
+stringhe con caratteri di template (`<`, `>`, `"`) danno tutte 400.
+
+### Pannello di anteprima lato server
+
+Fai clic su qualsiasi riga della pipeline per caricare un'anteprima a destra. La maggior parte dei board ATS
+non invia header CORS quindi il browser non può recuperarli direttamente; il
+server fa da proxy alla richiesta, rimuove tag `<script>` / `<style>` / HTML,
+e restituisce fino a 8 KB di testo semplice.
+
+Il proxy di anteprima segue i reindirizzamenti manualmente con **validazione SSRF per-hop**
+— ogni header `Location` passa di nuovo attraverso `isValidJobUrl()`,
+così un board ostile non può rimbalzarti su loopback / IP privato
+/ `file://`. Limitato a 3 hop, timeout di 15 secondi.
+
+### Azioni di riga
+
+- **▶** (`pipe.evaluateBtn`) — salta a `#/evaluate?url=…` con l'URL pre-compilato.
+- **✕** — rimuove l'URL da `data/pipeline.md` (chiede prima, `pipe.confirmDel`).
+
+**Vista raggruppata, scarto in blocco, undo senza perdite.** Svuotare
+una casella piena dopo una scansione è il pezzo centrale v2 della
+pagina:
+
+- **Raggruppata** (`pipe.viewGrouped`) / **Elenco compatto** (`pipe.viewFlat`) — la barra alterna tra elenco piatto e una bacheca raggruppata per azienda: gli annunci dello stesso datore collassano sotto un solo disclosable (il gruppo più grande prima), così una board rumorosa non seppellisce le altre. Le aziende sconosciute si raggruppano per host — ma un host ATS condiviso (diciamo `jobs.lever.co`) prende in prestito un nome azienda solo quando *tutte* le voci con azienda su quell'host concordano.
+- **Nascondi già valutate** (`pipe.hideTracked`) — attivo per default;
+  gli annunci che hanno già una riga nel tracker escono dalla vista (e
+  dalla selezione in blocco) così agisci solo su lavoro fresco.
+- **Seleziona** (`pipe.selectOne`) le righe, o **Seleziona le visibili** (`pipe.selectAllShown`) — la selezione segue sempre i filtri correnti, mai righe invisibili. La barra mostra il conteggio (`pipe.selectedCount`) e offre **✕ Rimuovi selezionate (N)** (`pipe.bulkRemove`) più **Valuta la prima selezionata** (`pipe.evaluateSelected`) — la rimozione in blocco conferma una volta per l'intero set, non per riga.
+
+Nulla si perde per errore: ogni rimozione — singola o in blocco —
+restituisce un token di ripristino opaco, e una barra in fondo alla
+pagina (**Eliminate: N**, `pipe.deleted`) offre **Annulla**
+(`pipe.undo`) / **Ignora** (`pipe.undoDismiss`). Le rimozioni si
+impilano fino a cinque lotti (il più vecchio si scarta); **Annulla**
+reinserisce il più recente inviando i suoi token a
+`POST /api/pipeline/restore`, che reinsertisce le righe originali
+esatte (metadati del checklist inclusi — nulla è ri-derivato o
+ri-aggiunto) e conferma con **Ripristinato nel pipeline**
+(`pipe.undone`). La barra vive fuori dal markup della pagina, così un
+re-render (navigazione, il flusso di aggiunta rapida) non può inghiottire
+un undo in sospeso; se il server non riconosce più un token (riavvio),
+quell'URL si ri-aggiunge nel modo semplice invece di perdersi.
+
+### Pulsanti in alto a destra
+
+- **⚡ Valuta il primo** (`pipe.evaluateAll`) — apre il primo URL in coda sulla pagina Evaluate,
+  pronto per il punteggio (conferma prima, perché decide su quale annuncio spenderai la passata).
+- **Ricerca offerte di lavoro** — torna allo scanner se vuoi più URL.
+
+---
+
+## 9. Evaluate (`#/evaluate`)
+
+Valuta una singola Job Description rispetto a `cv.md` e
+`config/profile.yml`. Restituisce una valutazione strutturata A–G secondo
+`modes/oferta.md` più un punteggio 0–5.
+
+### Input
+
+Incolla la JD nella textarea, o arriva qui da `#/pipeline` con
+`?url=<href>` — la pagina recupera l'URL attraverso lo stesso proxy SSRF-safe
+usato per le anteprime della pipeline e pre-compila la textarea.
+
+Fai clic su **💾 Save JD** per persistere la JD in `jds/jd-<date>-<ts>.txt`
+per la tracciabilità (o passa `save: true` nella chiamata API — stesso
+effetto).
+
+### Catena di ripiego
+
+1. **Anthropic** — preferito quando `ANTHROPIC_API_KEY` è impostata. Il
+   server raggruppa `cv.md`, `config/profile.yml`, `modes/_shared.md`,
+   e `modes/oferta.md` in un blocco `<project_context>` prima del
+   prompt (limiti per tipo di file — cv 64 KB, file mode 128 KB, altri 32 KB — prompt completo con soft-cap a 256 KB). Restituisce markdown fondato direttamente alla pagina.
+2. **Gemini** — quando è impostata solo `GEMINI_API_KEY`. Il server lancia
+   `gemini-eval.mjs` con la JD come file temporaneo. Il modello del free-tier
+   (`gemini-3.6-flash`) va bene per il punteggio di routine.
+3. **Manuale** — nessuna chiave impostata. La pagina restituisce un prompt completamente formato
+   che puoi incollare in Claude Code, ChatGPT, o qualsiasi altro LLM.
+
+### Sezioni di output (A-F canonico di github.com/AnkitParekh007/rebound-ops)
+
+> **Riallineamento v1.15.0.** Le lettere dei blocchi ora corrispondono allo
+> [schema canonico di github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops).
+> I rapporti pre-v1.15 usavano A–G (con `C=Risks`, `F=Verdict`,
+> `G=Legitimacy`); li rendiamo ancora così per retrocompatibilità,
+> ma i nuovi rapporti emettono A–F con la semantica canonica
+> qui sotto. Punteggio e Legittimità ora vivono nell'intestazione del
+> rapporto (`score: 4.2/5`, `legitimacy: High|Medium|Low`).
+
+A. **Role Summary** — recap in 3 punti (rischi indicati in linea).
+B. **CV Match** — le 3 principali competenze centrate + le 3 principali mancanti.
+C. **Strategy** — raccomandazione: apply now / contacto first /
+deep first / skip. Era `Risks` prima di v1.15.
+D. **Compensation** — relativa al tuo
+`target.comp_total_min_usd` (legacy) o `compensation.target_range`
+(canonico).
+E. **Personalization** — angolazione con cui aprire, framing per archetipo,
+ganci da menzionare nella lettera di presentazione / outreach. Era `Application
+Strategy` prima di v1.15.
+F. **STAR stories** — 1–3 blocchi S-T-A-R pronti da incollare su misura
+per il ruolo. Era `Verdict` (punteggio grezzo) prima di v1.15; il punteggio ora
+appare nell'intestazione del rapporto insieme a `legitimacy`.
+
+### Salvare il rapporto
+
+Fai clic su **💾 Save report** (o usa l'interruttore di salvataggio nella chiamata API) per
+persistere il markdown in `reports/<date>-<company>-<role>.md`. L'intestazione
+analizzata del rapporto (Score / Legitimacy / URL) appare sulla pagina
+**Reports** e sulla **Dashboard**.
+
+### Valutazione batch quando hai 10+ JD
+
+Per una singola JD questa pagina `#/evaluate` è lo strumento giusto. Per 10+
+URL in coda nella pipeline, il click-through per singola JD è impraticabile
+— salta alla sottosezione **Batch evaluate** del §14 (eseguendo
+`./batch/batch-runner.sh` dal padre), lascia che macini durante la
+notte, poi torna a `#/reports` / `#/tracker` per i risultati. Flusso completo:
+[batch-evaluate-offers](https://github.com/AnkitParekh007/rebound-ops).
+
+---
+
+## 10. Reports (`#/reports`)
+
+Sfoglia ogni valutazione salvata. La pagina apre su una vista a
+**Card** (`rep2.viewCards`) — una card per report: titolo visualizzato,
+data, badge di legittimità e pill di punteggio a colori (verde ≥ 4.0,
+giallo ≥ 3.0, rosso sotto, con una pill muta «Punteggio non rilevato»
+quando l'intestazione non porta un punteggio analizzabile) — e può
+passare a una vista densa a **Tabella** (`rep2.viewTable`) quando vuoi
+scorrere righe. Ogni card e riga di tabella nomina anche il **passo successivo suggerito** per la sua banda di punteggio: **Candidati ora — massimo affinità** (`rep2.actApply`),
+**Candidati, o trova prima un contatto caldo** (`rep2.actContact`),
+**Prima studia l'azienda** (`rep2.actResearch`), o
+**Salta salvo motivo personale** (`rep2.actLow`)
+— ciascuno un link diretto alla pagina giusta. Una card senza
+punteggio mostra la pill muta **Punteggio non rilevato**
+(`rep.scoreUnparsed`) con tooltip verso il report stesso.
+
+**Trovare il report giusto.** Una riga di filtri siede sopra la lista e
+tutto si compone:
+
+- **Cerca report** (`rep2.searchLabel`) — testo libero confrontato con
+  azienda, ruolo e titolo visualizzato di ogni report.
+- **Azienda** (`rep2.companyLabel`) — scegli un datore dal menu.
+- **Banda di punteggio** (`rep2.bandLabel`) — **Alta (4.5+)** / **Buona (4.0+)** / **Media (3.5+)** / **Sotto 3.5** (`rep2.bandHigh` … `rep2.bandLow`), più un secchio per i report senza punteggio analizzabile.
+- **Data da / Data a** (`rep2.dateFrom` / `rep2.dateTo`) — lega la
+  lista a un periodo.
+- **Ordina per** (`rep2.sortLabel`) — **Data** / **Punteggio** / **Azienda** (`rep2.sortDate` …), crescente o decrescente (`rep2.sortDirAsc` / `rep2.sortDirDesc`).
+- Un **istogramma della distribuzione dei punteggi** (`rep2.histogramLabel`) — clic su una colonna per filtrare a quella banda e vedere la forma del tuo pipeline a colpo d'occhio.
+- **Azzera filtri** (`rep2.reset`) pulisce tutto; quando nulla coincide, la pagina lo dice (`rep2.noMatches`) invece di mostrare una griglia vuota.
+
+Fai clic su una card per leggere il markdown completo. Paginazione: 20 per pagina;
+controlli in fondo.
+
+La vista del singolo rapporto ha anche:
+
+- **← All reports** — torna alla griglia.
+- **🔗 Open JD** — apre l'offerta di lavoro originale in una nuova scheda.
+
+### Esportare un report in PDF
+
+Apri un report salvato e fai clic su **📄 Genera PDF**. Esegue
+`generate-pdf.mjs` nel progetto padre e scrive il file in `output/*.pdf`
+(richiede Playwright; la pagina Salute indica se è installato). Non viene
+inviato nulla: controlla il PDF prima di allegarlo a una candidatura.
+
+---
+
+### Controllo annuncio — verifica d'integrità del JD (v1.262.0)
+
+Su una pagina di report il cui slug contiene un numero di report, la riga
+delle azioni dell'intestazione ha un pulsante **Controllo annuncio**. Esegue
+il gate d'integrità deterministico e zero-LLM del progetto padre sul JD
+archiviato del report (la cattura `jds/`) e mostra i risultati in linea —
+verdetto, controlli e motivi. Il gate è locale: nessun modello, nessuna
+scrittura. Finché il checkout padre non include lo script `posting-guard.mjs`,
+il pulsante risponde con un onesto avviso "script non trovato" invece di un
+errore.
+
+## 11. Tracker (`#/tracker`)
+
+Il CRM. Una riga per candidatura; vive in `data/applications.md` come
+tabella GitHub-Flavored Markdown.
+
+Il badge di stato di ogni riga è anche un **select** — scegli uno stadio e viene salvato all'istante: il server inoltra al `set-status.mjs` canonico e la riga si aggiorna sul posto; un salvataggio fallito ripristina il valore e mostra un toast. Le righe con uno stato modificato a mano o sconosciuto, e le righe di backfill numerate `N/A`, mostrano invece un badge di sola lettura.
+
+### Flusso di stato
+
+`Evaluated` → `Applied` → `Responded` → `Interview` → `Offer` /
+`Hired` / `Rejected` / `Discarded` / `SKIP`.
+
+`Hired` (v1.118.0) è lo stato finale felice — l'offerta è stata accettata. Il tracker lo contrassegna con un badge celebrativo e lo accoglie con un banner «lavoro ottenuto».
+
+**Bacheca a schede di stadio (v1.131.0).** Sopra la tabella una **striscia di schede di stadio** permette di percorrere il funnel: una scheda **Tutti** più una scheda per ogni stato canonico, ciascuna con un conteggio live sull'intera cronologia — **incluse le fasi a conteggio zero**, così l'intera pipeline è sempre visibile a colpo d'occhio. Clicca su uno stadio per filtrare la tabella su di esso; clicca di nuovo per tornare a **Tutti**. Le schede (e la fusione degli alias di stato localizzati/legacy nei conteggi) provengono da `GET /api/tracker/stages`, che legge lo stesso `templates/states.yml` usato dal server — così l'insieme delle schede resta automaticamente sincronizzato col vocabolario di stato del padre, senza alcuna lista hardcoded nella pagina. La ricerca, il filtro per punteggio, le colonne ordinabili e le funzioni per riga di report/PDF/legittimità restano invariate; con i loghi abilitati, l'azienda di ogni riga mostra un marchio del brand.
+
+**Vista kanban (v2).** La stessa bacheca si legge anche come un
+**kanban** trascina-e-rilascia: una colonna per stato canonico (titolo
+della bacheca annunciato come *{{t:track.kanbanBoardAria}}*,
+`track.kanbanBoardAria`), una card per candidatura. Trascina una card
+su un'altra colonna — o focalizzala e premi **Sposta** — e il
+cambiamento viene
+**anteprimato prima che qualsiasi cosa venga scritta** (`track.kanbanMoveHint`); uno spostamento confermato registra
+una voce nel diario degli outcome e riscrive `data/applications.md`, e
+la card te lo dice (`track.moveJournal`) — per riportare uno stato
+indietro, usa il pulsante **Outcome** della riga. Le colonne che il
+pipeline gestisce da sé (e `Discarded`, la cui semantica scelghi solo
+tu) si renderizzano in sola lettura (`track.kanbanReadOnly`) e
+rifiutano i drop. Se il registratore di outcome del padre manca, gli
+spostamenti si disabilitano con una nota onesta
+(`track.kanbanMovesOff`). Mentre la bacheca carica mostra le stesse
+righe con shimmer del resto dell'app, e una bacheca vuota dice
+**Nessuna candidatura** (`track.kanbanEmpty`) con un puntatore al pipeline
+(`track.emptyBody`).
+
+La whitelist degli stati è imposta lato server; inviare qualcos'altro in
+un `POST /api/tracker` fa il default a `Evaluated`. La transizione canonica
+`Evaluated → Applied` è automatica quando confermi
+`Submitted.` alla fine di `/rebound-ops apply` (vedi §14).
+
+### Layout delle colonne
+
+| Colonna | Cos'è |
+|---|---|
+| `#` | Numerata automaticamente, con zeri iniziali (`001`, `002`, …). |
+| `Date` | Data ISO (`YYYY-MM-DD`). Default a oggi. |
+| `Company` | Testo libero. **Le pipe () e i newline vengono escapati automaticamente.** |
+| `Role` | Uguale. |
+| `Score` | Formato `N/5` (es. `4.2/5`). |
+| `Status` | Enum in whitelist. |
+| `PDF` | ✅ una volta che `generate-pdf.mjs` è riuscito per questa riga. |
+| `Report` | Link markdown al `reports/*.md` corrispondente. |
+| `Notes` | Testo libero, limitato a 200 caratteri. |
+
+### Filtri
+
+- Menu a tendina **Status**.
+- Menu a tendina **Score** — `≥ 4.0` (alto), `≥ 3.0` (medio), `< 3.0` (basso).
+- **Search** — corrispondenza di sottostringa su azienda + ruolo.
+
+Ogni filtro azzera il paginatore a pagina 1. 25 righe per pagina.
+
+### Pulsanti di manutenzione
+
+- **▶ Normalize** esegue `normalize-statuses.mjs` — ri-canonicalizza
+  le grafie degli stati (`applied` → `Applied`, `interview` → `Interview`).
+- **▶ Dedup** esegue `dedup-tracker.mjs` — rimuove i duplicati
+  case-insensitive per `(company, role)`.
+- **▶ Merge** esegue `merge-tracker.mjs` — importa le voci in attesa da
+  `batch/tracker-additions/*.tsv` (dove il flusso batch del padre deposita le
+  candidature inviate tramite l'Apply helper). Deduplica e
+  archivia i file elaborati in `batch/tracker-additions/merged/`. Vedi
+  [batch-evaluate-offers](https://github.com/AnkitParekh007/rebound-ops)
+  per il flusso batch a monte.
+
+### Aggiungere righe
+
+`POST /api/tracker` — corpo `{ company, role, score?, status?, url?,
+reportSlug?, notes?, date? }`. Dedup per `(company, role)`
+case-insensitive. Dalla UI, la pagina Evaluate offre un pulsante "Add to
+tracker" dopo un punteggio riuscito.
+
+### Importare il CSV di un altro tracker (v1.262.0)
+
+Il pulsante **Importa CSV** della barra degli strumenti accetta l'esportazione
+CSV di un altro tracker (company/role/status/date/url — gli alias di colonna
+sono riconosciuti, il quoting RFC-4180 è supportato), mostra un'anteprima di
+ogni riga con il suo esito (importazione, duplicato per URL di annuncio,
+saltata) e scrive solo dopo la tua conferma. Le fasi sconosciute diventano
+Evaluated con una nota; le date accettano formati ISO, giorno-prima e
+nome-del-mese.
+
+### "Ancora attiva?" — verifica se un annuncio ATS è ancora aperto
+
+Ogni riga monitorata che rimanda a un annuncio ospitato su un ATS (Greenhouse, Lever, Ashby, Workday o SmartRecruiters) riceve un piccolo pulsante **Ancora attiva?**. Cliccalo e l'app chiede all'endpoint JSON pubblico di quell'ATS se l'annuncio è ancora in piedi — senza browser, senza token di IA, senza salvare nulla. Ottieni uno di tre badge:
+
+- **Attiva** — l'annuncio è ancora elencato.
+- **Scaduta** — l'ATS ha restituito un "rimosso" definitivo (HTTP 404/410), quindi la posizione è stata ritirata.
+- **Sconosciuto** — il controllo non è stato concludente (l'URL non è un annuncio ATS riconosciuto, oppure l'API era a limite di frequenza, è andata in timeout o ha risposto in modo ambiguo).
+
+Il controllo è volutamente prudente: dice **Scaduta** solo su un 404/410 netto, mai per congettura, così non ti allontanerà mai da una posizione che in realtà è ancora aperta. L'API pubblica di Lever è trattata come non autorevole (nasconde alcuni annunci riservati), perciò quei casi risultano **Sconosciuto** anziché Scaduta.
+
+### Registrare un esito
+
+Quando una candidatura arriva alla fine — hai ottenuto l'offerta, hai preso il lavoro, sei stato rifiutato o semplicemente non hai avuto risposta — clicca il pulsante **Esito** su quella riga del tracker per registrarlo. Si apre una piccola finestra di anteprima e conferma:
+
+- **Scegli cos'è successo** — Rifiutato, Offerta ricevuta, Assunto / accettato, Offerta rifiutata, Nessuna risposta / ghostato, oppure Passato al colloquio.
+- **Nota (facoltativa)** — una riga breve per te.
+- **Anteprima** — l'app mostra esattamente cosa farà (es. *«Imposterà #12 Acme → Rifiutato»*) e non scrive ancora nulla.
+- **Registra esito** — lo conferma.
+
+Registrare fa tre cose insieme: aggiunge il risultato a un diario degli esiti in sola-aggiunta, archivia il CV e la lettera di presentazione che hai inviato nella cartella esiti di quella candidatura e sincronizza lo **Stato** canonico della riga — così un **Assunto** o **Rifiutato** compare nel tracker e nelle statistiche senza che tu modifichi la tabella a mano. Come gli altri strumenti del tracker resta in sola lettura finché non premi **Registra esito**, e richiede il progetto padre rebound-ops accanto all'app (il pulsante è nascosto quando quel progetto non c'è).
+
+---
+
+## 12. Deep research (`#/deep`)
+
+Genera un brief aziendale strutturato: snapshot, cultura ingegneristica,
+notizie recenti, sentiment Glassdoor, processo di colloquio, punti di
+leva per la negoziazione, tre domande intelligenti da porre al recruiter.
+
+### Input
+
+Due campi — nome dell'azienda e (opzionale) ruolo. Il template della modalità
+(`modes/deep.md`) è ciò che modella la struttura.
+
+### Percorsi di output
+
+Stessa catena di ripiego di Evaluate:
+
+1. **Anthropic in tempo reale** (preferito) — `bundleProjectContext` inserisce
+   cv + profile + `_shared.md` + `deep.md`. Output: 10–30 KB di
+   markdown fondato salvato in
+   `interview-prep/<company>-<role>.md`.
+2. **Gemini in tempo reale** — invocazione `gemini-eval.mjs`. Stessa destinazione di salvataggio.
+3. **Prompt manuale** — la pagina ti consegna un prompt pronto per Claude
+   Code (che ha WebFetch + WebSearch e può fare ricerca reale).
+
+### Consigli
+
+- Anthropic su `claude-sonnet-4-6` in genere restituisce ~13 KB di testo
+  utile in 1–3 minuti per chiamata.
+- L'SDK Anthropic non ha ricerca web integrata. Per i ruoli in cui hai
+  bisogno di notizie fresche + sentiment Glassdoor, incolla il prompt manuale in
+  Claude Code e lascia che usi il suo strumento WebFetch.
+- Le esecuzioni in tempo reale sono fatturate; una chiamata di ricerca approfondita con Sonnet 4.6 costa ≈
+  $0.30–0.50.
+
+---
+
+## 13. Prompt di modalità (le sette pagine `/#/<mode>`)
+
+**Bacheca di cadenza (v1.117.0).** La pagina di follow-up ora si apre con una **bacheca di cadenza** deterministica alimentata dal `followup-cadence.mjs` del padre: urgenza per candidatura (🔴 urgente / 🟠 in ritardo / 🟡 in attesa / 🔵 freddo) con i giorni al passo successivo, più un pulsante **Semina date di follow-up** che fissa una prima data per ogni riga Applied (`followup-seed.mjs --backfill`). Senza gli script del padre la bacheca mostra onestamente "non disponibile".
+
+Sette costruttori di prompt: idee di **Project**, piani di **Training**,
+email di **Follow-up**, valutazioni **Batch**, **Outreach** verso
+recruiter, one-pager di **Interview prep**, e retrospettive **Patterns**.
+Ciascuno avvolge uno specifico template `modes/<slug>.md`:
+
+| Pagina | Slug | Scopo |
+|---|---|---|
+| `#/project` | `project` | Adatta un progetto di portfolio per un ruolo target. |
+| `#/training` | `training` | Analisi dei gap di competenze → curriculum. |
+| `#/followup` | `followup` | Bozza di email post-colloquio. |
+| `#/batch` | `batch` | Prompt di valutazione batch multi-JD. |
+| `#/contacto` | `contacto` | Messaggio di outreach a un recruiter / referral. |
+| `#/interview-prep` | `interview-prep` | One-pager di preparazione per uno specifico round di colloquio. |
+| `#/patterns` | `patterns` | Analisi riflessiva "Quali pattern mi hanno reso di successo?". |
+
+### Forma condivisa
+
+Ogni pagina ha un piccolo modulo (i campi sono specifici della modalità), un pulsante
+**{{t:deep.run}}** (manuale), e — quando è presente una chiave Anthropic o Gemini
+— un pulsante **⚡ Esegui in tempo reale** che viene promosso a primario.
+
+Fare clic su **{{t:deep.run}}** restituisce il prompt assemblato con i tuoi
+valori del modulo JSON-stringificati in un blocco `User-supplied context:`,
+seguito dal template `modes/<slug>.md` alla lettera. Copia e incolla
+nel tuo LLM preferito.
+
+Fare clic su **⚡ Esegui in tempo reale** invia lo stesso prompt ad Anthropic (o
+Gemini), con `cv.md` + `profile.yml` + `_shared.md` inseriti via
+`bundleProjectContext`. Il risultato è reso in pagina, copiabile, e
+scaricabile come `.md`.
+
+Le sette pagine sono una allowlist esplicita — le modalità che hanno una
+route dedicata (`oferta` → Evaluate, `deep` → Deep research) e le
+modalità che il progetto padre supporta solo dentro Claude Code (`apply`,
+`scan`, `pipeline`, `tracker`, `pdf`, `latex`, `ofertas`,
+`auto-pipeline`) restano deliberatamente fuori da questa UI.
+
+---
+
+## 14. Apply checklist (`#/apply`)
+
+Una volta deciso di candidarti, questa pagina Apply helper genera una
+checklist di candidatura per il passo effettivo della candidatura. NON auto-compila
+i moduli — quel flusso resta in `/rebound-ops apply` dentro Claude Code,
+che usa Playwright nel progetto padre.
+
+### Modalità checklist SPA (`#/apply`)
+
+La checklist della SPA è per gli utenti che preferiscono compilare il modulo a mano
+senza invocare Playwright. Copre:
+
+0. Esegui `/rebound-ops apply <url>` in Claude Code per leggere il modulo tramite
+   Playwright (salta questo passo se stai compilando a mano).
+1. Verifica che l'offerta di lavoro sia ancora in tempo reale (`check-liveness.mjs`).
+2. Conferma che il CV sia l'ultimo (`cv-sync-check.mjs`, poi PDF se punteggio ≥ 4.0).
+3. Adatta la lettera di presentazione / risposta "Why us?" usando i proof
+   point STAR+R da `cv.md`.
+4. Rispondi alle domande EEO / sponsorizzazione / data di inizio con sincerità.
+5. Salva le risposte compilate in
+   `interview-prep/{company}-{role}.md` prima di inviare.
+6. **MAI inviare automaticamente** — sei tu (l'essere umano) a fare clic sul pulsante finale.
+7. Dopo l'invio: aggiungi una riga a `data/applications.md` (o scrivi un TSV in
+   `batch/tracker-additions/`).
+
+### Compilazione manuale vs assistita da Playwright
+
+Due percorsi per l'invio effettivo:
+
+- **Manuale** — apri la pagina carriere in una normale scheda del browser, segui
+  la checklist SPA sopra, copia/incolla le risposte. Nessun Playwright necessario.
+  Usalo quando il modulo è breve o non hai Chromium installato.
+- **Assistito da Playwright** — esegui `/rebound-ops apply <company>` in
+  Claude Code (progetto padre). Playwright apre il proprio browser,
+  legge ogni campo del modulo, restituisce bozze di risposte numerate. Fai comunque
+  clic su Invia. Usalo quando il modulo è lungo, dinamico, o vuoi la
+  tracciabilità di quali domande avevano quali risposte.
+
+### Flusso completo di candidatura CLI ([apply-for-a-job](https://github.com/AnkitParekh007/rebound-ops))
+
+**Prerequisiti:**
+
+1. Esegui prima `/rebound-ops pipeline` così la JD ha un rapporto di valutazione
+   sotto `reports/`. Il comando apply dipende da una valutazione esistente;
+   senza una, esegui prima la pipeline.
+2. Abbi il rapporto e il profilo caricati.
+3. **Consigliato:** Playwright installato
+   (`npx playwright install chromium` — vedi Playwright Setup qui sotto).
+   Ripiega su WebFetch (anteprima del modulo solo-testo, senza click-fill) quando
+   manca.
+
+**Flusso numerato** (canonici 8 passi):
+
+1. **Esegui il comando** con il nome dell'azienda:
+
+   ```
+   /rebound-ops apply <company>
+   ```
+
+   Esempio: `/rebound-ops apply Anthropic`. Senza un argomento, fornisci
+   uno screenshot del modulo, il testo del modulo incollato, o l'URL
+   della candidatura nel turno successivo.
+
+2. **Individua il rapporto.** Il sistema trova la valutazione corrispondente in
+   `reports/` (quella creata da `/rebound-ops pipeline` o
+   `#/evaluate` in precedenza).
+
+3. **Apri il modulo.** Playwright avvia una finestra del browser
+   **automaticamente** — NON la apri tu.
+
+4. **Leggi i campi.** Il sistema legge e analizza ogni campo del modulo
+   (etichetta, tipo, obbligatorio, opzioni per i select).
+
+5. **Genera le risposte.** rebound-ops crea risposte su misura per ogni
+   campo in base al tuo profilo, ai proof point, e al ruolo.
+
+6. **Restituisce un elenco numerato.** Ricevi risposte ordinate per corrispondere al
+   layout del modulo — campi semplici (nome, email) prima, campi di testo libero
+   (lettera di presentazione, "Why us?") per ultimi. Gli elementi segnalati puntano a cose
+   che necessitano di attenzione umana — ancoraggio salariale, dettagli mancanti del curriculum,
+   domande opzionali.
+
+7. **Compilazione manuale.** Copi e incolli ogni risposta nel
+   campo corrispondente. Questo passo è manuale, non automatizzato. Tu
+   rivedi ogni risposta prima.
+
+8. **L'utente invia.** Fai clic tu stesso su Invia. rebound-ops **non**
+   fa **mai** clic su Invia. Conferma il completamento digitando in chat:
+
+   ```
+   Submitted.
+   ```
+
+**Aggiornamenti automatici su `Submitted.`:**
+
+- Lo stato passa da `Evaluated → Applied` in `data/applications.md`.
+- Le risposte compilate persistono nella Sezione G del rapporto per riferimento
+  futuro.
+
+**Passaggio al tracker:**
+
+```
+/rebound-ops tracker
+```
+
+Monitora lo stato dell'intera pipeline, indipendentemente dal punteggio del ruolo.
+
+### Batch evaluate ([batch-evaluate-offers](https://github.com/AnkitParekh007/rebound-ops))
+
+Quando hai 10+ JD da valutare in una volta (la `#/evaluate` a una alla volta
+della SPA è impraticabile per quel volume), usa il batch runner
+dalla CLI. La pagina `#/batch` ti accoglie con la stessa onestà: il suo
+stato vuoto mostra **Inizia con un elenco di annunci**
+(`v2empty.batch.emptyTitle`) e un assistente **Incolla elenco URL**
+(`v2empty.batch.pasteList`) che solleva gli URL http(s) dagli appunti
+diretto nell'input (`v2empty.batch.pasteAdded`), così
+
+**File di input — `batch/batch-input.tsv`** (separato da tab):
+
+| Colonna | Scopo |
+|---|---|
+| `id` | Numero sequenziale univoco |
+| `url` | Link completo all'offerta di lavoro |
+| `source` | Piattaforma di origine (LinkedIn, Greenhouse, ecc.) |
+| `notes` | Dettaglio contestuale opzionale |
+
+
+Riga di esempio:
+
+```
+1<TAB>https://jobs.example.com/senior<TAB>LinkedIn<TAB>
+```
+
+**Flag di `./batch/batch-runner.sh`:**
+
+- `--dry-run` — Anteprima delle offerte in attesa senza valutazione. Esegui sempre
+  questo prima per validare il TSV.
+- `--parallel N` — Esegue N worker simultaneamente (1, 2, o 3
+  consigliati).
+- `--min-score X.X` — Salta la persistenza delle offerte con punteggio sotto la
+  soglia. Utile per conservare i rapporti solo per ruoli ad alta compatibilità.
+- `--retry-failed` — Rielabora solo le offerte che sono andate in errore
+  nell'esecuzione precedente (guasti di rete, rate limit).
+- `--max-retries N` — Tenta le offerte fallite fino a N volte (default: 2).
+- `--model NAME` — Modello Claude passato a `claude -p --model` (padre rebound-ops 1.8.0, #504). Non impostato = il default della tua sottoscrizione Claude Max. Usa un modello più economico per grandi batch, es. `claude-sonnet-4-6`. Mostrato in `#/batch` come input **Model** (web-ui 1.31.0).
+- `--start-from N` — Salta gli ID di offerta sotto N (riprendi un batch parzialmente elaborato). Mostrato in `#/batch` come input **Start from #** (web-ui 1.31.0).
+
+**Sequenza standard:**
+
+1. **Modifica** `batch/batch-input.tsv` — una riga per JD.
+
+2. **Dry-run** (consigliato per primo):
+
+   ```bash
+   ./batch/batch-runner.sh --dry-run
+   ```
+
+3. **Esegui** — sequenziale o parallelo:
+
+   ```bash
+   ./batch/batch-runner.sh                       # one at a time
+   ./batch/batch-runner.sh --parallel 2          # two concurrent
+   ./batch/batch-runner.sh --parallel 3          # three concurrent
+   ./batch/batch-runner.sh --parallel 2 --min-score 4.0  # only persist high-fit
+   ```
+
+4. **Riprova i fallimenti** (rete / rate-limit):
+
+   ```bash
+   ./batch/batch-runner.sh --retry-failed --max-retries 3
+   ```
+
+5. **I rapporti** finiscono in `reports/` come
+   `{id}-{company}-{YYYY-MM-DD}.md`. Le righe di riepilogo si accodano a
+   `batch/tracker-additions/`.
+
+6. **Unisci nel tracker:**
+
+   ```bash
+   node merge-tracker.mjs                 # apply the batch additions
+   node merge-tracker.mjs --dry-run       # preview the merge
+   ```
+
+   Il comando merge deduplica le voci e archivia i file elaborati
+   in `batch/tracker-additions/merged/`.
+
+La SPA mostra i rapporti risultanti sotto `#/reports` (paginati,
+con pill di punteggio colorate) e le righe del tracker sotto `#/tracker` — esattamente
+come se avessi aggiunto ciascuno tramite `#/evaluate`. Abbina il
+pulsante di manutenzione **▶ Merge** su `#/tracker` se preferisci non
+scendere alla CLI.
+
+### Configurazione di Playwright ([set-up-playwright](https://github.com/AnkitParekh007/rebound-ops))
+
+Richiesto per due funzionalità di rebound-ops:
+
+- **Compilazione moduli** in `/rebound-ops apply` (passo 3 sopra — Playwright
+  apre il browser, legge le etichette dei campi, suggerisce risposte).
+- **Generazione PDF** tramite `/rebound-ops pdf` e il pulsante
+  **📄 Genera PDF** della SPA su `#/cv` / `#/reports/:slug` /
+  `#/evaluate` / `#/deep` / `#/interview-prep`.
+
+**Ripiego quando Playwright manca:** il flusso apply ripiega su
+WebFetch (anteprima del modulo solo-testo, senza click-fill). La generazione PDF
+semplicemente dà errore.
+
+**Configurazione base (esegui dalla radice del padre rebound-ops):**
+
+```bash
+# Install Chromium for Playwright
+npm install
+npx playwright install chromium
+
+# Register the Playwright MCP so Claude Code can drive forms
+claude mcp add playwright npx @playwright/mcp@latest
+
+# Verify all three components (Chromium, Playwright lib, MCP)
+npm run doctor
+```
+
+**Registrazione MCP alternativa** — aggiungi a
+`.claude/settings.local.json`:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+**Note sul comportamento:**
+
+- **Headless per default.** Playwright opera silenziosamente. Per guardare il
+  browser in azione, di' a Claude `open up with playwright the browser
+  and fill out the entire form.`
+- **Tre ruoli in un pacchetto** — l'install npm di Playwright ti dà
+  la libreria di automazione del browser, il motore di rendering PDF per
+  `/rebound-ops pdf`, e (tramite l'MCP) il flusso di compilazione moduli dentro
+  Claude Code.
+- **Verifica prima di affidartici** — `npm run doctor` conferma che tutti e
+  tre siano operativi. La pagina Health della SPA mostra un
+  controllo `Playwright (parent node_modules)` che fallisce subito se manca.
+
+---
+
+## 15. Preparazione ai colloqui
+
+Questa è la fase post-ricerca, pre-colloquio. Tre artefatti in
+questa app convergono:
+
+1. **File di ricerca approfondita salvati** sotto `interview-prep/`, uno per
+   coppia azienda-ruolo che hai eseguito. Sfoglia dalla pagina **Deep research**
+   o direttamente via `/api/interview-prep`.
+2. **Modalità Patterns** (`#/patterns`) — genera un prompt auto-riflessivo:
+   "attraverso i miei ultimi N colloqui / offerte / rifiuti, quali
+   pattern reggono?" Utile quando hai accumulato 5+ righe nel tracker.
+3. **Modalità Interview-prep** (`#/interview-prep`) — pre-compila un
+   one-pager per uno specifico round imminente (behavioral, technical,
+   system design). L'output va nella stessa cartella `interview-prep/`.
+
+### Flusso di lavoro consigliato
+
+Per ogni colloquio che hai in agenda:
+
+1. **Ri-esegui Deep** (o apri il file salvato) il giorno prima.
+2. **`#/interview-prep`** — genera un one-pager per lo specifico
+   round. Incolla nei tuoi appunti.
+3. **Round di system design / coding** — apri `#/training` e chiedi
+   un ripasso mirato di 30 minuti sullo specifico sottosistema che la JD
+   enfatizza.
+4. **Round di retribuzione** — apri il file di ricerca approfondita, salta a
+   "Negotiation leverage points". Porta 2–3 dati specifici
+   (banda Glassdoor, finanziamento recente, offerta comparabile in un'altra
+   azienda).
+5. **Round comportamentali** — estrai le storie STAR+R dal tuo `cv.md` che
+   finiscono nella sezione B del rapporto Evaluate originale.
+
+Dopo il colloquio, immediatamente:
+
+1. Aggiorna la riga del tracker: stato → `Responded` (poi `Interview`,
+   `Offer`, ecc.).
+2. Esegui `#/followup` per redigere l'email di ringraziamento.
+3. Se hai ottenuto nuove informazioni (fascia retributiva, composizione del team, sorpresa sul tech
+   stack), modifica il `interview-prep/<company>-<role>.md` salvato
+   con `## Post-round notes` così il te-futuro le ha.
+
+---
+
+## 16. Activity log + Risoluzione dei problemi
+
+### Activity log (`#/activity`)
+
+Traccia di audit di ogni richiesta che modifica lo stato e colpisce il server.
+Registra: aggiunte alla pipeline, scritture nel tracker, salvataggi CV, salvataggi JD, esecuzioni di
+evaluate, esecuzioni di ricerca approfondita, esecuzioni di scansione, modifiche di configurazione, esecuzioni di modalità.
+
+I segreti (`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) sono redatti in
+ingresso; non vedrai mai un valore di chiave reale in `data/activity.jsonl`.
+
+Filtra per prefisso di azione (`pipeline.`, `cv.`, `evaluate`, `scan.`,
+ecc.). 25 righe per pagina; il server restituisce fino a 500 eventi più
+recenti.
+
+### Risoluzione dei problemi
+
+| Sintomo | Causa probabile | Correzione |
+|---|---|---|
+| Pagina Health rossa su `cv.md` | Prima esecuzione, il file non esiste ancora | `touch $REBOUND_OPS_ROOT/cv.md` poi ricarica. |
+| Health rossa su `Profile customized` | `candidate.full_name` dice ancora `Jane Smith` | Modifica `config/profile.yml`. |
+| `hh.ru: HTTP 451` o `403` nel log della scansione | L'IP di uscita è fuori dalla Russia, oppure hh.ru l'ha marcato come VPN/datacenter | Esegui da un IP **residenziale** russo. Non esiste alcuna chiave né impostazione User-Agent: lo scanner invia da sé un UA da browser. |
+| `gemini-eval.mjs: ERR_MODULE_NOT_FOUND` | Dipendenze del progetto padre non installate | `cd $REBOUND_OPS_ROOT && npm install`. |
+| Errori di Generate PDF | Playwright non installato nel padre | `cd $REBOUND_OPS_ROOT && npx playwright install chromium`. |
+| `/rebound-ops apply` dice "no report found" | La pipeline non ha mai valutato questa JD | Esegui prima `/rebound-ops pipeline` (o `#/evaluate`); vedi i prerequisiti del §14. |
+| `batch-runner.sh: no such file` | Esecuzione dalla directory sbagliata | `cd $REBOUND_OPS_ROOT` prima di invocare `./batch/batch-runner.sh`. |
+| Il server segnala `EADDRINUSE: 4317` | Vecchia istanza ancora in esecuzione | `pkill -f 'node server/index.mjs'` poi riavvia. |
+| La chiamata LLM in tempo reale si blocca > 2 min | Prompt enorme o Anthropic lento | Controlla il flag Anthropic di `/api/health`; il server applica un soft-cap ai prompt a 256 KB e restituisce 413. |
+| L'anteprima della pipeline mostra `(unsafe redirect)` | L'offerta reindirizzava a un IP privato / loopback | Questa è una funzione di sicurezza (REVIEW-B1). Il target del reindirizzamento è rifiutato e l'URL originale è invariato. |
+| Il testo di una riga del tracker rompe la tabella | Pipe nel nome dell'azienda pre-v1.9.1 | Aggiorna a v1.9.1+ — le pipe sono escapate da un capo all'altro (BF-1). |
+| `npm test` fallisce su un clone pulito | I test presuppongono il layout del progetto padre | Usa `REBOUND_OPS_ROOT=$(mktemp -d)` e fai il bootstrap delle fixture. |
+
+
+Per diagnostiche più approfondite: esegui **Esegui doctor** sulla pagina Health, copia l'
+output, e cerca la issue nel tracker su
+<https://github.com/AnkitParekh007/rebound-ops/issues>.
+
+
+---
+
+## 17. Come aggiungere una nuova sorgente di portale di lavoro
+
+rebound-ops-ui tratta ogni job board come un **adattatore** — un singolo file sotto [`server/lib/sources/<slug>.mjs`](../../server/lib/sources/) che sa come recuperare + normalizzare i risultati di un board. Attualmente il registro `server/lib/sources/` include **129** sorgenti — **124 inglesi + 5 russi**. L'insieme inglese copre i principali ATS (Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday), gli aggregatori a livello di board selezionati da un `provider:` esplicito (RemoteOK, Remotive, We Work Remotely, NoDesk, Get on Board, Amazon, …) e gli ATS per-tenant auto-rilevati da un host `careers_url` o da un URL `api:` esplicito (BambooHR, Personio, Recruitee, Teamtailor, Avature, SAP SuccessFactors, …). I board della piattaforma **Deel** (`jobs.deel.com/<slug>` — il board multi-tenant su cui pubblicano Klarna e altri) sono auto-rilevati dall’URL: aggiungerne uno sono due righe in portals.yml. **L'elenco completo non va mai contato a mano qui — viene auto-rilevato da `server/lib/sources/` e mostrato in tempo reale nel menu a tendina Source di `#/scan`.** Vedi §5 per lo YAML e `docs/portals-examples.md` per le voci da copia-incolla.
+
+> **v1.69.0 (P-14) — auto-discovery drop-in.** Aggiungere una 12ª sorgente è ora
+> un **puro drop di file**. Il registro
+> ([`server/lib/sources/registry.mjs`](../../server/lib/sources/registry.mjs))
+> non contiene più una lista mantenuta a mano — all'avvio scansiona questa cartella
+> (`readdirSync` + `import()` dinamico) e raccoglie il blocco `export const meta`
+> da ogni `*.mjs`. Scrivi l'adattatore, dichiara il suo `meta`, ed è
+> immediatamente visibile allo scanner, al menu a tendina dei filtri di `#/scan`, e al
+> dispatcher RU — **nessuna modifica a `registry.mjs` richiesta**. (Le sorgenti RU hanno ancora bisogno
+> di una riga nel `portals.yml` del padre; vedi Passo 5.)
+
+### Passo 1 — Scrivi l'adattatore
+
+Crea `server/lib/sources/<slug>.mjs`. Due pattern funzionano a seconda che
+la sorgente abbia un'API JSON o renda solo HTML:
+
+**Sorgente basata su API** (la più pulita — usa questa ogni volta che il sito ha un
+endpoint di dati aperto):
+
+```js
+// server/lib/sources/example.mjs
+const ENDPOINT = 'https://example.com/api/v1/vacancies';
+const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ...';
+
+// v1.69.0 (P-14) — self-describing metadata. The registry auto-discovers
+// this block at boot; THIS is what registers the source (see Step 2).
+export const meta = {
+  value: 'example',          // ← must equal job.source written below
+  label: 'Example.com',      // ← shown in the #/scan filter dropdown
+  region: 'ru',              // ← 'en' (ATS sweep) | 'ru' (regional dispatcher)
+  configKey: 'example',      // ← RU only; the key used in portals.yml
+};
+
+export async function searchExample(query, opts = {}) {
+  const { onlyRemote = false, fetchImpl = fetch, signal } = opts;
+  const res = await fetchImpl(`${ENDPOINT}?text=${encodeURIComponent(query)}`, {
+    signal,
+    headers: { 'User-Agent': UA, Accept: 'application/json' },
+  });
+  if (!res.ok) {
+    const err = new Error(`Example: HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  const data = await res.json();
+  return (data.items || []).map(normalizeExample);
+}
+
+function normalizeExample(item) {
+  return {
+    id: `example-${item.id}`,
+    title: item.title || '',
+    company: item.company?.name || '',
+    url: item.url || '',
+    salary: item.salary || '',
+    location: item.location || '',
+    isRemote: !!item.remote,
+    workplaceType: item.remote ? 'Remote' : 'Onsite',
+    relocates: false,
+    date: item.posted_at || '',
+    snippet: (item.description || '').slice(0, 240),
+    source: 'example',           // ← must match the registry `value` exactly
+  };
+}
+```
+
+**Sorgente con scraping HTML** (quando non c'è API — vedi
+[`getmatch.mjs`](../../server/lib/sources/getmatch.mjs) e
+[`geekjob.mjs`](../../server/lib/sources/geekjob.mjs) per esempi completi):
+
+```js
+const BASE = 'https://example.com';
+
+export async function searchExample(query, opts = {}) {
+  const { fetchImpl = fetch, signal } = opts;
+  const res = await fetchImpl(`${BASE}/vacancies?q=${encodeURIComponent(query)}`, {
+    signal,
+    headers: { 'User-Agent': UA, Accept: 'text/html' },
+  });
+  if (!res.ok) {
+    throw Object.assign(new Error(`Example: HTTP ${res.status}`), { status: res.status });
+  }
+  return parseExampleCards(await res.text());
+}
+
+export function parseExampleCards(html) {
+  // …regex-based card extraction. Return [] on parse failure (DON'T throw):
+  // a healthy 200 with no parseable cards is "no results", not "error",
+  // so the multi-source scanner can keep going.
+}
+```
+
+Tre contratti che ogni adattatore DEVE onorare:
+
+- **Esporta un blocco `meta` valido** (vedi Passo 2). Senza di esso il registro
+  salta silenziosamente il file (un `console.warn` all'avvio) e la sorgente
+  non appare mai.
+- **Accetta `{ onlyRemote, fetchImpl, signal }` in `opts`.** `fetchImpl`
+  è ciò che rende gli adattatori testabili senza rete; `signal` è richiesto
+  per la propagazione della disconnessione del client (REVIEW-B3).
+- **Restituisci record con la forma comune** —
+  `{ id, title, company, url, salary, location, isRemote, workplaceType,
+  relocates, date, snippet, source }`, dove `source` corrisponde al
+  `meta.value`.
+
+### Passo 2 — Dichiara il `meta` dell'adattatore (auto-registrazione)
+
+Questo è l'intero passo di registrazione. **Non modifichi `registry.mjs`.**
+Assicurati solo che l'adattatore esporti un blocco `meta` — il registro
+lo auto-scopre all'avvio:
+
+```js
+// at the top of server/lib/sources/example.mjs
+export const meta = {
+  value: 'example',          // job.source value AND #/scan option.value
+  label: 'Example.com',      // display label in the dropdown
+  region: 'ru',              // 'en' | 'ru'
+  configKey: 'example',      // RU only — key in portals.yml::russian_portals.sources
+};
+```
+
+Come la scoperta lo valida (un file che fallisce qualsiasi regola viene saltato, con un
+avviso `[sources/registry]`, così un branch a metà migrazione resta diagnosticabile):
+
+- `value` — stringa non vuota. DEVE corrispondere a `job.source` dal tuo adattatore.
+- `label` — stringa non vuota.
+- `region` — esattamente `'en'` o `'ru'`; qualsiasi altra cosa è rifiutata.
+- `configKey` — **richiesto** per `region: 'ru'`, ignorato per `'en'`.
+
+`region: 'en'` si unisce alla scansione ATS (si auto-scopre dai pattern di URL di
+`tracked_companies`); `region: 'ru'` si unisce al dispatcher regionale. L'API pubblica
+(`SOURCES`, `SOURCES_BY_REGION`, `RU_CONFIG_KEYS`, `getRegionalSources`) è
+ricostruita da ogni `meta` scoperto, ordinata `en` prima poi `ru`,
+alfabeticamente per label dentro ogni regione — così l'ordine del menu a tendina resta
+stabile per gli utenti.
+
+### Passo 3 — Collega al dispatcher (solo RU)
+
+Le sorgenti ATS EN si auto-scoprono dai pattern di URL di `tracked_companies` —
+nessun ulteriore collegamento necessario. Per le sorgenti RU, apri
+[`server/lib/ru-scanner.mjs`](../../server/lib/ru-scanner.mjs), trova
+la tabella `RU_DISPATCH`, e aggiungi una riga:
+
+```js
+import { searchExample } from './sources/example.mjs';
+// …
+const RU_DISPATCH = {
+  // …existing…
+  example: { label: 'example.com', search: searchExample },
+};
+```
+
+Il loop del dispatcher chiama `entry.search(query, opts)` per ogni chiave
+presente in `cfg.sources`. Nessuna ulteriore modifica al codice necessaria.
+
+### Passo 4 — Testa (mockato, mai in tempo reale)
+
+Metti un file sotto `tests/sources-<slug>.test.mjs`. La rete reale è
+**vietata** nei test (contratto di isolamento CI):
+
+```js
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { searchExample } from '../server/lib/sources/example.mjs';
+
+test('searchExample normalizes one record', async () => {
+  const fetchImpl = async () =>
+    new Response(
+      JSON.stringify({ items: [{ id: 1, title: 'Backend Engineer' }] }),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    );
+  const out = await searchExample('q', { fetchImpl });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].source, 'example');
+});
+```
+
+### Passo 5 — Abilita nel tuo `portals.yml`
+
+Il `portals.yml` del progetto padre è la config di proprietà dell'utente. Aggiungi il
+`configKey` della nuova sorgente all'array:
+
+```yaml
+russian_portals:
+  sources: ["hh", "habr", "trudvsem", "getmatch", "geekjob", "example"]
+  area: 113
+  per_page: 50
+  only_remote: false
+  queries:
+    - "Senior PHP"
+    - "Senior Go"
+```
+
+Ricarica `#/scan` nel browser. Il menu a tendina dei filtri per sorgente raccoglie la
+nuova voce automaticamente (unica fonte di verità tramite
+[`GET /api/scan/sources`](../../server/lib/routes/scan.mjs) →
+[`registry.mjs`](../../server/lib/sources/registry.mjs)). Il
+pulsante 🌐 Scansiona ora include la nuova sorgente in ogni scansione regionale.
+
+### Adattatori di riferimento (rispecchia questi per le nuove sorgenti)
+
+| File adattatore | Tipo | Note |
+|---|---|---|
+| [`hh.mjs`](../../server/lib/sources/hh.mjs) | JSON API | Adattatore API RU canonico; UA di ripiego geo-aware. |
+| [`trudvsem.mjs`](../../server/lib/sources/trudvsem.mjs) | JSON API | Open-data governativo russo; nessun gate IP. |
+| [`habr.mjs`](../../server/lib/sources/habr.mjs) | HTML scrape | Board tecnico russo; parser di card basato su regex. |
+| [`getmatch.mjs`](../../server/lib/sources/getmatch.mjs) | HTML scrape | Parser difensivo, `[]` su parse mancato. |
+| [`geekjob.mjs`](../../server/lib/sources/geekjob.mjs) | HTML scrape | Stesso stile difensivo di GetMatch. |
+| [`greenhouse.mjs`](../../server/lib/sources/greenhouse.mjs) | JSON API | Adattatore ATS EN canonico; usa il pattern di URL di `tracked_companies`. |
+
+### Insidie comuni
+
+- **Dimenticare l'export di `meta`.** Da v1.69.0 il blocco `meta` è l'
+  *unica* cosa che registra una sorgente. Nessun `meta` (o uno malformato) =
+  il file viene silenziosamente saltato all'avvio con un singolo avviso
+  `[sources/registry] <file> has no valid \`export const meta\` — skipped`,
+  e la sorgente non raggiunge mai il menu a tendina. Controlla il log del server
+  se un adattatore nuovo di zecca non compare.
+- **Disallineamento del campo `source`.** La stringa scritta dal tuo adattatore DEVE
+  corrispondere esattamente a `meta.value`. Se divergono, il
+  menu a tendina dei filtri di `#/scan` mostrerà la sorgente ma selezionandola
+  filtrerà via ogni riga (perché il controllo di uguaglianza è `r.source === fs`).
+- **Lanciare eccezioni al fallimento del parsing.** Gli scraper HTML DEVONO restituire `[]` su un
+  200 sano senza card analizzabili. Lanciare rompe il loop del dispatcher
+  multi-sorgente — una struttura HTML sbagliata uccide ogni altra sorgente per
+  la stessa query.
+- **Dimenticare `fetchImpl` / `signal`.** Senza di essi, il tuo adattatore
+  non può essere testato con unit test senza colpire la rete reale, e le disconnessioni
+  del client non si propagano (il fetch in background resta vivo dopo che l'utente chiude
+  la scheda).
+- **Fidarsi di `tracked_companies` per RU.** Quella lista è solo per le sorgenti
+  ATS EN. Gli adattatori RU si guidano da soli da
+  `russian_portals.queries` invece — nessuna voce per-azienda.
+
+---
+
+## 18. Notifiche (🔔 nella barra superiore)
+
+> v1.58.34 — ogni toast che appare nell'angolo in basso a destra viene anche catturato
+> in un journal in memoria (limite 50, il più vecchio scartato). Fai clic sulla campanella 🔔 nella
+> barra superiore per aprire il cassetto **Notifications** a scorrimento da destra e rileggere qualsiasi cosa
+> ti sia sfuggita. Il journal è per-scheda, per-sessione — chiudere la scheda lo cancella.
+
+Il cassetto **si apre solo quando fai clic sulla campanella** (o lo attivi con Enter /
+Spazio quando ha il focus da tastiera). Non appare mai da solo. Il badge rosso sulla
+campanella conta le voci che non hai visto dall'ultima apertura; aprire il cassetto
+cancella il badge.
+
+### Categorie di notifica
+
+| Categoria | Quando scatta | Segnale visivo |
+|---|---|---|
+| **Success** | `Saved`, `Copied`, `Refreshed`, scansione completata, CV importato, azioni della apply-checklist ("Copied unchecked", "Reset"), profilo salvato, URL della pipeline aggiunto | bordo sinistro verde nel cassetto; sfondo toast verde |
+| **Error** | Fallimento della validazione URL (deve iniziare con `http://` / `https://`, nessun carattere di script/template), errori API con il postfisso `(METHOD /path · HTTP NNN)`, guasti di rete (server giù), duplicati pipeline-400, exit non-zero di doctor / verify-pipeline | bordo sinistro rosso; sfondo toast rosso; postfisso tecnico riposto nel blocco `<details>` `Details` (U-4 / v1.58.24) |
+| **Info / progress** | `Running doctor.mjs…`, `Running verify-pipeline.mjs…`, `Refreshing…`, `Loading…`, `Generating prompt…`, righe di avanzamento della scansione | bordo sinistro grigio; sfondo toast di default |
+
+
+Ogni voce del cassetto mostra:
+
+- **Timestamp** (`HH:MM:SS` localizzato nella lingua attiva della SPA).
+- **Message** (la frase leggibile, con il postfisso tecnico rimosso dal titolo per U-4).
+- **Details** (quando presente — il postfisso `(METHOD /path · HTTP NNN)` della chiamata API o qualsiasi altra digressione tecnica, in monospace).
+
+### Cosa NON è una notifica
+
+- Il **modale dei risultati** di Doctor / verify-pipeline (stdout / stderr completo) — è un modale, non un toast, e non finisce nel journal.
+- Le righe di log SSE su `#/scan` e `#/auto` — quelle scorrono nel corpo della pagina, non nella pipeline dei toast.
+- Gli stati di caricamento solo-spinner (quelli usano `UI.withSpinner` senza toast).
+
+### Tastiera
+
+- **Clic** o focus + **Enter / Spazio** sulla campanella → apre il cassetto.
+- **Esc**, clic sul pulsante di chiusura **×**, o clic di nuovo sulla campanella → chiude il cassetto; il focus torna alla campanella.
+- **Tab** mentre il cassetto è aperto → si sposta attraverso il pulsante di chiusura e qualsiasi dettaglio focalizzabile all'interno; il cassetto è `aria-modal="false"`, quindi Tab non intrappola (puoi comunque raggiungere il resto della pagina).
+
+
+## 19. Localizzare l'app nella tua lingua
+
+L'interfaccia è disponibile in 19 lingue (English, Español, Français, Português, 한국어, 日本語, Русский, 简体中文, 繁體中文, Polski, Українська, Dansk, العربية, Deutsch, Italiano, Türkçe, हिन्दी, தமிழ், Tiếng Việt). Ogni etichetta a schermo proviene da un dizionario di traduzione, e puoi aggiungere o correggere una lingua senza toccare la logica dell'app.
+
+**Dove vivono le traduzioni.** Da v1.60.0 ogni lingua è il proprio file sotto `public/js/lib/locales/` — `i18n-dict.en.js`, `i18n-dict.es.js`, `i18n-dict.ru.js`, e così via — un semplice elenco di coppie `'key': 'text'`. Un `i18n-dict.aliases.js` condiviso consente alle chiavi che devono leggersi sempre in modo identico (l'etichetta di una voce della barra laterale e il suo titolo di pagina) di puntare a una sola traduzione. `i18n-dict.js` le unisce tutte al caricamento della pagina; non lo modifichi mai.
+
+**Correggi o aggiungi una frase.** Apri il file per la tua lingua, trova la chiave (es. `'nav.scan'`) e modifica il testo. Per aggiungere un'etichetta nuova di zecca, aggiungi la stessa chiave a **tutti e 19** i file di lingua con il valore tradotto, poi richiamala nella pagina via `t('your.key')`. Esegui `npm test` — fallisce se qualsiasi lingua manca della chiave, così nulla viene spedito tradotto a metà.
+
+**Aggiungi un'intera nuova lingua.** Copia `i18n-dict.en.js` in `i18n-dict.<code>.js`, traduci ogni valore, poi registra il codice in `i18n.js` (l'elenco delle lingue + l'auto-rilevamento del browser), nell'assembler `i18n-dict.js`, e aggiungi una riga `<script>` in `index.html`. La checklist completa — inclusi lo snapshot di test e i file compagni della guida / README — è in `docs/LOCALIZATION.md`.
+
+**Buono a sapersi.** Il selettore di lingua è nel footer della barra laterale; la tua scelta è ricordata per browser. I messaggi diagnostici del server restano in inglese di proposito (così i log si leggono in modo coerente) — solo l'interfaccia a schermo è tradotta.
+
+## 20. Statistiche per ruoli target (`#/stats`)
+
+La pagina **Analytics → Statistiche ruoli target** trasforma i dati sparsi che le tue scansioni già raccolgono in un quadro di mercato per i ruoli che stai davvero puntando: numero di posizioni e livelli salariali per Paese, oltre a un trend che puoi seguire nel tempo. Nulla è inventato: aggrega solo ciò che gli scanner hanno trovato ed è onesta su quanto sia esigua la campionatura.
+
+### Da dove vengono i numeri
+
+- I **ruoli target** vengono letti dal tuo Profilo (`config/profile.yml` → target roles), mai scritti nel codice. Impostali prima su `#/profile`; senza ruoli la pagina mostra un avviso "imposta i tuoi ruoli target" invece di grafici vuoti.
+- **Gli annunci** provengono dalla tua ultima scansione (eseguine prima una su `#/scan`). La località di ogni offerta viene mappata su un Paese (lo stesso rilevatore del filtro Paese della scansione) e la sua stringa salariale viene analizzata e normalizzata in **USD** tramite una tabella di cambio approssimativa.
+- Tutto viene aggregato **nel tuo browser**: nessun dato lascia la tua macchina, e l'unica cosa che questa pagina scrive mai è uno snapshot che salvi esplicitamente.
+
+### Leggere i grafici
+
+- **Posizioni per Paese**: quanti annunci corrispondenti ci sono in ciascun Paese. Usa i filtri **Ruolo** e **Paese** in alto per restringere a un singolo ruolo target o a un singolo Paese.
+- **Salario mediano per Paese (USD)**: il salario intermedio analizzato per ciascun Paese. Vengono conteggiati solo gli annunci con un salario interpretabile; la dimensione del campione è mostrata accanto al grafico e gli importi sono convertiti a tassi approssimativi, quindi leggilo come *indicativo*, non esatto. Un `¥` isolato (ambiguo tra yen giapponese e yuan cinese) viene scartato anziché indovinato, per evitare una forte distorsione FX.
+- Quando la scansione corrente non ha salari interpretabili, il grafico dei salari lo dichiara invece di inventare numeri.
+
+### Salvare snapshot e seguire il trend
+
+- Fai clic su **Salva snapshot** per aggiungere l'aggregato corrente a `data/role-stats.jsonl`. Ogni snapshot riceve un timestamp sul server; gli snapshot sono l'unica cosa che questa pagina scrive e non toccano mai il tuo CV né il tuo profilo.
+- Il grafico del **trend** traccia il numero di posizioni attraverso i tuoi snapshot salvati: salvane uno periodicamente (per esempio dopo ogni scansione settimanale) per osservare come si muove nel tempo il mercato dei tuoi ruoli target.
+
+## 21. Il tuo documento di due pagine — corrispondenza candidato-mercato (`#/two-pager`)
+
+Quasi tutto in rebound-ops-ui chiede "questa offerta corrisponde al mio CV?". Il **documento di due pagine** risponde all'altra metà: "questa offerta corrisponde a ciò che *voglio davvero*?". È modellato sul **"documento di due pagine di Mnookin"** di *Never Search Alone* — una breve dichiarazione in prima persona di ciò che ti dà energia, di ciò che esigi e di ciò che non accetterai. Aprilo da **Configurazione → Documento di due pagine 🎯**.
+
+**Compilazione IA + esportazione (v1.100).** L'"✨ assistente di compilazione IA" ora compila tutti i campi in tempo reale dal tuo CV (rivedi e salva); **👁 Anteprima ed esporta** rende il two-pager e lo esporta in Markdown, PDF o DOCX.
+
+### Cosa compili
+
+- **Chi sono** — qualche frase in prima persona sul tuo percorso e sul tipo di ruolo in cui rendi al meglio.
+- **Ambiente target** — la dimensione, la fase e la cultura aziendale che desideri.
+- Cinque liste di chip — digita e premi **Enter** (o virgola) per aggiungere ogni voce, fai clic su **×** per rimuoverla:
+  - **Ciò che amo** — energizzanti (remoto, autonomia, greenfield, mentoring…).
+  - **Requisiti irrinunciabili** — requisiti rigidi (uno stipendio minimo, un paese, uno stack…).
+  - **Ciò che odio** — logoranti (reperibilità, riunioni infinite, solo legacy…).
+  - **Elementi escludenti** — no assoluti (solo in sede, nessuno sponsorship per il visto, sotto una cifra…).
+  - **Non negoziabili** — limiti (località, remoto, stipendio minimo…).
+
+Fai clic su **Salva documento di due pagine** per conservarlo. Viene scritto nel **livello utente del tuo progetto padre rebound-ops** in `config/two-pager.yml`, quindi — come il tuo CV e il tuo profilo — **non** viene mai sovrascritto quando aggiorni il sistema.
+
+### L'assistente di compilazione con IA
+
+Non sai come formularlo? Fai clic su **✨ Assistente di compilazione con IA**. Costruisce un prompt pronto all'uso (il formato Mnookin, con il tuo CV e il tuo profilo incorporati) e lo mostra in una finestra di dialogo. Esegui quel prompt in un qualsiasi LLM, poi incolla i campi YAML risultanti di nuovo nel modulo. L'assistente usa esclusivamente **il tuo** CV e profilo — non inventa mai fatti su di te, e da questo pulsante non viene effettuata alcuna chiamata API in tempo reale.
+
+### Il punteggio di corrispondenza con ciò che vuoi
+
+Una volta salvato un documento di due pagine, ogni annuncio su **`#/scan`** ottiene un piccolo badge **`◎ N`** (0–100). Confronta il **tipo di lavoro** (remoto/ibrido/in sede), il **paese**, lo **stipendio minimo** e il **trasferimento** di ogni offerta con il tuo documento di due pagine — un badge verde significa buona corrispondenza, rosso significa che è scattato un elemento escludente. Passa il cursore sopra per vedere i dettagli (✓ ciò che ha corrisposto, ✗ quale elemento escludente è stato violato).
+
+È deliberatamente onesto: quando un annuncio non dà **nessun segnale confrontabile** (per esempio se le tue preferenze sono tutte testo libero che una riga di scansione non può confermare), **non viene mostrato alcun badge** — il sistema non inventa mai un numero. La violazione di un **elemento escludente** rigido pesa di più di un **odio** leggero per la stessa cosa. Oltre al badge, il tuo documento di due pagine salvato viene incorporato in ogni **valutazione** con LLM, così le tue preferenze dichiarate plasmano anche il verdetto scritto, non solo la corrispondenza CV-vs-annuncio.
+
+## 22. Colloquio simulato (`#/mock-interview`)
+
+Leggere la preparazione al colloquio è una cosa; *dire le risposte ad alta voce* è un'altra. La pagina **Colloquio simulato** (aprila da **Preparazione al colloquio → Colloquio simulato 🎤** nella barra laterale) esegue una prova turno per turno contro una posizione specifica, ancorata al tuo CV, profilo, documento di due pagine e banca di storie. Non è un elenco di domande preconfezionate — l'intervistatore reagisce a ciò che dici davvero.
+
+### Avviare una sessione
+
+- Inserisci un **ruolo target** (e facoltativamente un'**azienda**). Incolla anche la **descrizione della posizione** se ce l'hai — le domande diventano nettamente più mirate.
+- Fai clic su **Avvia colloquio**. L'intervistatore apre con una domanda focalizzata, calibrata sul ruolo e sul tuo percorso.
+- Scrivi la tua risposta e fai clic su **Invia risposta**. Ripeti quanto vuoi — è una conversazione, non un quiz fisso.
+
+### Cosa ti dà ogni turno
+
+Dopo ogni risposta, l'intervistatore risponde con tre parti:
+
+- **Riscontro** — cosa ha funzionato (punti di forza) e cosa mancava, formulato in termini **STAR+R** (Situazione, Compito, Azione, Risultato, Riflessione). Nomina la dimensione specifica che hai saltato.
+- **Punteggio** — un rapido `N/5` con una giustificazione di una riga, così puoi percepire i progressi nel corso di una sessione.
+- **Domanda successiva** — un approfondimento che sonda deliberatamente la parte più debole della tua ultima risposta.
+
+Tutto è ancorato ai tuoi materiali reali: `cv.md`, `config/profile.yml`, `config/two-pager.yml` e la tua banca di storie STAR+R (`interview-prep/story-bank.md`) vengono tutti incorporati nel prompt. L'intervistatore insisterà sulle lacune reali ma non inventa mai esperienza che non hai. Se non è impostata alcuna chiave LLM, la pagina ti consegna un prompt pronto all'uso da incollare in qualsiasi assistente — lo stesso ripiego onesto usato altrove nell'app.
+
+### Salvare e rivedere le sessioni
+
+Fai clic su **Salva trascrizione** per conservare una prova terminata. Viene scritta nel livello utente del tuo progetto padre, in `interview-prep/mock-{company}-{role}-{date}.md`, così vive accanto alle tue altre note di preparazione al colloquio e non viene mai sovrascritta dagli aggiornamenti di sistema. L'elenco **Sessioni salvate** in fondo alla pagina ti permette di riaprire qualsiasi trascrizione o eliminarla. Usa **Nuovo colloquio** per ricominciare con un ruolo diverso.
+
+## 23. Networking e ricerca approfondita sulle aziende (`#/networking`)
+
+Candidarsi dalla porta principale è solo metà del gioco — l'altra metà è *conoscere qualcuno*, o almeno sapere chi contattare e cosa dire. La pagina **Networking** (aprila da **Ricerca approfondita → Networking 🤝** nella barra laterale) trasforma un'azienda in un piano concreto per ottenere un colloquio, radicato nel tuo CV, nel tuo profilo e nel tuo two-pager.
+
+### Costruire un piano
+
+- Inserisci un'**azienda** (obbligatorio) e, facoltativamente, un **ruolo** e la **descrizione dell'offerta**. La descrizione affina gli agganci del "perché sono adatto".
+- Fai clic su **Costruisci piano**. Con una chiave LLM viene eseguito dal vivo e renderizza il piano nella pagina; senza chiave ti consegna un prompt pronto da incollare in qualsiasi assistente (lo stesso fallback onesto usato in tutta l'app — non si inventa nulla).
+
+### Cosa contiene il piano
+
+Il piano torna in quattro sezioni:
+
+- **Dossier aziendale** — un briefing sintetico su cosa fa l'azienda, segnali recenti degni di essere citati e due o tre agganci del "perché sono adatto" tratti dal tuo percorso reale.
+- **Chi contattare** — da tre a cinque personas target (l'hiring manager del team, un recruiter interno, un ingegnere senior del team, un contatto caldo o ex-alunni) con una **stringa di ricerca LinkedIn** concreta per trovare ciascuno. Non inventa mai nomi reali — ti dice come trovare le persone giuste.
+- **Percorso di presentazione più caldo** — la singola via calda d'ingresso più realistica per il *tuo* percorso: un datore di lavoro, una scuola o una community in comune; un contatto di secondo grado; oppure un messaggio a freddo ad alto segnale quando è davvero l'opzione migliore.
+- **Bozze di contatto** — messaggi brevi e specifici (da tre a cinque frasi, senza riempitivi) per le tue personas principali, radicati nei tuoi punti di prova reali così da non risultare generici.
+
+### Salvare e rivedere i piani
+
+Fai clic su **Salva piano** per conservarne uno. Viene scritto nel livello utente del tuo progetto padre in `networking/net-{company}-{role}-{date}.md` — un tuo file, mai sovrascritto dagli aggiornamenti di sistema. L'elenco **Piani salvati** in fondo alla pagina ti consente di riaprire o eliminare qualsiasi piano. Poiché le bozze e le personas si basano solo sui tuoi materiali reali, trattali come una solida prima bozza da personalizzare — non come uno script da inviare alla cieca.
+
+## 24. CV Studio (`#/cv-studio`)
+
+**Aggiungi al CV (v1.117.0).** Una nuova scheda trasforma un progetto, una pubblicazione o una pagina portfolio (URL o testo incollato) in punti pronti per gli ATS basati SOLO su quella fonte — metriche, datori di lavoro o date assenti vengono omessi, mai inventati. Rivedi i suggerimenti e incolli tu stesso quelli accettati nell'editor del CV; nulla viene scritto automaticamente e gli URL passano per lo stesso validatore anti-SSRF della pipeline.
+
+La pagina `#/cv` è dove *scrivi* il tuo CV; il **CV Studio** (aprilo da **Setup → CV Studio 🎨** nella barra laterale) è dove lo *affini*. Offre al tuo `cv.md` tre strumenti onesti, due dei quali non lasciano mai il tuo browser.
+
+**Adatta a un lavoro (v1.101).** Incolla una descrizione di lavoro e CV Studio produce un CV adattato più una lettera di presentazione, passati attraverso un controllo in stile recruiter (gli errori bloccano, gli avvisi consigliano), basato solo sui tuoi materiali.
+
+### Diagnostica del CV
+
+Nel momento in cui apri la pagina, assegna al tuo CV un punteggio su 100 ed elenca i riscontri per ogni controllo, ciascuno con una breve spiegazione così che sia *tu* a decidere cosa cambiare (non riscrive mai in silenzio):
+
+- **Lunghezza** — il CV rientra in un intervallo sano di una o due pagine?
+- **Impatto quantificato** — quale quota dei tuoi punti elenco include un numero o una metrica reale? I recruiter li cercano scorrendo velocemente.
+- **Verbi d'azione forti** — segnala formulazioni deboli come «responsabile di» o «ho aiutato».
+- **Parole d'effetto** — segnala i cliché vuoti («orientato ai risultati», «gioca di squadra»).
+- **Sezioni fondamentali** — verifica la presenza di Sommario, Esperienza, Istruzione e Competenze.
+- **Recapiti** — si assicura che sia presente un'email.
+
+Tutto questo gira interamente nel tuo browser senza alcun LLM: i numeri sono deterministici e nulla viene inventato.
+
+### Maschera privacy
+
+Prima di condividere il tuo CV come campione di scrittura o screenshot, la **Maschera privacy** oscura i dati personali identificativi: email, telefono, link/handle e indirizzo, oltre al tuo **nome → iniziali** se lo attivi e lo inserisci. Attiva o disattiva ciascuna categoria, copia la versione mascherata e condividila in sicurezza. Avviene tutto interamente nel browser, riporta esattamente quanti elementi ha oscurato e non memorizza né trasmette mai l'originale.
+
+### Rendilo umano (corrispondenza della voce)
+
+Incolla una frase o un paragrafo rigido — quel tipo di formulazione generica da IA che suona come testo preconfezionato — e **Rendilo umano** lo riscrive nella *tua* voce. La riscrittura è ancorata lato server al tuo `voice-dna.md` (come si legge la tua scrittura) e ai tuoi `writing-samples/` (la tua prosa reale). La regola ferrea: può riordinare, snellire e riadattare la voce, ma **non** introdurrà mai un fatto, una metrica o un risultato che non sia già nel testo che hai incollato. Con una chiave LLM riscrive in tempo reale; senza chiave ti consegna un prompt pronto da incollare in qualsiasi assistente. Poi modifica il tuo CV nella pagina `#/cv` come al solito — il CV Studio suggerisce, tu decidi.
+
+### Cerca frasi fatte (v1.262.0)
+
+La scheda **Cerca frasi fatte** analizza il testo incollato contro 27 frasi
+fatte da curriculum ("passionate about", "proven track record", "leveraged",
+"spearheaded", …) ed evidenzia le corrispondenze esatte — un intervallo di
+anni come 2022–2024 è una data, non un indizio, mentre `20–30%` lo è. Sola
+lettura: non viene scritto nulla da nessuna parte. La checklist di Tailor
+tratta le frasi fatte come sesta invariante.
+
+### Suggerimento "Riutilizzare un CV precedente?"
+
+Quando scegli una descrizione di lavoro salvata in CV Studio, un suggerimento attenuato di una riga ti dice se hai già adattato un CV per un ruolo simile. L'app confronta la descrizione selezionata con le tue altre descrizioni salvate (un punteggio deterministico di sovrapposizione di parole più un controllo di seniority — senza IA, senza salvare nulla) e fa emergere la singola miglior corrispondenza come uno di tre verdetti:
+
+- **riutilizza** — molto simile a una descrizione salvata; puoi probabilmente riutilizzare quel CV così com'è.
+- **riutilizza con modifiche** — simile; riutilizza quel CV ma ritoccalo.
+- **rigenera** — nessuna descrizione salvata davvero simile, quindi adatta un CV nuovo.
+
+Il suggerimento appare automaticamente quando hai almeno due descrizioni salvate, e si aggiorna quando cambi la descrizione selezionata. È solo una spinta — non cambia mai il tuo CV né le tue descrizioni.
+
+## 25. Memoria (`#/memory`)
+
+Ogni altra pagina riparte da zero ogni volta. La **Memoria** (aprila da **Configurazione → Memoria 🧠** nella barra laterale) è l'unico posto in cui dici all'assistente qualcosa *una volta sola* e rimane. Contiene una nota breve e modificabile del tipo "ricorda questo su di me" che viene inserita in **ogni** richiesta all'IA.
+
+### A cosa serve
+
+Usala per preferenze durature e per il tuo stile di lavoro, ad esempio:
+
+- I tipi di ruoli e aziende a cui punti (e quelli che non vuoi mai vedere).
+- Come preferisci che siano scritte le risposte — concise o dettagliate, tono senior, senza riempitivi.
+- Vincoli rigidi che vale la pena ripetere — solo da remoto, un minimo salariale, niente reperibilità.
+
+Limitala a preferenze e indirizzo. **Non** è il posto per fatti sulla tua esperienza — le tue competenze, i datori di lavoro e i risultati vivono nel tuo CV, nel profilo e nel documento di due pagine, che restano le uniche fonti di qualsiasi cosa compaia nei tuoi CV e nelle lettere di presentazione. La nota di memoria plasma *come* l'assistente lavora con te, mai *cosa* afferma su di te.
+
+### Come raggiunge tutto
+
+Quando clicchi **Salva memoria**, la nota viene scritta nel livello utente del tuo progetto padre in `config/memory.md` e integrata nel contesto condiviso del progetto. Ciò significa che viaggia automaticamente con **ogni** richiesta all'IA — valutazioni, colloqui simulati, piani di networking, riscritture in CV Studio — e attraverso **ogni** provider che hai configurato. Scrivila una volta; non devi ripeterti su ogni pagina. Come gli altri file del livello utente, non viene mai sovrascritta quando aggiorni il sistema, e lascia la tua macchina solo all'interno dei prompt all'LLM che scegli di eseguire.
+
+### Suggerisci dai tuoi dati
+
+Non sai cosa scrivere? **✨ Suggerisci dai miei dati** legge il tuo tracker delle candidature e redige una serie di punti comportamentali — gli schemi in ciò che insegui, accetti e rifiuti. Esegui il prompt che ti fornisce in un qualsiasi LLM, rivedi i suggerimenti e incolla una versione modificata nella nota. Attinge solo dal tuo tracker e non inventa mai fatti; rivedi sempre prima che qualcosa venga salvato.
+
+## 26. Statistiche (`#/stats`)
+
+**Scheda pattern di rifiuto (v1.117.0).** Una quarta scheda esegue l'`analyze-patterns.mjs` del padre (sola lettura) e mostra la distribuzione degli esiti, raccomandazioni azionabili e il tasso di avanzamento per fornitore ATS (il segnale di "monocultura algoritmica" — Bommasani et al., FAccT 2026). I fornitori sotto il campione minimo portano un asterisco; senza il progetto padre la scheda lo dice onestamente.
+
+La pagina **Statistiche** riunisce tre viste in un'unica sezione: un report di mercato generato dall'IA, analisi della tua pipeline e la tendenza del numero di annunci per i tuoi ruoli target ricavata dalle tue scansioni. Passa dall'una all'altra con le schede in alto.
+
+### Report di mercato
+
+La scheda **Report di mercato** chiede al modello un'analisi salariale e del mercato del lavoro dei *tuoi* ruoli target — legge il tuo CV e il tuo profilo per sapere quali ruoli e quale livello di seniority coprire. Digita una **Regione / mercato** (per esempio `Russia`, `EU-remote`, `US` o `Germany`), scegli una **Valuta** e clicca su **Genera report di mercato**. Ottieni un report strutturato con una sintesi esecutiva, retribuzione per livello (mediana più P10/P25/P75/P92), i principali datori di lavoro, una tabella delle competenze più richieste, la frequenza dei benefit, la ripartizione ufficio/ibrido/remoto, tendenze a 12-24 mesi incluso l'impatto dell'IA e indicazioni per la negoziazione. Ogni cifra è una **stima indicativa ricavata dalle conoscenze di addestramento del modello** — non dati raccolti o in tempo reale — e il report lo dichiara; tratta i numeri come intervalli, non come citazioni. Senza una chiave API impostata ottieni un prompt da copiare e incollare invece di un report inventato. Usa **Scarica .md**, **Salva come PDF** o **Copia** per portare il report fuori dall'app.
+
+### La mia pipeline
+
+La scheda **La mia pipeline** rappresenta graficamente il tuo tracker delle candidature — nulla di esterno. Mostra quanti ruoli hai seguito, la distribuzione dei tuoi punteggi, l'imbuto degli stati, le tue aziende e i tuoi ruoli principali, le candidature nel tempo e i tassi di conversione (quale quota di candidature raggiunge Candidato, Risposto, Colloquio e Offerta). È lo specchio onesto della tua ricerca: riflette sempre e solo ciò che è già in `data/applications.md`.
+
+### Tendenza dei ruoli target
+
+La scheda **Tendenza dei ruoli target** è la vista originale: numero di annunci e retribuzione mediana per paese per i tuoi ruoli target, aggregati dalla tua ultima scansione, con un selettore di valuta e una panoramica **Annunci per ruolo target**. **Salva snapshot** registra l'aggregato attuale così puoi osservare come si muove il numero di annunci nel tempo, e la linea di tendenza rilegge quegli snapshot. Dati scarsi sono attesi e vengono etichettati come indicativi — non vengono mai riempiti con numeri inventati.
+
+### Totale e retribuzione
+
+La scheda **Totale** (v1.118.0) fa da relay in sola lettura a due script del padre a zero token: `stats.mjs` — il riepilogo complessivo del tracker, i tassi cumulati del funnel (risposta / colloquio / offerta), i totali dello scanner e la copertura dei portali — e `salary-gap.mjs` — retribuzione desiderata vs pubblicizzata vs effettiva per candidatura, consolidata dai Machine Summary dei report e da `data/salary-observations.tsv`. I campioni ridotti sono etichettati come indicativi; senza il progetto padre la scheda mostra una nota onesta.
+
+### Registro di autovalutazione delle skill (`#/assessments`)
+
+`#/assessments` è un semplice registro delle valutazioni di skill che affronti — un test di coding sulla piattaforma di un'azienda, un esercizio da casa, un quiz di certificazione. Registra un evento — l'**azienda**, la **piattaforma**, la **skill**, una **soglia %** di superamento opzionale e il tuo **punteggio %**, più una nota in testo libero — e viene aggiunto, una riga per evento, a `data/assessments.tsv` nel progetto padre. La pagina elenca anche tutto ciò che hai registrato e lo aggrega per piattaforma così vedi come procedi nel tempo. È una scrittura esplicita che avvii tu; quando il progetto padre non è presente, la pagina mostra una riga attenuata "non disponibile".
+
+## 27. Piano di carriera (`#/career-plan`)
+
+La pagina **Piano di carriera** trasforma il tuo CV e il tuo profilo in un piano di sviluppo concreto e personalizzato — del tipo che costruiresti con un career coach, ma generato dai tuoi stessi materiali e modificabile da te.
+
+### Generare un piano
+
+Scegli un **Orizzonte** (6, 12 o 24 mesi), digita facoltativamente un **Focus** (per esempio «passare al management», «lavorare da remoto» o «passare a Go») e fai clic su **Genera piano**. Il modello legge il tuo CV, il tuo profilo, il tuo two-pager e la tua nota di memoria (tramite il contesto di progetto condiviso) e scrive un piano strutturato: un'istantanea onesta del punto di partenza, una SWOT di punti di forza e aree di crescita, obiettivi espressi come SMART / OKR / WOOP, traiettorie di carriera alternative con i loro compromessi, un piano di competenze hard e soft, una roadmap mese per mese per l'orizzonte scelto, come monitorare i progressi, le insidie probabili e le mosse di supporto. Ogni raccomandazione è radicata in ciò che i tuoi materiali mostrano davvero — pianifica in avanti, non inventa mai fatti sulla tua storia. Senza una chiave API impostata ottieni invece un prompt da copiare e incollare.
+
+### Modificare e salvare
+
+Il piano compare in un'area di testo modificabile — ritocca qualsiasi cosa, poi fai clic su **Salva piano**. Viene scritto nel livello utente del tuo progetto padre, in `config/career-plan.md`, così sopravvive agli aggiornamenti di sistema e viene inviato solo all'interno dei prompt LLM che scegli di eseguire. **Anteprima** renderizza il tuo Markdown così puoi leggerlo formattato prima di salvare.
+
+### Esportare
+
+Usa **Scarica .md**, **Salva come PDF** o **Copia** per portare il piano fuori dall'app — gli stessi controlli di esportazione usati in tutti i report IA dell'app. Il PDF passa attraverso il generatore di PDF inline esistente; il Markdown è un download diretto.
+
+## 28. Orientamento professionale (`#/orientation`)
+
+La pagina **Orientamento professionale** risponde alla domanda «quali direzioni fanno davvero per me?» — il tipo di lettura che otterresti da un test di orientamento, ma dedotta dal tuo stesso CV e profilo anziché da un questionario.
+
+### Cosa produce
+
+Fai clic su **Genera profilo** e il modello legge il tuo CV, il tuo profilo, il tuo two-pager e la tua nota di memoria e scrive un profilo di orientamento professionale: i tuoi **vettori di carriera più adatti** (quali degli otto archetipi — Funzionalista, Amministratore, Comunicatore, Specialista, Analista, Innovatore, Manager, Imprenditore — si adattano meglio, con evidenze dal tuo CV), una **inclinazione di tipo professionale**, un insieme di **ruoli consigliati**, i tuoi **punti di forza professionali** legati a ciò che mostra il CV, **tendenze di stile di lavoro** («come si legge il tuo CV» su alcuni assi) e **raccomandazioni di sviluppo** per ampliare la tua compatibilità.
+
+### Come viene generato
+
+È una **riflessione dell'IA su come si legge il tuo CV — non un test psicometrico.** Il prompt è radicato interamente nei tuoi materiali: non inventa risultati e non riporta mai punteggi numerici di test come se fossero misurati. Senza una chiave API impostata ottieni un prompt da copiare e incollare da eseguire in qualsiasi LLM invece di un profilo dal vivo. Nulla viene scritto sul disco — il profilo viene generato da capo ogni volta.
+
+### Esportare
+
+Usa **Scarica .md**, **Salva come PDF** o **Copia** per conservare il profilo — gli stessi controlli di esportazione usati nei report IA dell'app. Il PDF passa attraverso il generatore di PDF inline esistente; il Markdown è un download diretto.
+
+## 29. ReboundOps product principles
+
+### Your evidence and decisions
+
+Review your experience, correct claims and choose a direction to test. Your review is not independent verification, and a tool score does not predict a hiring decision.
+
+### Read the product principles
+
+[ReboundOps product principles](https://github.com/AnkitParekh007/rebound-ops/blob/main/docs/principles.md) explain evidence, personal agency, local data controls and optional AI assistance. No signing or public signature is required.
+
+This section is maintained in English.
+
+## 30. Hermes & Telegram
+
+**Hermes di Nous Research** è un agente autonomo aperto — tool-calling, skill e oltre 20 canali di messaggistica, Telegram compreso. **Dalla v1.151.0, Hermes è un provider LLM collegato:** avvia il suo API Server compatibile con OpenAI (`hermes gateway`), imposta `HERMES_API_KEY` in **Impostazioni app** e rebound-ops-ui esegue le sue valutazioni live tramite il tuo Hermes locale. Questa sezione copre anche l’esecuzione dell’app su un server cloud e il ponte dei suoi eventi verso Telegram tramite Hermes — queste due parti sono guida per operatori, non funzionalità dell’app. La guida completa è `docs/integrations/HERMES.md`, e la skill `hermes-bridge` accompagna i passaggi.
+
+### Cos'è Hermes
+
+Hermes è un runtime di agente che si collega ai tuoi provider LLM — ed espone anche un **API Server compatibile con OpenAI**: `hermes gateway` serve `POST /v1/chat/completions` su `http://127.0.0.1:8642/v1` con una chiave Bearer (la sua `API_SERVER_KEY`). Per questo rebound-ops-ui lo tratta come un provider in più (la via «Shape A» della guida): l’app fa POST a quell’endpoint locale esattamente come per OpenAI o Qwen, e Hermes instrada la richiesta al modello che hai configurato al suo interno. Sta **per ultimo** nell’ordine auto, quindi non sovrascrive mai una configurazione Anthropic/Gemini/OpenAI/Qwen esistente.
+
+### Esecuzione su un server cloud
+
+rebound-ops-ui si lega a `127.0.0.1` per impostazione predefinita. Per raggiungere un agente Hermes che vive su un server esci dal loopback — con cautela. Tieni l'app legata al loopback e metti davanti un reverse proxy (nginx o Caddy) che termina HTTPS; eseguila sotto systemd o pm2 come utente non-root; e mantieni intatto il contratto di sola lettura con il progetto padre rebound-ops sulla macchina headless. L'involucro di sicurezza deve sopravvivere allo spostamento: una Content-Security-Policy senza script inline, la protezione SSRF su ogni fetch di URL fornito dall'utente, il confine markdown/XSS e nessun segreto nei log. La guida ha l'elenco completo — non esporre mai `0.0.0.0` direttamente a internet.
+
+### Telegram tramite Hermes
+
+Il ponte fa arrivare gli eventi dell'app — una scansione completata, un nuovo report, un follow-up appena diventato urgente — a una chat Telegram tramite Hermes. Il token del bot Telegram vive nella config di Hermes stesso, mai in rebound-ops-ui. Invia solo il minimo utile: "Scansione completata — 12 nuove corrispondenze" più un link che apri tu. **Non inviare mai** al canale il testo del CV, importi salariali, corpo dei report, chiavi API o URL interni — la lista del modello di minaccia "cosa NON esporre" della guida è la regola. Questa pagina è raggiungibile da `#/help`, e l'assistente di documentazione integrato risponde alle domande basandosi su di essa.
+
+## 31. Eseguire l'intero stack nel cloud
+
+La maggior parte delle persone esegue rebound-ops sul proprio laptop. Ma la pipeline dà il meglio di sé quando è **sempre attiva** — scansiona le bacheche mentre dormi, mantiene il tracker aggiornato, pronta in un browser da qualsiasi dispositivo. Questa sezione è la ricetta end-to-end per mettere **l'intero stack** su un piccolo server cloud: la pipeline padre **rebound-ops**, questo visualizzatore **rebound-ops-ui**, e il **motore** che esegue l'IA — sia il tuo **abbonamento Claude** (tramite la CLI Claude Code) sia un gateway **Hermes** locale. Si basa sulle note su Hermes nel cloud del §30; la checklist completa per l'operatore è `docs/integrations/HERMES.md`.
+
+### Le tre parti mobili
+
+Lo stack è composto da tre parti che collaborano, e aiuta tenerle ben distinte. **rebound-ops** (il padre) è la pipeline di ricerca lavoro con IA — possiede i tuoi `cv.md`, `config/`, `reports/` e `portals.yml`, ed è guidato da una **CLI agente**. **rebound-ops-ui** (questa app) è un visualizzatore web perlopiù di sola lettura che si trova *dentro* rebound-ops come `web-ui/` e mostra gli stessi file in un browser; scrive di nuovo solo su azioni esplicite. Il **motore** è ciò che effettivamente risponde ai prompt dell'IA. Due delle tre parti sono le stesse su un server come sul tuo laptop — cambiano solo la scelta del motore e l'esposizione di rete.
+
+### Provisiona e installa
+
+Affitta un piccolo VPS (1 vCPU / 1 GB di RAM è più che sufficiente per il visualizzatore) con un Linux aggiornato, e installa **Node ≥ 18** (si raccomanda 22.5+ — abilita l'indice SQLite del tracker del padre). Installa `git`. Poi fai esattamente ciò che fa un'installazione locale: clona il padre `rebound-ops`, e clona questo repository al suo interno come `rebound-ops/web-ui/`. Metti le chiavi dei provider nel `.env` del padre (non fare mai il commit — `.env` / `.env.*` sono nel gitignore; parti da `.env.example`). Esegui il visualizzatore con `npm start` — ma mantienilo legato a `127.0.0.1`; lo esporrai tramite un proxy, non direttamente (vedi sotto).
+
+### Scegli il tuo motore
+
+rebound-ops è agnostico rispetto alla CLI, quindi hai tre opzioni oneste per l'IA. **Il tuo abbonamento Claude** — installa la CLI **Claude Code** sulla macchina ed esegui `claude login` con il tuo piano Pro/Max; l'agente del padre usa quindi il tuo abbonamento, senza fatturazione API per token. **Hermes** — esegui `hermes gateway` sulla stessa macchina (espone un'API compatibile con OpenAI su `http://127.0.0.1:8642/v1`) e imposta `HERMES_API_KEY` nelle **Impostazioni app**; le valutazioni live di rebound-ops-ui passano di lì (ultimo nell'ordine automatico dei provider). **Chiavi API** — imposta `ANTHROPIC_API_KEY` (o uno dei provider: Anthropic → Gemini → OpenAI → Qwen → OpenRouter → GitHub Models → Hermes → DeepSeek → GLM (Z.ai) → Kimi (Moonshot) → MiniMax → Mistral → Grok (xAI) → Together → Fireworks → Ollama → BytePlus Ark → Volcengine Ark) nel `.env` del padre, e le azioni live ⚡ funzionano senza supervisione. Puoi combinarli: un abbonamento Claude per il lavoro pesante dell'agente del padre, e un provider economico o locale per le valutazioni rapide del visualizzatore.
+
+### Esponilo in sicurezza
+
+Lasciare `127.0.0.1` significa che la sicurezza che il loopback offriva gratuitamente ora va costruita esplicitamente — **il codice è identico; cambia solo l'esposizione.** Mantieni l'app legata al loopback e metti davanti un reverse proxy (**nginx** o **Caddy**) che termina **HTTPS** (Let's Encrypt / TLS automatico) e reindirizza a `127.0.0.1:4317`; eseguilo sotto **systemd** o `pm2` come utente dedicato **non-root** con `Restart=on-failure`. Metti davanti anche l'**autenticazione** — l'app non ha un login proprio, quindi è il proxy (basic-auth, un forward-auth SSO, o una rete privata / VPN) che tiene fuori gli estranei. Quando imposti `HOST=0.0.0.0` affinché il proxy possa raggiungerla, l'irrigidimento integrato che sul loopback era un no-op si attiva e diventa strutturale: il rate-limit dell'LLM, la difesa `safeGet` contro il DNS-rebinding, e la sanificazione dei nomi dei percorsi. Quattro invarianti devono sopravvivere allo spostamento, e non devi rilassarli: la **CSP** (nessuno script inline, `frame-ancestors 'none'` — il proxy non deve rimuovere queste intestazioni), la **protezione SSRF** su ogni fetch di URL fornito dall'utente, il **confine markdown/XSS** (`stripDangerousMarkdown()` lato server + `UI.md()` con escape-first lato client), e **nessun segreto nei log**. Il contratto di sola lettura del padre resta valido sulla macchina headless — il server legge solo i tuoi `cv.md` / `config/` / `reports/` e scrive su azioni esplicite.
+
+## 32. Eseguirlo da OpenWorker (collega IA)
+
+Preferisci un collega IA desktop al browser? **[rebound-ops-coworker](https://github.com/AnkitParekh007/rebound-ops)** è un collega **[OpenWorker](https://github.com/andrewyng/openworker)** (l'app di collega IA open-source e local-first di Andrew Ng) che guida al posto tuo l'intera pipeline — scansiona le bacheche, valuta la compatibilità rispetto al tuo CV, adatta un CV + una lettera di presentazione fondati sui fatti, tiene traccia delle candidature, redige i follow-up — e su richiesta può **avviare questa dashboard**. È una singola "persona" Markdown priva di codice; OpenWorker non ne esegue nulla come programma, le istruzioni si limitano a orientare l'agente. La sua guida è disponibile in tutte le 19 lingue.
+
+### Cosa fa il collega
+
+Lavorando dentro la cartella del tuo progetto `rebound-ops`, il collega esegue gli stessi passaggi della pipeline: scansiona le bacheche nel tuo `portals.yml` (zero-token), valuta ogni annuncio da 0 a 5 rispetto al tuo `cv.md` + `config/profile.yml` e — su richiesta — adatta un CV + una lettera di presentazione specifici per il ruolo, fondati **solo** su fatti già presenti nel tuo CV (non inventa mai un datore di lavoro, una data o una metrica). Aggiorna `data/applications.md`, redige le email di follow-up e può fissare gli slot dei colloqui — con ogni invio o scrittura **subordinato ad approvazione**, esattamente come la dottrina di rebound-ops stessa. Per aprire questo visualizzatore esegue `bash web-ui/bin/start.sh` (o `npm start`) e ti consegna `http://127.0.0.1:4317`.
+
+### Installazione e avvio
+
+Installa OpenWorker e aggiungi una chiave di modello (Anthropic / OpenAI / Google, o un Ollama locale). Il più veloce è **un comando** — prepara la pipeline `rebound-ops` che il coworker guida ed è idempotente: riusa un `rebound-ops` / `web-ui` esistente senza sovrascrivere i tuoi dati:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AnkitParekh007/rebound-ops/main/install.sh | bash
+```
+
+Poi aggiungi il coworker nel pannello **Install a coworker** di OpenWorker — tramite **GitHub URL** (`https://github.com/AnkitParekh007/rebound-ops`), tramite **.zip** (dalle [Releases](https://github.com/AnkitParekh007/rebound-ops/releases)) o **importando** `rebound-ops.md`. Apri una sessione **Job-Search Coworker**, scegli la tua cartella `rebound-ops` e chiedi qualcosa di reale — *"scansiona le mie board e dammi i 5 migliori match della settimana"* o *"apri la dashboard."* I connettori (Gmail, Google Calendar, GitHub) e la guida completa sono nella [guida](https://github.com/AnkitParekh007/rebound-ops/tree/main/help) del repo. Installabilità verificata contro il loader di OpenWorker e il suo installer di repo.
+
+## 33. Mappa delle offerte (`#/map`)
+
+La mappa mostra i risultati della scansione, la pipeline in attesa e il tuo tracker su una mappa OpenStreetMap. Un **punto pieno** è un punteggio di valutazione (tracker); un **anello** è un indizio di affinità del titolo per un'offerta non ancora valutata (pipeline, scansione). Un **numero** raggruppa offerte vicine; ingrandisci per separarle. 📍 indica l'indirizzo del datore di lavoro trovato in OpenStreetMap, altrimenti il punto è al centro della località. Il selettore dei livelli mostra o nasconde scansione, pipeline e tracker.
+
+### Come usare la mappa
+
+<p align="center"><img src="https://raw.githubusercontent.com/AnkitParekh007/rebound-ops/main/workspace/images/job-map-it.png" alt="Mappa delle offerte: risultati della scansione, pipeline e offerte del tracker su una mappa OpenStreetMap" width="760"></p>
+
+1. **Esegui prima una scansione** (`#/scan`): la mappa mostra ciò che contengono l'ultima scansione, la pipeline e il tracker; un progetto vuoto mostra una mappa vuota.
+2. **Apri `#/map`.** La riga sotto il titolo indica l'avanzamento: *Luoghi trovati: N/M* cresce man mano che i luoghi vengono cercati (quelli in cache compaiono subito), e *Senza luogo* conta le offerte che non indicano alcun luogo (solo remoto, "Anywhere").
+3. **Leggi i colori.** Pieno = il tuo punteggio di valutazione (verde buono · giallo discreto · blu medio · rosso debole). Anello = affinità del titolo prima della valutazione (stessi colori, grigio = nessun indizio di affinità).
+4. **Ingrandisci** su un numero per dividere un gruppo; a livello di strada le offerte nello stesso punto si aprono a ventaglio, così ciascuna si può cliccare.
+5. **Clicca un punto** per aprire l'offerta, oppure il report di valutazione per una voce del tracker.
+6. **Cambia livello** (in alto a destra) per confrontare, ad esempio, solo il tracker con i risultati freschi della scansione.
+
+Un'offerta che elenca più luoghi ("Berlin Office · Berlin · Germany · Bosnia · …", "Berlin; Munich", "Remote U.S. · Toronto") viene posizionata nel suo **primo luogo reale**; i segmenti "Remote …", "(HQ)" e un "Office" finale vengono ignorati. La mappa inquadra l'area in cui si trova la maggior parte delle offerte, quindi poche offerte lontane non rimpiccioliscono la vista: riduci lo zoom per vederle.
+
+### Dati e privacy
+
+La mappa è l'unica vista che contatta servizi esterni, e solo mentre è aperta: il browser carica le tessere dal tile server e il server invia **luogo e nome dell'azienda** di ogni offerta (mai il tuo CV o il profilo) al geocoder Nominatim. Le risposte sono memorizzate in `web-ui/.cache/geocode.json`, quindi ogni luogo viene cercato una sola volta. Per tenere queste richieste sulla tua infrastruttura, punta le variabili qui sotto a server self-hosted.
+
+### Configurazione
+
+| Variabile | Predefinito | Scopo |
+|---|---|---|
+| `NOMINATIM_URL` | `https://nominatim.openstreetmap.org` | URL base del geocoder (Nominatim self-hosted) |
+| `NOMINATIM_EMAIL` | — | Indirizzo di contatto inviato al Nominatim pubblico, come richiede la sua policy d'uso |
+| `NOMINATIM_GAP_MS` | `1100` | Intervallo minimo tra le ricerche sull'host pubblico (aumentalo se più istanze condividono un IP) |
+| `MAP_TILE_URL` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Modello di tessere Leaflet; il suo host viene aggiunto a `img-src` della CSP |
+| `MAP_TILE_ATTRIBUTION` | OpenStreetMap | Attribuzione mostrata per tessere personalizzate |

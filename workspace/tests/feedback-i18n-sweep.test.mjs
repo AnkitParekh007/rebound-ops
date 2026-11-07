@@ -1,0 +1,68 @@
+/**
+ * v1.51.0 (WS2 UX-audit #13/#14/#18/#19/#20) — feedback/i18n sweep:
+ * auto run-button busy state, actionable HTTP-fail message, async
+ * Clipboard with real failure handling, evaluate result as a status
+ * live region, evaluate button spinner-wrapped against double-submit.
+ * Browser-only views → static assertions (router.test.mjs style).
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { loadAssembledDict, I18N_LANGS } from './helpers/i18n-vm.mjs';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const R = (...p) => resolve(__dirname, '..', ...p);
+const AUTO = readFileSync(R('public', 'js', 'views', 'auto.js'), 'utf8');
+const EVAL = readFileSync(R('public', 'js', 'views', 'evaluate.js'), 'utf8');
+
+test('#13 auto: run button shows a busy state, restored in finally', () => {
+  assert.match(AUTO, /runBtn\.classList\.add\('is-loading'\)/);
+  assert.match(AUTO, /runBtn\.setAttribute\('aria-busy', 'true'\)/);
+  assert.match(AUTO, /runBtn\.textContent = '⏳ ' \+ t\('auto\.running'/);
+  assert.match(AUTO, /runBtn\.classList\.remove\('is-loading'\)/);
+  assert.match(AUTO, /runBtn\.removeAttribute\('aria-busy'\)/);
+});
+
+test('#14 auto: HTTP failure is actionable + toasted (not a bare code)', () => {
+  // CAR-93 — the transport moved into API.postStream, which delivers a
+  // machine payload { step: 0, status, message } for a non-OK response;
+  // the view still owns the localized auto.httpFail sentence + the toast.
+  assert.match(AUTO, /t\('auto\.httpFail'[\s\S]{0,90}\.replace\('\{n\}', String\(data\.status\)\)/);
+  assert.match(AUTO, /setStep\(0, 'failed', msg\);\s*\n\s*UI\.toast\(msg, 'error'\)/);
+  assert.ok(!/setStep\(0, 'failed', 'HTTP ' \+ resp\.status\)/.test(AUTO),
+    'old bare "HTTP <code>" detail must be gone');
+});
+
+test('#18 auto: async Clipboard with fallback + genuine-failure toast', () => {
+  assert.match(AUTO, /navigator\.clipboard[\s\S]{0,60}writeText\(ta\.value\)/);
+  assert.match(AUTO, /t\('auto\.copyFail'/);
+  // a false "Copied" on a silent execCommand no-op must not happen
+  assert.match(AUTO, /legacy \? t\('auto\.copied'[\s\S]{0,80}: t\('auto\.copyFail'/);
+});
+
+test('#19 evaluate: result container is a polite status live region', () => {
+  assert.match(EVAL, /id:\s*'eval-out',\s*role:\s*'status',\s*'aria-live':\s*'polite'/);
+});
+
+test('#20 evaluate: Evaluate button is spinner-wrapped (no double-submit)', () => {
+  assert.match(EVAL, /onClick:\s*\(e\)\s*=>\s*UI\.withSpinner\(e\.currentTarget,\s*run\)/);
+  assert.ok(!/c\('button', \{ className: 'btn btn-primary', onClick: run \}/.test(EVAL),
+    'old plain onClick: run must be gone');
+});
+
+test('i18n: 3 new auto keys present in every locale (+{n} preserved)', () => {
+  // Per shipped locale against the assembled dictionary — not a hand-kept
+  // 8-locale list or a `>= 8` placeholder count that 9 new locales outgrew.
+  const D = loadAssembledDict();
+  for (const k of ['auto.running', 'auto.httpFail', 'auto.copyFail']) {
+    assert.ok(D[k], `missing i18n key ${k}`);
+    for (const lang of I18N_LANGS) {
+      assert.ok(typeof D[k][lang] === 'string' && D[k][lang].length > 0, `${k} missing locale ${lang}`);
+    }
+  }
+  for (const lang of I18N_LANGS) {
+    assert.ok(D['auto.httpFail'][lang].includes('{n}'), `auto.httpFail must keep {n} in ${lang}`);
+  }
+});

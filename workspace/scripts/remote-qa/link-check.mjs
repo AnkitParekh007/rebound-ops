@@ -1,0 +1,112 @@
+#!/usr/bin/env node
+/**
+ * link-check.mjs — every link in the READMEs (all locales) and in the wiki.
+ *
+ *   WIKI_DIR=/path/to/rebound-ops-ui.wiki node scripts/remote-qa/link-check.mjs
+ *
+ * Relative links must resolve to a file in this repo (READMEs) or to a wiki
+ * page (wiki). External links get a GET with a 20 s timeout; 404/410/5xx and
+ * DNS/connection failures are errors, 401/403/429 are reported as "unverified"
+ * (bot walls on LinkedIn, npm, etc.), not as broken.
+ */
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const WIKI = process.env.WIKI_DIR || '';
+const SKIP_EXTERNAL = process.env.SKIP_EXTERNAL === '1';
+// The READMEs link the release of the version being shipped before
+// release.yml creates it (the tag is cut after the merge), so on a release
+// branch that one URL is a 404 by construction. It is reported as pending,
+// not broken; any other release tag still has to exist.
+const VERSION = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
+const PENDING_RELEASE = `https://github.com/AnkitParekh007/rebound-ops/releases/tag/v${VERSION}`;
+
+const sources = readdirSync(ROOT).filter((f) => /^README(\.[A-Za-z-]+)?\.md$/.test(f)).map((f) => ({ file: f, abs: join(ROOT, f), kind: 'repo' }));
+if (WIKI) for (const f of readdirSync(WIKI).filter((f) => f.endsWith('.md'))) sources.push({ file: 'wiki/' + f, abs: join(WIKI, f), kind: 'wiki' });
+const wikiPages = WIKI ? new Set(readdirSync(WIKI).filter((f) => f.endsWith('.md')).map((f) => f.replace(/\.md$/, '').toLowerCase())) : new Set();
+
+const findings = [];
+let pendingRelease = false;
+const external = new Map();
+const add = (file, kind, msg) => findings.push({ file, kind, msg: String(msg).slice(0, 200) });
+
+for (const src of sources) {
+  const text = readFileSync(src.abs, 'utf8').replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+  const targets = [
+    // Balanced parentheses: wiki page names look like Home-(Español).
+    ...[...text.matchAll(/\]\(\s*<?((?:[^()\s<>]|\([^()\s]*\))+)>?(?:\s+"[^"]*")?\s*\)/g)].map((m) => m[1]),
+    ...[...text.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]),
+  ];
+  for (const wl of text.matchAll(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g)) {
+    const page = (wl[2] || wl[1]).trim().replace(/ /g, '-').toLowerCase();
+    if (src.kind === 'wiki' && !wikiPages.has(page)) add(src.file, 'wiki-link', `[[${wl[0].slice(2, -2)}]] → no page`);
+  }
+  for (const raw of targets) {
+    if (/^(mailto:|tel:|#|data:)/.test(raw)) continue;
+    if (/^https?:\/\//.test(raw)) {
+      const u = raw.replace(/#.*$/, '');
+      const wikiPrefix = 'https://github.com/AnkitParekh007/rebound-ops/wiki/';
+      if (WIKI && u.toLowerCase().startsWith(wikiPrefix.toLowerCase())) {
+        const page = decodeURIComponent(u.slice(wikiPrefix.length)).toLowerCase();
+        if (page && !wikiPages.has(page)) add(src.file, 'wiki-link', `${u} → no such wiki page`);
+        continue;
+      }
+      if (!external.has(u)) external.set(u, new Set());
+      external.get(u).add(src.file);
+      continue;
+    }
+    const path = decodeURIComponent(raw.replace(/[#?].*$/, ''));
+    if (!path) continue;
+    if (src.kind === 'repo') {
+      if (!existsSync(resolve(ROOT, path))) add(src.file, 'relative-link', `${raw} → no such file`);
+    } else if (!wikiPages.has(path.replace(/\.md$/, '').toLowerCase()) && !existsSync(resolve(WIKI, path))) {
+      add(src.file, 'wiki-link', `${raw} → no page`);
+    }
+  }
+}
+
+let unverified = 0;
+if (!SKIP_EXTERNAL) {
+  const list = [...external.keys()];
+  let i = 0;
+  async function worker() {
+    while (i < list.length) {
+      const u = list[i++];
+      let status;
+      try {
+        const r = await fetch(u, { redirect: 'follow', signal: AbortSignal.timeout(20000), headers: { 'user-agent': 'Mozilla/5.0 (link-check; rebound-ops-ui)' } });
+        status = r.status;
+        r.body?.cancel().catch(() => {});
+      } catch (e) { status = e.cause?.code || e.name; }
+      const files = [...external.get(u)].slice(0, 3).join(', ');
+      // 999 is LinkedIn's bot-wall status. 5xx from github.com is Actions-
+      // runner-only flakiness (three runs in a row 503'd from Actions while
+      // the same blob URLs returned 200 from other networks) — "unverified",
+      // not broken. v1.248.6.
+      const ghWall = status >= 500 && /(^|\.)github\.com$/.test(new URL(u).hostname);
+      if (status === 401 || status === 403 || status === 429 || status === 999 || ghWall) { unverified++; continue; }
+      if (status === 404 && u === PENDING_RELEASE) { pendingRelease = true; continue; }
+      if (typeof status !== 'number' || status >= 400) add(files, 'external-link', `${status} ${u}`);
+    }
+  }
+  await Promise.all(Array.from({ length: 8 }, worker));
+}
+
+// Markdown table cell: escape backslashes first, then pipes and newlines.
+const md = (v) => String(v).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/[\r\n]+/g, ' ');
+const byKind = {};
+for (const f of findings) byKind[f.kind] = (byKind[f.kind] || 0) + 1;
+const lines = [
+  '## Link check — READMEs + wiki', '',
+  `${sources.length} files (${sources.filter((s) => s.kind === 'wiki').length} wiki pages), ${external.size} distinct external links${SKIP_EXTERNAL ? ' (not fetched)' : `, ${unverified} behind a bot wall / github.com 5xx (not counted as broken)`}.${pendingRelease ? ` The release page for v${VERSION} does not exist yet (cut after the merge) — pending, not broken.` : ''}`, '',
+  findings.length ? '| kind | count |\n|---|---|\n' + Object.entries(byKind).map(([k, n]) => `| ${k} | ${n} |`).join('\n') : '**No broken links.**', '',
+];
+if (findings.length) {
+  lines.push('| file | kind | detail |', '|---|---|---|');
+  for (const f of findings.slice(0, 300)) lines.push(`| ${md(f.file)} | ${md(f.kind)} | ${md(f.msg)} |`);
+}
+const out = lines.join('\n');
+console.log(out);
+process.exit(findings.length ? 1 : 0);

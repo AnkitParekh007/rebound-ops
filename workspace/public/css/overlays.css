@@ -1,0 +1,799 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * overlays.css — split out of app.css (v1.131.2, file-size-contract debt).
+ * Loaded AFTER components.css in index.html, in original source order (cascade
+ * byte-for-byte identical). Holds: toast, notifications drawer, modal, misc +
+ * responsive/reduced-motion blocks, the [dir="rtl"] mirror, docs-fab widget,
+ * and the usage-hud widget.
+ * ───────────────────────────────────────────────────────────────────────── */
+/* ───────────────────────── toast ───────────────────────── */
+.toast {
+  position: fixed;
+  /* Logical edge: inline-end (right in LTR, left in RTL) — clears the docs
+   * FAB in BOTH directions since the FAB mirrors the same way. */
+  inset-inline-end: var(--space-5);
+  /* DES-1: clear the docs FAB (60px + 24px offset) so a toast never lands
+     under the launcher and truncates. Both mirror together (inline-end),
+     so the toast always sits one FAB-height above it in BOTH directions. */
+  bottom: calc(var(--space-5) + 60px + var(--space-3));
+  background: var(--hof);
+  /* CAR-23 — `white` on dark's near-white --hof was 1.10:1; --paper flips with the theme. */
+  color: var(--paper);
+  padding: 14px 20px; border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  font-weight: 500; font-size: 14px; z-index: var(--z-toast); max-width: 360px;
+  /* v1.57.1 — detailed what/where/why error messages must wrap and stay
+     readable instead of being clipped to one line. */
+  white-space: normal; overflow-wrap: anywhere;
+  max-height: 50vh; overflow-y: auto;
+  animation: slide-in 200ms var(--ease-out);
+}
+/* CAR-23 — variant fills AA with the inherited --paper text in BOTH themes. */
+.toast.error { background: var(--rausch-fill); color: #fff; } /* v3 phase 2: the theme-INVARIANT danger red keeps literal WHITE text in both themes (5.80:1); the inherited --paper would go near-black in dark (3.01:1) — same pattern as the banner .btn-dark chip */
+.toast.success { background: var(--cv3-ok-soft); color: var(--cv3-ok-ink); }
+/* CAR-130 — failed-POST field marking (the shared mode-page submit helper):
+   the control the error focuses also gets a visible invalid state (WCAG
+   3.3.1), cleared on the next input/change. Lives here, not in
+   components.css (forms), because that file sits exactly at the 800-LOC
+   canary. Existing --err token only — no new colors. */
+.input.is-error, .textarea.is-error, .select.is-error {
+  border-color: var(--err);
+  box-shadow: 0 0 0 3px var(--danger-soft); /* v3 phase 3 — theme-aware danger wash (was a coral rgba) */
+}
+/* U-4 (v1.58.24) — collapsible technical detail inside the toast. The
+   human sentence stays at the top; the "(METHOD /path · HTTP NNN)"
+   postfix is tucked into <details> so it's reachable (BUG-006
+   invariant) without dominating the toast. */
+.toast .toast-msg { margin: 0; }
+.toast .toast-detail { margin-top: 6px; font-size: var(--font-size-sm); opacity: .9; }
+.toast .toast-detail > summary { cursor: pointer; -webkit-user-select: none; user-select: none; list-style: none; }
+.toast .toast-detail > summary::marker { content: ''; }
+.toast .toast-detail > summary::after { content: ' ▾'; opacity: .7; }
+.toast .toast-detail[open] > summary::after { content: ' ▴'; }
+/* CAR-23 — theme-neutral paper chip: the old black blend fell below AA on the bright fills in dark. */
+.toast .toast-detail > code { display: block; margin-top: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--font-size-xs); background: var(--paper); color: var(--hof); padding: 4px 6px; border-radius: 4px; }
+
+/* U-8 (v1.58.28) — collapsible <details> wrapper around the generated
+   prompt on the 7 mode pages. Default closed so the page chrome and
+   the Copy / Run-live actions stay visible above the fold. */
+.prompt-block { margin: var(--space-3, 12px) 0; }
+.prompt-block > summary { cursor: pointer; -webkit-user-select: none; user-select: none; padding: 6px 8px; border-radius: 4px; background: var(--beach, #f7f7f7); font-weight: 600; }
+.prompt-block > summary:hover { filter: brightness(0.97); }
+.prompt-block[open] > summary { margin-bottom: 8px; }
+
+/* U-11 (v1.58.31) — header info chip used in the Tracker Legitimacy
+   column. Keyboard-reachable via tabIndex=0 + focus-visible ring;
+   role=img + aria-label carry the explanation text to screen readers. */
+.th-info { display: inline-block; margin-inline-start: 2px; cursor: help; font-size: .85em; color: var(--foggy, #999); }
+.th-info:focus-visible { outline: 2px solid var(--rausch, #ff385c); outline-offset: 2px; border-radius: 2px; }
+
+/* U-12 (v1.58.32) — Help TOC filter input. The KO/JA placeholders
+   are 5-10% wider than EN; pin a min-width so they never get clipped
+   if the .help-toc card squeezes the input. 16ch sits comfortably
+   above all 8 locale placeholders. */
+.help-toc__filter { min-width: 16ch; }
+
+/* UX-D-K (v1.58.45) — scroll-spy current-section highlight in the
+   #/help TOC. As the user scrolls the help body, an IntersectionObserver
+   in help.js applies `.toc-current` to the link whose H2 is currently
+   in the reading band. Uses the brand color and a left-border so the
+   active item reads at a glance, including in dark mode. */
+/* UX-D-B (v1.58.48) — Dashboard global banner shown until the user
+   replaces the default "Acceptance Test" / template profile. Yellow
+   warning band at the top of the view so the user can't miss it
+   while every advisor output is still addressed to the fixture name. */
+.hero-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: var(--space-4, 16px);
+  background: var(--paper, #fff);
+  border: 1px solid var(--slate, #ddd);
+}
+.hero-banner--warning {
+  /* CAR-58 #4 (v1.247.0) — shared .callout--warn tokens (components.css): with `callout callout--warn` on the element, dark swaps the surface. */
+  background: var(--callout-bg, #fff8e1); border-color: var(--callout-border, #f0c674); color: var(--callout-text, #5a4500);
+}
+.hero-banner__msg { margin: 0; font-size: 14px; flex: 1; }
+
+.help-toc a.toc-current {
+  color: var(--rausch-text); /* CAR-23: AA text variant */
+  font-weight: 600;
+  /* the rail: inline style holds the geometry and REFERENCES the var — the class
+     lifts it (custom properties resolve through the inline var() reference) */
+  --_toc-rail: var(--rausch, #ff385c);
+}
+
+/* U-15 (v1.58.33) — CV Save button dirty-state. When the editor has
+   unsaved changes, the button gets a `.btn-dirty` class which paints
+   a subtle ring + a "● " bullet prefix via :before so the user can
+   tell from across the page that something is unsaved. */
+.btn.btn-dirty { box-shadow: 0 0 0 3px var(--rausch-dark, #e31c5f); }
+.btn.btn-dirty::before { content: '● '; opacity: .9; }
+
+/* v1.58.34 — Notifications bell + right-slide drawer (closes U-13). */
+.notif-bell {
+  position: relative; background: transparent; border: 1px solid var(--slate, #ddd);
+  border-radius: 8px; width: 36px; height: 36px; font-size: var(--font-size-lg);
+  cursor: pointer; transition: background var(--transition);
+  /* CAR-49 #3 (v1.247.0) — the glyph is an SVG now. */
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.notif-bell:hover { background: var(--beach, #f7f7f7); }
+.notif-bell:focus-visible { outline: 2px solid var(--rausch, #ff385c); outline-offset: 2px; }
+.notif-badge {
+  position: absolute;
+  top: -4px; inset-inline-end: -4px;
+  /* CAR-23 — same white-on-rausch defect class: --rausch-dark/--paper pair (4.57/4.95). */
+  background: var(--rausch-dark, #ff385c);
+  color: var(--paper);
+  min-width: 16px; height: 16px;
+  border-radius: 8px;
+  font-size: 10px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+}
+/* v1.58.35 — author `display:` on .notif-badge / .notif-drawer
+   overrode the UA `[hidden] { display: none }` (same specificity,
+   author wins) so the `hidden` attribute did nothing — the badge
+   showed `0` constantly and the drawer never hid. Explicit overrides
+   restore the expected hiding behaviour. */
+.notif-badge[hidden] { display: none; }
+.notif-drawer {
+  position: fixed; top: 0; bottom: 0; inset-inline-end: 0; width: min(380px, 92vw);
+  background: var(--paper, #fff); border-inline-start: 1px solid var(--slate, #ddd);
+  box-shadow: -8px 0 24px rgba(0,0,0,.1); z-index: var(--z-drawer);
+  display: flex; flex-direction: column; animation: notif-slide-in 200ms var(--ease-out);
+}
+/* The slide-in shadow is physical: it must fall AWAY from the content edge,
+ * so it flips sign under [dir="rtl"] (the drawer docks to the left there). */
+[dir="rtl"] .notif-drawer { box-shadow: 8px 0 24px rgba(0,0,0,.1); }
+/* v1.58.35 — explicit `[hidden]` override. The `.notif-drawer`
+   `display: flex` above shadowed the UA `[hidden] { display: none }`
+   rule (same author-level specificity, last rule wins), so the
+   drawer was VISIBLE on every page load even though the markup had
+   `hidden` set. Restore correct hide-by-attribute behaviour. */
+.notif-drawer[hidden] { display: none; }
+@keyframes notif-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.notif-drawer__head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px; border-bottom: 1px solid var(--slate, #eee);
+}
+.notif-drawer__head h2 { margin: 0; font-size: 16px; }
+.notif-drawer__close {
+  background: transparent; border: none; font-size: 24px; cursor: pointer;
+  padding: 0; width: 32px; height: 32px; line-height: 1;
+}
+.notif-drawer__close:focus-visible { outline: 2px solid var(--rausch, #ff385c); outline-offset: 2px; border-radius: 4px; }
+
+/* UX-A12 (v1.58.60) — Clear all button (drawer head) + per-item ×
+   dismiss button. Clear-all sits between the title and the close ×.
+   Per-item × floats top-right inside each .notif-item without
+   disturbing the existing flex-column layout (absolute positioning). */
+.notif-drawer__clear-all {
+  background: transparent; border: 1px solid var(--slate, #ddd);
+  font-size: var(--font-size-sm); padding: 4px 10px; border-radius: 6px;
+  cursor: pointer; color: var(--foggy, #666);
+  margin-left: auto; margin-right: 8px;
+}
+.notif-drawer__clear-all:hover { background: var(--beach, #fafafa); color: var(--hof, #000); }
+.notif-drawer__clear-all[hidden] { display: none; }
+/* v1.98.0 — in-app bug reporter trigger, mirrors the clear-all chip. */
+.notif-drawer__report-bug {
+  background: transparent; border: 1px solid var(--slate, #ddd);
+  font-size: var(--font-size-sm); padding: 4px 10px; border-radius: 6px;
+  cursor: pointer; color: var(--foggy, #666);
+  margin-left: auto; margin-right: 8px; white-space: nowrap;
+}
+.notif-drawer__report-bug:hover { background: var(--beach, #fafafa); color: var(--hof, #000); }
+.notif-drawer__report-bug[hidden] { display: none; }
+.notif-item { position: relative; }
+.notif-item__dismiss {
+  position: absolute; top: 6px; inset-inline-end: 8px;
+  background: transparent; border: none; font-size: 14px; line-height: 1;
+  width: 20px; height: 20px; padding: 0; cursor: pointer; color: var(--foggy, #999); opacity: 0.6;
+}
+.notif-item__dismiss:hover { opacity: 1; color: var(--hof, #000); }
+.notif-item__dismiss:focus-visible { outline: 2px solid var(--rausch, #ff385c); outline-offset: 1px; border-radius: 4px; opacity: 1; }
+
+/* UX-A9 (v1.58.62) — summary chip at the top of the API-keys tab.
+   Two pills (`Active: X` + `Keys: N / 5`) on a soft surface so the
+   user can see the OR-fallback resolution without scrolling through
+   5 separate provider sections.
+
+   v1.59.2 — dropped `position: sticky` + `z-index: 5`. The sticky
+   chip created a new stacking context that overlapped the tab labels
+   and the page header on scroll (user-reported). The chip is at the
+   top of a short panel already; scroll behaviour brings the user
+   back to it naturally. */
+.api-keys__summary {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  background: var(--surface-elev1, #f3f4f6); border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px; padding: 8px 14px; margin: 0 0 14px; font-size: 0.92em; line-height: 1.4;
+}
+.api-keys__summary[hidden] { display: none; }
+.api-keys__active { font-weight: 600; }
+.api-keys__count { color: var(--foggy-strong, #5f5f5f); } /* v1.248.2 — AA on the --elev summary surface (plain --foggy was 4.31:1 light) */
+.notif-drawer__list { list-style: none; margin: 0; padding: 8px; overflow-y: auto; flex: 1; }
+.notif-drawer__empty { margin: 24px; color: var(--foggy, #999); font-size: var(--font-size-md); text-align: center; }
+.notif-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 12px; border-radius: 6px; border-inline-start: 3px solid var(--slate, #ddd);
+  margin-bottom: 8px; background: var(--beach, #fafafa);
+}
+.notif-item--error   { border-inline-start-color: var(--rausch, #ff385c); }
+.notif-item--success { border-inline-start-color: var(--kazan, #00a699); }
+.notif-item > time { font-size: var(--font-size-xs); color: var(--foggy, #999); }
+.notif-item__msg { margin: 0; font-size: var(--font-size-md); }
+.notif-item__detail { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--font-size-xs); color: var(--foggy, #999); background: transparent; }
+
+/* U-9 (v1.58.29) — Pipeline counter ↔ filter row. Above 720 px the
+   flex gap-3 layout already works; at narrower widths the filter
+   input is cramped, so stack vertically and stretch it full-width. */
+@media (max-width: 720px) {
+  .pipeline-controls { flex-direction: column; align-items: stretch !important; }
+  .pipeline-controls > #pipe-filter { max-width: none !important; width: 100%; }
+}
+@keyframes slide-in {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ───────────────────────── modal ───────────────────────── */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal[hidden] { display: none; }
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(2px);
+}
+.modal-card {
+  position: relative;
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  width: min(900px, 92vw);
+  max-height: 88vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+/* CAR-238 — the ✕ is absolutely positioned out of the title's flow; the header reserves its room via logical padding (RTL mirrors); titles wrap. */
+.modal-header {
+  padding: var(--space-4) var(--space-5);
+  padding-inline-end: calc(var(--space-5) + 52px);
+  border-bottom: 1px solid var(--slate);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+.modal-header h3 { margin: 0; font-size: var(--font-size-lg); font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.modal-close {
+  font-size: var(--font-size-2xl);
+  color: var(--foggy);
+  padding: 0 6px;
+  line-height: 1;
+  position: absolute;
+  top: 50%;
+  inset-inline-end: var(--space-4);
+  transform: translateY(-50%);
+}
+.modal-close:hover { color: var(--hof); }
+.modal-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+/* v1.44.0 — confirm() dialog message (was an inline style; promoted to
+   a token-based rule per the hand-written-CSS convention). */
+.modal-msg {
+  margin: 0 0 var(--space-4);
+  line-height: 1.5;
+}
+
+/* v1.46.0 — scan SSE error banner (#24); inline style promoted to a
+   token-based rule, same convention as .modal-msg above.
+   Phase-2 v3 — the --rose* hand-off closed on the cv3 danger pair:
+   ink on soft wash 6.03:1 light / 8.31:1 dark (was a light-only fallback). */
+:root {
+  --rose: var(--cv3-danger-soft); --rose-border: var(--cv3-danger); --rose-ink: var(--cv3-danger-ink);
+}
+.scan-error-banner {
+  background: var(--rose);
+  border-color: var(--rose-border);
+  color: var(--rose-ink);
+  margin-bottom: var(--space-3);
+}
+.scan-error-banner .btn { margin-inline-start: var(--space-3); }
+
+/* v1.63.0/1.63.1 — progress bar + caption shown while a scan is in flight. */
+.scan-progress-wrap { margin: var(--space-2, 8px) 0; }
+.scan-progress-wrap[hidden] { display: none; }
+.scan-progress-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--rausch-text); /* CAR-23: AA text variant on --paper */
+  margin-bottom: 4px;
+}
+.scan-progress {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius);
+  background: var(--line);
+  overflow: hidden;
+}
+.scan-progress__bar {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  height: 100%;
+  width: 40%;
+  border-radius: var(--radius);
+  background: var(--rausch);
+  animation: scan-indeterminate 1.1s ease-in-out infinite;
+}
+/* once a progress event lands, switch to a determinate fill (width set inline) */
+.scan-progress.is-determinate .scan-progress__bar {
+  animation: none;
+  left: 0;
+  transition: width var(--transition);
+}
+@keyframes scan-indeterminate {
+  0%   { left: -40%; }
+  100% { left: 100%; }
+}
+/* explicit override — UA [hidden] is a no-op once an author display: lands */
+.scan-progress[hidden] { display: none; }
+
+/* ───────────────────────── misc ───────────────────────── */
+.loading { padding: var(--space-7); text-align: center; color: var(--foggy); }
+/* CAR-112 — skeleton loading placeholders. Shimmer rows stand in for the
+ * board/table while its fetch is in flight (tracker, scan results, map
+ * shell); the wrapper keeps the polite localized «Loading…» announcement
+ * via aria-label (existing common.loading key — no new keys), the rows
+ * are aria-hidden decoration. An opacity pulse, not a moving gradient,
+ * and it stops entirely under prefers-reduced-motion. */
+.skeleton-block { padding: var(--space-5) var(--space-3); }
+.skeleton-row {
+  height: 14px; margin: 0 0 10px; border-radius: var(--radius);
+  background: var(--slate); animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.skeleton-row:last-child { margin-bottom: 0; }
+@keyframes skeleton-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.empty {
+  padding: var(--space-7);
+  text-align: center;
+  color: var(--foggy);
+  border: 2px dashed var(--slate);
+  border-radius: var(--radius-lg);
+}
+
+.flex { display: flex; align-items: center; gap: var(--space-3); }
+.flex-between { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+/* On a phone, a `.flex`/`.flex-between` row of buttons/tabs (config's settings
+   tablist, CV's action toolbars, …) wraps onto the next line instead of pushing
+   the page sideways. Desktop is unchanged — the row has room and never wraps. */
+@media (max-width: 900px) {
+  .flex, .flex-between { flex-wrap: wrap; }
+}
+
+/* v1.69.1 — #/health check cards. A long check name/value (e.g. "PROFILE
+   CUSTOMIZED · still on template …", "PLAYWRIGHT (PARENT NODE_MODULES)")
+   used to collide with the right-hand Fix button + status badge and spill
+   out of the card, because flex children default to min-width:auto and
+   never shrink. Let the left text shrink + wrap, keep the action group
+   intact, and wrap it below on narrow cards. */
+.health-check-row { flex-wrap: wrap; align-items: flex-start; gap: var(--space-2) var(--space-3); }
+.health-check-row > :first-child { min-width: 0; flex: 1 1 140px; }
+.health-check-row > :last-child { flex: 0 0 auto; margin-inline-start: auto; }
+.health-check-row .metric-label { overflow-wrap: anywhere; }
+.health-fix { white-space: nowrap; }
+.gap-1 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-4); }
+.mt-3 { margin-top: var(--space-4); }
+.mt-5 { margin-top: var(--space-6); }
+.mb-3 { margin-bottom: var(--space-4); }
+
+.tag {
+  display: inline-block;
+  background: var(--beach);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: var(--font-size-sm);
+  color: var(--foggy);
+  margin-right: 4px;
+}
+
+/* v1.216.0 — brand-colored provider monogram tiles (provider-logo.js): colors live in the SVG; this is layout + a subtle ring. */
+.provider-logo {
+  flex: 0 0 auto;
+  border-radius: 6px;
+  vertical-align: middle;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* v1.243.0 — the ≤768 block no longer re-declares off-canvas .sidebar/.main (app.css's ≤900 block already applies). CAR-43 — the shell gains a FAB tail so the last row never scrolls under the fixed docs launcher on phones. */
+@media (max-width: 768px) {
+  .topbar { padding: 0 var(--space-4); }
+  .content { padding: var(--space-5) var(--space-4); padding-bottom: calc(var(--space-4) + 84px); }
+  .page-title { font-size: 24px; }
+}
+
+/* Tab buttons (used on /#/config). Inline-styled fields would balloon
+   the view file; isolate the visual treatment here. */
+.tab-btn {
+  appearance: none;
+  border: 1px solid var(--slate);
+  background: var(--paper);
+  color: var(--hof);
+  border-radius: 8px;
+  /* WCAG 2.5.5 (v1.20.0): config / Modes / Profile tab buttons get a
+     ≥ 44 px hit area. Previous 8px+16px landed around 36 px. */
+  padding: 10px 18px;
+  min-height: 44px;
+  box-sizing: border-box;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.tab-btn:hover { background: var(--beach); }
+.tab-btn.is-active {
+  /* v3 phase 3 — was a solid --rausch fill, then a low-alpha coral wash: active tabs are
+     ACCENT semantics now (mirrors .tracker-tab.is-active since phase 2 — ink on its wash
+     8.38/8.63:1 light/dark), not the danger-red text the old rausch wash implied. */
+  background: var(--accent-soft);
+  border-color: var(--rausch);
+  color: var(--accent-soft-ink);
+  font-weight: 700;
+}
+
+/* NEW-D2-motion (v1.59.6) — respect the OS-level reduced-motion
+   preference. WCAG 2.3.3 (AAA) recommends suppressing animations
+   above 5 Hz; we go further and reduce every transition / animation
+   to a no-op when the user opts in. scroll-behavior is auto so the
+   help TOC click-to-scroll lands instantly (consistent with how
+   reduced-motion users expect navigation to behave). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* CAR-112 — skeleton shimmer stops entirely; rows stay visible at a calm
+   * opacity (the pulse is decorative, the aria-label carries the loading
+   * state for screen readers). */
+  .skeleton-row { animation: none; opacity: 0.6; }
+  /* scan loading stripe: no slide — show a calm full bar instead */
+  .scan-progress__bar { left: 0; width: 100%; opacity: 0.65; }
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+   I18N-EXPAND (v1.70.0) — Right-to-left support (Arabic).
+
+   i18n.js sets <html dir="rtl"> for RTL locales. The dir attribute alone
+   gives correct text alignment, bidi reordering, and list/marker sides for
+   prose. The chrome itself is built on LOGICAL properties (inset-inline-*,
+   border-inline-*, margin-inline-*, text-align: start/end) so it mirrors
+   with no mirror rules at all. This block keeps only what logical
+   properties cannot express: physical transforms, box-shadow directions,
+   and border-radius mirroring. Scoped under [dir="rtl"] so LTR locales
+   are byte-for-byte unaffected.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Markdown content: tables, blockquotes, and prose align to the reading
+   start (the base rules are `text-align: start` / logical borders — no
+   override needed). One physical leftover that still needs the mirror:
+   the boosted-row accent strip is an inset box-shadow (no logical form),
+   so its side flips by hand. */
+[dir="rtl"] table.tbl tr.row-boosted td:first-child { box-shadow: inset -3px 0 0 var(--rausch); }
+
+/* CAR-23 v1.243.0 — the old `[dir="rtl"] .sidebar-toggle` / `.notif-drawer__close` rules are GONE (flex children, never positioned).
+   The drawer / item / badge mirror rules are GONE too (v1.261.x RTL deep sweep):
+   the base rules use inset-inline-end / border-inline-start, so they mirror themselves. */
+
+/* Off-canvas sidebar slides from the right on mobile. CAR-23 v1.243.0 — breakpoint aligned
+   with the LTR mobile layout (900, not 768): 769-900 showed the sidebar ON TOP of content. */
+@media (max-width: 900px) {
+  [dir="rtl"] .sidebar { transform: translateX(100%); }
+  [dir="rtl"] body.sidebar-open .sidebar { transform: translateX(0); }
+}
+
+/* Ask-the-docs floating assistant (docs-fab.js, v1.113.0): a gradient chat
+   launcher pinned bottom-right (bottom-left in RTL), opening a compact
+   grounded-help chat panel. Self-contained cool-gradient accent (deliberately
+   distinct from the coral brand); theme-aware surfaces; CSP-safe. */
+:root {
+  --fab-grad: linear-gradient(135deg, #0b57d0 0%, #5326ad 100%);
+  --fab-glow: 0 6px 26px rgba(112, 140, 240, .50);
+  --fab-accent: #00819a;               /* teal chip accent (AA on light) */
+  --fab-panel-bg: #ffffff;
+  --fab-panel-head: linear-gradient(180deg, rgba(106,168,255,.10), rgba(164,135,230,.06));
+  --fab-bubble-bot: #f1f3f8;
+  --fab-border: rgba(0, 0, 0, .10);
+}
+:root[data-theme="dark"] {
+  --fab-accent: #6fd2e6;
+  --fab-panel-bg: #1b1f27;
+  --fab-panel-head: linear-gradient(180deg, rgba(106,168,255,.16), rgba(164,135,230,.10));
+  --fab-bubble-bot: #262b34;
+  --fab-border: rgba(255, 255, 255, .10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fab-accent: #6fd2e6;
+    --fab-panel-bg: #1b1f27;
+    --fab-panel-head: linear-gradient(180deg, rgba(106,168,255,.16), rgba(164,135,230,.10));
+    --fab-bubble-bot: #262b34;
+    --fab-border: rgba(255, 255, 255, .10);
+  }
+}
+
+.docs-fab {
+  /* CAR-23 — the fixed launcher was z:1150, ABOVE the aria-modal dialog (z:200): with
+     a modal open it stayed visible and took focus over the dialog. Capped below it.
+     Logical edge: bottom-end corner (bottom-right in LTR, bottom-left in RTL). */
+  position: fixed; inset-inline-end: 24px; bottom: 24px; z-index: calc(var(--z-modal) - 1);
+  width: 60px; height: 60px; border: none; border-radius: 50%;
+  background: var(--fab-grad); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--fab-glow);
+  transition: transform var(--transition, .18s ease), box-shadow var(--transition, .18s ease), filter var(--transition, .18s ease);
+}
+.docs-fab:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 10px 32px rgba(112, 140, 240, .62); }
+.docs-fab:active { transform: translateY(0) scale(.98); }
+.docs-fab:focus-visible { outline: 3px solid var(--fab-accent); outline-offset: 3px; }
+
+.docs-fab__panel {
+  position: fixed; inset-inline-end: 24px; bottom: 96px; z-index: calc(var(--z-modal) - 1); /* below the dialog, same cap as the launcher */
+  width: 380px; max-width: calc(100% - 40px);
+  height: 560px; max-height: calc(100vh - 130px);
+  display: flex; flex-direction: column;
+  background: var(--fab-panel-bg); color: var(--hof, #222);
+  border: 1px solid var(--fab-border); border-radius: 20px;
+  box-shadow: var(--shadow-lg, 0 8px 28px rgba(0,0,0,.18));
+  overflow: hidden;
+  animation: docs-fab-in .18s ease;
+}
+.docs-fab__panel[hidden] { display: none; }   /* beat the UA/author display cascade */
+@keyframes docs-fab-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.docs-fab__head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; background: var(--fab-panel-head);
+  border-bottom: 1px solid var(--fab-border);
+}
+.docs-fab__avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--fab-grad); color: #fff;
+  box-shadow: 0 2px 8px rgba(112, 140, 240, .4);
+}
+.docs-fab__head-meta { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.docs-fab__title { font-weight: 700; font-size: var(--font-size-base); line-height: 1.2; }
+.docs-fab__status { display: flex; align-items: center; gap: 6px; font-size: var(--font-size-sm); color: var(--foggy, #888); }
+.docs-fab__dot { width: 8px; height: 8px; border-radius: 50%; background: #35c759; box-shadow: 0 0 0 3px rgba(53, 199, 89, .18); }
+.docs-fab__close {
+  flex: none; width: 30px; height: 30px; border: none; border-radius: 8px;
+  background: transparent; color: #6e6e6e; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition, .18s ease), color var(--transition, .18s ease);
+}
+.docs-fab__close:hover { background: var(--fab-bubble-bot); color: var(--hof, #222); }
+.docs-fab__close:focus-visible { outline: 2px solid var(--fab-accent); outline-offset: 2px; }
+
+.docs-fab__log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.docs-fab__bubble { max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+.docs-fab__bubble--bot { align-self: flex-start; background: var(--fab-bubble-bot); border-bottom-left-radius: 5px; }
+.docs-fab__bubble--me { align-self: flex-end; background: var(--fab-grad); color: #fff; border-bottom-right-radius: 5px; }
+.docs-fab__bubble .md :first-child { margin-top: 0; }
+.docs-fab__bubble .md :last-child { margin-bottom: 0; }
+.docs-fab__src { margin-top: 8px; font-size: var(--font-size-xs); color: var(--foggy, #888); }
+
+.docs-fab__chips { display: flex; flex-wrap: wrap; gap: 8px; align-self: flex-start; }
+.docs-fab__chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  background: transparent; color: var(--fab-accent);
+  border: 1px solid color-mix(in srgb, var(--fab-accent) 45%, transparent);
+  font-size: var(--font-size-md); font-weight: 500;
+  transition: background var(--transition, .18s ease), border-color var(--transition, .18s ease), transform var(--transition, .18s ease);
+}
+.docs-fab__chip:hover { background: color-mix(in srgb, var(--fab-accent) 12%, transparent); transform: translateY(-1px); }
+.docs-fab__chip:focus-visible { outline: 2px solid var(--fab-accent); outline-offset: 2px; }
+.docs-fab__chip-ic { font-size: 14px; line-height: 1; }
+
+.docs-fab__bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--fab-border); }
+.docs-fab__input { flex: 1; border-radius: 999px; }
+.docs-fab__send {
+  flex: none; width: 44px; height: 44px; border: none; border-radius: 14px;
+  background: var(--fab-grad); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 12px rgba(112, 140, 240, .4);
+  transition: transform var(--transition, .18s ease), filter var(--transition, .18s ease);
+}
+.docs-fab__send:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.docs-fab__send:disabled { opacity: .55; cursor: default; transform: none; }
+.docs-fab__send:focus-visible { outline: 2px solid var(--fab-accent); outline-offset: 2px; }
+
+/* RTL — the launcher/panel mirror themselves via the logical
+   inset-inline-end; only the bubble radii stay physical. */
+[dir="rtl"] .docs-fab__bubble--bot { border-bottom-left-radius: 14px; border-bottom-right-radius: 5px; }
+[dir="rtl"] .docs-fab__bubble--me { border-bottom-right-radius: 14px; border-bottom-left-radius: 5px; }
+
+@media (max-width: 480px) {
+  /* CAR-215 — a 60px launcher at 24px insets covered real content at 390px
+     (dashboard welcome, scan reposts line, stats empty, cv-studio/evaluate
+     textareas). A 44px launcher at 12px insets reclaims the corner while
+     keeping the 44px touch target; the panel keeps its clearance above it. */
+  .docs-fab { width: 44px; height: 44px; inset-inline-end: 12px; bottom: 12px; }
+  .docs-fab__panel { right: 12px; left: 12px; width: auto; bottom: 68px; height: auto; max-height: calc(100vh - 96px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .docs-fab, .docs-fab__send, .docs-fab__chip { transition: none; }
+  .docs-fab__panel { animation: none; }
+}
+
+/* AI usage & cost HUD (usage-hud.js, v1.114.0): a compact "USAGE" meter
+   pinned bottom-left (bottom-right in RTL) — gauge header + per-window token
+   bars + an est-cost footer. Collapsible; theme-aware; opposite corner from
+   the docs launcher. */
+:root {
+  --hud-bg: #ffffff;
+  --hud-border: rgba(0, 0, 0, .10);
+  --hud-track: #eceff4;
+  --hud-bar: #34c759;
+}
+:root[data-theme="dark"] { --hud-bg: #1b1f27; --hud-border: rgba(255,255,255,.10); --hud-track: #2b313b; --hud-bar: #37d15f; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --hud-bg: #1b1f27; --hud-border: rgba(255,255,255,.10); --hud-track: #2b313b; --hud-bar: #37d15f; }
+}
+
+/* Pinned to the BOTTOM of the sidebar column (bottom-right in RTL) — full
+   sidebar width, matching the sidebar surface, sitting just on top of it
+   (z above the sidebar's 10). It never covers the menu: usage-hud.js publishes
+   its height + 8 as the `--usage-hud-pad` custom property and the sidebar's
+   fixed box ENDS above the HUD (bottom = pad − 8, no inline-style clobbering —
+   v1.116 review finding), so nav items never slide under it at ANY scroll
+   position (CAR-49) — padding alone only cleared the last item at scroll-end.
+   Owner UX batch: BOTH lift rules are gated to `.sidebar.has-hud` —
+   usage-hud.js toggles that class only when the HUD is actually rendered,
+   so a sidebar without the HUD keeps its natural bottom edge. */
+.sidebar.has-hud { padding-bottom: var(--space-5); bottom: max(0px, calc(var(--usage-hud-pad, 0px) - 8px)); }
+/* CAR-49 — a soft fade at the scrollport's bottom edge (just above the HUD):
+   mid-scroll nav items dissolve into the surface instead of stopping at a hard
+   line. Paints inside the sidebar's stacking context (below the HUD's z), and
+   pointer-events: none keeps it from blocking the last visible link. */
+.sidebar.has-hud::after {
+  content: ''; position: fixed; inset-inline-start: 0;
+  bottom: max(0px, calc(var(--usage-hud-pad, 0px) - 8px));
+  width: var(--sidebar-w); height: 22px;
+  background: linear-gradient(to bottom, transparent, var(--paper));
+  pointer-events: none;
+}
+
+/* CAR-235 — drag handle on the sidebar's INLINE-END border (inset-inline-end mirrors under [dir="rtl"]); width rides --sidebar-w; math/persistence in js/lib/sidebar-resize.js. */
+.sidebar-resize {
+  position: fixed; top: 0; bottom: 0;
+  inset-inline-end: calc(100% - var(--sidebar-w) - 3px);
+  width: 6px; z-index: calc(var(--z-sidebar) + 1);
+  cursor: col-resize; touch-action: none; background: transparent;
+}
+.sidebar-resize:hover, .sidebar-resize:focus-visible { background: var(--slate); }
+.sidebar-resize:focus-visible { outline: 2px solid var(--slate); outline-offset: 1px; }
+@media (max-width: 900px) { .sidebar-resize { display: none; } } /* mobile drawer is fixed-width */
+
+.usage-hud {
+  position: fixed; inset-inline-start: 0; bottom: 0; z-index: var(--z-hud);
+  width: var(--sidebar-w); max-width: 100%;
+  background: var(--paper); color: var(--hof, #222);
+  border-top: 1px solid var(--slate); border-inline-end: 1px solid var(--slate);
+  padding: 10px var(--space-3, 12px); font-size: var(--font-size-md);
+}
+.usage-hud__head {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: none; border: none; padding: 2px 0 8px; cursor: pointer;
+  color: var(--foggy, #888); font: inherit;
+}
+.usage-hud__head:focus-visible { outline: 2px solid var(--hud-bar); outline-offset: 2px; border-radius: 6px; }
+.usage-hud__ic { display: inline-flex; color: var(--foggy, #888); }
+.usage-hud__title { text-transform: uppercase; letter-spacing: .08em; font-size: var(--font-size-xs); font-weight: 700; flex: 1; text-align: start; }
+.usage-hud__chev { transition: transform var(--transition, .18s ease); font-size: var(--font-size-sm); }
+.usage-hud--collapsed .usage-hud__chev { transform: rotate(-90deg); }
+.usage-hud--collapsed { padding-bottom: 10px; }
+.usage-hud__bodywrap[hidden] { display: none; }
+.usage-hud__meter { margin: 0 0 10px; }
+.usage-hud__meter:last-child { margin-bottom: 0; }
+.usage-hud__meterhead { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 5px; }
+.usage-hud__win { font-weight: 600; font-size: var(--font-size-sm); color: var(--hof, #333); }
+.usage-hud__val { font-size: var(--font-size-sm); color: var(--foggy, #888); font-variant-numeric: tabular-nums; }
+.usage-hud__bar { display: block; height: 6px; border-radius: 999px; background: var(--hud-track); overflow: hidden; }
+.usage-hud__barfill { display: block; height: 100%; border-radius: 999px; background: var(--hud-bar); transition: width var(--transition, .3s ease); }
+.usage-hud__empty { font-size: var(--font-size-sm); color: var(--foggy, #888); line-height: 1.5; }
+.usage-hud__footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--hud-border); font-size: var(--font-size-xs); color: var(--foggy, #888); }
+.usage-hud__footcost { font-weight: 700; color: var(--hof, #333); font-variant-numeric: tabular-nums; }
+
+/* Hidden on mobile — a pinned corner card would cover scarce screen space;
+   the full usage view lives at #/usage. */
+@media (max-width: 900px) { .usage-hud { display: none; } }
+@media (prefers-reduced-motion: reduce) { .usage-hud__barfill, .usage-hud__chev { transition: none; } }
+
+/* v1.115.0 — conservative design polish (coral brand kept): metric cards feel
+   interactive like the QA tiles; cards lift on hover; primary/dark/danger
+   buttons gain a resting shadow + gentle hover lift; numbers use
+   tabular-nums; the focus ring gets a soft coral halo. Motion respects
+   prefers-reduced-motion. */
+.metric-card { transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition); }
+.metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--rausch); }
+.metric-value { font-variant-numeric: tabular-nums; }
+.card:hover { transform: translateY(-1px); }
+
+.btn-primary, .btn-dark, .btn-danger { box-shadow: 0 1px 2px rgba(0, 0, 0, .10); }
+.btn-primary:hover, .btn-dark:hover, .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, .16); }
+
+/* Soft accent halo behind the crisp 2px keyboard ring on interactive controls
+   ONLY — deliberately NOT a global `*:focus-visible` (that re-paints the
+   spurious ring on managed-focus route <h1>s; the v1.58.x lesson). Inputs
+   already carry their own halo at higher specificity. v3 phase 3 — the wash
+   follows the theme (was the literal coral rgba). */
+.btn:focus-visible, .qa-tile:focus-visible, .nav-item:focus-visible,
+a:focus-visible, .chip:focus-visible { box-shadow: 0 0 0 4px var(--accent-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  .metric-card, .card, .btn-primary, .btn-dark, .btn-danger { transition: none; }
+  .metric-card:hover, .card:hover, .btn-primary:hover, .btn-dark:hover, .btn-danger:hover { transform: none; }
+}
+
+/* v1.231.3 — the four top-bar actions rendered 36x36, 36x36, 36x44, 36x44.
+   The odd pair is not the tall one: `.btn` carries a `min-height: 44px` floor
+   restored for WCAG 2.5.5, so Doctor and Scan are right and the bell and theme
+   toggle sit below it. Raised to match — even row, and two more targets over
+   the floor. Width stays 36px: four 44px squares plus a 40px menu do not fit a
+   320px bar, and 36px still clears the 24px WCAG 2.5.8 AA minimum. */
+@media (max-width: 900px) {
+  header.topbar .topbar-actions .notif-bell,
+  header.topbar .topbar-actions .theme-toggle { min-height: 44px; height: 44px; }
+}
+
+/* v1.231.4 — the busy cue for buttons that carry an icon span.
+   withSpinner used to write '⏳ ' + label into every button it decorated. For a
+   top-bar action that made the 36px square a wide `⏳ 🩺Doctor` pill for the
+   whole length of the run, breaking the row on every phone that tapped Doctor.
+   Those buttons are no longer rewritten; the hourglass comes from here instead,
+   so the geometry never changes. Last file in the cascade, so this beats
+   app.css's `.topbar .topbar-actions .btn-ico { display: inline }` on source
+   order at equal specificity. */
+.btn.is-loading .btn-ico { display: none; }
+.btn.is-loading::before { content: "⏳"; line-height: 1; }
+.v2-stats-strip { display: flex; align-items: stretch; gap: 4px; flex-wrap: nowrap; border-bottom: 1px solid var(--line, #e5e7eb); margin: 4px 0 18px; }
+.v2-stats-scroller { flex: 1 1 auto; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: var(--slate, #c9ced6) transparent; padding: 0 12px; -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); }
+.v2-stats-tabbar { display: flex; gap: 6px; flex-wrap: nowrap; }
+.v2-stats-tab { appearance: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--foggy, #6b7280); padding: 8px 14px; min-height: 44px; box-sizing: border-box; font-weight: 600; font-size: 13.5px; cursor: pointer; white-space: nowrap; transition: color var(--transition), border-color var(--transition), background-color var(--transition); }
+.v2-stats-tab:hover { background: var(--beach, #f6f7f9); }
+.v2-stats-tab[aria-selected="true"] { color: var(--fg, #111); border-bottom-color: var(--accent, #4c8bf5); }
+.v2-stats-tab:focus-visible { outline: 2px solid var(--accent, #4c8bf5); outline-offset: -2px; }
+.v2-stats-tabsep { flex: 0 0 auto; width: 1px; align-self: stretch; margin: 8px 6px; background: var(--line, #e5e7eb); }
+@keyframes v2-stats-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.v2-stats-anim { animation: v2-stats-rise 300ms var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .v2-stats-anim { animation: none; } }
+.v2-stats-bar { cursor: pointer; } .v2-stats-bar:focus-visible { outline: 2px solid var(--accent, #4c8bf5); outline-offset: 2px; }
+/* CAR-124 — empty-state example previews (#/funded, #/batch, #/apply, #/auto): a dashed, muted container + an "EXAMPLE" tag. Everything inside is decorative sample data (aria-hidden="true") — it must never read as live data. */
+.v2-empty-example { position: relative; border: 1.5px dashed var(--slate, #c9ced6); border-radius: 12px; padding: 18px 14px 12px; margin: 14px 0 0; color: var(--foggy, #717171); }
+.v2-empty-example__tag { position: absolute; top: -10px; inset-inline-start: 12px; background: var(--paper, #ffffff); border: 1px solid var(--slate, #ebebeb); border-radius: 999px; color: var(--foggy, #717171); font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 1px 8px; }

@@ -1,0 +1,321 @@
+/**
+ * Batch evaluate routes — SPA equivalent of the CLI loop documented at
+ * github.com/AnkitParekh007/rebound-ops.
+ *
+ *   GET  /api/batch                    → { exists, raw, rows, additions }
+ *   PUT  /api/batch       { raw }      → write batch/batch-input.tsv
+ *   GET  /api/stream/batch[?parallel=N][&minScore=4.0] → SSE: spawns
+ *                                          batch/batch-runner.sh
+ *   POST /api/batch/merge              → run merge-tracker.mjs, return result
+ *
+ * The runner script (`batch/batch-runner.sh`) lives in the rebound-ops project, not this repo.
+ * We shell out via `bash` so that script can stay shell — the SPA
+ * is a thin streaming wrapper.
+ */
+import { spawn } from 'node:child_process';
+import { existsSync, readFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { PATHS } from '../paths.mjs';
+import { runTrackedScript } from '../runner.mjs';
+import { withFileLock, atomicWrite } from '../file-lock.mjs';
+import { llmRateLimit, writeRateLimit } from '../rate-limit.mjs';
+import { recordUsage, createBatchUsageParser } from '../llm-usage.mjs';
+
+const TSV_MAX_BYTES = 1024 * 1024; // 1 MB — generous for ~10k JD URLs.
+
+// Stopping a run. batch-runner.sh fans out worker processes, so signalling
+// bash alone orphaned them (still evaluating, still billing). The runner gets
+// its own process group and the whole group is signalled: SIGTERM, then
+// SIGKILL after `killGraceMs` (a trapped or busy worker ignores SIGTERM).
+// `maxRuntimeMs` caps a run nobody is watching. Mutable for tests.
+export const BATCH_LIMITS = {
+  maxRuntimeMs: 4 * 60 * 60 * 1000,
+  killGraceMs: 5_000,
+  // FULL-M4 — each --parallel unit is one more real concurrent LLM
+  // evaluation. The UI offers 1–3; the server clamps anything above 8 so a
+  // crafted ?parallel=500 cannot fan out 500 billed workers.
+  maxParallel: 8,
+};
+const GROUP_KILL = process.platform !== 'win32';
+
+// One batch run at a time per process (mirror of the scan single-flight
+// slot). Two concurrent runs double the LLM spend and race on the
+// batch/tracker-additions writes; a second request gets an SSE `error` with
+// code BATCH_BUSY instead of a second runner.
+let activeBatch = null; // { startedAt } while a run streams
+
+/** Test hook: claim / release the slot without running a batch. */
+export const __batchSlot = {
+  get active() { return activeBatch; },
+  claim() { activeBatch = { startedAt: new Date().toISOString() }; },
+  release() { activeBatch = null; },
+};
+
+/** Signal the runner's whole process group (POSIX), else the child itself. */
+function signalRun(child, signal) {
+  if (GROUP_KILL && child.pid) {
+    try { process.kill(-child.pid, signal); return; } catch { /* group already gone */ }
+  }
+  try { child.kill(signal); } catch { /* already exited */ }
+}
+
+function parseTsv(text) {
+  if (!text) return [];
+  const rows = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const [id, url, source, ...rest] = line.split('\t');
+    rows.push({ id: id || '', url: url || '', source: source || '', notes: (rest || []).join('\t') });
+  }
+  return rows;
+}
+
+function listAdditions() {
+  if (!existsSync(PATHS.batchAdditionsDir)) return [];
+  try {
+    return readdirSync(PATHS.batchAdditionsDir)
+      .filter((f) => !f.startsWith('.'))
+      .map((f) => {
+        const p = PATHS.batchAdditionsDir + '/' + f;
+        const stat = statSync(p);
+        return { name: f, size: stat.size, mtime: stat.mtime };
+      })
+      .sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
+  } catch { return []; }
+}
+
+export function registerBatchRoutes(app) {
+  // ── GET — current input + pending additions ──
+  app.get('/api/batch', (_req, res) => {
+    const raw = existsSync(PATHS.batchInput) ? readFileSync(PATHS.batchInput, 'utf8') : '';
+    res.json({
+      exists: existsSync(PATHS.batchInput),
+      runnerExists: existsSync(PATHS.batchRunner),
+      raw,
+      rows: parseTsv(raw),
+      additions: listAdditions(),
+    });
+  });
+
+  // ── PUT — replace batch-input.tsv ──
+  // writeRateLimit: this persists a request body into batch-input.tsv that the
+  // runner later evaluates — a file mutation, so the unconditional per-route
+  // guard applies (review LOW #3; llmRateLimit stays on the GET stream).
+  app.put('/api/batch', writeRateLimit(), async (req, res) => {
+    const raw = (req.body?.raw ?? '').toString();
+    if (raw.length > TSV_MAX_BYTES) {
+      return res.status(413).json({ error: 'batch input too large', limit: TSV_MAX_BYTES });
+    }
+    // Sanity: refuse a body that is obviously not TSV-shaped (no URL on
+    // any non-comment, non-empty line). Better to fail fast than persist
+    // a corrupt input file the runner will choke on.
+    const rows = parseTsv(raw);
+    if (rows.length > 0 && !rows.some((r) => /^https?:\/\//i.test(r.url))) {
+      return res.status(400).json({
+        error: 'no URL found in any TSV row',
+        hint: 'each non-comment line should be: <id>\\t<url>\\t<source>\\t<notes>',
+      });
+    }
+    mkdirSync(PATHS.batchDir, { recursive: true });
+    // FULL-M1 — batch-input.tsv is read by the batch-runner subprocess the
+    // stream route spawns: land it through atomicWrite under the file lock
+    // so a stream start can never read a torn file.
+    await withFileLock(PATHS.batchInput, () => atomicWrite(PATHS.batchInput, raw));
+    res.json({ ok: true, bytes: raw.length, rows: rows.length });
+  });
+
+  // ── GET /api/stream/batch ── spawn batch-runner.sh and stream SSE ──
+  // llmRateLimit: batch-runner fans out N parallel real LLM evaluations —
+  // the most expensive operation the app exposes. Loopback is exempt
+  // (the limiter no-ops there), so this only gates HOST=0.0.0.0 setups.
+  //
+  // FULL-M1 residual — batch-runner.sh runs merge-tracker.mjs ITSELF at the
+  // end of a run (its own merge_tracker() step). Holding the tracker file
+  // lock around the whole stream (up to BATCH_LIMITS.maxRuntimeMs) would
+  // block every UI tracker edit for the batch duration — the cure is worse
+  // than the disease — so the end-of-batch merge stays unlocked: the race
+  // window is the few seconds of that final merge, the batch itself is
+  // single-flight (BATCH_BUSY below), and the app is single-user.
+  app.get('/api/stream/batch', llmRateLimit, (req, res) => {
+    // ── query validation, BEFORE the SSE headers go out (plain 400) ──
+    // --parallel: junk falls back to 1 (legacy behavior); a real number is
+    // clamped into 1..BATCH_LIMITS.maxParallel (FULL-M4).
+    let parallel = 1;
+    if (req.query.parallel) {
+      const n = parseInt(req.query.parallel, 10);
+      if (Number.isInteger(n) && n >= 1) parallel = Math.min(n, BATCH_LIMITS.maxParallel);
+    }
+    // --min-score: a number on the tracker score scale (1–5). Unlike the
+    // cosmetic flags below (silently dropped when out of range), a bogus
+    // threshold is rejected: silently dropping it would evaluate rows the
+    // user asked to skip, and silently clamping it would move the user's
+    // own quality gate. The validated string is passed through verbatim.
+    let minScore = null;
+    if (req.query.minScore) {
+      const s = String(req.query.minScore).trim();
+      const n = Number(s);
+      if (!Number.isFinite(n) || n < 1 || n > 5) {
+        return res.status(400).json({ error: 'invalid minScore: expected a number 1–5 (tracker score scale)' });
+      }
+      minScore = s;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    // A vanished client must not turn a late write into an error.
+    res.on('error', () => { /* client gone */ });
+    const send = (event, data) => {
+      if (res.writableEnded || res.destroyed) return;
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+    if (!existsSync(PATHS.batchRunner)) {
+      send('error', { message: 'batch/batch-runner.sh not found in parent project' });
+      send('done', { code: 2 });
+      return res.end();
+    }
+    if (activeBatch) {
+      send('error', {
+        code: 'BATCH_BUSY',
+        message: `a batch run is already running (started ${activeBatch.startedAt}); wait for it to finish`,
+        startedAt: activeBatch.startedAt,
+      });
+      send('done', { code: 2 });
+      return res.end();
+    }
+    activeBatch = { startedAt: new Date().toISOString() };
+    // #4746 — the batch path bills REAL tokens through the parent's CLI
+    // workers, yet none of it reached data/llm-usage.jsonl (the Usage page
+    // was blind to the app's most expensive operation). The parent's
+    // aggregate-tokens.mjs tail streams through here on stdout; parse it
+    // and record ONE usage record per run under the 'batch' provider tag.
+    // Best-effort: an unparseable tail records nothing.
+    const batchUsage = createBatchUsageParser();
+    const args = [];
+    if (req.query.dryRun === '1') args.push('--dry-run');
+    if (req.query.parallel) args.push('--parallel', String(parallel));
+    if (minScore !== null) args.push('--min-score', minScore);
+    if (req.query.retry === '1') args.push('--retry-failed');
+    // v1.28.0 — canonical batch-runner.sh flag (default 2). Only meaningful
+    // when --retry-failed is also set; we silently drop out-of-range values
+    // (1..10) rather than 400ing so the UI's number-input "max=10" is the
+    // hard contract and the server is just defense-in-depth.
+    if (req.query.retry === '1' && req.query.maxRetries) {
+      const n = parseInt(req.query.maxRetries, 10);
+      if (Number.isInteger(n) && n >= 1 && n <= 10) {
+        args.push('--max-retries', String(n));
+      }
+    }
+    // v1.31.0 — batch-runner.sh flags (#504 +
+    // --start-from). Same defense-in-depth as --max-retries: UI is the
+    // soft contract, the server validates and silently drops bad input.
+    // --model: allow only a conservative model-id charset (alnum, dot,
+    // dash) so a crafted query string can't smuggle extra shell args
+    // even though spawn() is arg-array (belt-and-suspenders).
+    if (req.query.model) {
+      const m = String(req.query.model).trim();
+      if (m && /^[A-Za-z0-9.\-]{1,60}$/.test(m)) {
+        args.push('--model', m);
+      }
+    }
+    if (req.query.startFrom) {
+      const n = parseInt(req.query.startFrom, 10);
+      if (Number.isInteger(n) && n >= 1 && n <= 100000) {
+        args.push('--start-from', String(n));
+      }
+    }
+
+    send('start', { script: 'batch-runner.sh', args });
+    // v1.22.0 (L-2) — --noprofile --norc skips ~/.bashrc / ~/.bash_profile
+    // so a hostile or broken rc file in REBOUND_OPS_ROOT cannot influence
+    // the runner. Defense-in-depth; the runner script itself is trusted.
+    // FULL-M4 review r1 — a synchronous spawn throw between the slot claim
+    // and handler registration would leak the single-flight slot; release
+    // it and rethrow (mirrors scan.mjs's guard).
+    let child;
+    try {
+      child = spawn('bash', ['--noprofile', '--norc', PATHS.batchRunner, ...args], {
+        cwd: PATHS.root,
+        env: { ...process.env },
+        // Own process group (setsid), so the workers can be signalled with it.
+        detached: GROUP_KILL,
+      });
+    } catch (err) {
+      activeBatch = null;
+      throw err;
+    }
+    const handleChunk = (stream, chunk) => {
+      for (const line of chunk.toString().split('\n')) {
+        if (!line) continue;
+        if (stream === 'stdout') batchUsage.feed(line);
+        send('log', { stream, line });
+      }
+    };
+    child.stdout.on('data', (d) => handleChunk('stdout', d));
+    child.stderr.on('data', (d) => handleChunk('stderr', d));
+
+    let stopping = false;
+    let graceTimer = null;
+    const stop = () => {
+      if (stopping) return;
+      stopping = true;
+      signalRun(child, 'SIGTERM');
+      // Escalate even if bash itself already exited: its workers may not have.
+      graceTimer = setTimeout(() => signalRun(child, 'SIGKILL'), BATCH_LIMITS.killGraceMs);
+      graceTimer.unref();
+    };
+    const runtimeTimer = setTimeout(() => {
+      send('error', { message: `batch run stopped: over the ${Math.round(BATCH_LIMITS.maxRuntimeMs / 1000)} s limit` });
+      stop();
+    }, BATCH_LIMITS.maxRuntimeMs);
+    res.on('close', () => {
+      if (child.exitCode === null && child.signalCode === null) stop();
+    });
+    child.on('close', (code) => {
+      clearTimeout(runtimeTimer);
+      activeBatch = null;
+      // #4746 — land the usage record BEFORE done so a client that sees
+      // "done" can already read it from the Usage page. A record with the
+      // parent's $ estimate carries cost (preferred at aggregation, CAR-106);
+      // without one, tokens-only under the 'batch' tag (priceFor('batch') is
+      // 0 — the Usage page shows the tokens honestly at $0 rather than a
+      // fabricated price).
+      const u = batchUsage.result();
+      if (u) {
+        recordUsage('batch', {
+          prompt_tokens: u.in,
+          completion_tokens: u.out,
+          cost: u.cost > 0 ? u.cost : undefined,
+        });
+      }
+      send('done', { code, additions: listAdditions().length });
+      res.end();
+    });
+    child.on('error', (err) => {
+      clearTimeout(runtimeTimer);
+      activeBatch = null;
+      send('error', { message: err.message });
+      res.end();
+    });
+  });
+
+  // ── POST /api/batch/merge ── run merge-tracker.mjs and report result ──
+  // writeRateLimit: spawns a tracker-mutating script — the unconditional
+  // per-route guard applies (review LOW #3).
+  app.post('/api/batch/merge', writeRateLimit(), async (req, res) => {
+    const args = [];
+    if (req.body?.dryRun) args.push('--dry-run');
+    try {
+      // FULL-M1 — merge-tracker.mjs rewrites data/applications.md: the
+      // spawn holds the tracker file lock (runTrackedScript) so it
+      // serializes with web-ui's own tracker writers and with the
+      // buffered /api/run/merge runner.
+      const r = await runTrackedScript('merge-tracker.mjs', args, { timeoutMs: 60_000 });
+      res.json(r);
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+}

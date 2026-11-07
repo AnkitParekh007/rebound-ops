@@ -1,0 +1,18 @@
+node_modules/
+dist/
+coverage/
+.angular/
+apps/web/.angular/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+data/
+*.local.json
+
+playwright-report/
+test-results/
+
+# Local AI evaluation reports (live provider output; never commit)
+evals/ai-review/results/

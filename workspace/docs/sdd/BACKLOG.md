@@ -1,0 +1,220 @@
+# BACKLOG — every open fix, by release
+
+Source of truth for *what* is left; `PLAN.md` says *in which order* and *who* does it.
+Each item: severity `[H]/[M]/[L]`, file:line at the time of the 2026-10-06 review, the defect,
+and the fix. File:line can drift — re-verify before fixing (write the red test first).
+Close an item by deleting it in the same commit as its fix; the commit message names it.
+
+**Already fixed in v1.241.0** (review slices fully closed): routes-1, routes-2, scanners-filters, routes-3 (runners stats tracker portals scan pipeline ...), server-infra-security, llm-parsers, security-sweep (guard bypasses were mine, fixed: case-insensitive acting path; Origin must equal Host or ALLOWED_HOSTS entry), scripts-ci-packaging, tests-1 (and partially tests-2/3, stopped).
+Fix-and-cover agents A/B/C/D/CI/T; see CHANGELOG 1.241.0.
+
+---
+
+## v1.242.0 — sources correctness (Phase 2)
+
+**SHIPPED in v1.242.0** — every item that sat under this header when the phase started is closed;
+the per-family sections were removed under the same rule that deletes an item in the commit of its
+fix (one fix agent per file family: sources-1…sources-8, adapters-1/2; the `_shape.mjs` helper
+landed first). What the phase delivered:
+
+- `server/lib/sources/_shape.mjs` (`requireArray` / `requireContainer` / `requireObject`) —
+  a 200 with the wrong shape **throws** on page 1 across ~40 sources; later-page failures keep
+  partials; pagination stops on the **raw** page length; job URLs are https on the pinned host.
+- Dead sources live again: **justjoin** (new envelope + cursor walk), **nofluffjobs**
+  (salaryCurrency params + pageTo loop). **himalayas**/**jobicy** walk their full catalogs
+  (offset/cursor pagination instead of the newest ~20).
+- SSRF: exact-host pins replace `includes('vendor')` in adapters (lever, greenhouse ×5 hosts +
+  legacy PATH_SLUG_HOSTS, ashby, smartrecruiters, workable, gem REST, ibm, arbeitsagentur,
+  hecklerkoch www-only, workingnomads, remoteok, remotive, rss, successfactors); `redirect:'error'`;
+  `resolveAdapter` + per-company `detectApi` wrapped — one bad portals entry can no longer abort
+  a whole scan; `?token=` redacted in comeet errors.
+- Data quality: taleo French headings, telegram keeps the NEWEST posts (paginates `?before=`),
+  tencent Count-unknown walk + clamps, workday offset pagination (MAX_PAGES 20), mycareersfuture
+  12-field shape, arbeitsagentur/vdab/rippling/teamtailor REMOTE_RE tightening (contract-% and
+  'distributed' no longer mean remote), UTC date stamps, HTML-entity decoding (geekjob/getmatch/hh).
+- Not reproducible / verified already fine: peoplesoft `peoplesoftIncomplete` (consumed at
+  en-scanner:279), mokahr/telegram `buildEndpoint` throws (v1.241.0), en-scanner detectApi wrap
+  (v1.241.0), `thehub.mjs` (conformed).
+
+Still open from this phase:
+- ~~[L] dedicated tests for `sources/habr.mjs`~~ **Closed** — `tests/sources-habr.test.mjs` (22 specs, 100/98.2) in the coverage wave `91d4a7f4`; the strip-after-decode finding it pinned is fixed in the same wave.
+
+## v1.243.0 — client, CSS/a11y, i18n (Phase 3)
+
+Also from Phase 1 hand-offs: show `warnings` (truncation) on deep / auto-pipeline / career-plan /
+market / cv-studio pages; drop `.doc` from `public/js/views/cv.js` accept list and `cv.uploadHint`
+×17; `config.openaiModelHint` ×17 and help ×17 still say the web-ui default is `gpt-5-codex`
+(web-ui now sends Codex-only models as `gpt-5`); raise coverage of ~~`routes/map.mjs`, `routes/geocode.mjs`; `content.mjs` and `networking.mjs` branch coverage (37 % / 61 %).~~ **Closed** — the coverage wave (`tests/cov-{map,geocode,content-networking}-routes.test.mjs`, +87 specs): map 100/94.9, geocode 96.3/92.9, content 99/84.9, networking 96.4/89.1.
+
+## client-libs-1
+(Closed in feat/v1.243.0-client-fixes — router anchor/hash, auto-pipeline SSE flush, API.stream
+error contract, bug-report privacy/health/copy, countries matching, cv-privacy masking,
+fit-score salary/OR, hint dismissal focus, providerCostHint leak — red→green tests in
+tests/router-anchor-hash, auto-pipeline-stream-flush, api-stream-error-contract,
+bug-report-privacy, cv-privacy, hint-dismiss-focus + extended countries/fit-score suites.)
+- [M] lib/pdf-generate.js streamPostSse: same stream-close bug as the (fixed) auto-pipeline drain —
+  SSE failure leaves the Generate button disabled forever (client-libs-2 owner; the shared
+  API.stream it calls now delivers exactly one well-formed {message} error).
+- [M] lib/cv-diagnostics.js:46 word count ASCII-only -> non-Latin CV = 'empty'.
+
+## cv/studio other
+
+## views-2
+- [M] views/memory.js:22 failed GET swallowed -> empty textarea + Save enabled -> overwrites saved note.
+- [M] views/evaluate.js:79-122 ignores r.warnings (cut-off notice since v1.239.4).
+- [M] views/mock-interview.js:74-131 stale-turn race (no session epoch).
+- [M] views/pipeline.js:146-161 selectUrl no latest-wins guard.
+- [M] pipeline.js:108-118,211-222 & health.js:14-37 async click handlers no try/catch -> silent failures.
+- [L] funded.js/interview-digest.js/mode-page.js: available:false always 'script not found' (ignores reason timeout/script-error).
+- [L] portals.js:217 docs-assistant.js:33,89 Enter bypasses in-flight guard; IME Enter fires.
+- [L] pipeline.js:176 row mouse-only (no tabindex/role/key); isActive highlight never updates; portals toggles same aria-label.
+- [L] health.js:64 FIX_TARGETS keys don't match server check names.
+- [L] pipeline.js:325 overview strip never refreshed, hard-coded English stages (use TrackerStages).
+- also: evaluate.js:25 prefill passes 50-char gate (spends LLM on placeholder); clipboard writeText not awaited (evaluate/mode-page); help.js back-to-top under docs FAB; list fetch failure shown as 'No saved yet'.
+
+## views-3 (reports scan scan/filters scan/runner settings stats tracker two-pager usage)
+- [M] settings.js:35 canonical archetypes fallback never runs (summary.archetypes=[] truthy) -> empty Archetypes section. Use length check.
+- [M] tracker.js:551 legitimacyClass: 'Proceed with Caution' -> badge-bad (proceed before caution).
+- [M] stats.js:283-322 funnel/conversion compare raw statuses ('**Applied**','aplicado') -> wrong; fold via TrackerStages.foldStatus.
+- [M] scan.js:594,630 scan:refresh listeners added every #/scan visit, never removed (N fetches per tick).
+- [M] scan/runner.js:200 + scan.js:22: SSE stream orphaned on navigate-away; server scan continues; new view idle; Scan -> SCAN_BUSY; can't stop orphan. Close activeES on route change / re-attach.
+- [M] scan.js:44-47,177-180 client API-company test is 3-host regex drifted from server adapter registry -> eu.greenhouse/lever/workday/smartrecruiters/workable labelled 'Web-search only', counter wrong. Use server detectApi per company.
+- [M] stats.js:71,88 barChart unreadable in RTL (svg <text> inherits direction) -> set direction=ltr.
+- [L] scan.js:219-225 refreshResults unsequenced; wipes table on failure (catch -> {en:null,ru:null}).
+- [L] two-pager.js:30 failed load looks like 'no two-pager', Save overwrites file with blanks.
+- [L] stats.js:456, tracker.js:131, reports.js:102 rebuilding focused control drops keyboard focus (selects, paginators).
+
+## views-1 (activity apply assessments auto batch career-plan config cv cv-studio dashboard deep ...)
+- [H] views/cv.js:272 unsaved-changes guard can't preserve edits (Cancel re-renders and refetches; #/cv-studio bypasses via startsWith('#/cv'); language switch Router.render() no dirty check; career-plan loses plan).
+- [M] cv.js:224,197 Save/sync no try/catch -> unhandled rejection no toast.
+- [M] cv.js:140 X-Filename header non-ISO-8859-1 filename throws (Резюме.pdf). encodeURIComponent.
+- [M] dashboard.js:195 Refresh Router.go('/dashboard') on same hash = no hashchange -> use Router.render(); tile subtitles never show counts; local: pipeline entries dead links.
+- [M] api.js:187 API.stream double error (also routes/client-libs-1 finding) — cv.js:113 data.message on undefined; batch.js:143.
+- [M] career-plan.js:24 cv-studio.js:22,229 config.js:628: load failures swallowed into plausible empty state; Save then overwrites (config.js writes '# error: …' into editable _profile.md raw textarea).
+- [M] config.js:526 providers-changed listener leaked per visit/Save; providerCostHint (api.js:786) listeners per call (deep.js:213, auto.js:262).
+- [L] activity.js:84,103 load() unawaited no try/catch no request token.
+- [L] deep.js:163 canonical-section warning false positive (numbered / localized headings); deep.js:232 hard-coded 'Gemini returned no output'; clipboard unawaited; deep.js:127 filename non-ASCII->'_'.
+- [L] apply.js:146 run() no in-flight guard, reads inputs after await; batch.js:119-148 no guard/disabled Run/EventSource untracked -> second concurrent batch-runner; row count stale.
+- minor: hard-coded English (config.js:143,cv.js:226,cv-studio.js:71,45,auto.js:110); RTL physical margins (activity.js:34, assessments.js:104, config.js:143,799, cv-studio.js:280); cv-studio inputs placeholder-only; batch console pre no tabindex/role=log; auto.js:270 autostarts paid run from ?go=1 w/o confirm.
+
+## client-libs-2 (skills role-stats pdf-generate scan-results score-tone modes-form report-export i18n)
+- [H] lib/skills.js:131 rowHasKeyword uses \b -> Cyrillic/c++/.net dynamic keyword chips filter to zero rows. Use (?<![\p{L}\p{N}])kw(?![\p{L}\p{N}]) + u.
+- [M] skills.js:182 parseSalaryRange mangles decimals/cents/suffix ('$182.9K - $240K' -> 240000..1829000; '$85,000.00' x100; '100 000 kr' x1000); disagrees with RoleStats.extractAmounts. Share one parser.
+- [M] role-stats.js:34,55,84 currency detection \b near Cyrillic/ł/č never matches; K-suffix boundary; 'от 100 000 руб' null; '100 тыс. руб.' 90x; '50 000 Kč' 50M USD.
+- [M] pdf-generate.js:63-141 SSE failure leaves Generate button disabled; code null (killed by signal) treated success; t('common.error') shows 'Error'; GET kinds double error.
+- [M] scan-results.js:172,211,420: facet chip toggle re-renders whole DOM: Advanced <details> collapses, focus lost, page not reset (pager.reset()). Restore open/focus or update in place.
+- [L] score-tone.js:37 '—','N/A','TBD' coloured bad. Letter-grade fallback only /^[A-F][+-]?$/i.
+- [L] modes-form.js:94,273 nested bullets flattened; glued heading in markdown rebuild; normalise bodies to end with \n\n.
+- [L] report-export.js:22,60,72 slugify a-z0-9 only -> non-Latin 'report.md'; execCommand result ignored; DOCX toast English.
+- [L] scan-results.js:178,203 timestamps toLocaleString('ru') for all; Cyrillic keyword gate lang==='ru' (uk hidden); i18n.js:65 detect no 'da'.
+- [L] scan-results.js:345 href from r.url unchecked -> only http(s); empty url -> href=''.
+
+## css-a11y
+- [H] overlays.css:17,34 + app.css:592: dark theme toast & .btn-dark white on --hof (near-white) contrast 1.10:1; success 1.92, error 2.94. Use color:var(--paper); dark-safe fills.
+- [M] components.css:615-649 vs app.css:473: sticky onboarding/conn banner (top:0 z49) covers sticky topbar (z5): search/Doctor unclickable. One sticky or topbar top:var(--banner-h).
+- [M] overlays.css:524 RTL off-canvas sidebar hidden only <=768 but mobile layout starts 900 -> sidebar on screen over content + dead 256px strip (769-900).
+- [M] app.css:316 closed mobile drawer focusable/exposed (transform only): 40 invisible tab stops; no Escape. visibility:hidden/inert + Escape.
+- [M] no scroll-padding-top: focus lands under sticky bars (WCAG 2.4.11). html{scroll-padding-top: calc(var(--topbar-h)+16px)}.
+- [M] index.html:35,44,189,198,259 two <main>, two nav, header inside main; #content aria-live=polite announces every render; hard-coded English aria-labels (Main navigation, Toggle menu, Close dialog) no i18n; active nav no aria-current.
+- [M] --rausch coral fails AA as text & as fill behind white: 3.52:1 light, 2.94 dark (btn-primary/danger/hero/conn-banner/onboarding-warn/toast.error; tracker-tab.is-active, .md a, .chip.clear, help-toc, scan title links). Use --rausch-text / --rausch-dark.
+- [L] components.css:253-271 --shadow-1/--shadow-2 undefined -> qa-tile shadow/ring lost. 
+- [L] overlays.css:569 docs FAB (z1150) above aria-modal dialog (z200).
+- [L] tables not mirrored in RTL (.tbl text-align:left); 2 dead RTL rules (sidebar-toggle, notif-drawer__close); help-toc/score margin not mirrored.
+- OK: #/scan table scrolls inside .table-wrap at 360px (scrollWidth stays 360).
+
+## i18n-dicts
+- [M] lib/i18n.js:66 detect() no 'da'; zh-Hant*/zh-MO -> zh-CN. (also client-libs-2)
+- [M] config.hermesHint says Hermes last in auto order (false: AUTO_ORDER 7th of 18); onboarding.noKey.title, deep.tipManual, deep.needKey list 4/7 of 18 providers — update in 17 locales.
+- [M] tests/i18n-no-latin-leaks.test.mjs:43 NON_LATIN_LOCALES omits hi; hi cvs.title 'CV Studio' English -> add hi + translate.
+- [L] pipe.hint lost 2nd sentence in es, pt-BR, ko, ja, zh-CN, zh-TW.
+- [L] field-specs.js:233-408: 26 labelKey/hintKey not in any locale; coverage test only scans literal t('..'); audit lacks placeholder parity check.
+- [L] ru/uk/es labels left English (list in report: ru config.groupRuntime, auto.legit, health.badgeFail/Optional, config.pfProofPoints, track.histFollowups; uk top.doctor, scan.boosted/boostedBy, config.tabModes, modesTargetRoles, modesCompTargets, pfExitStory; es batch.dryRun).
+- [L] ar arrows inconsistently mirrored (scan.reposts.range, cvs.mName, bug.openIssue, stats.sgGap keep →).
+- [L] 33 dead keys x 17 locales (nav.settings, common.run/close, dash.evaluate, dash.system.set/unset, dash.quick.scanSub, auto.{evaluating,pdfRunning,fetchFailed,noCompany,deduped,openPdf,viewMd}, scan.{hhWarning,btnAll,btnAts,btnRegional,scanResultsApi,websearchOnly,startEnv}, set.editLink, config.{profileHint,hhUserAgent,hhUserAgentHint}, stats.{subtitle,salaryByCountry}, funded.{company,signal,source,date}).
+- [L] docs/LOCALIZATION.md stale: help 29/105 vs 32/122; snapshot regeneration step missing; new-locale checklist omits RTL_LANGS & flag in LANGS; i18n.js header says 8 languages.
+
+---
+
+## v1.244.0 — `#/scan` redesign (Phase 4)
+
+Spec: `specs/2026-10-06-scan-page-redesign.md`. Includes the scan view findings above
+(listener leaks, orphaned SSE, drifted API-company regex, unsequenced refresh, facet chip
+re-render losing focus) — fix them as part of the redesign, not twice.
+
+## v1.245.0 — Tamil locale (Phase 5)
+
+Follow `docs/LOCALIZATION.md` → *add a brand-new locale*; parent has `README.ta.md`.
+
+## v1.246.0 — upstream ports (Phase 6), from the 2026-10-07 parent/upstream scan
+
+Parent fork `origin/main` = `08db03d8`, VERSION 1.35.0, 0 behind upstream — no new providers since
+`62905981`. Port now (each S unless noted):
+1. ~~Liveness: a posting that says how it will close is still open — parent `c0264e7c` (#4771) **with**
+   the open #4810 line-break guard → `server/lib/liveness-core.mjs` + tests.~~ **Shipped** — see
+   `docs/sdd/specs/2026-10-08-upstream-ports-v1.246.0.md`.
+2. ~~Inline tracker status edit (M) — relay `set-status.mjs --row N <state> --json` (+ `--dry-run`),
+   new `POST /api/tracker/status`, select per row in `tracker.js`, i18n ×17; brings #4524 (JD archived
+   on → Interview). Needs the route reviewer.~~ **Landed** on `feat/tracker-inline-status` (3 commits:
+   red `tests/tracker-inline-status.test.mjs` + the relay in `routes/tracker.mjs` via `runTrackedScript`
+   (applications.md lock, canonicalizeStatus whitelist, fail-soft 502) + the row `<select>` in
+   `tracker.js`, keys `track.inlineStatusAria/statusUpdated/statusUpdateFailed` ×19 + snapshot;
+   `bulk|move` stay forbidden in the tracker-v2 guard, `/api/tracker/status` is pinned as sanctioned).
+   Hand-offs: API.md entry, route-reviewer pass, the #4524 JD-archive-on-Interview hook rides the
+   parent's own set-status.mjs (already canonical — no web-ui code).
+3. ~~Anthropic model ids `claude-sonnet-5-5` / `claude-opus-5-5` (#4703) → `config-field-domains.mjs:40`,
+   `anthropic.mjs` default, `llm-pricing.mjs`.~~ **Partially shipped**: `llm-pricing.mjs` carries the
+   upstream-id note (no parent pricing exists — cost stays unknown). REMAINDER is a hand-off (needs a
+   file outside this phase's ownership): `config-field-domains.mjs` `ANTHROPIC_MODEL` and the browser
+   mirror `public/js/views/config/field-specs.js` `ANTHROPIC_MODELS` must gain the two ids in ONE
+   change, same order — `tests/config-select-domains.test.mjs` drift-gates them deepEqual; optionally
+   `server/lib/anthropic.mjs` default + field-specs `defaultValue`/`hintFallback` (i18n keys unchanged).
+4. ~~`fix-report-links.mjs` runner (#4751) with a dry-run preview → `routes/runners.mjs` + a button.~~ **Landed** — `POST /api/runners/report-links` (dry-run default, apply behind UI.confirm under the applications.md lock; deliberately NOT in TRACKER_MUTATING — nested lock would deadlock) + the Repair card on `#/health` (`rlinks.*` ×19).
+5. ~~Gem `isoCountry` → country name (#4774): copy parent `providers/_country.mjs` (76 lines) to
+   `server/lib/sources/_country.mjs`.~~ **Shipped** — `server/lib/sources/_country.mjs` verbatim +
+   `sources/gem.mjs` wiring, see the same spec.
+Later: evidence-confidence chip (#4452), `language.modes_dir` markets incl. `sg`/`id`/`nl` (#3793/#4687),
+saved contacts (#4692/#4363, privacy review), ~~batch cost confirm (#4746, needs batch usage logging)~~ **Landed** — the batch close-path parses the parent's aggregated token tail into one `recordUsage('batch', …)` (CAR-106 cost preferred), rows ≥ 2 gate the run behind a cost-estimate `UI.confirm` (`batch.cost.*` ×19).
+Port when merged upstream: workable multi-country (#4806), smartrecruiters slug links (#4770),
+radancy location (#4689), PageUp provider (#4693 → 110 sources), personio languages (#4789),
+Vietnamese README/mode (#4729/#4727).
+
+## Parent-sync (2026-11-01, from CAR-221/222) → **EXECUTED in v1.265.0**
+
+- ~~**Review LOW findings** (REVIEW-2026-10-31-v1.264.1)~~ **Fixed in v1.264.3**: (1)+(2) `TRUST_PROXY` hop-count opt-in + targeted `writeValidateConfig()` (only `xForwardedForHeader` opted out; `trustProxy` validation re-armed — custom keyGenerator removed, the library ties proxy validations to the default); (3) `writeRateLimit()` covers **47/47** mutating endpoints (9 replaced / 3 stacked / 33 wired / 1 allowlisted bare) + the completeness tripwire `tests/rate-limit-coverage.test.mjs`.
+- ~~**Parent-sync port-list**~~ **Executed in v1.265.0**: apple + bulldogjob shipped, IBM/justjoin/jobvite/liveness-UltiPro/liveness-BuiltIn ported, the VERIFY trio documented as no-ports, personio deferred. Original list (upstream rebound-ops @ `6210e441`, VERSION still 1.38.0, tail 118 commits, behind 0): PORT 6 — IBM cap/pace/retry #6273 · justjoin `lastPublishedAt` #6254 · jobvite fold-locations #6127 · liveness UltiPro-rung #6090 · liveness Built In expired #6336 · **Bulldogjob — новый источник #6253** (реестр 123→124). VERIFY 3 — smartrecruiters #6303 (releasedDate уже читается) · Machine Summary last-section #6157 (проверить парсеры) · personio language-dedup #4789 (осознанное решение). Гэп: источника **apple** нет вообще (родитель добавил 25 окт, до хвоста) — портить одним заходом с #6196 или фиксировать no-port. Все 7 «port when merged upstream» позиций старого BACKLOG смержены апстримом и закрыты (4 уже портированы ранее, 2 — parent-side). Триггер синка: релизный кат апстрима, пользовательская боль IBM/UltiPro/justjoin, либо второй такой хвост.
+- **Second parent-sync wave → EXECUTED in v1.267.0** (PR #618 → `09d5b520`; details in `docs/sdd/specs/2026-11-04-parent-sync-v1.267.0.md`): germantechjobs #6346 + darwinbox + keka + applicantpro → registry **129 = 124 EN + 5 RU · 124 adapters**; ETag reuse #6105, postedAt ×4 #6274, portals-key rejection #6107, getro #6406, CAR-228 filter compat. The merge carried two red CI jobs → repaired forward in **v1.267.1** (PR #619 → `d4642b4e`, the deploy vehicle; the v1.267.0 tag left on the red commit). Test-count chain re-pinned to the live measure (7392 after the wave +3 → 7398/7395/0).
+- **Parent-sync scoping (read-only, 2026-11-01)** — the fork's local tree is **behind upstream main**: 7 of the 10 items (#6127, #6157, #6253, #6254, #6273, #6303, #6336) are NOT in the local parent checkout; #6090/#6196 sit on non-main branches. **Prerequisite: sync the fork past upstream `a9476866` first.** Verified sizes: **S** — justjoin one-liner (`lastPublishedAt ?? publishedAt`), Built In one regex into `HARD_EXPIRED_PATTERNS`, jobvite byUrl-fold in `parseJobviteXml` (scan.mjs half = documented no-port); **M** — IBM `max_pages`+pacing+`fetchJsonWithRetry` rework, UltiPro liveness rung (prereqs `HOST_RE`/`extractCandidateOpportunityDetail` already exported), and the two new sources **apple** (#5496+#6196, hydration-blob, port from upstream main) + **Bulldogjob** (#6253, `__NEXT_DATA__`) bundled for ONE registry bump 123→**125 = 120 EN + 5 RU · 120 adapters** (all 5 count gates + FALLBACK_SOURCES + help ×19 + site facts). **No-port confirmed**: smartrecruiters #6303 (web-ui reads `releasedDate` at `sources/smartrecruiters.mjs:174`), Machine Summary #6157 (`machineSummaryBlock()` is position-independent). **Defer**: personio language-dedup — a 3-commit stack (#4789+#5044+#5285), web-ui's personio hard-forces `?language=en`, most sources emit no `language`; own release. Port order: S-batch → IBM+UltiPro → apple+bulldogjob.
+
+## Operator actions (not code)
+
+- Move `PROD_URL`, `AUTH_LOGIN`, `AUTH_PASSWORD` into the `production` environment's secrets (repo-level
+  secrets are still readable by every workflow).
+- Deploy removal of upstream-deleted files needs `v<version>` tags present in the server checkouts.
+
+---
+
+## Full project review (opus-5-5, 2026-10-26) — LANDED 2026-10-27
+
+Four domain reviews over the entire source. Raw reports + consolidated registry:
+`docs/reviews/full/` (CONSOLIDATED.md is the index; ~57 findings: 7 high, ~25 medium).
+All five high findings and mediums M2–M5 are **landed on `main`** — rows deleted here per the
+header rule (each item → its merge PR):
+
+| Item | PR | What landed |
+|---|---|---|
+| FULL-R2 — SSRF cluster in sources | #514 | guarded transports everywhere (rss https+private-reject, raw `fetchImpl` → fetchJson/fetchText, pinned mirrors, redirect validation, shared `delay(ms, signal)`) |
+| FULL-R3 — wiki-banner-check rmSync | #511 | never deletes an existing directory; refusal tested |
+| FULL-R4 — stripDangerousMarkdown prose corruption | #513 + #518 | fix (scheme strips in link/attr contexts only, detect-on-decoded-copy) + regression tests («JavaScript: 5 yrs», «R&amp;D») |
+| FULL-R5 — health guard + client mediums | #515 | health.js guarded `body[]` tree, shared `UI.safeHref`, api.js `lang` opt-in for LLM paths, countries.js precompiled+memo, auto-pipeline reopen race (`auto.superseded` key ×19) |
+| FULL-R1 — CSRF acting-GET + unlocked pipeline writes | #519 | CAR-158: `Sec-Fetch-Site`/Origin gate on acting GETs; `markPipelineRejected`/`appendToPipeline`/`saveLastScan` under `withFileLock` + temp-then-rename |
+| FULL-M2 — transport hardening | #520 | CAR-168: safeGet timeout+signal combine, DNS guard fail-closed |
+| FULL-M3 — shape gaps + unpinned overrides | #522 | CAR-166: page-1 `_shape.mjs` guards (getro/mycareersfuture/meituan/mokahr/glints), shared `pinnedOverride` at `company.api` call-sites |
+| FULL-M4 — logo + batch | #523 | CAR-163: logo magic-byte pin on every path + private cache + nosniff; batch single-flight + `--parallel`/`--min-score` validation |
+| FULL-M5 — provider cascade consolidation | #521 | CAR-167: one cascade via `resolveProvider()` in llm-dispatch, `res.on('close')` abort — client disconnect no longer burns tokens |
+| CAR-147 — eval timeout on token-dense locales | #524 | 480 s evaluation ceiling (ta 502-timeout dead) |
+| FULL-M1 — server shared-file writes | #526 + #539 | tracked spawns + locked atomic PUT saves (cv/profile/modes/config via the portals-style lock + temp-rename; tracker-mutating scripts under one TRACKER_MUTATING set) |
+| FULL-M6 — client consolidation | #531 + #536 (+ #525) | SSE parser → API.postStream, withFocusPreserved, clipboard awaited, safe-fetch pre-abort crash + credential strip, dotenv `__proto__` validation, isPrivateOrLoopback NAT64/6to4 ranges, server-side consolidation |
+
+No rows kept — the FULL wave is fully landed (verified 2026-10-31: the `fix/m1-wave1` /
+`fix/m6-wave1` / `fix/m6s-wave1` / `fix/sf-wave1` branches no longer exist and every item's
+marker test is on `main`).

@@ -1,0 +1,367 @@
+/* global Router, API, UI, I18n */
+/**
+ * /#/help — long-form user guide. Loads docs/help/{lang}.md from the
+ * server and renders it via the XSS-safe UI.md(). Falls back to English
+ * when a locale file is missing. Builds a sticky table of contents
+ * from <h2> headings synchronously (no setTimeout race).
+ */
+
+// CAR-42 (v1.243.0) — the single parser for the help-view deep link, kept
+// top-level so the unit test can run it in isolation (the view mounts on
+// Router.register at import). '#/help?h=help-h-3' → 'help-h-3'; a plain
+// '#/help' (or a hash from another view) → null. Router.current() stays
+// compatible because it splits the route name off BEFORE the '?'
+// ('#/help?h=x'.split('?')[0] === 'help').
+function helpSectionIdFromHash(hash) {
+  const q = String(hash || '').split('?')[1] || '';
+  const id = new URLSearchParams(q).get('h');
+  return id ? decodeURIComponent(id) : null;
+}
+
+// CAR-94 (2) — module-level teardown for the CURRENT help instance. Two
+// re-render paths never fire a hashchange that leaves '#/help': a language
+// switch (Router.render(), no hashchange at all) and Back/Forward between
+// '#/help?h=a' and '#/help?h=b' (the hash keeps its '#/help' prefix). The
+// old hashchange-only cleanup therefore leaked one scroll + one resize + one
+// hashchange listener set per re-render — each stale set kept touching a
+// detached backTop and a stale linkByTarget — and never cleared
+// tocScrollTimer. The next render's FIRST statement calls the previous
+// instance's detach (below), and leaving '#/help' entirely detaches via the
+// same handle from the hashchange guard.
+let helpDetach = null;
+
+Router.register('help', async () => {
+  // CAR-94 (2) — tear the previous instance down before building a new one.
+  if (helpDetach) {
+    helpDetach();
+    helpDetach = null;
+  }
+  const c = UI.el;
+  const t = (k, f) => I18n.t(k, f);
+  const lang = (I18n.getLang && I18n.getLang()) || 'en';
+
+  let payload;
+  try {
+    payload = await API.get('/api/help/' + encodeURIComponent(lang));
+  } catch (e) {
+    return c('div', null, [
+      c('header', { className: 'page-header' }, c('h1', { className: 'page-title' }, t('help.title', 'Help'))),
+      c('div', { className: 'empty' }, e.message || 'failed to load help'),
+    ]);
+  }
+
+  // Render markdown into a hidden scratch div so we can extract h2's
+  // and assign anchor IDs BEFORE the DOM lands on the page.
+  // CAR-107 (P2.1) — the bundles reference UI labels as {{t:key}} place-
+  // holders instead of hard-coded EN strings, so a translated guide always
+  // shows the button/tab label in the ACTIVE locale (a translator can no
+  // longer paste the EN label into the prose and drift from the app).
+  // Resolve through the assembled dict; a key missing from the dict keeps
+  // the raw placeholder visible rather than silently rendering anything.
+  const markdown = String(payload.markdown || '').replace(
+    /\{\{t:([A-Za-z0-9_.-]+)\}\}/g,
+    (raw, key) => I18n.t(key, raw),
+  );
+  const scratch = document.createElement('div');
+  scratch.innerHTML = UI.md(markdown);
+
+  // v1.50.0 (WS2 #28) — the doc markdown starts with its own `# Title`
+  // → a SECOND <h1> on a page whose header already provides the single
+  // h1. Strip every article <h1> so there's exactly one h1 and the
+  // hierarchy starts cleanly at the <h2> sections (no h1→h3 skip).
+  scratch.querySelectorAll('h1').forEach((h) => h.remove());
+
+  // Assign stable IDs to h2's so the TOC can scroll to them.
+  const headings = Array.from(scratch.querySelectorAll('h2'));
+  headings.forEach((h, i) => { h.id = 'help-h-' + i; });
+
+  // Build the article and TOC in one synchronous pass.
+  const article = c('div', {
+    className: 'card md help-article',
+    style: { padding: '24px 32px', maxWidth: '880px' },
+  });
+  // Move every child from scratch into article (preserves IDs).
+  while (scratch.firstChild) article.appendChild(scratch.firstChild);
+
+  const tocLinks = headings.map((h) => {
+    // The renderer leaves heading content as raw markdown (backticks,
+    // emphasis markers etc.) because the heading regex captures $1
+    // verbatim. Pretty-print for the TOC by stripping inline-code
+    // backticks AND rendering bold/italic markers as <strong>/<em>.
+    const plain = (h.textContent || '')
+      .replace(/`([^`]+)`/g, '$1')   // drop the backtick fences
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1');
+    const a = c('a', {
+      href: '#help-h-' + h.id.replace(/^help-h-/, ''),
+      // Owner UX batch — the active-row highlight (`.toc-current`) used to
+      // add its gutter (border + padding + negative margin) ONLY to the
+      // current link, so every scroll-spy step re-flowed the whole TOC.
+      // Every row now reserves the gutter permanently; `.toc-current`
+      // flips color/weight/bar-color only. The section number sits in its
+      // own end-aligned column so titles align down the list.
+      style: {
+        display: 'flex', gap: '6px', alignItems: 'baseline', padding: '4px 0',
+        borderInlineStart: '3px solid var(--_toc-rail, transparent)', marginInlineStart: '-11px', paddingInlineStart: '8px',
+        color: 'var(--hof)',
+        textDecoration: 'none', fontSize: '13px', lineHeight: 1.55,
+      },
+      onClick: (e) => {
+        e.preventDefault();
+        const target = document.getElementById(h.id);
+        if (!target) return;
+        // CAR-42 (v1.243.0) — TOC clicks scrolled but pushed no history
+        // entry, so Back left the help page entirely instead of returning
+        // to the previous section. history.pushState — NOT a hash
+        // assignment, which would fire hashchange, make the router tear
+        // the view down and scroll back to the top mid-read — records the
+        // jump silently.
+        // The `?h=` query keeps Router.current() parsing the route name
+        // cleanly ('#/help?h=x'.split('?')[0] === 'help'); on Back/Forward
+        // the re-rendered view re-reads it and scrolls to the recorded
+        // section (deepLinkScroll below). helpSectionIdFromHash (top-level)
+        // is the single parser, unit-tested in isolation.
+        try { history.pushState(null, '', '#/help?h=' + encodeURIComponent(h.id)); } catch { /* jsdom */ }
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // WS2 #27 — move keyboard/SR focus to the section, not just the
+        // viewport. Headings aren't focusable by default → tabindex=-1.
+        target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+      },
+    });
+    // Split the leading "N." into its own end-aligned column (flex child of
+    // the row above); headings without a numbered prefix render as-is.
+    const numMatch = plain.match(/^(\d+)\.\s+/);
+    a.appendChild(c('span', { style: { flex: '0 0 1.6ch', textAlign: 'end' } }, numMatch ? numMatch[1] + '.' : ''));
+    a.appendChild(c('span', null, numMatch ? plain.slice(numMatch[0].length) : plain));
+    // v1.62.x — index each section's BODY too (every node from this H2
+    // up to the next H2), so the filter is full-text: an H3 subsection
+    // like `rss` is findable by content, not just by its H2 title.
+    let bodyText = '';
+    for (let n = h.nextElementSibling; n && n.tagName !== 'H2'; n = n.nextElementSibling) {
+      bodyText += ' ' + (n.textContent || '');
+    }
+    a.dataset.tocText = (plain + ' ' + bodyText).toLowerCase();
+    a.dataset.targetId = h.id; // v1.56.0 — UX-11: filter→1-match scroll
+    return a;
+  });
+
+  // WS2 #12 — in-page filter over the TOC (92-heading doc).
+  let tocScrollTimer = 0; // v1.56.0 — UX-11 debounce handle
+  const tocSearch = c('input', {
+    // U-12 (v1.58.32) — `.help-toc__filter` class lets CSS pin a
+    // min-width: 16ch so the KO `섹션 필터` / JA `セクションをフィルター`
+    // placeholders (5–10% wider than EN) never get clipped if the
+    // surrounding card squeezes the input.
+    className: 'input help-toc__filter', type: 'search',
+    'aria-label': t('help.tocFilter', 'Filter sections'),
+    placeholder: t('help.tocFilter', 'Filter sections'),
+    style: { width: '100%', marginBottom: '10px', fontSize: '13px' },
+    onInput: (e) => {
+      const q = e.currentTarget.value.toLowerCase().trim();
+      let visible = [];
+      for (const a of tocLinks) {
+        const show = !q || a.dataset.tocText.includes(q);
+        a.style.display = show ? 'block' : 'none';
+        if (show) visible.push(a);
+      }
+      // v1.56.0 — UX-11: when the filter narrows the TOC to exactly
+      // one section, jump there for the user after a 300ms idle (so
+      // mid-typing keystrokes don't yank the page around). Cancelled
+      // and rescheduled on every keystroke; never fires for 0 or >1.
+      clearTimeout(tocScrollTimer);
+      if (q && visible.length === 1) {
+        const only = visible[0];
+        tocScrollTimer = setTimeout(() => {
+          const target = document.getElementById(only.dataset.targetId);
+          if (!target) return;
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          target.setAttribute('tabindex', '-1');
+          target.focus({ preventScroll: true });
+        }, 300);
+      }
+    },
+  });
+
+  const toc = c('nav', {
+    className: 'card help-toc',
+    // WS2 #27 — the TOC landmark was unnamed (two unlabeled <nav>s).
+    'aria-label': t('help.toc', 'On this page'),
+    style: {
+      // top:110px keeps the TOC below the fixed topbar (which is
+      // ~88px tall + a comfortable gap) so it never sits behind it.
+      position: 'sticky', top: '110px',
+      padding: '16px 18px', maxHeight: 'calc(100vh - 130px)',
+      overflowY: 'auto',
+    },
+  }, [
+    c('strong', { style: { display: 'block', marginBottom: '8px', fontSize: '13px' } },
+      t('help.toc', 'On this page')),
+    tocSearch,
+    ...tocLinks,
+  ]);
+
+  // WS2 #12 — floating back-to-top; appears after scrolling down, sends
+  // focus back to the page heading (keyboard-safe, CSP-safe handler).
+  // S-7 (v1.54.6, regression run) — also tag with the canonical
+  // `back-to-top` selector class the spec §2 #28 test targets, so a
+  // tighter selector can't flake. Purely additive: `help-back-top`
+  // (existing CSS hook) is unchanged; `back-to-top` has no CSS rule
+  // (CSS-no-op), it's just a stable test/automation handle.
+  const backTop = c('button', {
+    className: 'btn btn-primary help-back-top back-to-top',
+    'aria-label': t('help.backToTop', 'Back to top'),
+    style: {
+      position: 'fixed', right: '24px', bottom: '24px', zIndex: 50,
+      display: 'none', borderRadius: '999px', padding: '10px 14px',
+    },
+    onClick: () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const h1 = document.querySelector('#content .page-title');
+      if (h1) { h1.setAttribute('tabindex', '-1'); h1.focus({ preventScroll: true }); }
+    },
+  }, '↑ ' + t('help.backToTop', 'Back to top'));
+  const onScroll = () => { backTop.style.display = window.scrollY > 600 ? 'block' : 'none'; };
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // UX-D-K (v1.58.45) + UX-A5 (v1.58.52) — scroll-spy on the TOC.
+  // v1.58.45 wired `IntersectionObserver`, but the 2026-05-19
+  // verification regression caught **0** links ever receiving
+  // `.toc-current` on scroll. Root cause: `setTimeout(0)` fired
+  // BEFORE the router mounted the returned root into `#content`, so
+  // `document.querySelectorAll('.help-article h2[id]')` matched nothing
+  // and the observer never bound. UX-A5 fix:
+  //   1. Observe the actual `<h2>` element refs we already hold from
+  //      the synchronous `headings` array above — they're stable
+  //      DOM nodes that travel with the `article` div the router
+  //      appends. No re-query against `document` needed.
+  //   2. Defer the IntersectionObserver creation via a double
+  //      `requestAnimationFrame` so the observer attaches on the
+  //      first frame AFTER mount (more reliable than setTimeout(0)
+  //      against the SPA's render order).
+  //   3. Also wire a same-document-DOM-mounted fallback: if `headings`
+  //      somehow has no ids (regressed renderer), the observer is a
+  //      no-op rather than throwing.
+  const linkByTarget = new Map();
+  for (const a of tocLinks) {
+    const id = a.dataset.targetId;
+    if (id) linkByTarget.set(id, a);
+  }
+  function applyCurrent(id) {
+    for (const link of linkByTarget.values()) link.classList.remove('toc-current');
+    const link = linkByTarget.get(id);
+    if (link) link.classList.add('toc-current');
+  }
+  // UX-A5-r4 (v1.59.9) — 6th cycle. Five previous closures (v1.58.45,
+  // v1.58.52, v1.59.0, v1.59.3, v1.59.8) all shipped with "tests green"
+  // but the bug stayed open because the tests asserted the wrong thing
+  // (existence of the `.toc-current` class anywhere, or the string
+  // `IntersectionObserver` in the source). The TDD-first FIX-PROMPT for
+  // v1.59.9 introduces:
+  //   1. `<body data-toc-spy="active">` debug marker — a single CSS
+  //      selector that any tester / future agent can use to answer
+  //      "is the spy alive?" without needing to scroll first.
+  //   2. Initial paint fires SYNCHRONOUSLY at mount end (no rAF
+  //      dependency, just-in-case the router pre-paints the view).
+  //   3. Double-rAF re-computation for the case where heading rects
+  //      weren't valid yet (detached nodes during synchronous compute).
+  //   4. rAF-throttled scroll listener — at most one paint per frame.
+  //   5. Cleanup removes the marker AND both listeners when leaving
+  //      #/help via hashchange.
+  let spyScheduled = false;
+  function computeActiveAndApply() {
+    spyScheduled = false;
+    if (!headings.length || !linkByTarget.size) return;
+    const triggerY = window.scrollY + window.innerHeight * 0.3;
+    let chosen = headings[0];
+    for (const h of headings) {
+      const absTop = h.getBoundingClientRect().top + window.scrollY;
+      if (absTop <= triggerY) chosen = h;
+      else break;            // headings is in document order
+    }
+    if (chosen) applyCurrent(chosen.id);
+  }
+  function onSpyScroll() {
+    if (spyScheduled) return;
+    spyScheduled = true;
+    requestAnimationFrame(computeActiveAndApply);
+  }
+  window.addEventListener('scroll', onSpyScroll, { passive: true });
+  window.addEventListener('resize', onSpyScroll, { passive: true });
+  // Synchronous initial paint — covers the case where the router
+  // appends the view before either rAF fires.
+  computeActiveAndApply();
+  // Double rAF re-compute — covers the opposite case: the route
+  // handler returned before the router did the append. After two
+  // frames, the headings are guaranteed to be in the DOM with valid
+  // rects. The rAF callback no-ops if `applyCurrent` already fired.
+  requestAnimationFrame(() => requestAnimationFrame(computeActiveAndApply));
+  // UX-A5-r4 debug marker — any tester can answer "is the spy alive?"
+  // with a single selector: `document.body.dataset.tocSpy === 'active'`.
+  // Removed on cleanup so the marker accurately reflects route state.
+  document.body.setAttribute('data-toc-spy', 'active');
+
+  // CAR-94 (2) — install this instance's listeners and register the
+  // module-level teardown. helpDetach runs either at the top of the NEXT
+  // #/help render (re-render paths that never leave the hash) or when the
+  // hash leaves '#/help' (the guard below). The handle is nulled first, so
+  // exactly one of the two paths ever runs a given detach.
+  const detach = () => {
+    helpDetach = null;
+    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('scroll', onSpyScroll);
+    window.removeEventListener('resize', onSpyScroll);
+    window.removeEventListener('hashchange', onHashLeave);
+    clearTimeout(tocScrollTimer);
+    document.body.removeAttribute('data-toc-spy');
+  };
+  const onHashLeave = () => {
+    if (!location.hash.startsWith('#/help')) detach();
+  };
+  window.addEventListener('hashchange', onHashLeave);
+  helpDetach = detach;
+
+  // CAR-42 (v1.243.0) — deep-link + Back/Forward support: '#/help?h=<id>'
+  // scrolls to that section once the router has mounted the article.
+  // Best-effort: an unknown id just stays at the top.
+  // CAR-94 (1) — the lookup used document.getElementById, but the article is
+  // still DETACHED while this handler runs (the router appends the returned
+  // root only afterwards), so the lookup returned null and the CAR-42
+  // Back/Forward deep link never scrolled. Worse, on a re-render it could
+  // return the OLD view's node. Resolve against the `headings` array we
+  // already hold — the same nodes that travel with the article into the DOM.
+  const deepLinkTarget = (() => {
+    const id = helpSectionIdFromHash(location.hash);
+    return id ? (headings.find((h) => h.id === id) || null) : null;
+  })();
+  if (deepLinkTarget) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      deepLinkTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      deepLinkTarget.setAttribute('tabindex', '-1');
+      deepLinkTarget.focus({ preventScroll: true });
+    }));
+  }
+
+  // CAR-42 — TopNav clicks on '#/help' (no ?h=) render the page top — the
+  // parser returns null and nothing scrolls; the previous deep link stays in
+  // the history stack where Back left it.
+  return c('div', null, [
+    c('header', { className: 'page-header' }, [
+      c('div', null, [
+        c('h1', { className: 'page-title' }, t('help.title', 'Help')),
+        c('p', { className: 'page-subtitle' }, t('help.subtitle', 'Step-by-step walkthrough of every page.')),
+      ]),
+    ]),
+    c('div', {
+      // grid-template-columns lives in CSS (.help-grid) so the media query can
+      // stack the TOC + article to one column on a phone — an inline
+      // grid-template-columns would win over the breakpoint and overflow.
+      className: 'help-grid',
+      style: { display: 'grid', gap: '24px', alignItems: 'start' },
+    }, [
+      headings.length ? toc : c('div'),
+      article,
+    ]),
+    backTop,
+  ]);
+});

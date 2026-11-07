@@ -1,0 +1,546 @@
+// TODO: split by concern (evaluate vs deep/interview-prep vs mode runner) — 400–800 LOC band.
+/**
+ * LLM-bound routes: evaluate, deep research, generic modes, apply-helper,
+ * and interview-prep archive.
+ *
+ *   POST /api/evaluate                 → score JD vs CV (Anthropic | Gemini | manual)
+ *   POST /api/evaluate/test-gemini     → smoke check for GEMINI_API_KEY
+ *   POST /api/evaluate/test-anthropic  → smoke check for ANTHROPIC_API_KEY (P-7)
+ *   POST /api/deep                     → company deep-dive
+ *   POST /api/mode/:slug               → generic mode runner (whitelisted slugs)
+ *   POST /api/apply-helper             → static checklist text
+ *   GET  /api/interview-prep           → list saved deep-research files
+ *   GET  /api/interview-prep/:name     → read one
+ *   DELETE /api/interview-prep/:name   → unlink one
+ *
+ * P-7: /api/evaluate reaches Anthropic in addition to Gemini (better
+ * long-form structured output for oferta-style A-G evaluations).
+ * FULL-M5: provider CHOICE is decided once, in `llm-dispatch.mjs`
+ * (`resolveProvider`) — this route intercepts the Gemini evaluation
+ * subprocess through that shared gate and runs the Anthropic / tail
+ * branches through `runActiveProvider` with a client-disconnect abort
+ * signal. Fallback chain: Anthropic → Gemini → tail → manual.
+ */
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { PATHS, path as projPath } from '../paths.mjs';
+import { today } from '../parsers.mjs';
+// FULL-M5 — the cascade is shared: resolveProvider() is the ONE gate (the
+// Gemini subprocess below intercepts through it) and every live run goes
+// through runActiveProvider with a client-abort signal.
+import { runActiveProvider, providerAvailable, resolveProvider, PROMPT_SIZE_SOFT_CAP } from '../llm-dispatch.mjs';
+import { runNodeScript } from '../runner.mjs';
+import { runAnthropic, hasAnthropicKey, hasGeminiKey } from '../anthropic.mjs';
+import { validateEvaluationReport, stripScoreSummary, fixReportDate } from '../eval-validate.mjs';
+import { runTwoStepEvaluation } from '../eval-two-step.mjs';
+// v1.248.8 (CAR-76) — the wrong-language report is surfaced as a warning on
+// /api/evaluate too (the auto-pipeline has had it since v1.248.7).
+
+
+// An A–G report plus the SCORE_SUMMARY block runs past 8192 output tokens in
+// CJK locales (ko / zh-TW / ja, 10–13k characters): the summary at the end was
+// cut off and read as "missing SCORE_SUMMARY" (live regression, v1.239.3).
+export const EVAL_MAX_TOKENS = 16384;
+// CAR-147 (300 s base, 2026-10-26) → CAR-218 (480 s for EVERY locale, 2026-10-31).
+// CAR-147 made the ceiling locale-aware after ta hit `502 · 300 s · 0 ch` on
+// prod (Indic scripts tokenize at several tokens per syllable, so the same
+// buffered 16384-token A–G report sits at/past the 300 s wall). Remote-QA on
+// v1.264.0 then caught transient `502 · 300 s · 0 ch` runs on es and zh-CN —
+// locales that were never token-dense — so the split folded into ONE base
+// ceiling: 480 s wall-clock for every locale. The locale split survives only
+// in the output-token budget below (evalMaxTokens, CAR-174). Pure function of
+// the locale string; GEMINI_EVAL_TIMEOUT_MS below inherits this value.
+export const EVAL_TIMEOUT_MS = 480_000;
+const TOKEN_DENSE_EVAL_LOCALES = new Set(['ta', 'hi', 'it', 'pl', 'ja']);
+export function evalTimeoutMs(lang) {
+  // CAR-218 — one ceiling for every locale; `lang` stays in the signature
+  // (every call site threads it; tests pin the function shape).
+  return EVAL_TIMEOUT_MS;
+}
+// CAR-174 — the output-token ceiling is locale-aware (the wall-clock above
+// was split the same way under CAR-147; since CAR-218 only the budget splits).
+// Remote-QA v1.261.1: a ta evaluation ran 268 s and came
+// back 32 032 characters cut at the 16384 ceiling — Block B–G and the
+// SCORE_SUMMARY missing; ta volume history 11k → 17k → 32k chars). CAR-147
+// lifted the clock; this lifts the budget the ta run actually hit. EN and
+// unknown locales keep EVAL_MAX_TOKENS; token-dense locales get 32768. Pure
+// function of the locale string; the provider SDKs' clamps were raised to the
+// same ceiling so the value survives the forwarding (anthropic/openai/gemini).
+const EVAL_MAX_TOKENS_TOKEN_DENSE = 32768;
+export function evalMaxTokens(lang) {
+  const base = String(lang || 'en').trim().toLowerCase().split('-')[0];
+  return TOKEN_DENSE_EVAL_LOCALES.has(base) ? EVAL_MAX_TOKENS_TOKEN_DENSE : EVAL_MAX_TOKENS;
+}
+
+/** Shape warnings for an evaluation, with a cut-off answer named as such. */
+export function evaluationWarnings(r) {
+  const warnings = validateEvaluationReport(r.markdown);
+  if (r.truncated) warnings.unshift('report cut off at the output-token limit');
+  return warnings;
+}
+
+/**
+ * CAR-92 — warnings for the generic mode runner: the bundled-context notices
+ * (a file left out / truncated) plus a cut-off answer. Every /api/mode
+ * provider branch returns them; the default 8192-token output used to cut
+ * silently and the user saw a half artifact with no explanation.
+ */
+function modeWarnings(ctxWarnings, r) {
+  const warnings = [...(ctxWarnings || [])];
+  if (r.truncated) warnings.push('answer cut off at the output-token limit');
+  return warnings;
+}
+import { recordUsage, parseSubprocessUsage } from '../llm-usage.mjs';
+import { sanitizeJobDescription, sanitizePathName } from '../security.mjs';
+import { cleanLlmMarkdown } from '../llm-output.mjs';
+import { llmRateLimit, writeRateLimit } from '../rate-limit.mjs';
+import {
+  bundleProjectContext,
+  buildEvaluationPrompt,
+  buildEvaluationPromptParts,
+  buildDeepPrompt,
+  buildModePrompt,
+  buildApplyChecklist,
+  resolveLocale,
+  deepReportStem,
+} from '../prompts.mjs';
+
+/** Remove a temp file; a missing file or a race is not an error. */
+function unlinkQuiet(file) {
+  try { unlinkSync(file); } catch { /* already gone */ }
+}
+
+// ─── gemini-eval.mjs subprocess contract (CAR-92) ───────────────────────────
+// The evaluate route and the auto-pipeline both shell out to the parent's
+// gemini-eval.mjs. The subprocess ignores the output locale unless told, its
+// failures surfaced as HTTP 200 with raw stderr attached, and its Gemini
+// spend never reached the Usage page. One shared shape:
+//   · `--lang <locale>` FIRST — the script skips unknown `--` flags but would
+//     glue the bare VALUE onto the positional JD text; `--file` (later)
+//     replaces the text, so an unknown `--lang` stays harmless either way.
+//   · the evalTimeoutMs(lang) ceiling — 480 s for every locale since CAR-218
+//     (CAR-147 made it locale-aware — a real EN evaluation ran 136 s and the
+//     old 120 s evaluate-side timeout killed live runs — before es/zh-CN
+//     transients folded the split into one base).
+//   · a non-zero exit is the CALLER's failure path; stderr stays on the
+//     server (it can echo provider errors) and never reaches the client.
+//   · usage is parsed from stdout best-effort (parseSubprocessUsage) and
+//     recorded; the script prints none today, so this usually no-ops.
+export const GEMINI_EVAL_TIMEOUT_MS = EVAL_TIMEOUT_MS;
+
+export function geminiEvalArgs(tmpFile, { save = false, lang = 'en' } = {}) {
+  return ['--lang', String(lang || 'en'), '--file', tmpFile, ...(save ? [] : ['--no-save'])];
+}
+
+// Deep-research briefs live in interview-prep/ next to the parent's own
+// reports (story-bank.md, <company>-<role>.md written by `apply`), so the web
+// UI lists and deletes only its own deep-<slug>.md files. Unicode letters are
+// allowed: deepReportStem keeps Яндекс as яндекс.
+const DEEP_NAME_RE = /^deep-[\p{L}\p{N}][\p{L}\p{N}-]{0,200}\.md$/u;
+export function isDeepReportName(name) {
+  return typeof name === 'string' && DEEP_NAME_RE.test(name);
+}
+
+/** A deep brief name that does not overwrite an existing file (`-2`, `-3`, …). */
+function freeDeepName(stem) {
+  let name = `${stem}.md`;
+  for (let n = 2; existsSync(projPath('interview-prep', name)); n++) name = `${stem}-${n}.md`;
+  return name;
+}
+
+// v1.39.0 (WS8.2) — LLM_PROVIDER is honoured by the SHARED cascade
+// (llm-dispatch.mjs): auto → the full order; claude → Anthropic only; gemini →
+// Gemini only; etc. v1.157.0 — a *forced* provider whose key isn't set falls
+// back to the auto order among the configured keys, so a user who ran `init`
+// with Claude Code and later added only, say, OPENROUTER_API_KEY still runs
+// live. FULL-M5 — the local copy of those rules (the _provGate/_tailProvider
+// pair) is deleted; resolveProvider() below is the single gate.
+
+/**
+ * FULL-M5 — abort the in-flight provider call when the client hangs up.
+ * Wired ONCE per request; `close` also fires after a normal response, where
+ * the abort is a harmless no-op (the provider call has already resolved).
+ */
+function clientAbort(res) {
+  const controller = new AbortController();
+  res.on('close', () => controller.abort());
+  return controller;
+}
+
+// Generic mode endpoints — kept narrow on purpose. Modes that have a
+// dedicated route (oferta → /api/evaluate, deep → /api/deep) and
+// modes the user only runs in Claude Code (apply, scan, pipeline,
+// tracker, pdf, latex, ofertas, auto-pipeline) intentionally stay off
+// this list. Update when a UI page adds support for a new mode.
+const MODE_ALLOWLIST = ['batch', 'contacto', 'cover', 'followup', 'interview-prep', 'patterns', 'project', 'training'];
+
+// Smoke-test fixture — chosen to be ≥50 chars after sanitization so it
+// passes the same gate as real /api/evaluate calls.
+const SMOKE_JD = 'Smoke test: Senior Backend Engineer with PHP and Go responsibilities, including microservice ownership and code review duties.';
+
+// BF-3 — soft cap on combined prompt size before we hit the LLM. Even
+// the largest Anthropic models (1M-token context for Sonnet 4.6) charge
+// per input token and the bundleProjectContext output + huge JD could
+// stack up. 256 KB ≈ ~65K tokens, comfortably below any current ceiling
+// while flagging clearly when something is off.
+// One value for every route — defined in llm-dispatch.mjs.
+
+export function registerLlmRoutes(app) {
+  // ─── /api/evaluate ──────────────────────────────────────────────────
+  // writeRateLimit() is stacked BEFORE the loopback-gated llmRateLimit
+  // (review LOW #3): /api/evaluate both spends tokens AND persists the
+  // report + tracker row on success, so the unconditional file-mutation
+  // guard applies first; the LLM token bucket still fronts the spend.
+  app.post('/api/evaluate', writeRateLimit(), llmRateLimit, async (req, res) => {
+    const { jd: rawJd, save, mode } = req.body || {};
+    const jd = sanitizeJobDescription(rawJd);
+    if (!jd || jd.length < 50) {
+      return res.status(400).json({ error: 'JD text required (min 50 chars after sanitization)' });
+    }
+    const lang = resolveLocale(req);
+
+    let saved = null;
+    if (save) {
+      const name = `jd-${today()}-${Date.now()}.txt`;
+      mkdirSync(PATHS.jdsDir, { recursive: true });
+      // Review v1.268.1 — the archived capture is already sanitizeJobDescription'd
+      // (line ~195); bound the write itself (CodeQL #744): a capture beyond 256KB
+      // is pathological input and the JD readers assume bounded files.
+      const boundedJd = jd.length > 256 * 1024 ? jd.slice(0, 256 * 1024) : jd;
+      writeFileSync(projPath('jds', name), boundedJd);
+      saved = name;
+    }
+
+    // v1.268.0 (CAR-229/230) — the live run streams SSE stage events
+    // (scoring → rendering → assembling) so a 150–400 s answer no longer
+    // looks like a hang; the terminal `done` frame carries the SAME payload
+    // shape the pre-streaming JSON had (mode/prompt/markdown/usage/warnings).
+    // Manual, gemini and no-key paths also answer on the stream so the
+    // client keeps ONE transport. A 4xx before the stream stays plain JSON —
+    // API.postStream turns a non-OK response into an error frame.
+    const started = Date.now();
+    const sseHead = () => {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
+    };
+    const send = (event, data) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data ?? {})}\n\n`);
+    };
+    const failNow = (status, error, extra = {}) => {
+      if (!res.headersSent) return res.status(status).json({ error, ...extra });
+      send('error', { message: error, ...extra });
+      return res.end();
+    };
+
+    // F-009 — explicit manual mode mirrors /api/deep: copy-pasteable
+    // single-shot prompt for external Claude/ChatGPT/Gemini (the two-step
+    // contract is a server-side pipeline; a hand-run needs the one prompt).
+    if (mode === 'manual') {
+      const promptParts = buildEvaluationPromptParts(jd, lang);
+      const promptText = promptParts.stable + promptParts.volatile;
+      sseHead();
+      send('done', {
+        mode: 'manual',
+        prompt: promptText,
+        message: 'Manual mode: copy this prompt into Claude/ChatGPT/Gemini.',
+        saved,
+      });
+      return res.end();
+    }
+
+    const chosen = resolveProvider();
+
+    if (chosen && chosen.mode === 'gemini') {
+      // The oferta-tuned gemini-eval.mjs subprocess keeps its single-shot
+      // contract (it prompts, saves and merges internally — NOT two-step).
+      // Carried as one stage on the same stream (documented in the release
+      // Notes: the two-step machine-surface guarantee covers the in-process
+      // cascade; the Gemini subprocess path reports the same warnings).
+      sseHead();
+      send('stage', { name: 'scoring', detail: 'gemini-eval.mjs (single-shot subprocess)' });
+      const tmpFile = projPath('output', `web-jd-${Date.now()}.txt`);
+      mkdirSync(PATHS.outputDir, { recursive: true });
+      writeFileSync(tmpFile, jd);
+      try {
+        const args = geminiEvalArgs(tmpFile, { save: !!save, lang });
+        const result = await runNodeScript('gemini-eval.mjs', args, { timeoutMs: evalTimeoutMs(lang) });
+        if (result.code !== 0) {
+          console.error(`[evaluate] gemini-eval.mjs exit ${result.code}: ${(result.stderr || '').trim().slice(0, 400)}`);
+          return failNow(502, `gemini-eval.mjs exited with code ${result.code}`, { mode: 'gemini', saved });
+        }
+        recordUsage('gemini', parseSubprocessUsage(result.stdout));
+        const stdout = result.stdout || '';
+        const dated = fixReportDate(stdout, today());
+        const dateWarnings = dated.replaced ? [`report **Date:** corrected to ${today()}`] : [];
+        send('done', { mode: 'gemini', saved, code: 0, stdout, markdown: dated.text, elapsedMs: Date.now() - started, ...(dateWarnings.length ? { warnings: dateWarnings } : {}) });
+      } finally {
+        unlinkQuiet(tmpFile);
+      }
+      return res.end();
+    }
+
+    if (chosen) {
+      const controller = clientAbort(res);
+      sseHead();
+      send('start', { lang: lang || 'en' });
+      try {
+        const two = await runTwoStepEvaluation(jd, lang, {
+          url: typeof req.body?.url === 'string' ? req.body.url : undefined,
+          maxTokens: evalMaxTokens(lang),
+          saved,
+          signal: controller.signal,
+          onStage: (name, detail) => send('stage', { name, detail }),
+        });
+        if (controller.signal.aborted) return; // client hung up mid-generation
+        const warnings = [...two.warnings];
+        send('done', {
+          mode: resolveProvider()?.mode || 'llm',
+          markdown: stripScoreSummary(two.markdown),
+          scoring: two.scoring,
+          usage: two.usage,
+          steps: two.steps,
+          fallbackUsed: two.fallbackUsed,
+          saved,
+          elapsedMs: Date.now() - started,
+          ...(warnings.length ? { warnings } : {}),
+        });
+      } catch (e) {
+        return failNow(502, e.message || 'evaluation failed', { step: e.step });
+      }
+      return res.end();
+    }
+
+    sseHead();
+    send('done', {
+      mode: 'manual',
+      message: 'No LLM key set — copy this prompt into Claude/ChatGPT/Gemini/Qwen',
+      prompt: buildEvaluationPrompt(jd, lang),
+      saved,
+    });
+    return res.end();
+  });
+
+  // Smoke-test endpoints — verify each provider key is wired without
+  // burning a real evaluation. Kept as separate routes so the SPA can
+  // probe each independently from /#/config.
+  app.post('/api/evaluate/test-gemini', llmRateLimit, async (_req, res) => {
+    if (!hasGeminiKey()) {
+      return res.status(400).json({ ok: false, error: 'GEMINI_API_KEY not set' });
+    }
+    const tmp = projPath('output', `gemini-smoke-${Date.now()}.txt`);
+    mkdirSync(PATHS.outputDir, { recursive: true });
+    writeFileSync(tmp, SMOKE_JD);
+    try {
+      // A smoke test must not file a report + tracker row for the fixture JD.
+      // FULL-M5 — the args come from the ONE shared subprocess contract
+      // (geminiEvalArgs: --lang first, --no-save for a smoke run).
+      const result = await runNodeScript('gemini-eval.mjs', geminiEvalArgs(tmp), { timeoutMs: 30_000 });
+      const sample = (result.stdout || '').slice(0, 200);
+      const ok = result.code === 0 && sample.length > 0;
+      res.json({ ok, code: result.code, sampleLength: (result.stdout || '').length, sample });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    } finally {
+      unlinkQuiet(tmp);
+    }
+  });
+
+  // P-7 — Anthropic equivalent of test-gemini. Sends a tiny prompt
+  // (≤256 tokens output) so it costs essentially nothing. Returns a
+  // 200-char sample so the SPA can show "✓ Anthropic working".
+  app.post('/api/evaluate/test-anthropic', llmRateLimit, async (_req, res) => {
+    if (!hasAnthropicKey()) {
+      return res.status(400).json({ ok: false, error: 'ANTHROPIC_API_KEY not set' });
+    }
+    try {
+      const r = await runAnthropic('Reply with the single word "ok".', { maxTokens: 256, timeoutMs: 30_000 });
+      if (r.error) return res.json({ ok: false, error: r.error });
+      const sample = (r.markdown || '').slice(0, 200);
+      res.json({ ok: sample.length > 0, sampleLength: (r.markdown || '').length, sample, usage: r.usage });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  // ─── /api/deep ──────────────────────────────────────────────────────
+  // Same stack as /api/evaluate: unconditional write guard first (deep
+  // research saves interview-prep briefs on disk), then the LLM bucket.
+  app.post('/api/deep', writeRateLimit(), llmRateLimit, async (req, res) => {
+    const { company, role, run, url } = req.body || {};
+    // Typed before use: a non-string company/role used to throw inside the
+    // prompt builder (R-03 — a malformed body is a 4xx, never a 500).
+    if (typeof company !== 'string' || !company.trim()) return res.status(400).json({ error: 'company required' });
+    if (role != null && typeof role !== 'string') return res.status(400).json({ error: 'role must be a string' });
+    // CAR-110 — optional freshness anchor. The URL is embedded in the prompt
+    // as a bounded research label (promptLabel); the server never fetches it.
+    if (url != null && typeof url !== 'string') return res.status(400).json({ error: 'url must be a string' });
+    const lang = resolveLocale(req);
+    // Manual copy keeps Claude Code tool names (WebFetch/WebSearch). Live run
+    // must not — Gemini otherwise returns MALFORMED_FUNCTION_CALL (no tools).
+    const manualPrompt = buildDeepPrompt(company, role, lang, { companyUrl: url });
+    const livePrompt = buildDeepPrompt(company, role, lang, { headless: true, companyUrl: url });
+
+    // When run:true AND a key is configured, execute server-side and
+    // return the rendered Markdown so the user sees real research output
+    // without leaving the browser. Persist every successful run into
+    // interview-prep/deep-<slug>.md for future browsing.
+    if (run) {
+      const prompt = livePrompt;
+      // REVIEW-A1 — the API providers have no filesystem; inline cv/profile/mode
+      // content so "Read these files first" actually has files to read. The
+      // shared cascade (llm-dispatch) honours LLM_PROVIDER, covers every
+      // provider and records usage. CAR-92: `lang` leads the bundled context
+      // (the directive after ~150 KB of English context lost to it), and the
+      // prompt itself now closes with the language reminder (prompts.mjs).
+      // FULL-M5 — the abort signal reaches the provider when the client
+      // hangs up mid-research.
+      const controller = clientAbort(res);
+      const ctxWarnings = [];
+      const ctx = bundleProjectContext({ modeSlugs: ['_shared', 'deep'], headless: true, warnings: ctxWarnings, lang });
+      const r = await runActiveProvider(ctx + prompt, { maxTokens: 8192, sizeCap: PROMPT_SIZE_SOFT_CAP, signal: controller.signal });
+      if (controller.signal.aborted) return; // client hung up mid-generation
+      if (r.mode === 'too-large') {
+        return res.status(413).json({
+          error: 'prompt too large',
+          details: [`assembled prompt is ${r.size} bytes; soft cap is ${r.cap}.`],
+        });
+      }
+      if (r.mode !== 'manual') {
+        if (r.error) return res.status(502).json({ mode: r.mode, prompt, error: r.error });
+        // A brief cut off at the token limit is still saved (it is useful),
+        // but the user is told it is incomplete. CAR-101 — a **Date:** line
+        // the model invented is rewritten to today before it is saved.
+        const dated = fixReportDate(r.markdown, today());
+        const warnings = [
+          ...ctxWarnings,
+          ...(r.truncated ? ['brief cut off at the output-token limit'] : []),
+          ...(dated.replaced ? [`brief **Date:** corrected to ${today()}`] : []),
+        ];
+        let saved = null;
+        if (r.markdown) {
+          mkdirSync(PATHS.interviewPrepDir, { recursive: true });
+          saved = freeDeepName(deepReportStem(company, role));
+          writeFileSync(projPath('interview-prep', saved), dated.text);
+        }
+        return res.json({ mode: r.mode, prompt, markdown: dated.text, saved, code: 0, ...(warnings.length ? { warnings } : {}) });
+      }
+    }
+
+    res.json({
+      mode: 'manual',
+      prompt: manualPrompt,
+      message: providerAvailable()
+        ? 'Set { run: true } to execute via your configured provider, or copy the prompt into Claude Code.'
+        : 'No API key set. Paste this into Claude Code for full deep research with WebFetch.',
+    });
+  });
+
+  // ─── Interview-prep archive ─────────────────────────────────────────
+  app.get('/api/interview-prep', (_req, res) => {
+    if (!existsSync(PATHS.interviewPrepDir)) return res.json({ files: [] });
+    const files = readdirSync(PATHS.interviewPrepDir)
+      .filter(isDeepReportName)
+      .map((f) => {
+        const stat = statSync(projPath('interview-prep', f));
+        return { name: f, size: stat.size, mtime: stat.mtime };
+      })
+      .sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
+    res.json({ files });
+  });
+
+  app.get('/api/interview-prep/:name', (req, res) => {
+    // A deep brief may carry Unicode letters; any other name is read through
+    // the ASCII sanitizer (legacy briefs saved before the deep- namespace).
+    const safe = isDeepReportName(req.params.name) ? req.params.name : sanitizePathName(req.params.name);
+    if (!safe || !safe.endsWith('.md')) return res.status(400).json({ error: 'invalid name' });
+    const file = projPath('interview-prep', safe);
+    if (!existsSync(file)) return res.status(404).json({ error: 'not found' });
+    // v1.58.0 — clean on serve so briefs saved before the fix (with
+    // leaked <tool_call>/<tool_response> scaffolding) still render as a
+    // formatted document in Saved research.
+    res.json({ name: safe, markdown: cleanLlmMarkdown(readFileSync(file, 'utf8')) });
+  });
+
+  app.delete('/api/interview-prep/:name', writeRateLimit(), (req, res) => {
+    // Only the web UI's own deep-*.md briefs: the parent's interview-prep
+    // reports and story-bank.md are not this page's to delete.
+    const safe = req.params.name;
+    if (!isDeepReportName(safe)) return res.status(400).json({ error: 'invalid name' });
+    const file = projPath('interview-prep', safe);
+    if (!existsSync(file)) return res.status(404).json({ error: 'not found' });
+    unlinkSync(file);
+    res.json({ ok: true, deleted: safe });
+  });
+
+  // ─── /api/mode/:slug — generic mode runner ──────────────────────────
+  app.post('/api/mode/:slug', llmRateLimit, async (req, res) => {
+    const slug = req.params.slug;
+    if (!MODE_ALLOWLIST.includes(slug)) {
+      return res.status(404).json({ error: `unknown mode "${slug}"` });
+    }
+    const modeFile = projPath('modes', `${slug}.md`);
+    if (!existsSync(modeFile)) {
+      return res.status(404).json({ error: `modes/${slug}.md not found in parent project` });
+    }
+    const template = readFileSync(modeFile, 'utf8');
+    const context = (req.body && typeof req.body === 'object') ? req.body : {};
+    const lang = resolveLocale(req);
+    const prompt = buildModePrompt(template, slug, context, lang);
+
+    if (context.run) {
+      // FULL-M5 — the shared cascade (llm-dispatch) decides the provider and
+      // records usage; a client disconnect aborts the in-flight call. When no
+      // provider is chosen the request falls through to the manual response
+      // WITHOUT bundling context, exactly as the old per-provider branches did.
+      const chosen = resolveProvider();
+      if (chosen) {
+        // CAR-92 — `lang` leads the bundled context and a cut-off answer is
+        // surfaced as a warning on every provider branch. buildModePrompt
+        // already opens with the locale directive and closes with the reminder.
+        // REVIEW-A1 — buildModePrompt already inlines modes/<slug>.md; here we
+        // add cv.md + profile.yml + modes/_shared.md so the provider has the
+        // same context that Claude Code would read locally.
+        const controller = clientAbort(res);
+        const ctxWarnings = [];
+        const ctx = bundleProjectContext({ modeSlugs: ['_shared'], lang, warnings: ctxWarnings });
+        const fullPrompt = ctx + prompt;
+        if (fullPrompt.length > PROMPT_SIZE_SOFT_CAP) {
+          return res.status(413).json({
+            error: 'prompt too large',
+            details: [`assembled prompt is ${fullPrompt.length} bytes; soft cap is ${PROMPT_SIZE_SOFT_CAP}.`],
+          });
+        }
+        const r = await runActiveProvider(fullPrompt, { signal: controller.signal });
+        if (controller.signal.aborted) return; // client hung up mid-generation
+        if (r.error) return res.status(502).json({ mode: r.mode, slug, prompt, error: r.error });
+        const warnings = modeWarnings(ctxWarnings, r);
+        return res.json({ mode: r.mode, slug, prompt, markdown: r.markdown, usage: r.usage, ...(warnings.length ? { warnings } : {}) });
+      }
+    }
+    res.json({
+      mode: 'manual',
+      slug,
+      prompt,
+      message: providerAvailable()
+        ? 'Set { run: true } to execute via your configured provider, or copy this prompt into Claude Code.'
+        : 'No API key set. Copy this prompt into Claude Code (it has WebFetch/WebSearch).',
+    });
+  });
+
+  // ─── /api/apply-helper ──────────────────────────────────────────────
+  // ALLOWED BARE in the rate-limit coverage tripwire (tests/
+  // rate-limit-coverage.test.mjs): pure local computation —
+  // buildApplyChecklist does no I/O, no spawn, no LLM spend, so there is
+  // nothing a runaway loop can saturate and no limiter is wired.
+  app.post('/api/apply-helper', (req, res) => {
+    const { url, jd } = req.body || {};
+    if (!url) return res.status(400).json({ error: 'url required' });
+    res.json({
+      checklist: buildApplyChecklist(url, jd),
+      message: 'Live application checklist generated.',
+    });
+  });
+}

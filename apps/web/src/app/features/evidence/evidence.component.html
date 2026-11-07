@@ -1,0 +1,111 @@
+@let current = session();
+<section class="panel" aria-labelledby="evidence-heading">
+  <div class="panel-top"><div><p class="eyebrow">02 / Provenance</p><h2 id="evidence-heading">Evidence you control</h2></div><span class="note">Revision {{ current.revision }}</span></div>
+  <p class="muted">Confirmation means <strong>you</strong> stand behind the claim. It does not mean ReboundOps or an employer has verified it.</p>
+  <div class="source-docs">
+    <h3>Private source documents ({{ current.sourceDocuments.length }} / 3)</h3>
+    <p class="muted">Paste a short, non-confidential excerpt from a résumé or project note. Its text stays in local API memory, is included in JSON backups, and is <strong>not</strong> sent to an AI provider by this feature.</p>
+    @for (doc of current.sourceDocuments; track doc.id) {
+      <article class="source-document">
+        <div><strong>{{ doc.label }}</strong> · <span class="muted">{{ doc.kind }}</span>
+          <small>{{ doc.body.length }} characters · ID {{ doc.id }}</small>
+        </div>
+        <button class="tiny" type="button" [disabled]="store.busy()" (click)="removeSource(doc.id)">Remove source</button>
+      </article>
+    }
+    @if (current.sourceDocuments.length < 3) {
+      <form [formGroup]="sourceForm" (ngSubmit)="addSource()" class="target-form">
+        <div class="fields">
+          <div class="field">
+            <label>Source title <input formControlName="label" [attr.aria-invalid]="!!error(sourceForm.controls.label)" [attr.aria-describedby]="error(sourceForm.controls.label) ? 'source-label-error' : null" required maxlength="160" placeholder="e.g. Fictional project case study"></label>
+            @if (error(sourceForm.controls.label); as message) { <span class="field-error" id="source-label-error">{{ message }}</span> }
+          </div>
+          <label>Source type
+            <select formControlName="kind">
+              <option value="resume">Résumé excerpt</option>
+              <option value="project_note">Project note</option>
+            </select>
+          </label>
+        </div>
+        <label>Source text (pasted locally, maximum 10,000 characters)
+          <textarea formControlName="body" [attr.aria-invalid]="!!error(sourceForm.controls.body)" [attr.aria-describedby]="error(sourceForm.controls.body) ? 'source-body-error' : null" required rows="4" maxlength="10000" placeholder="Paste only text you are comfortable storing in a local session."></textarea>
+        </label>
+        @if (error(sourceForm.controls.body); as message) { <span class="field-error" id="source-body-error">{{ message }}</span> }
+        <button type="submit" class="secondary" [disabled]="store.busy()">Add private source</button>
+      </form>
+    }
+  </div>
+  @if (current.intake.evidence.length === 0) {
+    <p class="empty">No evidence yet. Consider recovering a concrete achievement before making a career claim.</p>
+  }
+  <div class="evidence-list">
+    @for (item of current.intake.evidence; track item.id) {
+      <article class="evidence-item">
+        <div>
+          <p>{{ item.claim }}</p>
+          <small>{{ item.source.label }} · {{ item.status }}</small>
+          @if (item.source.span; as span) {
+            <p class="citation-preview"><strong>Exact citation:</strong> "{{ item.source.excerpt }}"
+              <small>Source ID {{ span.documentId }} · characters {{ span.start }}–{{ span.end }}</small>
+            </p>
+          } @else {
+            <small>No exact source span attached yet</small>
+          }
+        </div>
+        <div class="evidence-actions">
+          <button class="tiny" type="button" [disabled]="store.busy() || item.status === 'confirmed'" (click)="evidenceDecision(item.id,'confirmed')">Confirm</button>
+          <button class="tiny" type="button" [disabled]="store.busy() || item.status === 'rejected'" (click)="evidenceDecision(item.id,'rejected')">Reject</button>
+          <button class="tiny" type="button" [disabled]="store.busy() || item.status === 'unverified'" (click)="evidenceDecision(item.id,'unverified')">Unverify</button>
+          <button class="tiny" type="button" [disabled]="store.busy()" (click)="startEvidenceEdit(item)">Correct & cite</button>
+        </div>
+      </article>
+    }
+  </div>
+  @if (editingEvidenceId) {
+    <form class="correction-editor" [formGroup]="correctionForm" (ngSubmit)="saveEvidenceCorrection()">
+      <h3>Correct the achievement and its source</h3>
+      <p class="muted">Corrections preserve the same evidence ID, record your reason, reset confirmation and clear dependent job-requirement support.</p>
+      <label>Revised claim
+        <textarea formControlName="claim" [attr.aria-invalid]="!!error(correctionForm.controls.claim)" [attr.aria-describedby]="error(correctionForm.controls.claim) ? 'correction-claim-error' : null" required maxlength="500" rows="2"></textarea>
+      </label>
+      @if (error(correctionForm.controls.claim); as message) { <span class="field-error" id="correction-claim-error">{{ message }}</span> }
+      <label>Correction reason
+        <input formControlName="reason" [attr.aria-invalid]="!!error(correctionForm.controls.reason)" [attr.aria-describedby]="error(correctionForm.controls.reason) ? 'correction-reason-error' : null" required minlength="3" maxlength="300" placeholder="e.g. Added a precise source reference">
+      </label>
+      @if (error(correctionForm.controls.reason); as message) { <span class="field-error" id="correction-reason-error">{{ message }}</span> }
+      <label>Source document for the citation
+        <select formControlName="documentId">
+          <option value="">Manual claim — no exact citation</option>
+          @for (doc of current.sourceDocuments; track doc.id) {
+            <option [value]="doc.id">{{ doc.label }}</option>
+          }
+        </select>
+      </label>
+      @if (correctionForm.controls.documentId.value) {
+        <label>Exact unique quotation from the source document
+          <textarea formControlName="excerpt" [attr.aria-invalid]="!!error(correctionForm.controls.excerpt)" [attr.aria-describedby]="error(correctionForm.controls.excerpt) ? 'correction-excerpt-error' : null" required maxlength="700" rows="3" placeholder="Paste an exact, unique passage, including punctuation and whitespace."></textarea>
+        </label>
+        @if (error(correctionForm.controls.excerpt); as message) { <span class="field-error" id="correction-excerpt-error">{{ message }}</span> }
+        <p class="hint">The server checks that this passage occurs exactly once and records its character offsets. A paraphrase does not count as an exact citation.</p>
+      }
+      <div class="actions">
+        <button class="primary" type="submit" [disabled]="store.busy()">Save correction</button>
+        <button class="secondary" type="button" (click)="cancelEvidenceEdit()">Cancel</button>
+      </div>
+    </form>
+  }
+  @if (current.corrections.length) {
+    <div class="correction-history">
+      <h3>Correction history</h3>
+      <ol>
+        @for (event of current.corrections; track $index) {
+          <li>
+            <small>{{ event.changedAt }} · {{ event.reason }}</small>
+            <p><strong>Before:</strong> {{ event.previousClaim }}</p>
+            <p><strong>After:</strong> {{ event.revisedClaim }}</p>
+          </li>
+        }
+      </ol>
+    </div>
+  }
+</section>

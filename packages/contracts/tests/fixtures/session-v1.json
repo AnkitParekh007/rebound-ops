@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "id": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d00",
+  "revision": 7,
+  "createdAt": "2026-11-04T09:00:00.000Z",
+  "updatedAt": "2026-11-04T09:30:00.000Z",
+  "intake": {
+    "role": "Fictional Senior Frontend Engineer",
+    "location": "Fictional City / remote",
+    "weeklyHours": 3,
+    "urgency": "quarter",
+    "priorities": "Fictional fixture: hands-on product work.",
+    "shiftTarget": "AI application engineer",
+    "bridgeTarget": "Frontend architecture consulting",
+    "evidence": [
+      {
+        "id": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d01",
+        "claim": "Led an accessible component library migration",
+        "source": {
+          "kind": "resume",
+          "label": "Fictional résumé excerpt",
+          "excerpt": "Led an accessible component library migration across four apps.",
+          "span": {
+            "documentId": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d10",
+            "start": 19,
+            "end": 82
+          }
+        },
+        "status": "confirmed"
+      },
+      {
+        "id": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d02",
+        "claim": "Improved CI build time",
+        "source": {
+          "kind": "manual",
+          "label": "Fictional participant note"
+        },
+        "status": "rejected"
+      }
+    ]
+  },
+  "routes": [
+    {
+      "id": "return",
+      "label": "Return",
+      "target": "Fictional Senior Frontend Engineer",
+      "candidateEvidenceIds": [
+        "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d01"
+      ],
+      "missingProof": [
+        "Which current role requirements are not yet supported by sourced achievements?"
+      ],
+      "uncertainty": "Current job requirements and hiring availability have not been checked.",
+      "nextTest": "Compare two real job descriptions with confirmed achievements."
+    },
+    {
+      "id": "shift",
+      "label": "Shift",
+      "target": "AI application engineer",
+      "candidateEvidenceIds": [
+        "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d01"
+      ],
+      "missingProof": [
+        "What specialty-specific work have you not yet demonstrated?"
+      ],
+      "uncertainty": "Experience in an adjacent field does not prove readiness for the new specialty.",
+      "nextTest": "Compare two real descriptions and demonstrate one concrete requirement."
+    },
+    {
+      "id": "bridge",
+      "label": "Bridge",
+      "target": "Frontend architecture consulting",
+      "candidateEvidenceIds": [
+        "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d01"
+      ],
+      "missingProof": [
+        "Can you show a relevant, permission-safe example and define the scope?"
+      ],
+      "uncertainty": "Demand, timing and actual contract income are unknown.",
+      "nextTest": "Define one narrow deliverable and validate it with a potential client."
+    }
+  ],
+  "jobTargets": [
+    {
+      "id": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d20",
+      "title": "Fictional frontend platform role",
+      "sourceUrl": "https://example.com/fictional-job",
+      "requirements": [
+        {
+          "id": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d21",
+          "text": "Design accessible components",
+          "status": "supported",
+          "evidenceIds": [
+            "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d01"
+          ]
+        },
+        {
+          "id": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d22",
+          "text": "Own CI performance",
+          "status": "gap",
+          "evidenceIds": []
+        }
+      ]
+    }
+  ],
+  "sourceDocuments": [
+    {
+      "id": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d10",
+      "kind": "resume",
+      "label": "Fictional résumé excerpt",
+      "body": "Fictional fixture.\nLed an accessible component library migration across four apps.\nEnd."
+    }
+  ],
+  "corrections": [
+    {
+      "evidenceId": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d01",
+      "previousClaim": "Led a component library migration",
+      "revisedClaim": "Led an accessible component library migration",
+      "previousSource": {
+        "kind": "manual",
+        "label": "Fictional participant note"
+      },
+      "revisedSource": {
+        "kind": "resume",
+        "label": "Fictional résumé excerpt",
+        "excerpt": "Led an accessible component library migration across four apps.",
+        "span": {
+          "documentId": "0b7c1f4e-3a52-4d8e-9c61-1f2a3b4c5d10",
+          "start": 19,
+          "end": 82
+        }
+      },
+      "reason": "Cite exact fictional résumé line",
+      "changedAt": "2026-11-04T09:00:00.000Z"
+    }
+  ],
+  "plan": {
+    "routeId": "bridge",
+    "budgetMinutes": 180,
+    "plannedMinutes": 165,
+    "actions": [
+      {
+        "id": "bridge-1",
+        "day": 1,
+        "title": "List deliverables you can already produce",
+        "minutes": 30,
+        "completed": true
+      },
+      {
+        "id": "bridge-2",
+        "day": 2,
+        "title": "Define a narrow contract scope and clear exclusions",
+        "minutes": 40,
+        "completed": false
+      },
+      {
+        "id": "bridge-3",
+        "day": 3,
+        "title": "Prepare a non-confidential example of prior work",
+        "minutes": 45,
+        "completed": false
+      },
+      {
+        "id": "bridge-4",
+        "day": 4,
+        "title": "Ask one relevant contact for feedback or review an opportunity",
+        "minutes": 50,
+        "completed": false
+      }
+    ]
+  },
+  "reviewNotes": "Fictional fixture review: first action completed.",
+  "persistence": "memory"
+}

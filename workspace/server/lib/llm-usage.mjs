@@ -1,0 +1,268 @@
+/**
+ * LLM usage recorder + aggregator (v1.105.0).
+ *
+ * Every LIVE provider call (from `runActiveProvider` and `routes/llm.mjs`)
+ * appends one JSONL line — `{ ts, provider, in, out }` — to the user
+ * layer at `data/llm-usage.jsonl`. The Usage page reads it back and rolls it up
+ * per provider over time windows, turning token counts into an *estimated* USD
+ * cost via the editable `llm-pricing.mjs` table.
+ *
+ * CAR-106 — the line shape is `{ ts, provider, in, out, cost? }`: when the
+ * provider (a self-hosted gateway such as Hermes bills the upstream model and
+ * knows the real number) reports its own `cost` inside the OpenAI-compatible
+ * usage object, that number is kept and preferred at aggregation; the pricing
+ * table stays the fallback for records without one. Old lines without `cost`
+ * parse unchanged, and the estimate behaviour for them is untouched.
+ *
+ * Recording is best-effort: a failed write NEVER breaks the LLM response. The
+ * write is a side effect of a user-initiated live generation, so it fits the
+ * "writes only on explicit user action" contract (same as the tracker).
+ */
+import { existsSync, readFileSync, appendFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { PATHS } from './paths.mjs';
+import { priceFor } from './llm-pricing.mjs';
+
+const MAX_LINES = 50_000; // read cap — plenty of history without unbounded memory
+
+// CAR-240 — the evaluate two-step contract (CAR-229) reports per-step usage;
+// the journal keeps the steps so the spend is attributable to scoring vs
+// rendering. Bounded at 4 entries: the two-step pipeline has 2-3, and a
+// future step addition must not turn one line into an unbounded payload.
+const MAX_STEPS = 4;
+const STEP_KEYS = ['in', 'out', 'cached', 'cost', 'durationMs'];
+
+/** CAR-240 — sanitize one steps[] entry to the documented shape
+ *  ({ name, in, out, cached?, cost?, durationMs? }). Non-objects, entries
+ *  with no usable numbers, and unknown keys are dropped — never fabricated. */
+function sanitizeStep(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const step = { name: String(raw.name || '').slice(0, 32) };
+  let any = false;
+  for (const k of STEP_KEYS) {
+    const n = Number(raw[k]);
+    if (Number.isFinite(n) && n >= 0) { step[k] = k === 'cost' ? n : Math.round(n); any = true; }
+  }
+  return any ? step : null;
+}
+
+/** CAR-240 — bounded steps[] pass-through for recordUsage/readUsage. */
+function sanitizeSteps(raw) {
+  if (!Array.isArray(raw)) return null;
+  const steps = raw.slice(0, MAX_STEPS).map(sanitizeStep).filter(Boolean);
+  return steps.length ? steps : null;
+}
+
+/** Normalize the many provider usage shapes to `{ in, out }` token counts,
+ *  plus an optional provider-reported `cost` (USD) when the provider supplies
+ *  one (CAR-106 — a gateway like Hermes reports the real billed cost of the
+ *  upstream model in its OpenAI-compatible usage object). A `cost` that is
+ *  absent, non-finite or negative is dropped — never fabricated. */
+export function normalizeUsage(u) {
+  if (!u || typeof u !== 'object') return { in: 0, out: 0 };
+  const inp = u.input_tokens ?? u.prompt_tokens ?? u.promptTokenCount ?? 0;
+  // Gemini reports thinking separately (thoughtsTokenCount) from the visible
+  // answer (candidatesTokenCount); both are billed as output.
+  const gemOut = (u.candidatesTokenCount != null || u.thoughtsTokenCount != null)
+    ? (Number(u.candidatesTokenCount) || 0) + (Number(u.thoughtsTokenCount) || 0)
+    : undefined;
+  const out = u.output_tokens ?? u.completion_tokens ?? gemOut ?? 0;
+  const rec = { in: Number(inp) || 0, out: Number(out) || 0 };
+  const cost = Number(u.cost);
+  if (Number.isFinite(cost) && cost >= 0) rec.cost = cost;
+  return rec;
+}
+
+/** Append one usage record. `provider` is the mode string; `usage` is raw.
+ *  `file` defaults to the user-layer log; tests pass an isolated temp path. */
+export function recordUsage(provider, usage, nowMs, file = PATHS.llmUsage) {
+  try {
+    const n = normalizeUsage(usage);
+    if (!n.in && !n.out) return; // nothing to record (manual / errored / no usage)
+    const line = { ts: nowMs || Date.now(), provider: String(provider || 'unknown'), in: n.in, out: n.out };
+    // Optional — old lines carry no `cost` key and parse unchanged.
+    if (n.cost != null) line.cost = n.cost;
+    // v1.268.0 (CAR-230) — optional wall-clock duration of the call; old
+    // lines carry no key and parse unchanged. Feeds the evaluate ETA's
+    // p50/p90 (real statistics instead of the stale "2–4 min" copy).
+    if (usage && typeof usage === 'object' && Number.isFinite(usage.durationMs)) {
+      line.durationMs = Math.round(usage.durationMs);
+    }
+    // CAR-240 — cached-prompt tokens (CAR-231 surfaced them per provider; the
+    // two-step evaluate sums them into the done-frame usage) and the
+    // per-step breakdown ride the line when present. Old lines carry no
+    // keys and parse unchanged.
+    if (usage && typeof usage === 'object') {
+      const cached = Number(usage.cached);
+      if (Number.isFinite(cached) && cached >= 0) line.cached = Math.round(cached);
+      const steps = sanitizeSteps(usage.steps);
+      if (steps) line.steps = steps;
+    }
+    mkdirSync(dirname(file), { recursive: true });
+    appendFileSync(file, JSON.stringify(line) + '\n');
+  } catch { /* best-effort: never break the response over telemetry */ }
+}
+
+/**
+ * CAR-92 — best-effort usage extraction from a provider SUBPROCESS's stdout
+ * (the gemini-eval.mjs path). The script does not print usage today, so this
+ * usually finds nothing and the caller skips recording silently — but when a
+ * usage line IS present (a JSON line carrying the common token keys, or a
+ * human "usage: 1234 prompt / 567 output tokens" line), the Gemini spend
+ * reaches the Usage page like every other provider's. Returns null when no
+ * usage is found; malformed numbers are never fabricated.
+ * @param {string} stdout
+ * @returns {{ prompt_tokens: number, completion_tokens: number } | null}
+ */
+export function parseSubprocessUsage(stdout) {
+  const s = String(stdout || '');
+  const lines = s.split('\n');
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i].trim();
+    if (!l.startsWith('{') || !l.endsWith('}') || !/tokens/i.test(l)) continue;
+    try {
+      const o = JSON.parse(l);
+      const inp = Number(o.prompt_tokens ?? o.input_tokens ?? o.promptTokenCount);
+      const out = Number(o.completion_tokens ?? o.output_tokens ?? o.candidatesTokenCount);
+      if (Number.isFinite(inp) || Number.isFinite(out)) {
+        return { prompt_tokens: Number.isFinite(inp) ? inp : 0, completion_tokens: Number.isFinite(out) ? out : 0 };
+      }
+    } catch { /* not JSON after all */ }
+  }
+  const m = s.match(/usage[^:\n]*:\s*([\d,]+)\s*(?:prompt|input)[^\d]+([\d,]+)\s*(?:output|completion|out)/i);
+  if (m) {
+    return {
+      prompt_tokens: Number(m[1].replace(/,/g, '')) || 0,
+      completion_tokens: Number(m[2].replace(/,/g, '')) || 0,
+    };
+  }
+  return null;
+}
+
+/**
+ * #4746 — best-effort parser for the parent batch-runner.sh's token summary.
+ * At the end of every run the parent prints (via batch/aggregate-tokens.mjs)
+ * an "=== Aggregated Token Breakdown ===" section whose step lines carry
+ * `N prompt / M completion` counts and whose final `total:` line carries the
+ * run's own estimated dollar cost. Feed the streamed stdout lines; result()
+ * returns { in, out, cost } once the total line has landed, or null when the
+ * section never appeared (older parent, dry run, no aggregate script). The
+ * dollar figure is the PARENT's estimate — kept as the record's cost
+ * (CAR-106 shape), so the Usage page prefers it over the local pricing
+ * table. Numbers arrive in the parent's human format ("12.3k", "1,234").
+ */
+export function createBatchUsageParser() {
+  let inSection = false;
+  let agg = null;
+  const parseK = (s) => {
+    const t = String(s || '').toLowerCase().replace(/,/g, '').trim();
+    if (t.endsWith('k')) return Math.round(parseFloat(t.slice(0, -1)) * 1000) || 0;
+    return parseInt(t, 10) || 0;
+  };
+  return {
+    feed(line) {
+      const l = String(line || '');
+      if (l.includes('=== Aggregated Token Breakdown ===')) {
+        inSection = true;
+        agg = { in: 0, out: 0, cost: 0 };
+        return;
+      }
+      if (!inSection || !agg) return;
+      let m = l.match(/^\s*[\w ]+:\s*([\d.,]+k?)\s+prompt\s*\/\s*([\d.,]+k?)\s+completion/i);
+      if (m) {
+        agg.in += parseK(m[1]);
+        agg.out += parseK(m[2]);
+        return;
+      }
+      // The section's closing total line: `  total:  64.7k tokens ($0.1234)`
+      // (cost n/a when the parent could not price the model — then no $ group).
+      m = l.match(/^\s*total:\s+[\d.,]+k?\s+tokens(?:\s*\(\s*\$([\d.]+)\s*\))?/i);
+      if (m) {
+        if (m[1] != null) agg.cost = parseFloat(m[1]) || 0;
+        inSection = false;
+      }
+    },
+    result() {
+      return agg && (agg.in || agg.out) ? agg : null;
+    },
+  };
+}
+
+/** Read + parse the usage log (bounded), newest-last. Exported for tests. */
+export function readUsage(file = PATHS.llmUsage) {
+  if (!existsSync(file)) return [];
+  let lines;
+  try { lines = readFileSync(file, 'utf8').split('\n').filter(Boolean); } catch { return []; }
+  if (lines.length > MAX_LINES) lines = lines.slice(-MAX_LINES);
+  const rows = [];
+  for (const l of lines) {
+    try {
+      const r = JSON.parse(l);
+      if (r && typeof r.ts === 'number') {
+        const row = { ts: r.ts, provider: String(r.provider || 'unknown'), in: Number(r.in) || 0, out: Number(r.out) || 0 };
+        const cost = Number(r.cost);
+        if (Number.isFinite(cost) && cost >= 0) row.cost = cost;
+        // v1.268.0 (CAR-230) — the wall-clock duration rides the row so the
+        // evaluate ETA can quote real p50/p90 statistics.
+        const durationMs = Number(r.durationMs);
+        if (Number.isFinite(durationMs) && durationMs > 0) row.durationMs = durationMs;
+        // CAR-240 — cached-prompt tokens + the bounded steps[] survive the
+        // round trip (re-sanitized: a hand-edited journal line cannot inject
+        // an unbounded array or junk fields).
+        const cached = Number(r.cached);
+        if (Number.isFinite(cached) && cached >= 0) row.cached = Math.round(cached);
+        const steps = sanitizeSteps(r.steps);
+        if (steps) row.steps = steps;
+        rows.push(row);
+      }
+    } catch { /* skip a corrupt line */ }
+  }
+  return rows;
+}
+
+const WINDOWS = [
+  { key: '24h', ms: 24 * 60 * 60 * 1000 },
+  { key: '7d', ms: 7 * 24 * 60 * 60 * 1000 },
+  { key: '30d', ms: 30 * 24 * 60 * 60 * 1000 },
+  { key: 'all', ms: Infinity },
+];
+
+/**
+ * Roll up rows into per-window, per-provider totals + USD.
+ * CAR-106 — a record carrying a provider-reported `cost` (the REAL cost, e.g.
+ * what the Hermes gateway was billed upstream) contributes that number; a
+ * tokens-only record falls back to the pricing-table estimate exactly as
+ * before (`priceFor` is linear in tokens, so summing per record equals pricing
+ * the summed tokens).
+ * @returns { windows: { <key>: { providers: [{provider,in,out,cached,calls,usd}], totalIn, totalOut, totalUsd, calls, cachedIn, cacheHitRate } } }
+ */
+export function aggregate(rows, nowMs) {
+  const now = nowMs || Date.now();
+  const out = { windows: {} };
+  for (const w of WINDOWS) {
+    const cutoff = w.ms === Infinity ? -Infinity : now - w.ms;
+    const byProv = new Map();
+    for (const r of rows) {
+      if (r.ts < cutoff) continue;
+      const e = byProv.get(r.provider) || { provider: r.provider, in: 0, out: 0, cached: 0, calls: 0, usd: 0 };
+      e.in += r.in; e.out += r.out; e.calls += 1;
+      // CAR-240 — cached-prompt tokens sum alongside the raw totals.
+      e.cached += Number(r.cached) || 0;
+      e.usd += (r.cost != null) ? r.cost : priceFor(r.provider, r.in, r.out);
+      byProv.set(r.provider, e);
+    }
+    let totalIn = 0, totalOut = 0, totalCached = 0, totalUsd = 0, calls = 0;
+    const providers = [...byProv.values()].map((e) => {
+      totalIn += e.in; totalOut += e.out; totalCached += e.cached; totalUsd += e.usd; calls += e.calls;
+      return e;
+    }).sort((a, b) => b.usd - a.usd || (b.in + b.out) - (a.in + a.out));
+    out.windows[w.key] = {
+      providers, totalIn, totalOut, totalUsd, calls,
+      // CAR-240 — cached-token rollup + hit rate (cachedIn / totalIn);
+      // null when the window has no input tokens (never a fake 0%).
+      cachedIn: totalCached,
+      cacheHitRate: totalIn > 0 ? totalCached / totalIn : null,
+    };
+  }
+  return out;
+}

@@ -1,0 +1,84 @@
+{
+  "name": "@reboundops/rebound-ops-ui",
+  "version": "1.268.1",
+  "description": "Clean, docs-style web interface for the rebound-ops AI job-search pipeline — search, evaluate, deep-dive, apply, track every offer from a single browser tab.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/AnkitParekh007/rebound-ops#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnkitParekh007/rebound-ops.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AnkitParekh007/rebound-ops/issues"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "files": [
+    "bin/",
+    "server/",
+    "public/",
+    "scripts/",
+    "docs/help/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "keywords": [
+    "rebound-ops",
+    "job-search",
+    "claude-code",
+    "greenhouse",
+    "ashby",
+    "lever",
+    "hh.ru",
+    "habr-career",
+    "ats",
+    "express",
+    "sse"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "server/index.mjs",
+  "bin": {
+    "rebound-ops-ui": "bin/rebound-ops-ui.sh",
+    "rebound-ops-ui-start": "bin/start.sh"
+  },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "dev": "node --watch server/index.mjs",
+    "test": "node --test tests/*.test.mjs tests/acceptance/*.test.mjs",
+    "test:coverage": "node --test --experimental-test-coverage tests/*.test.mjs tests/acceptance/*.test.mjs",
+    "test:coverage:gate": "node scripts/coverage-report.mjs",
+    "test:e2e": "node tests/e2e.mjs",
+    "test:e2e:full": "node tests/e2e-comprehensive.mjs",
+    "test:e2e:browser": "node --test tests/playwright-smoke.mjs tests/playwright-full-cycle.mjs tests/playwright-forms.mjs tests/playwright-locale-sweep.mjs tests/playwright-theme-toggle-i18n.mjs tests/playwright-widgets.mjs tests/playwright-scan-filters.mjs tests/scan-redesign-layout.test.mjs tests/playwright-narrow-viewport.mjs tests/playwright-card-overflow.mjs tests/playwright-config-save-scope.mjs tests/playwright-map.mjs tests/playwright-car93-spa.mjs tests/playwright-pipeline-v2.mjs tests/playwright-nav-v2.mjs tests/playwright-sidebar-resize.mjs tests/playwright-car124-empty-states.mjs tests/playwright-mobile-390.mjs tests/playwright-dialog-overlap.mjs",
+    "audit:i18n": "node tools/i18n-audit.mjs",
+    "bundle": "node scripts/make-bundle.mjs",
+    "test:ci": "npm test && node scripts/check-no-also-leftovers.mjs && node scripts/check-changelog-parity.mjs && node tools/i18n-audit.mjs",
+    "import:trending": "node scripts/import-trending-companies.mjs",
+    "capture:dashboards": "node scripts/capture-dashboard-screenshots.mjs",
+    "prepare": "node scripts/install-hooks.mjs"
+  },
+  "dependencies": {
+    "express": "^4.22.2",
+    "express-rate-limit": "^7.5.1",
+    "js-yaml": "^4.3.2",
+    "leaflet": "^1.9.4",
+    "multer": "^2.5.0"
+  },
+  "overrides": {
+    "qs": "^6.17.0"
+  },
+  "private": true,
+  "maintainers": [
+    {
+      "name": "Ankit Parekh",
+      "url": "https://github.com/AnkitParekh007"
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+<header class="topbar">
+  <a href="/" class="brand" aria-label="ReboundOps home"><span class="brand-mark" aria-hidden="true">↗</span> ReboundOps</a>
+  <span class="tag">Phase 2 · Local preview</span>
+</header>
+
+<main class="shell">
+  <h1 class="visually-hidden">ReboundOps</h1>
+
+  <div class="wizard" [class.solo]="!store.session()">
+    @if (store.session()) {
+    <nav class="wizard-nav" aria-label="Recovery workflow">
+      @let step = wizard.currentStep();
+      <button type="button" class="wizard-toggle" [attr.aria-expanded]="menuOpen()" aria-controls="wizard-steps" (click)="menuOpen.set(!menuOpen())">
+        @if (wizard.position()) { Step {{ wizard.position() }} of {{ wizard.mainSteps().length }}: } {{ step.label }}
+        <span class="wizard-toggle-hint">{{ menuOpen() ? 'Hide steps' : 'All steps' }}</span>
+      </button>
+      <div id="wizard-steps" class="wizard-steps" [class.open]="menuOpen()">
+        <ol>
+          @for (item of wizard.mainSteps(); track item.id; let i = $index) {
+            <li>
+              <ng-container *ngTemplateOutlet="stepButton; context: { $implicit: item, number: i + 1 }" />
+            </li>
+          }
+        </ol>
+        <p class="wizard-side-title">Any time</p>
+        <ul>
+          @for (item of wizard.sideSteps(); track item.id) {
+            <li><ng-container *ngTemplateOutlet="stepButton; context: { $implicit: item, number: 0 }" /></li>
+          }
+        </ul>
+        <p class="wizard-saved">{{ savedLabel() }}</p>
+      </div>
+    </nav>
+    }
+
+    <ng-template #stepButton let-item let-number="number">
+      <button type="button" [class]="'wizard-step is-' + item.status"
+        [attr.aria-current]="item.status === 'current' ? 'step' : null"
+        [attr.aria-disabled]="item.status === 'locked' ? 'true' : null"
+        [attr.aria-describedby]="item.status === 'locked' ? 'locked-' + item.id : null"
+        (click)="open(item.id)">
+        <span class="wizard-marker" aria-hidden="true">{{ item.status === 'done' ? '✓' : number || '•' }}</span>
+        <span class="wizard-label">{{ item.label }}<span class="visually-hidden">, {{ describe(item.status) }}</span></span>
+      </button>
+      @if (item.status === 'locked') {
+        <small class="wizard-locked" [id]="'locked-' + item.id">{{ item.lockedReason }}</small>
+      }
+    </ng-template>
+
+    <div class="wizard-content">
+      @if (store.error()) {
+        <div class="message error" role="alert">{{ store.error() }}</div>
+      }
+      <!-- Always rendered, so screen readers announce new text (a live region
+           created together with its text is often not announced). -->
+      <div role="status" [class]="store.notice() ? 'message success' : ''">{{ store.notice() }}</div>
+
+      <div [hidden]="wizard.current() !== 'start'">
+        <!-- First visit: guided questions by default; the full form is one click away. -->
+        @if (!store.session() && startMode() === 'guided') {
+          <rb-onboarding (fullForm)="startMode.set('form')" />
+        } @else {
+          <rb-intake (guided)="startMode.set('guided')" />
+        }
+      </div>
+
+      <!-- Keyed by session ID: switching sessions recreates every feature, so
+           per-session drafts and private pilot answers never carry over.
+           Inactive steps stay mounted (only hidden) so unsaved drafts survive
+           moving between steps. -->
+      @for (current of store.activeSession(); track current.id) {
+        <div [hidden]="wizard.current() !== 'evidence'"><rb-evidence [session]="current" /></div>
+        <div [hidden]="wizard.current() !== 'jobs'"><rb-job-targets [session]="current" /></div>
+        <div [hidden]="wizard.current() !== 'options'"><rb-routes [session]="current" /></div>
+        @if (current.plan) {
+          <div [hidden]="wizard.current() !== 'plan'"><rb-plan [session]="current" /></div>
+        }
+        <div [hidden]="wizard.current() !== 'feedback'"><rb-pilot-feedback [session]="current" /></div>
+        <div [hidden]="wizard.current() !== 'data'"><rb-data-controls [session]="current" /></div>
+      }
+
+      @if (store.session() && (wizard.previous() || wizard.next())) {
+        <nav class="wizard-pager" aria-label="Step navigation">
+          @if (wizard.previous(); as prev) {
+            <button type="button" class="minimal" (click)="open(prev.id)"><span aria-hidden="true">←</span> Back to {{ prev.label }}</button>
+          }
+          @if (wizard.next(); as nextStep) {
+            <button type="button" class="primary" (click)="open(nextStep.id)">Continue to {{ nextStep.label }} <span aria-hidden="true">→</span></button>
+          }
+        </nav>
+      }
+    </div>
+  </div>
+</main>
+
+<footer><span>ReboundOps · Open-source Phase 2</span><span>Evidence over scores. Progress over promises.</span></footer>

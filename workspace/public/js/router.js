@@ -1,0 +1,264 @@
+/* global window */
+window.Router = (function () {
+  const routes = {};
+
+  // Route aliases — kept for URL stability when an internal name changes
+  // and bookmarks/external links exist for the old form. v1.10.0 renamed
+  // the canonical route from `settings` → `profile`; the old hash still
+  // resolves so existing bookmarks keep working.
+  const ALIASES = {
+    settings: 'profile',
+    // v1.99.0 — `#/portals` is now a real registered view (Portals health),
+    // so the old config alias (WS2 #2, added when the route was unregistered)
+    // was removed; otherwise it would shadow the dedicated view.
+    // QA BUG-004: the Outreach view's canonical hash is the Spanish
+    // `#/contacto` (mode slug = modes/contacto.md) while every other
+    // route is English. Expose an English `#/outreach` that resolves to
+    // it so the URL is consistent and bookmarkable; the canonical slug
+    // stays `contacto` to match the parent project's mode filename.
+    outreach: 'contacto',
+  };
+
+  function register(name, renderer) {
+    routes[name] = renderer;
+  }
+
+  function current() {
+    // Only '#/…' hashes are SPA routes. Bare in-page anchors (the skip
+    // link's '#content' target) and the empty hash are NOT routes: routing
+    // them through `hash.slice(2)` used to slice INTO the token and
+    // manufacture a phantom route ('#content' → 'ontent' → 404). Route
+    // them to the default view instead.
+    const raw = window.location.hash;
+    const hash = raw.startsWith('#/') ? raw.slice(2) : '';
+    // v1.28.1 — strip `?query` before route lookup (and before the default).
+    // Pre-v1.28.1 `Router.go('/evaluate?url=…')` produced a hash whose
+    // first split('/') segment was the whole "evaluate?url=…" literal,
+    // which never matched a registered route → __not_found__ (404).
+    // The view itself parses `window.location.hash.split('?')[1]` via
+    // URLSearchParams (see evaluate.js, config.js), so we only need to
+    // drop the query portion from the NAME lookup, not from the hash.
+    // Stripping BEFORE the `'' → dashboard` default also stops `#/?x=1`
+    // from 404ing on the empty route name.
+    const beforeQuery = hash.split('?')[0];
+    if (!beforeQuery) {
+      return { name: 'dashboard', rawName: 'dashboard', params: [] };
+    }
+    const [rawName, ...rest] = beforeQuery.split('/');
+    const name = ALIASES[rawName] || rawName;
+    return { name, rawName, params: rest };
+  }
+
+  // v1.41.0 (WS2 UX-audit HIGH, cross-cutting) — SPA focus management.
+  // `render()` replaces #content on every hashchange but never moved
+  // focus, so keyboard / screen-reader users stayed on the destroyed
+  // node and lost their place (WCAG 2.4.3 Focus Order / 4.1.3 Status
+  // Messages). After a route render we move focus to the new view's
+  // first heading (concise SR announcement + correct focus order).
+  // Skipped on the very first paint so it doesn't fight the skip-link.
+  let firstPaintDone = false;
+  function focusNewView(content) {
+    const target =
+      content.querySelector('h1, .page-title, [data-autofocus]') || content;
+    if (target !== content && !target.hasAttribute('tabindex')) {
+      target.setAttribute('tabindex', '-1');
+    }
+    // v1.56.2 — UX-N1: per-route, locale-aware document.title for
+    // multi-tab orientation, bookmarks, and the screen-reader
+    // "page changed" announcement. Derived from the view's own
+    // localized <h1>/.page-title, so it is automatically translated
+    // and distinct per route with no new i18n keys. Set BEFORE the
+    // first-paint guard below so the initial tab is titled too.
+    const heading = content.querySelector('h1, .page-title');
+    // v1.158.0 (NIT-1) — exclude the HelpHint "?" affordance (a
+    // `button.help-hint` appended inside the h1 by HelpHint.title) from the
+    // computed title, so document.title reads "Vacancy search" not
+    // "Vacancy search?". Clone-and-strip so the live DOM heading is untouched.
+    let viewTitle = '';
+    if (heading) {
+      const clone = heading.cloneNode(true);
+      clone.querySelectorAll('.help-hint').forEach((el) => el.remove());
+      viewTitle = clone.textContent.trim().replace(/\s+/g, ' ');
+    }
+    document.title = viewTitle
+      ? `${viewTitle} — ReboundOps`
+      : 'ReboundOps — career recovery & job search';
+    // v1.56.0 — UX-12: on the FIRST paint we now make the landing
+    // view's heading programmatically focusable (tabindex=-1 was set
+    // above) so screen-reader / heading navigation lands on it, and
+    // #content is aria-live=polite so the dashboard heading is
+    // announced on boot — but we still do NOT steal focus here, which
+    // would fight the skip-link (the deliberate v1.41.0 behaviour).
+    // Every subsequent route change DOES move focus to the new view.
+    if (!firstPaintDone) { firstPaintDone = true; return; }
+    try { target.focus({ preventScroll: false }); } catch { /* jsdom */ }
+  }
+
+  // Render epoch: view renderers are async, so a slow render can resolve
+  // AFTER the user has already navigated on — without this token the stale
+  // result would clobber the current view and re-steal focus. Each render()
+  // claims a new epoch; anything that awaits checks it still owns the epoch
+  // before touching the DOM.
+  let renderEpoch = 0;
+
+  // Emil motion audit — the previous route's name, for the .page-enter rise.
+  // A page transition plays ONLY on an actual route CHANGE: not on the first
+  // paint (it would fight the skip-link, same reason focusNewView skips it)
+  // and not on a same-route re-render (Router.render() from a view — e.g. the
+  // language switch — must not replay a page transition).
+  let prevRouteName = null;
+
+  // Tag the first rendered element with .page-enter (CSS: rise-in) when the
+  // route actually changed. Runs on the success AND the error render path —
+  // both replace the view.
+  function applyRouteEnter(content, changed) {
+    if (!changed) return;
+    const first = content.firstElementChild;
+    if (first) first.classList.add('page-enter');
+  }
+
+  // P3.3 (route-change overlay hygiene) — a tiny cleanup registry the router
+  // runs on every actual ROUTE change. Overlays live in top-level elements
+  // OUTSIDE #content, so a navigation that happens while one is open used to
+  // leave it hanging over the new page (the QA-reported "Preview & export
+  // modal over a different page" bug class). The shared overlay closer from
+  // api.js is auto-registered below; future non-modal surfaces can subscribe
+  // the same way instead of each adding its own hashchange listener.
+  //
+  // Scope: hooks run on a route-NAME change only. The language-switch
+  // same-route re-render (Router.render() from a view) must not slam dialogs
+  // shut, and the first paint has nothing open. Errors in a hook are logged
+  // and contained — cleanup must never break navigation.
+  const routeChangeHooks = [];
+  function onRouteChange(fn) {
+    if (typeof fn !== 'function') return () => {};
+    routeChangeHooks.push(fn);
+    return () => {
+      const i = routeChangeHooks.indexOf(fn);
+      if (i >= 0) routeChangeHooks.splice(i, 1);
+    };
+  }
+  function runRouteChangeHooks() {
+    // v1.268.1 review — a hook may add or remove registry entries mid-sweep
+    // (e.g. a per-view slot disarming itself); iterating the LIVE array let
+    // a splice shift the array under the iterator and SKIP the next hook.
+    // Snapshot: this sweep sees the set as it was when the sweep started.
+    for (const fn of [...routeChangeHooks]) {
+      try { fn(); } catch (err) { console.error(err); }
+    }
+  }
+  // api.js loads BEFORE router.js (index.html script order), so the shared
+  // closer exists by the time this module body runs.
+  if (window.UI && typeof window.UI.closeOverlays === 'function') {
+    onRouteChange(() => window.UI.closeOverlays());
+  }
+
+  async function render() {
+    // A bare in-page anchor (e.g. the skip link's '#content') is not an SPA
+    // route: the browser scrolls natively and NO re-render must happen —
+    // re-rendering would wipe the view the user is reading (and, pre-fix,
+    // current() routed it to a phantom 'ontent' 404). Only '#/…' hashes
+    // (and the initial empty hash, i.e. boot) drive a render.
+    const h = window.location.hash;
+    if (h && !h.startsWith('#/')) return;
+    const myEpoch = ++renderEpoch;
+    const { name, rawName, params } = current();
+    const routeChanged = prevRouteName !== null && prevRouteName !== name;
+    prevRouteName = name;
+    // P3.3 — overlays that outlive their route: run the cleanup registry
+    // BEFORE the view underneath is replaced (route change only — see the
+    // registry note above). Closing the overlay lets the focus management
+    // below own focus from here on.
+    if (routeChanged) runRouteChangeHooks();
+
+    document.querySelectorAll('.nav-item').forEach((a) => {
+      // Highlight nav match against EITHER the alias (rawName) or the
+      // resolved route — so #/profile lights up the Profile nav item
+      // even though it routes to `settings` internally.
+      const r = a.dataset.route;
+      const active = r === name || r === rawName;
+      a.classList.toggle('active', active);
+      // CAR-23 (v1.243.0) — expose the active item to assistive tech.
+      if (active) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
+
+    const content = document.getElementById('content');
+    // Unknown route → render the dedicated 404 view instead of silently
+    // falling back to the dashboard (which masked typos and broken links).
+    const renderer = routes[name] || routes['__not_found__'];
+
+    content.innerHTML = `<div class="loading">${(window.I18n && I18n.t('router.loading', 'Loading…')) || 'Loading…'}</div>`;
+    try {
+      const result = await renderer(params);
+      if (myEpoch !== renderEpoch) return; // superseded by a newer navigation
+      if (result instanceof Node) {
+        content.innerHTML = '';
+        content.appendChild(result);
+      } else if (typeof result === 'string') {
+        content.innerHTML = result;
+      }
+      applyRouteEnter(content, routeChanged);
+      focusNewView(content);
+    } catch (err) {
+      if (myEpoch !== renderEpoch) return; // stale failure — newer view owns the DOM
+      console.error(err);
+      const isNet = err && err.network;
+      const t = (k, f) => (window.I18n && I18n.t) ? I18n.t(k, f) : f;
+      const titleStr = isNet ? t('router.netError', 'No connection to server') : t('router.error', 'Error');
+      const retryStr = t('common.retry', 'Retry');
+      const runStr = t('router.runStart', 'Run');
+      // Escape the error text before it reaches innerHTML — a server error can
+      // echo user-supplied input, so treat err.message as untrusted (XSS boundary).
+      const esc = (s) => (window.UI && UI.escapeHtml) ? UI.escapeHtml(s) : String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      content.innerHTML = `<div class="empty">
+        <strong>${esc(titleStr)}</strong>
+        <p style="margin: 12px 0 0; color: var(--foggy)">${esc((err && err.message) || err)}</p>
+        ${isNet ? `<p style="margin-top:8px;color:var(--foggy);font-size:13px;">${runStr}: <code>bash web-ui/bin/start.sh</code></p>` : ''}
+        <button class="btn btn-ghost mt-3" data-action="router-retry">${retryStr}</button>
+      </div>`;
+      content.querySelector('[data-action="router-retry"]')?.addEventListener('click', () => render());
+      applyRouteEnter(content, routeChanged);
+      focusNewView(content);
+      if (!isNet) window.UI?.toast(err.message || 'Render error', 'error');
+    }
+  }
+
+  function go(path) {
+    window.location.hash = path.startsWith('#') ? path : '#' + (path.startsWith('/') ? path : '/' + path);
+  }
+
+  window.addEventListener('hashchange', render);
+
+  // 404 view — registered here so it cannot collide with a real route name
+  // and so the router never depends on an external file being loaded first.
+  register('__not_found__', () => {
+    const t = (k, f) => (window.I18n && window.I18n.t) ? window.I18n.t(k, f) : f;
+    const { rawName } = current();
+    const wrap = document.createElement('div');
+    wrap.className = 'page-404 empty';
+    wrap.style.padding = '64px 24px';
+    wrap.style.textAlign = 'center';
+
+    const h1 = document.createElement('h1');
+    h1.className = 'page-title';
+    h1.textContent = t('notFound.title', '404 — page not found');
+
+    const p = document.createElement('p');
+    p.style.color = 'var(--foggy)';
+    p.style.margin = '12px 0 24px';
+    const body = t('notFound.body', "The route “{path}” doesn't exist.")
+      .replace('{path}', '#/' + (rawName || ''));
+    p.textContent = body;
+
+    const a = document.createElement('a');
+    a.className = 'btn btn-primary';
+    a.href = '#/dashboard';
+    a.textContent = t('notFound.back', 'Back to Dashboard');
+
+    wrap.append(h1, p, a);
+    return wrap;
+  });
+
+  return { register, render, go, current, onRouteChange, renderer: (name) => routes[name] };
+})();

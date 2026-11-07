@@ -1,0 +1,69 @@
+@let current = session();
+<section class="panel" aria-labelledby="job-target-heading">
+  <div class="panel-top">
+    <div><p class="eyebrow">02b / Current requirements</p><h2 id="job-target-heading">Compare against real requirements</h2></div>
+    <span class="note">{{ current.jobTargets.length }} / 3 targets</span>
+  </div>
+  <p class="muted">Paste specific requirements from a job description, one per line. Nothing is fetched from a URL. Match them manually to achievements you've confirmed; unsupported requirements remain gaps or unreviewed.</p>
+  @if (current.jobTargets.length < 3) {
+    <form class="target-form" [formGroup]="targetForm" (ngSubmit)="addTarget()">
+      <div class="fields">
+        <div class="field">
+          <label>Job title / opportunity <input formControlName="title" [attr.aria-invalid]="!!error(targetForm.controls.title)" [attr.aria-describedby]="error(targetForm.controls.title) ? 'target-title-error' : null" required maxlength="140" placeholder="e.g. Frontend Platform Engineer"></label>
+          @if (error(targetForm.controls.title); as message) { <span class="field-error" id="target-title-error">{{ message }}</span> }
+        </div>
+        <div class="field">
+          <label>Source URL (optional, HTTPS only) <input formControlName="sourceUrl" [attr.aria-invalid]="!!error(targetForm.controls.sourceUrl)" [attr.aria-describedby]="error(targetForm.controls.sourceUrl) ? 'target-sourceUrl-error' : null" maxlength="600" placeholder="https://example.org/jobs/123"></label>
+          @if (error(targetForm.controls.sourceUrl); as message) { <span class="field-error" id="target-sourceUrl-error">{{ message }}</span> }
+        </div>
+      </div>
+      <label>Requirements from this opportunity — one per line
+        <textarea formControlName="requirements" [attr.aria-invalid]="!!error(targetForm.controls.requirements)" [attr.aria-describedby]="error(targetForm.controls.requirements) ? 'target-requirements-error' : null" rows="4" required maxlength="6500" placeholder="Design accessible component systems&#10;Improve CI and test reliability"></textarea>
+      </label>
+      @if (error(targetForm.controls.requirements); as message) { <span class="field-error" id="target-requirements-error">{{ message }}</span> }
+      <button class="secondary" type="submit" [disabled]="store.busy()">Add requirements for review</button>
+    </form>
+  }
+  @for (target of current.jobTargets; track target.id) {
+    <article class="job-target">
+      <div class="job-head">
+        <div>
+          <h3>{{ target.title }}</h3>
+          @if (target.sourceUrl) {
+            <a [href]="target.sourceUrl" target="_blank" rel="noopener noreferrer">View source description</a>
+          }
+        </div>
+        <button class="minimal" type="button" [disabled]="store.busy()" (click)="removeTarget(target.id)">Remove target</button>
+      </div>
+      <ol class="requirement-list">
+        @for (requirement of target.requirements; track requirement.id) {
+          <li>
+            <p>{{ requirement.text }}</p>
+            <span class="requirement-state">{{ requirement.status }}</span>
+            <label>Evidence to link (only user-confirmed claims)
+              @let chosen = selectedEvidence(requirement.id, requirement.evidenceIds);
+              <select [name]="'evidence-' + requirement.id" (change)="selectEvidence(requirement.id, $event)">
+                <option value="" [selected]="!chosen">No evidence selected</option>
+                @for (item of current.intake.evidence; track item.id) {
+                  @if (item.status === 'confirmed') { <option [value]="item.id" [selected]="item.id === chosen">{{ item.claim }}</option> }
+                }
+              </select>
+            </label>
+            <div class="review-actions">
+              <button class="tiny" type="button" [disabled]="store.busy()" (click)="reviewRequirement(target.id, requirement.id, 'supported')">Supported by my evidence</button>
+              <button class="tiny" type="button" [disabled]="store.busy()" (click)="reviewRequirement(target.id, requirement.id, 'gap')">Evidence gap</button>
+              <button class="tiny" type="button" [disabled]="store.busy()" (click)="reviewRequirement(target.id, requirement.id, 'unreviewed')">Unreviewed</button>
+            </div>
+            @if (requirement.evidenceIds.length) {
+              <small>Linked to {{ requirement.evidenceIds.length }} user-confirmed achievement(s). This is not independent verification.</small>
+            }
+          </li>
+        }
+      </ol>
+      <button class="secondary" type="button" [disabled]="store.busy()" (click)="previewAI(target.id)">Preview optional AI review payload</button>
+    </article>
+  }
+  @if (current.jobTargets.length) {
+    <rb-ai-review />
+  }
+</section>

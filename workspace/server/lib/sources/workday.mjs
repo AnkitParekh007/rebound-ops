@@ -1,0 +1,530 @@
+/**
+ * Workday CXS public jobs API wrapper (BETA).
+ *
+ * Workday hosts each customer at `<tenant>.wd<N>.myworkdayjobs.com`
+ * (N is usually 1, 5, or 12). The unauthenticated jobs feed lives at
+ *   POST https://<tenant>.wd<N>.myworkdayjobs.com/wday/cxs/<tenant>/<site>/jobs
+ * or, for a myworkdaysite.com tenant (tenant in the path),
+ *   POST https://<instance>.myworkdaysite.com/wday/cxs/<tenant>/<site>/jobs
+ * with body `{ appliedFacets: {}, limit, offset, searchText: "" }`.
+ *
+ * Marked beta because:
+ *   - The endpoint per-customer (site path varies)
+ *   - Some customers gate the feed behind a CAPTCHA on /wday/cxs/...
+ *
+ * v1.16.0 — graceful CAPTCHA / 4xx fallback. Instead of throwing
+ * (which used to break the whole scan), the wrapper returns an
+ * empty job array and annotates the result with a fallback hint
+ * so /#/scan can render 🔒 chips for blocked tenants. Callers can
+ * opt back into the throw behaviour via `opts.strict=true`.
+ *
+ * Fallback detection rules:
+ *   - 4xx (403, 404, 429) — CAPTCHA or tenant-not-public
+ *   - non-JSON response (HTML CAPTCHA page) — same outcome
+ * Both → returns []. Caller can inspect `lastWorkdayFallback` for
+ * audit / activity-log purposes.
+ *
+ * v1.242.0 (Phase 2) — three corrections to the above:
+ *   - A real 404/410 THROWS with its status (strict or not): it is a removed
+ *     board, not a CAPTCHA blip, and the scanner's 404 quarantine must see it.
+ *     403/429/5xx keep the graceful fallback.
+ *   - The documented `{ jobPostings }` envelope is REQUIRED: a 200 whose body
+ *     is null or jobs-less throws (labelled) instead of reading as [].
+ *   - The offset loop paginates past the first 100 postings (stop on a short
+ *     RAW page, bounded by MAX_PAGES); a later-page failure keeps partials.
+ *
+ * Help bundle suggestion (github.com/AnkitParekh007/rebound-ops):
+ * for a CAPTCHA-gated Workday board, fall back to the AI scan
+ * (`/rebound-ops scan`) which drives a real browser via Playwright.
+ */
+import { BROWSER_LIKE_USER_AGENT, fetchJson, fetchRawResponse, labeledHttpError } from '../http-json.mjs';
+import { requireContainer, requireArray } from './_shape.mjs';
+
+const PAGE_LIMIT = 100;
+
+// Pagination safety bound (v1.242.0 Phase 2): the offset loop stops on a short
+// RAW page, and this cap is the runaway guard — 20 pages × 100 = 2,000
+// postings per board, far above any real tenant's inventory.
+export const MAX_PAGES = 20;
+
+// Workday's LIST endpoint answers a posting attached to more than one location
+// with a COUNT where every other posting carries a place: `"53 Locations"`. It
+// is not a location, and `buildLocationFilter` matches by case-insensitive
+// substring — so a role open in Austin AND 52 other cities matches no
+// `allow: [austin]` entry and is dropped, while the same role listed singly
+// passes. Measured upstream across three tenants (60 postings each): 53 of 291
+// were placeholders, i.e. the ordinary case, not an edge one.
+//
+// Anchored, and `Locations?` singular-tolerant, so it cannot fire on a real
+// place that merely contains a digit and the word ("100 Locations Plaza").
+const MULTI_LOCATION_PLACEHOLDER_RE = /^\s*\d+\s+locations?\s*$/i;
+
+// The " · Remote" withFullyRemote appends. Both the placeholder check and the
+// detail enrichment read it with this one pattern so they agree on spacing
+// (upstream #6143).
+const REMOTE_SUFFIX_RE = /\s*·\s*remote\s*$/i;
+
+// How many detail GETs one entry may spend resolving placeholders. The
+// enrichment is one extra GET per placeholder posting, and a 2,000-posting
+// tenant at the measured rate would add ~1,000 requests — a different kind of
+// scan than the caller asked for. Past the cap the placeholder is left VISIBLE
+// rather than faked, so an unresolved posting never reads as a resolved one.
+export const MAX_DETAIL_REQUESTS = 200;
+
+/**
+ * True when a Workday list location is the count-placeholder, not a place.
+ * @param {unknown} location `locationsText` as the list endpoint returned it.
+ * @returns {boolean}
+ */
+export function isMultiLocationPlaceholder(location) {
+  if (typeof location !== 'string') return false;
+  // A fully-remote count is still a count. The marker is appended before this
+  // check; leave it on and the detail GET never runs.
+  const bare = location.replace(REMOTE_SUFFIX_RE, '');
+  return MULTI_LOCATION_PLACEHOLDER_RE.test(bare);
+}
+
+/** Keep the list endpoint's "Fully Remote" on the location string.
+ *  Partially Remote is hybrid and stays the city. A place that already says
+ *  remote is not doubled.
+ *  @param {string} location
+ *  @param {unknown} remoteType */
+function withFullyRemote(location, remoteType) {
+  const fully = typeof remoteType === 'string' && remoteType.trim().toLowerCase() === 'fully remote';
+  if (!fully || /remote/i.test(location)) return location;
+  return location ? `${location} · Remote` : 'Remote';
+}
+
+/**
+ * The real places behind a placeholder, from the CXS detail document.
+ *
+ * `jobPostingInfo.location` holds the primary place and `.additionalLocations`
+ * the rest; there is no `locationsText` at this level, so there is nothing else
+ * to read. Joined with `' · '` — the separator greenhouse/ashby/gem already use
+ * for exactly this. Deduped, since a tenant that repeats the primary inside
+ * `additionalLocations` would otherwise ship it twice into a user-visible field.
+ * @param {unknown} detail Parsed detail document.
+ * @returns {string} `' · '`-joined places, or '' when the document has none.
+ */
+export function locationsFromDetail(detail) {
+  const info = detail && typeof detail === 'object' ? detail.jobPostingInfo : null;
+  if (!info || typeof info !== 'object') return '';
+  const extra = Array.isArray(info.additionalLocations) ? info.additionalLocations : [];
+  const places = [info.location, ...extra]
+    .filter((x) => typeof x === 'string' && x.trim() !== '')
+    .map((x) => x.trim());
+  return [...new Set(places)].join(' · ');
+}
+
+/**
+ * The posting's real publication date, from the detail document.
+ *
+ * The list endpoint offers only `postedOn` — relative prose ("Posted 3 Days
+ * Ago") that tops out at an unbounded "30+ Days Ago". The detail document
+ * carries `jobPostingInfo.startDate`, an absolute date, so a posting we already
+ * paid a GET for can be dated exactly instead of approximately — and every
+ * other web-ui source already emits an ISO date here.
+ *
+ * Deliberately stricter than `Date.parse`, whose fallback for a non-ISO string
+ * is implementation-defined: anything that is not a bare `YYYY-MM-DD` is left
+ * alone rather than guessed at.
+ * @param {unknown} detail Parsed detail document.
+ * @returns {string} An ISO `YYYY-MM-DD`, or '' when there is no usable date.
+ */
+export function dateFromDetail(detail) {
+  const info = detail && typeof detail === 'object' ? detail.jobPostingInfo : null;
+  const raw = info && typeof info === 'object' ? info.startDate : undefined;
+  if (typeof raw !== 'string') return '';
+  const trimmed = raw.trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : '';
+}
+
+// v1.69.0 (P-14) — self-describing adapter metadata; see ashby.mjs for the rationale.
+export const meta = {
+  value: 'workday',
+  label: 'Workday',
+  region: 'en',
+};
+
+// Module-level snapshot of the last fallback reason. Scanner uses
+// this for status reporting via /#/scan Active Companies card.
+// v1.17.0 — exposed via getLastWorkdayFallback() too so SSE consumers
+// (server/lib/routes/scan.mjs) don't have to rely on ESM live bindings.
+// ── Dead-board detection (parent #4467) ────────────────────────────
+// The CXS API's 422/401/403 bodies carry no marker of their own. Two signals
+// held upstream across repeat passes (1,200-tenant sample, 2026-09):
+//   - 422 + careers page bounces to community.workday.com/maintenance-page
+//     (612 of 614 raw 422s);
+//   - 401/403 + careers page redirects to *.myworkday.com/wday/drs/outage
+//     (a per-board signal: a retired board on a live tenant).
+// A clean careers page leaves the original status untouched.
+const WORKDAY_MAINTENANCE_MARKER = 'community.workday.com/maintenance-page';
+const WORKDAY_OUTAGE_REDIRECT_RE = /^https:\/\/[a-z0-9.-]+\.myworkday\.com\/wday\/drs\/outage(?:[/?]|$)/i;
+const CONFIRMED_DEAD_API_STATUSES = new Set([422, 401, 403]);
+
+// A myworkdaysite.com host (`<instance>.myworkdaysite.com`) — same Workday
+// product as myworkdayjobs, but the tenant lives in the PATH and the public
+// board is /recruiting/<tenant>/<site>. Exact suffix on the parsed hostname.
+function isMyWorkdaySiteHost(hostname) {
+  return /^[\w-]+\.myworkdaysite\.com$/.test(String(hostname).toLowerCase());
+}
+
+/**
+ * Host pin on the ONE per-tenant endpoint a scanner request actually touches:
+ * HTTPS on `*.myworkdayjobs.com` or `*.myworkdaysite.com` (FULL-R2 — every
+ * other per-tenant source asserts its hosts; here a single adapter regression
+ * used to turn the browser-header POST into an SSRF). Exported for tests.
+ * @param {string} url
+ * @returns {string}
+ */
+export function assertWorkdayUrl(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`workday: invalid URL: ${url}`);
+  }
+  if (parsed.protocol !== 'https:') throw new Error(`workday: URL must use HTTPS: ${url}`);
+  const host = parsed.hostname.toLowerCase();
+  if (!host.endsWith('.myworkdayjobs.com') && !isMyWorkdaySiteHost(host)) {
+    throw new Error(`workday: untrusted hostname "${parsed.hostname}" — must be on *.myworkdayjobs.com or *.myworkdaysite.com`);
+  }
+  return url;
+}
+
+/**
+ * The public careers page for a CXS endpoint:
+ *   https://<t>.wdN.myworkdayjobs.com/wday/cxs/<t>/<site>/jobs → https://<t>.wdN.myworkdayjobs.com/<site>
+ *   https://<i>.myworkdaysite.com/wday/cxs/<t>/<site>/jobs     → https://<i>.myworkdaysite.com/recruiting/<t>/<site>
+ * Null when the URL is not a Workday CXS endpoint. Exported for tests.
+ * @param {string} apiUrl
+ */
+export function careersPageFromApi(apiUrl) {
+  try {
+    const u = new URL(apiUrl);
+    const host = u.hostname.toLowerCase();
+    if (isMyWorkdaySiteHost(host)) {
+      if (u.protocol !== 'https:') return null;
+      const m = u.pathname.match(/^\/wday\/cxs\/([^/]+)\/([^/]+)\//);
+      return m ? `${u.origin}/recruiting/${m[1]}/${m[2]}` : null;
+    }
+    if (!host.endsWith('.myworkdayjobs.com')) return null;
+    const site = (u.pathname.match(/^\/wday\/cxs\/[^/]+\/([^/]+)\//) || [])[1];
+    return site ? `${u.origin}/${site}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Base that a posting's `externalPath` (/job/<city>/<title>_<reqId>) is
+ * appended to. myworkdayjobs serves postings at the origin; myworkdaysite
+ * only under /recruiting/<tenant>/<site> (parent 3e028d9 jobBase).
+ * Exported for tests.
+ * @param {string} apiUrl
+ */
+export function jobBaseFromApi(apiUrl) {
+  try {
+    const u = new URL(apiUrl);
+    if (isMyWorkdaySiteHost(u.hostname)) {
+      const board = careersPageFromApi(apiUrl);
+      if (board) return board;
+    }
+  } catch { /* fall through to the legacy strip */ }
+  return String(apiUrl).replace(/\/wday\/cxs\/.+$/, '');
+}
+
+/**
+ * One careers-page fetch under redirect:'manual' (inspects Location, never
+ * follows it). Any failure proves nothing → false.
+ */
+async function confirmDeadViaCareersPage(apiUrl, { fetchImpl, signal }) {
+  const careersUrl = careersPageFromApi(apiUrl);
+  if (!careersUrl) return false;
+  // Defence-in-depth: the careers URL derives from the (already asserted)
+  // apiUrl, but this fetch carries browser headers — pin it like the main
+  // request (FULL-R2).
+  try {
+    assertWorkdayUrl(careersUrl);
+  } catch {
+    return false;
+  }
+  try {
+    const res = await fetchRawResponse(fetchImpl, careersUrl, {
+      method: 'GET',
+      signal,
+      redirect: 'manual',
+      headers: { 'User-Agent': BROWSER_LIKE_USER_AGENT, 'Accept-Language': 'en-US,en;q=0.9' },
+    });
+    if (res.status >= 300 && res.status < 400) {
+      return WORKDAY_OUTAGE_REDIRECT_RE.test(res.headers?.get?.('location') || '');
+    }
+    // The outage URL is boilerplate on every Workday page, so only the
+    // maintenance marker is checked on a body (2xx or error status alike).
+    const body = await res.text().catch(() => '');
+    return typeof body === 'string' && body.includes(WORKDAY_MAINTENANCE_MARKER);
+  } catch {
+    return false;
+  }
+}
+
+export let lastWorkdayFallback = null;
+
+export function getLastWorkdayFallback() {
+  return lastWorkdayFallback;
+}
+
+function setFallback(apiUrl, reason) {
+  lastWorkdayFallback = { apiUrl, reason, at: new Date().toISOString() };
+}
+
+export async function fetchWorkday(apiUrl, opts = {}) {
+  const { fetchImpl = fetch, signal, strict = false, resolveMultiLocation = true } = opts;
+  // Host pin FIRST (FULL-R2): a per-tenant endpoint is the one URL an adapter
+  // regression could aim anywhere — assert it before the browser-header POST
+  // (or anything else) leaves.
+  assertWorkdayUrl(apiUrl);
+  // Some tenants front their CXS API with Cloudflare bot management (seen
+  // live upstream: geico) that 500s requests missing ordinary browser
+  // headers. A real Chrome UA + accept-language + matching origin/referer
+  // clears it without per-tenant config.
+  // Derive origin + site from the CXS URL itself:
+  //   https://<tenant>.wdN.myworkdayjobs.com/wday/cxs/<tenant>/<site>/jobs
+  const headers = {
+    'User-Agent': BROWSER_LIKE_USER_AGENT,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    'Accept-Language': 'en-US,en;q=0.9',
+  };
+  try {
+    const u = new URL(apiUrl);
+    const site = (u.pathname.match(/^\/wday\/cxs\/[^/]+\/([^/]+)\//) || [])[1];
+    headers.Origin = u.origin;
+    // myworkdaysite's board lives at /recruiting/<tenant>/<site>, not /<site>.
+    const board = isMyWorkdaySiteHost(u.hostname) ? careersPageFromApi(apiUrl) : null;
+    headers.Referer = board ? `${board}/` : (site ? `${u.origin}/${site}/` : `${u.origin}/`);
+  } catch {
+    /* malformed apiUrl → fetch below will surface the real error */
+  }
+  const base = jobBaseFromApi(apiUrl);
+  const detailState = { spent: 0 };
+  const jobs = [];
+
+  // v1.242.0 (Phase 2) — offset pagination. Tenants above PAGE_LIMIT postings
+  // used to be silently truncated to the first 100. The loop walks offsets
+  // until a short RAW page (the tenant is done), bounded by MAX_PAGES. Page 1
+  // failures keep the documented v1.16 fallback semantics; a failure on a
+  // LATER page keeps the pages already collected and logs.
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const offset = page * PAGE_LIMIT;
+    let data;
+    try {
+      data = await fetchJson(fetchImpl, apiUrl, {
+        method: 'POST',
+        signal,
+        // Never follow a 3xx: a server-side redirect could point the request at a
+        // private address after the host check already passed (parent #4080).
+        redirect: 'error',
+        headers,
+        body: JSON.stringify({
+          appliedFacets: {},
+          limit: PAGE_LIMIT,
+          offset,
+          searchText: '',
+        }),
+      }).catch((e) => { throw labeledHttpError(e, 'Workday'); });
+    } catch (e) {
+      if (e && typeof e.status === 'number') {
+        // A real 404/410 is permanent (board removed / tenant retired), not a
+        // CAPTCHA blip: throw with the status intact so the scanner's 404/410
+        // quarantine treats the board as dead. The old graceful [] made
+        // quarantine unreachable — a dead board read as healthy-but-empty.
+        if (e.status === 404 || e.status === 410) {
+          const err = new Error(`Workday: HTTP ${e.status} (${apiUrl})`);
+          err.status = e.status;
+          throw err;
+        }
+        // 4xx / 5xx — CAPTCHA / tenant gone / WAF / etc. Graceful fallback.
+        // A 422/401/403 alone is ambiguous (identical body for a dead board and a
+        // WAF blip), so spend one careers-page fetch on Workday's own dead-board
+        // signals before calling it dead (parent #4467).
+        const confirmedDead = CONFIRMED_DEAD_API_STATUSES.has(e.status) && page === 0
+          && await confirmDeadViaCareersPage(apiUrl, { fetchImpl, signal });
+        const reason = confirmedDead
+          ? `HTTP ${e.status} — confirmed dead (Workday maintenance/outage page)`
+          : `HTTP ${e.status}`;
+        if (page === 0) {
+          if (strict) {
+            const err = new Error(`Workday: ${reason} (${apiUrl})`);
+            // Relabel a confirmed-dead board as a synthetic 404 so the scanner's
+            // 404/410 quarantine (scan-quarantine.mjs) picks it up.
+            err.status = confirmedDead ? 404 : e.status;
+            err.fallback = true;
+            throw err;
+          }
+          setFallback(apiUrl, reason);
+          return [];
+        }
+        console.error(`  ⚠ workday: page at offset ${offset} returned HTTP ${e.status} — keeping the ${jobs.length} postings collected so far`);
+        break;
+      }
+      // Status-less failure: a network error (DNS, connect, timeout) OR a 200
+      // that is not JSON — fetchJson wraps the latter as "non-JSON 2xx
+      // response from …" (a CAPTCHA gate serving HTML with 200, the shape the
+      // old res.json() catch reported verbatim). Restore that diagnostic so
+      // the fallback hint keeps pointing at the AI/Playwright scan.
+      const nonJson200 = typeof e?.message === 'string' && e.message.includes('non-JSON 2xx response');
+      if (page === 0) {
+        if (strict) throw e;
+        setFallback(apiUrl, nonJson200 ? 'non-JSON response (likely CAPTCHA HTML)' : `network: ${e.message}`);
+        return [];
+      }
+      console.error(`  ⚠ workday: page at offset ${offset} ${nonJson200 ? 'was not JSON' : `failed (${e.message})`} — keeping the ${jobs.length} postings collected so far`);
+      break;
+    }
+    // The Workday CXS response wraps job rows under `jobPostings` — the
+    // documented envelope is REQUIRED (Phase 2): a 200 whose body is null or
+    // jobs-less is a masked/dead board, so it throws on page 1 (strict or
+    // not) instead of silently reading as []. On a LATER page the failure is
+    // fail-soft: keep the pages already collected.
+    let rows;
+    try {
+      requireContainer(data, 'Workday', 'jobPostings');
+      rows = requireArray(data.jobPostings, 'Workday jobPostings');
+    } catch (e) {
+      if (page === 0) throw e;
+      console.error(`  ⚠ workday: page at offset ${offset} lost its shape (${e.message}) — keeping the ${jobs.length} postings collected so far`);
+      break;
+    }
+    const pageJobs = rows.map((j) => normalize(j, base));
+    if (resolveMultiLocation) {
+      await resolvePlaceholders(pageJobs, rows, apiUrl, { fetchImpl, signal, headers, state: detailState });
+    }
+    jobs.push(...pageJobs);
+    // Stop on a short RAW page — the tenant ran out of postings. Never on the
+    // filtered/normalized count.
+    if (rows.length < PAGE_LIMIT) break;
+  }
+  return jobs;
+}
+
+/**
+ * Replace each count-placeholder location with the posting's real places.
+ *
+ * One GET per placeholder posting against the CXS *detail* document — the same
+ * externalPath against the CXS base rather than the careers host. A failed or
+ * placeless document leaves the posting exactly as the list returned it: a
+ * visible "53 Locations" is honest about what we could not resolve, whereas a
+ * blanked location would silently pass every filter.
+ *
+ * @param {object[]} jobs Normalized jobs, mutated in place.
+ * @param {object[]} raw  The matching list rows (for `externalPath`).
+ * @param {string} apiUrl The CXS jobs endpoint.
+ */
+async function resolvePlaceholders(jobs, raw, apiUrl, { fetchImpl, signal, headers, state = { spent: 0 } }) {
+  // `…/wday/cxs/<tenant>/<site>/jobs` → `…/wday/cxs/<tenant>/<site>`
+  const cxsBase = apiUrl.replace(/\/jobs\/?$/, '');
+  const detailHeaders = { ...headers, Accept: 'application/json' };
+  delete detailHeaders['Content-Type'];
+  // `state.spent` is shared across pagination pages, so the board-wide cap
+  // holds no matter how many pages the offset loop walks.
+  for (let i = 0; i < jobs.length; i++) {
+    if (state.spent >= MAX_DETAIL_REQUESTS) break;
+    if (!isMultiLocationPlaceholder(jobs[i].location)) continue;
+    const path = raw[i] && raw[i].externalPath;
+    // Detail GETs are relative-path-only (FULL-R2): the cxsBase concatenation
+    // never turns a tenant-supplied absolute/protocol-relative value into an
+    // off-host request.
+    if (typeof path !== 'string' || !path.startsWith('/')) continue;
+    state.spent += 1;
+    let detail;
+    try {
+      detail = await fetchJson(fetchImpl, `${cxsBase}${path}`, {
+        method: 'GET',
+        signal,
+        redirect: 'error',
+        headers: detailHeaders,
+      }).catch(() => null);
+      if (!detail) continue; // a non-ok or transient detail failure must not fail the board
+    } catch {
+      continue; // a transient detail failure must not fail the board
+    }
+    const places = locationsFromDetail(detail);
+    if (places === '') continue;
+    // The list row may already say "5 Locations · Remote". Replacing it with
+    // the city would drop the only signal a Remote allow-list sees (upstream
+    // #6143).
+    const wasFullyRemote = REMOTE_SUFFIX_RE.test(jobs[i].location);
+    jobs[i].location = places;
+    if (wasFullyRemote && !/remote/i.test(places)) jobs[i].location = `${places} · Remote`;
+    const isRemote = /remote|anywhere/i.test(jobs[i].location) || /\bremote\b/i.test(jobs[i].title || '');
+    jobs[i].isRemote = isRemote;
+    jobs[i].workplaceType = isRemote ? 'Remote' : (/hybrid/i.test(places) ? 'Hybrid' : 'Onsite');
+    const started = dateFromDetail(detail);
+    if (started) jobs[i].date = started;
+  }
+}
+
+/**
+ * The posting URL from a tenant-supplied `externalPath` (FULL-R2): a relative
+ * path on the tenant base is the normal shape, and an ABSOLUTE path is
+ * accepted only when it is already https on the tenant origin — a hostile or
+ * misbehaving tenant could otherwise inject `http://` or off-host links into
+ * the dedup key, the UI and the liveness checks. Anything else is dropped to
+ * '' (a posting without a usable URL is filtered downstream, the same as the
+ * other sources' untrusted-link handling).
+ * @param {unknown} path the row's `externalPath`
+ * @param {string} base the tenant job base (jobBaseFromApi)
+ * @returns {string}
+ */
+function safeJobUrlFromPath(path, base) {
+  if (typeof path !== 'string' || path === '') return '';
+  if (path.startsWith('/')) return base + path;
+  try {
+    const parsed = new URL(path);
+    if (parsed.protocol === 'https:' && parsed.origin === new URL(base).origin) {
+      return parsed.href;
+    }
+  } catch { /* not an absolute URL either → drop */ }
+  return '';
+}
+
+function normalize(j, base) {
+  const url = safeJobUrlFromPath(j.externalPath, base);
+  // remoteType is a workplace flag, not a place: "Fully Remote" + a city must
+  // still say Remote or a Remote allow-list drops it (upstream #6143). The
+  // raw flag is never copied onto the job row.
+  const loc = withFullyRemote(j.locationsText || j.bulletFields?.[0] || '', j.remoteType);
+  const isRemote = /remote|anywhere/i.test(loc) || /\bremote\b/i.test(j.title || '');
+  const hybrid = /hybrid/i.test(loc);
+  return {
+    id: `wd-${j.bulletFields?.[1] || j.title}`,
+    title: j.title || '',
+    company: '',  // Workday CXS doesn't echo the tenant name in payload.
+    url,
+    salary: '',
+    location: loc,
+    isRemote,
+    workplaceType: isRemote ? 'Remote' : (hybrid ? 'Hybrid' : 'Onsite'),
+    relocates: /\b(visa|relocation|sponsorship)\b/i.test(j.title || ''),
+    // `postedOn` is relative prose ("Posted 3 Days Ago") that cannot be dated
+    // honestly — emit '' rather than an unparseable string (the freshness
+    // contract is YYYY-MM-DD-or-empty). The detail enrichment overwrites this
+    // with jobPostingInfo.startDate when a detail GET was already paid.
+    date: toIsoDate(j.postedOn),
+    snippet: '',
+    source: 'workday',
+  };
+}
+
+/**
+ * YYYY-MM-DD-or-'': a bare date passes through; relative prose and anything
+ * else that cannot be dated without guessing emits ''.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function toIsoDate(value) {
+  if (typeof value !== 'string') return '';
+  const s = value.trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+}

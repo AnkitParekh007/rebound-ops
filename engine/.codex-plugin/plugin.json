@@ -1,0 +1,16 @@
+{
+  "name": "rebound-ops",
+  "version": "1.38.0",
+  "description": "Open-source AI job search that runs locally in your AI coding CLI: scan job portals, evaluate listings into a structured A-H report with a 1-5 score, tailor your CV, track applications",
+  "author": {
+    "name": "Ankit Parekh",
+    "url": "https://github.com/AnkitParekh007"
+  },
+  "homepage": "https://github.com/AnkitParekh007/rebound-ops",
+  "repository": "https://github.com/AnkitParekh007/rebound-ops",
+  "license": "MIT",
+  "keywords": ["job-search", "career", "cv", "resume", "ai", "claude-code", "codex", "opencode"],
+  "skills": [
+    "./.agents/skills/rebound-ops"
+  ]
+}

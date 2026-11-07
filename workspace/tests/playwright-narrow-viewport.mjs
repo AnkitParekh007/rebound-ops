@@ -1,0 +1,408 @@
+/**
+ * Playwright acceptance — narrow-viewport layout integrity (v1.227.2).
+ *
+ * MOBILE-1: `#/config` scrolled horizontally on viewports ≤ 352 px. Every
+ * select-kind field carried an inline `min-width: 300px`; an inline style beats
+ * the stylesheet, so the control could not shrink with its container. At 320 px
+ * the select's right edge landed at 353 px and the page grew a horizontal
+ * scrollbar, pushing controls off-screen. 360 px and 375 px had just enough
+ * slack to hide it, which is why every earlier mobile pass came back clean.
+ *
+ * The existing Playwright suites drive a 1280-wide window and the mobile pass
+ * used 375 px, so nothing in CI had ever measured a viewport this narrow.
+ *
+ * 320 px is the floor worth defending: iPhone SE (1st gen), the Galaxy Fold
+ * cover screen at 280 px, and older Android devices all sit at or below the
+ * 352 px threshold. This suite sweeps the routes that carry form controls,
+ * plus the widest data table, and fails on ANY horizontal overflow.
+ *
+ * Opt-in (needs a browser binary); run via `npm run test:e2e:browser`.
+ * CI-isolated: mocks parent fixtures under a mkdtemp root.
+ */
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+function resolvePlaywright() {
+  for (const c of ['playwright',
+    resolve(process.cwd(), '..', 'node_modules', 'playwright'),
+    resolve(process.cwd(), 'node_modules', 'playwright')]) {
+    try { return require(c); } catch { /* next */ }
+  }
+  return null;
+}
+const playwright = resolvePlaywright();
+const SKIP = playwright ? false : 'Playwright not installed';
+
+// 320 px is the floor this suite defends: the classic small-phone width, and
+// the one MOBILE-1 was reported and reproduced at (scrollWidth 353 > 320).
+//
+// 280 px (the Galaxy Fold cover screen) is deliberately NOT gated yet. It still
+// overflows by ~5 px, but from an unrelated cause — long content inside the
+// config card's <details> blocks, and the 256 px sidebar against a 280 px
+// viewport — not the inline min-width this suite was written for. Fixing that
+// means reflowing content at a width no mainstream phone reports, so it is
+// tracked as a separate finding rather than folded in here. Raise this list to
+// [320, 280] once that work lands; the assertion already handles both.
+const WIDTHS = [320];
+const ROUTES = ['#/config', '#/dashboard', '#/scan', '#/tracker', '#/cv', '#/help', '#/deep'];
+
+// CAR-146 — the prod-only 9px overflow at 390px on #/deep was a saved
+// deep-research brief whose FILENAME alone was wider than a phone viewport:
+// `.saved-card` rendered the name with `white-space: nowrap` and nothing let
+// the card shrink, so the wrapping archive row could not fold it and
+// scrollWidth exceeded the viewport. The sweep above cannot catch it with
+// empty fixtures, so the harness seeds a realistically over-long brief name.
+const DEEP_NAME = 'deep-senior-backend-engineer-python-aws-kubernetes-berlin-germany-hybrid-' +
+  'verylongcompanynameholdings-international-research-brief-interview-prep-2026.md';
+const DEEP_SLUG = DEEP_NAME.replace(/\.md$/, '');
+
+let server, baseUrl, browser;
+
+before(async () => {
+  if (SKIP) return;
+  const dir = mkdtempSync(resolve(tmpdir(), 'pw-narrow-'));
+  mkdirSync(resolve(dir, 'config'), { recursive: true });
+  mkdirSync(resolve(dir, 'data'), { recursive: true });
+  mkdirSync(resolve(dir, 'modes'), { recursive: true });
+  mkdirSync(resolve(dir, 'interview-prep'), { recursive: true });
+  writeFileSync(resolve(dir, 'cv.md'), '# CV\n\nReal Person, Senior Engineer.\n');
+  writeFileSync(resolve(dir, 'config', 'profile.yml'),
+    'candidate:\n  full_name: Real Person\n  email: real@example.com\n');
+  writeFileSync(resolve(dir, 'portals.yml'), 'tracked_companies: []\n');
+  writeFileSync(resolve(dir, 'data', 'applications.md'), '');
+  writeFileSync(resolve(dir, 'data', 'pipeline.md'), '# Pipeline\n');
+  writeFileSync(resolve(dir, 'modes', 'oferta.md'), '# Oferta\n');
+  // CAR-146 seed — listed by GET /api/interview-prep (deep-*.md filter) and
+  // rendered as a .saved-card in the "Saved research" archive on #/deep.
+  writeFileSync(resolve(dir, 'interview-prep', DEEP_NAME),
+    '# Deep research\n\nSeeded fixture: a brief whose filename alone exceeds a phone viewport.\n');
+  process.env.REBOUND_OPS_ROOT = dir;
+
+  const { createApp } = await import('../server/index.mjs');
+  const app = createApp();
+  await new Promise((r) => {
+    server = app.listen(0, '127.0.0.1', () => { baseUrl = `http://127.0.0.1:${server.address().port}`; r(); });
+  });
+  browser = await playwright.chromium.launch({ headless: process.env.PWDEBUG !== '1' });
+});
+
+after(async () => {
+  if (browser) await browser.close();
+  if (server) { server.closeAllConnections?.(); await new Promise((r) => server.close(r)); }
+  delete process.env.REBOUND_OPS_ROOT;
+});
+
+test('no route scrolls horizontally at 320 px or 280 px', { skip: SKIP }, async () => {
+  for (const width of WIDTHS) {
+    const context = await browser.newContext({ viewport: { width, height: 720 } });
+    const page = await context.newPage();
+    try {
+      for (const route of ROUTES) {
+        await page.goto(baseUrl + '/' + route);
+        await page.waitForSelector('main', { timeout: 8000 });
+        await page.waitForTimeout(350); // let async field/catalogue renders settle
+        const m = await page.evaluate(() => ({
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+          // Name the widest offender so a failure points straight at it.
+          widest: (() => {
+            let worst = null;
+            for (const el of document.querySelectorAll('main *')) {
+              const r = el.getBoundingClientRect();
+              if (r.width === 0) continue;
+              if (!worst || r.right > worst.right) {
+                worst = { right: Math.round(r.right), tag: el.tagName, id: el.id || '', cls: el.className || '' };
+              }
+            }
+            return worst;
+          })(),
+        }));
+        assert.ok(
+          m.scrollWidth <= m.clientWidth,
+          `${route} at ${width}px: scrollWidth ${m.scrollWidth} > clientWidth ${m.clientWidth}` +
+          ` — widest element right edge ${m.widest?.right}px (${m.widest?.tag}#${m.widest?.id}.${m.widest?.cls})`,
+        );
+      }
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+/**
+ * CAR-146 — a saved deep-research brief with an over-long filename must not
+ * push #/deep past the viewport.
+ *
+ * Both remote-QA runs 40191080691 (v1.258.0) and 40200723185 (v1.259.0) caught
+ * a 9px horizontal overflow on prod #/deep at 390px, en locale — the only
+ * finding across 39 routes. It was invisible locally because the trigger was
+ * prod DATA: `.saved-card` (app.css) rendered the archive entry's filename
+ * with `white-space: nowrap` and no shrink allowance, so the flex-wrap row
+ * could not fold the card and the page grew a horizontal scrollbar.
+ *
+ * The sweep test above now also walks #/deep at 320px against the seeded
+ * fixture; this test pins the exact regression at BOTH phone widths. The
+ * card is measured directly (right edge ≤ viewport) so an overflow:hidden
+ * ancestor cannot mask the document-level check, and the relative date is
+ * asserted to stay on one line (title owns the shrink). Guards against
+ * passing vacuously by asserting the seeded card rendered by data-slug.
+ */
+test('CAR-146: a long saved-research title cannot push #/deep past the viewport',
+  { skip: SKIP }, async () => {
+    for (const width of [320, 390]) {
+      const context = await browser.newContext({ viewport: { width, height: 720 } });
+      const page = await context.newPage();
+      try {
+        await page.goto(baseUrl + '/#/deep');
+        // The seeded card must actually be on the page — otherwise the
+        // overflow assertions below would pass vacuously on an empty archive.
+        // deep.js renders `data-slug` as `f.name.replace(/\.md$/, '')`; the
+        // test mirrors that derivation, then verifies against what actually
+        // rendered and names every rendered slug on a mismatch (opus r2).
+        await page.waitForSelector('.saved-card', { timeout: 8000 });
+        const slugs = await page.$$eval('.saved-card', (els) => els.map((e) => e.dataset.slug));
+        assert.ok(slugs.includes(DEEP_SLUG),
+          `rendered saved cards ${JSON.stringify(slugs)} do not include the seeded slug ` +
+          `"${DEEP_SLUG}" — deep.js emits data-slug as the file name minus its .md suffix`);
+        // Deterministic settle: webfonts can reflow after the render (opus r2
+        // — replaces a fixed 150 ms sleep).
+        await page.evaluate(() => document.fonts.ready);
+        const m = await page.evaluate((slug) => {
+          const card = document.querySelector(`.saved-card[data-slug="${slug}"]`);
+          const date = document.querySelector('.saved-card__date');
+          const dateCS = date && getComputedStyle(date);
+          return {
+            scrollWidth: document.documentElement.scrollWidth,
+            clientWidth: document.documentElement.clientWidth,
+            // Finding r2-3: a document-level check alone can pass while an
+            // overflow:hidden ancestor quietly clips the card — measure the
+            // card's own box too.
+            cardRight: card ? Math.round(card.getBoundingClientRect().right) : null,
+            cardFound: !!card,
+            dateNowrap: dateCS ? dateCS.whiteSpace === 'nowrap' : null,
+            // A squeezed flex item paints text wider than its shrunk box.
+            dateSqueezed: date ? date.scrollWidth > Math.ceil(date.clientWidth) : null,
+            dateLines: date
+              ? date.getBoundingClientRect().height / parseFloat(getComputedStyle(date).lineHeight || '16')
+              : null,
+          };
+        }, DEEP_SLUG);
+        assert.ok(m.cardFound, 'the seeded saved-research card must be present by data-slug');
+        assert.ok(m.dateNowrap, 'the relative date must own white-space: nowrap');
+        assert.equal(m.dateSqueezed, false,
+          `the relative date is squeezed (${m.dateLines?.toFixed(2)} line(s)) — the title must absorb the shrink`);
+        assert.ok(m.dateLines <= 1.5,
+          `the relative date wrapped to ${m.dateLines?.toFixed(2)} lines — it must stay on one line`);
+        assert.ok(m.scrollWidth <= m.clientWidth,
+          `#/deep at ${width}px: scrollWidth ${m.scrollWidth} > clientWidth ${m.clientWidth}` +
+          ' — a long saved-research filename pushed the page wide');
+        // The card itself must fit the viewport, not just the document
+        // scroll area (an overflow:hidden ancestor can mask the document check).
+        assert.ok(m.cardRight <= m.clientWidth,
+          `#/deep at ${width}px: the saved card's right edge is ${m.cardRight}px > ` +
+          `${m.clientWidth}px viewport — an ancestor clip or a layout hole is hiding the overflow`);
+      } finally {
+        await context.close();
+      }
+    }
+  });
+
+test('#/config select controls shrink with the viewport (MOBILE-1)', { skip: SKIP }, async () => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 720 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(baseUrl + '/#/config');
+    await page.waitForSelector('select.select', { timeout: 8000 });
+    await page.waitForTimeout(350);
+    const bad = await page.evaluate(() => {
+      const out = [];
+      for (const el of document.querySelectorAll('select.select')) {
+        const r = el.getBoundingClientRect();
+        // A control must never extend past the viewport. An inline min-width
+        // that cannot shrink is exactly what MOBILE-1 was.
+        if (r.right > window.innerWidth) {
+          out.push({ id: el.id, right: Math.round(r.right), minWidth: el.style.minWidth });
+        }
+      }
+      return out;
+    });
+    assert.deepEqual(bad, [], `selects overflow the 320px viewport: ${JSON.stringify(bad)}`);
+  } finally {
+    await context.close();
+  }
+});
+
+/**
+ * BUG-TB-SPIN (v1.231.3) — clicking a top-bar action must not break the row.
+ *
+ * v1.231.2 made those actions icon-only on mobile by splitting each button into
+ * `.btn-ico` + `.btn-label` spans and hiding the label under `max-width:900px`.
+ * `UI.withSpinner` then did its busy cue via `button.textContent`, which
+ * replaces every child with ONE text node — so the first Doctor tap destroyed
+ * both spans for good. The mobile rules had nothing left to match, the label
+ * came back as bare text, and the 36 px square grew into a wide pill that
+ * pushed the row out of the top bar. Reported from a phone the day v1.231.2
+ * shipped, with a screenshot of "🩺Doctor" spilling over the theme toggle.
+ *
+ * The click here reaches `/api/run/doctor` against a fixture root with no
+ * parent checkout, so the request fails — which is the point: `withSpinner`'s
+ * `finally` restore path runs on both outcomes, so the assertion is
+ * deterministic without depending on a real doctor run.
+ */
+test('BUG-TB-SPIN: the top bar survives a Doctor click at 320 px', { skip: SKIP }, async () => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 720 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(baseUrl + '/#/dashboard');
+    await page.waitForSelector('#btn-doctor', { timeout: 8000 });
+
+    const before = await page.evaluate(() => {
+      const b = document.getElementById('btn-doctor');
+      return { w: Math.round(b.getBoundingClientRect().width), spans: b.querySelectorAll('span').length };
+    });
+
+    // v1.231.4 — measure the button WHILE the work is in flight, and hold it
+    // there deliberately rather than racing a real request. v1.231.3 restored
+    // the spans afterwards but still wrote '⏳ ' + label into the button for the
+    // duration of the run, so the square was a wide pill for as long as
+    // doctor.mjs took. An end-state-only assertion passed that, and so would a
+    // sample that the request happened to outrun.
+    const busy = await page.evaluate(async () => {
+      const b = document.getElementById('btn-doctor');
+      let release;
+      const held = window.UI.withSpinner(b, () => new Promise((r) => { release = r; }));
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const seen = {
+        w: Math.round(b.getBoundingClientRect().width),
+        ico: !!b.querySelector('.btn-ico'),
+        label: !!b.querySelector('.btn-label'),
+        busyAttr: b.getAttribute('aria-busy'),
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      };
+      release();
+      await held;
+      return seen;
+    });
+    assert.equal(busy.busyAttr, 'true', 'the probe must have caught the button mid-flight');
+    assert.equal(busy.w, before.w,
+      `in flight the button widened from ${before.w}px to ${busy.w}px — the busy cue rewrote its content`);
+    assert.ok(busy.ico && busy.label, 'in flight the icon and label spans must still exist');
+    assert.ok(busy.scrollWidth <= busy.clientWidth,
+      `the page overflowed while the request was in flight: ${busy.scrollWidth} > ${busy.clientWidth}`);
+
+    await page.click('#btn-doctor');
+    // Let the request settle and withSpinner's finally block run.
+    await page.waitForFunction(() => !document.getElementById('btn-doctor')?.hasAttribute('aria-busy'),
+      null, { timeout: 15000 });
+    await page.waitForTimeout(150);
+
+    const after = await page.evaluate(() => {
+      const b = document.getElementById('btn-doctor');
+      const label = b.querySelector('.btn-label');
+      return {
+        ico: !!b.querySelector('.btn-ico'),
+        label: !!label,
+        labelHidden: label ? getComputedStyle(label).display === 'none' : null,
+        w: Math.round(b.getBoundingClientRect().width),
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+        // Every action must still sit on one row with the bell.
+        rows: new Set([...document.querySelectorAll('.topbar-actions .btn')]
+          .map((el) => Math.round(el.getBoundingClientRect().top))).size,
+      };
+    });
+
+    assert.ok(after.ico, 'after the click .btn-ico is gone — withSpinner flattened the button to a text node');
+    assert.ok(after.label, 'after the click .btn-label is gone — the label can no longer be hidden by CSS');
+    assert.equal(after.labelHidden, true, 'the label must stay hidden at 320 px');
+    assert.equal(after.w, before.w,
+      `the button widened from ${before.w}px to ${after.w}px — the icon-only square became a labelled pill`);
+    assert.equal(after.rows, 1, 'the top-bar actions must stay on a single row');
+    assert.ok(after.scrollWidth <= after.clientWidth,
+      `the page overflowed after the click: scrollWidth ${after.scrollWidth} > clientWidth ${after.clientWidth}`);
+  } finally {
+    await context.close();
+  }
+});
+
+/**
+ * FIND-3 (v1.231.3) — the top bar must not just fit, it must stay usable.
+ *
+ * v1.231.2's own gate measured document width, button geometry, label
+ * visibility and row count. Every one of those passed while the search field
+ * measured **8 px** at 320 px — one character of a 21-character placeholder.
+ * Making the actions icon-only left the searchbar as the only flexible item,
+ * free to absorb the whole deficit, and "no horizontal overflow" is perfectly
+ * happy with a field squeezed to nothing.
+ *
+ * So this asserts a floor on the field's USABLE width, which is the assertion
+ * the previous gate was missing. Below 420 px the field is expected to be
+ * collapsed behind the magnifier — there is genuinely no room for it beside a
+ * 40 px menu button and 162 px of actions — and the check is then that tapping
+ * the magnifier gives it real width.
+ */
+const SEARCH_FLOOR = 100;
+
+test('FIND-3: the search field keeps a usable width, or collapses to a working magnifier',
+  { skip: SKIP }, async () => {
+    for (const width of [320, 360, 390, 430, 560]) {
+      const context = await browser.newContext({ viewport: { width, height: 720 } });
+      const page = await context.newPage();
+      try {
+        await page.goto(baseUrl + '/#/dashboard');
+        // `attached`, not the default `visible`: below 420px the field is
+        // deliberately hidden behind the magnifier, so waiting for it to be
+        // visible would time out on exactly the case under test.
+        await page.waitForSelector('#global-search', { state: 'attached', timeout: 8000 });
+        await page.waitForSelector('header.topbar', { timeout: 8000 });
+
+        const shown = await page.evaluate(() => {
+          const input = document.getElementById('global-search');
+          const toggle = document.getElementById('search-toggle');
+          return {
+            inputW: Math.round(input.getBoundingClientRect().width),
+            inputVisible: getComputedStyle(input).display !== 'none'
+              && input.getBoundingClientRect().width > 0,
+            toggleVisible: !!toggle && getComputedStyle(toggle).display !== 'none',
+          };
+        });
+
+        if (shown.inputVisible) {
+          assert.ok(shown.inputW >= SEARCH_FLOOR,
+            `at ${width}px the search field is ${shown.inputW}px — below the ${SEARCH_FLOOR}px floor,` +
+            ' and no magnifier is offered instead');
+        } else {
+          assert.ok(shown.toggleVisible,
+            `at ${width}px the search field is hidden and there is no magnifier to bring it back`);
+          await page.click('#search-toggle');
+          await page.waitForTimeout(100);
+          const opened = await page.evaluate(() => {
+            const input = document.getElementById('global-search');
+            const toggle = document.getElementById('search-toggle');
+            return {
+              w: Math.round(input.getBoundingClientRect().width),
+              focused: document.activeElement === input,
+              expanded: toggle.getAttribute('aria-expanded'),
+              scrollWidth: document.documentElement.scrollWidth,
+              clientWidth: document.documentElement.clientWidth,
+            };
+          });
+          assert.ok(opened.w >= SEARCH_FLOOR,
+            `at ${width}px the expanded search field is only ${opened.w}px`);
+          assert.equal(opened.focused, true, 'opening the search must focus the field');
+          assert.equal(opened.expanded, 'true', 'the disclosure must report aria-expanded=true');
+          assert.ok(opened.scrollWidth <= opened.clientWidth,
+            `expanding the search overflowed the page at ${width}px:` +
+            ` ${opened.scrollWidth} > ${opened.clientWidth}`);
+        }
+      } finally {
+        await context.close();
+      }
+    }
+  });

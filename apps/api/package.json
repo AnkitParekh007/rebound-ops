@@ -1,0 +1,21 @@
+{
+  "name": "@reboundops/api",
+  "version": "0.2.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node ../../dist/api/server.js",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.8",
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@reboundops/contracts": "0.2.0",
+    "fastify": "^5.12.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
+  }
+}
