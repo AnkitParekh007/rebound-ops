@@ -1,33 +1,58 @@
 1
-00:00:00,000 --> 00:00:06,000
+00:00:00,000 --> 00:00:04,000
+Recently laid off?
+Your experience still matters.
+
+2
+00:00:04,000 --> 00:00:08,000
+Looking for a career switch or pivot?
+Explore a next step on your terms.
+
+3
+00:00:08,000 --> 00:00:11,000
 Your experience. Your next chapter.
 A local-first career toolkit for developers.
 
-2
-00:00:06,000 --> 00:00:12,000
+4
+00:00:11,000 --> 00:00:16,000
 Start with what you can show.
 Review your experience. Keep the evidence in view.
 
-3
-00:00:12,000 --> 00:00:18,000
+5
+00:00:16,000 --> 00:00:21,000
 Explore what comes next.
 Compare possibilities. Keep the choice yours.
 
-4
-00:00:18,000 --> 00:00:24,000
+6
+00:00:21,000 --> 00:00:26,000
 Make your next step manageable.
 A focused plan within the time you have.
 
-5
-00:00:24,000 --> 00:00:30,000
-Turn direction into action.
-Review opportunities. Keep your search organized.
+7
+00:00:26,000 --> 00:00:34,000
+Your search, connected.
+Review your next step and active applications.
 
-6
-00:00:30,000 --> 00:00:35,000
+8
+00:00:34,000 --> 00:00:43,000
+Find roles. Narrow the list.
+Filter by role, then return to the full list.
+
+9
+00:00:43,000 --> 00:00:50,600
+Keep every application in view.
+Search applications and switch to Kanban.
+
+10
+00:00:50,600 --> 00:00:56,000
+Draft a next-step note.
+Recorded interactions with fictional demo data.
+
+11
+00:00:56,000 --> 00:01:00,000
 Run locally. AI optional. Build with us.
 
-7
-00:00:35,000 --> 00:00:42,000
+12
+00:01:00,000 --> 00:01:07,000
 ReboundOps. Build your next chapter.
 Explore the project at rebound-ops.org.
