@@ -51,6 +51,10 @@
   --cv3-neutral: #857C77;
   --cv3-neutral-soft: #F2F1F0;
   --cv3-neutral-ink: #57504B;
+  /* info callouts: neutral surface + logo-orange edge (was blue, hue 245) */
+  --cv3-info: #E8541F;
+  --cv3-info-soft: #F5F4F3;
+  --cv3-info-ink: #57504B;
   --cv3-shadow-1: 0 1px 0 rgba(28, 20, 18, .04), 0 1px 2px rgba(28, 20, 18, .06);
   --cv3-shadow-2: 0 1px 0 rgba(28, 20, 18, .04), 0 12px 24px rgba(28, 20, 18, .08);
   /* legacy app.css neutrals (most components still read these) */
@@ -103,6 +107,9 @@
   --cv3-neutral: #A8A09B;
   --cv3-neutral-soft: #262222;
   --cv3-neutral-ink: #CEC6C1;
+  --cv3-info: #F26A2E;
+  --cv3-info-soft: #242020;
+  --cv3-info-ink: #CEC6C1;
   --cv3-shadow-1: 0 0 0 1px rgba(244, 240, 237, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
   --cv3-shadow-2: 0 0 0 1px rgba(244, 240, 237, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
   --hof: #F4F0ED;
@@ -149,6 +156,9 @@
     --cv3-neutral: #A8A09B;
     --cv3-neutral-soft: #262222;
     --cv3-neutral-ink: #CEC6C1;
+    --cv3-info: #F26A2E;
+    --cv3-info-soft: #242020;
+    --cv3-info-ink: #CEC6C1;
     --cv3-shadow-1: 0 0 0 1px rgba(244, 240, 237, .04), 0 12px 32px -8px rgba(0, 0, 0, .6);
     --cv3-shadow-2: 0 0 0 1px rgba(244, 240, 237, .06), 0 12px 32px -8px rgba(0, 0, 0, .6);
     --hof: #F4F0ED;
@@ -261,3 +271,7 @@
 .rb-pill { font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 99px; background: var(--rb-soft); border: 1px solid var(--rb-border); }
 @media (max-width: 860px) { .rb-routes { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .rb-fields { grid-template-columns: 1fr; } .rb-strip a { margin-inline-start: 0; } }
+
+/* Map attribution link: the map library hard-codes blue (#0078A8) and loads after
+   this sheet, so match with higher specificity instead of relying on order. */
+html .leaflet-container .leaflet-control-attribution a { color: var(--cv3-accent); }
