@@ -4,7 +4,7 @@
 
 A local-first toolkit for experienced software professionals navigating a layoff, a career change or their next job search. Review what your experience supports, choose a direction to explore, and manage the practical work of finding and applying for roles.
 
-[Website](https://rebound-ops.org) · [Product screenshots](https://rebound-ops.org/screenshots/) · [Setup help](https://rebound-ops.org/help/) · [CI](https://github.com/AnkitParekh007/rebound-ops/actions/workflows/ci.yml) · [Roadmap](docs/roadmap.md)
+[Website](https://rebound-ops.org) · [Product screenshots](https://rebound-ops.org/screenshots/) · [Documentation](https://rebound-ops.org/docs/) · [Setup help](https://rebound-ops.org/help/) · [CI](https://github.com/AnkitParekh007/rebound-ops/actions/workflows/ci.yml) · [Roadmap](docs/roadmap.md)
 
 ## What you can do
 

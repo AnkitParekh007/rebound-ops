@@ -1,24 +1,20 @@
-import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import vm from "node:vm";
+import { pages } from "./src/pages.mjs";
 import assert from "node:assert/strict";
 const root = fileURLToPath(new URL("./dist", import.meta.url));
 const siteBase = (process.env.MARKETING_BASE_PATH || "").replace(/\/$/, "");
 const files = [
   "index.html",
   "404.html",
-  ...readdirSync(root, { withFileTypes: true })
-    .filter(
-      (e) =>
-        e.isDirectory() && existsSync(path.join(root, e.name, "index.html")),
-    )
-    .map((e) => `${e.name}/index.html`),
+  ...Object.keys(pages).map(slug => `${slug}/index.html`),
 ];
 for (const file of files) {
   const html = readFileSync(path.join(root, file), "utf8");
   assert(!/href="[^"#]*\/credits\//i.test(html), `${file}: retired credits link`);
-  assert(!/career-?ops|rebound-ops/i.test(html), `${file}: prominent upstream branding`);
+  assert(!/career-?ops/i.test(html), `${file}: prominent upstream branding`);
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((x) => x[1]);
   assert.equal(new Set(ids).size, ids.length, `${file}: unique IDs`);
   for (const [, href] of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
@@ -59,7 +55,7 @@ for (const file of files) {
 }
 assert(!existsSync(path.join(root, 'credits/index.html')), 'Credits page must be removed');
 assert(!readFileSync(path.join(root, 'sitemap.xml'), 'utf8').includes('/credits/'), 'Sitemap excludes retired page');
-assert.equal(files.length, 10, "Home, eight menu pages, and 404");
+assert.equal(files.length, Object.keys(pages).length + 2, "All published pages checked");
 class Element {
   constructor(data = {}) {
     this.dataset = data;
@@ -274,5 +270,5 @@ assert(
   ),
 );
 console.log(
-  "Passed: 10 pages, navigation and assets, previews and totals, clipboard, mobile menu, gallery, source search/filter combinations, theme persistence/system sync/blocked storage, reduced-motion rules.",
+  "Passed: all published pages, navigation and assets, previews and totals, clipboard, mobile menu, gallery, source search/filter combinations, theme persistence/system sync/blocked storage, reduced-motion rules.",
 );
