@@ -1,7 +1,5 @@
 # ReboundOps engine
 
-> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
-
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
 ## Hvad rebound-ops gør for dig
@@ -453,8 +451,6 @@ Go-dashboardets TUI, Node.js-scripts og AI-agenttilstande respekterer alle autom
 ## FAQ
 
 **Hvad er rebound-ops?**
-ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
-
 **Kan det tilpassede CV finde på ting?**
 Det må det ikke, og prompterne siger det: omformuler, opdigt aldrig. `generate-pdf` blokerer et CV med tal eller fakta, der ikke står i dine kilder, medmindre du angiver `--skip-fact-check`. `pdf`-tilstanden kører også `cv-title-check.mjs`, som sammenligner hver jobtitel i det tilpassede CV med den titel, cv.md giver samme job (matchet på virksomhed og datoer), og spørger dig, om en afvigende titel skal beholdes eller rettes tilbage. Den advarer i stedet for at blokere, fordi en omformuleret titel nogle gange er dit valg. Intet bedømmer omformuleringer endnu: [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (troskabskontrol, der blokerer ved afvigelse) følger det. Indtil da: læs hvert CV, før du sender det. [Den juridiske ansvarsfraskrivelse](LEGAL_DISCLAIMER.md) siger det samme med flere ord.
 
@@ -474,8 +470,7 @@ rebound-ops kører på Windows. Platformspecifik opsætning og de kendte faldgru
 Nej. rebound-ops er et filter, ikke en spray-and-pray-autosøger. AI'en vurderer, rangerer og skriver udkast; du gennemgår og beslutter. Den skriver udkast og udfylder felterne; den indsender aldrig. Du trykker på Send. Det human-in-the-loop-design er hele pointen.
 
 **Er rebound-ops gratis og open source?**
-The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
-
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md).
 ## Juridisk ansvarsfraskrivelse
 
 **rebound-ops er et lokalt open source-værktøj, IKKE en hostet tjeneste.** Ved at bruge denne software anerkender du:

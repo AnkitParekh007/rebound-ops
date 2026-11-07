@@ -52,7 +52,7 @@ assert(
   !/Read it, sign it|sign it if you want|The ReboundOps Manifesto/.test(read('engine/update-system.mjs')),
   'Updater must not solicit signatures for a rebranded manifesto'
 );
-assert(!existsSync(path.join(root, 'workspace/site')), 'The retired upstream landing site must not become the active marketing source again');
+assert(!existsSync(path.join(root, 'workspace/site')), 'The retired Astro landing site must not become the active marketing source again');
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const packed = JSON.parse(execFileSync(

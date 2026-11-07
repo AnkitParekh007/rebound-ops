@@ -1,7 +1,5 @@
 # ReboundOps engine
 
-> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
-
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
 ## rebound-ops senin için ne yapar
@@ -453,8 +451,6 @@ Go dashboard TUI, Node.js betikleri ve yapay zekâ ajan modlarının tümü bu �
 ## SSS
 
 **rebound-ops nedir?**
-ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
-
 **Uyarlanmış CV bir şeyler uydurabilir mi?**
 Uydurmamalı, prompt'lar da böyle diyor: yeniden ifade et, asla uydurma. `--skip-fact-check` vermediğin sürece `generate-pdf`, kaynaklarında bulunmayan sayı veya bilgi içeren bir CV'yi engeller. `pdf` modu ayrıca `cv-title-check.mjs`'i çalıştırır: uyarlanmış CV'deki her iş unvanını, cv.md'nin aynı iş için verdiği unvanla (şirket ve tarihlere göre eşleştirerek) karşılaştırır ve farklı olan her unvanı korumak mı yoksa geri almak mı istediğini sana sorar. Bir unvanı farklı ifade etmek bazen senin kararın olduğu için yalnızca uyarır, engellemez. İfade değişikliklerini henüz hiçbir şey değerlendirmiyor: bunu [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (uyuşmazlıkta engelleyen sadakat denetimi) takip ediyor. O zamana kadar, göndermeden önce her CV'yi oku. [Yasal uyarı](LEGAL_DISCLAIMER.md) aynı şeyi daha uzun söylüyor.
 
@@ -474,8 +470,7 @@ rebound-ops Windows'ta çalışır. Platforma özel kurulum ve bilinen pürüzle
 Hayır. rebound-ops bir filtredir, rastgele başvuru yağdıran bir otomatik başvurucu değil. Yapay zekâ değerlendirir, sıralar ve taslak yazar; sen gözden geçirir ve karar verirsin. Taslakları hazırlar ve alanları doldurur; asla göndermez. Gönder'e sen basarsın. Bu insan-döngüde tasarımı meselenin özüdür.
 
 **rebound-ops ücretsiz ve açık kaynak mı?**
-The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
-
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md).
 ## Sorumluluk Reddi
 
 **rebound-ops yerel, açık kaynaklı bir araçtır, barındırılan bir hizmet DEĞİLDİR.** Bu yazılımı kullanarak şunları kabul edersin:

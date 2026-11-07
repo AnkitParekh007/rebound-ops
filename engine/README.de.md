@@ -1,7 +1,5 @@
 # ReboundOps engine
 
-> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
-
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
 ## Was rebound-ops für dich tut
@@ -453,8 +451,6 @@ Das Go-Dashboard-TUI, die Node.js-Skripte und die KI-Agentenmodi respektieren di
 ## FAQ
 
 **Was ist rebound-ops?**
-ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
-
 **Kann der zugeschnittene Lebenslauf etwas erfinden?**
 Er darf es nicht, und die Prompts sagen das: umformulieren, nie erfinden. `generate-pdf` blockiert einen Lebenslauf, dessen Zahlen oder Fakten in deinen Quellen fehlen, außer du übergibst `--skip-fact-check`. Der `pdf`-Modus führt zusätzlich `cv-title-check.mjs` aus: Es vergleicht jeden Jobtitel im angepassten Lebenslauf mit dem Titel, den cv.md für dieselbe Stelle nennt (zugeordnet über Firma und Zeitraum), und fragt bei jeder Abweichung, ob du sie behalten oder zurücksetzen willst. Es warnt nur und blockiert nicht, weil ein umformulierter Titel manchmal deine Entscheidung ist. Umformulierungen beurteilt noch nichts: [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (Treueprüfung, die bei Verstoß blockiert) verfolgt das. Bis dahin: Lies jeden Lebenslauf, bevor du ihn abschickst. Der [Haftungsausschluss](LEGAL_DISCLAIMER.md) sagt dasselbe mit mehr Worten.
 
@@ -474,8 +470,7 @@ rebound-ops läuft unter Windows. Die plattformspezifische Einrichtung und die b
 Nein. rebound-ops ist ein Filter, kein Spray-and-Pray-Auto-Bewerber. Die KI bewertet, sortiert und entwirft; du prüfst und entscheidest. rebound-ops entwirft und füllt aus, reicht aber nie etwas ein. Du klickst auf Absenden. Genau dieses Human-in-the-Loop-Design ist der Kern der Sache.
 
 **Ist rebound-ops kostenlos und Open Source?**
-The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
-
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md).
 ## Haftungsausschluss
 
 **rebound-ops ist ein lokales Open-Source-Tool, KEIN gehosteter Service.** Mit der Nutzung dieser Software erkennst du an:

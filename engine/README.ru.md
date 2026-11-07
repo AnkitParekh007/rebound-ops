@@ -1,7 +1,5 @@
 # ReboundOps engine
 
-> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
-
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
 ## Что rebound-ops делает для вас
@@ -477,8 +475,6 @@ rebound-ops/
 ## FAQ
 
 **Что такое rebound-ops?**
-ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
-
 **Может ли адаптированное резюме что-то выдумать?**
 Не должно, и промпты это говорят: переформулировать, никогда не выдумывать. `generate-pdf` блокирует резюме, в котором есть цифры или факты, отсутствующие в ваших источниках, если только вы не передадите `--skip-fact-check`. Режим `pdf` также запускает `cv-title-check.mjs`: он сравнивает каждое название должности в адаптированном резюме с названием, которое cv.md даёт той же работе (сопоставление по компании и датам), и спрашивает, оставить или вернуть каждое отличающееся. Он только предупреждает, а не блокирует, потому что переформулировать название должности иногда ваше решение. Переформулировки пока ничто не оценивает: это отслеживает [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (проверка достоверности, блокирующая при несовпадении). До тех пор читайте каждое резюме перед отправкой. [Юридическая оговорка](LEGAL_DISCLAIMER.md) говорит то же самое длиннее.
 
@@ -498,8 +494,7 @@ rebound-ops работает на Windows. Специфичная для пла�
 Нет. rebound-ops является фильтром, а не инструментом массовой автоматической рассылки. ИИ оценивает, ранжирует и готовит черновики; вы просматриваете и решаете. Он готовит черновики и заполняет поля; он никогда не отправляет. Вы нажимаете «Отправить». Именно в этом дизайне с человеком в контуре вся суть.
 
 **Бесплатен ли rebound-ops и открыт ли его код?**
-The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
-
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md).
 ## Дисклеймер
 
 **rebound-ops является локальным open-source инструментом, а НЕ хостинг-сервисом.** Используя это ПО, вы подтверждаете:

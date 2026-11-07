@@ -11,6 +11,6 @@ line and stay.
 | # | Title | Status |
 |---|---|---|
 | [0001](0001-keep-both-telegram-sources.md) | Keep both `telegram` and `telegram-channel` | Accepted |
-| [0002](0002-defend-fork-divergences.md) | Defend fork divergences on every upstream merge | Accepted |
+| [0002](0002-defend-fork-divergences.md) | Fork-merge workflow | Superseded (ReboundOps monorepo) |
 | [0003](0003-mirror-vs-relay.md) | Mirror or relay: how a parent change reaches web-ui | Accepted |
 | [0004](0004-liveness-hard-vs-soft-tiers.md) | Liveness: hard vs soft expiry tiers | Accepted |

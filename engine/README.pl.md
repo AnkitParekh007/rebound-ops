@@ -1,7 +1,5 @@
 # ReboundOps engine
 
-> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
-
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
 ## Co rebound-ops robi dla ciebie
@@ -478,8 +476,6 @@ Dashboard TUI w Go, skrypty Node.js i tryby agenta AI automatycznie respektują 
 ## FAQ
 
 **Czym jest rebound-ops?**
-ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
-
 **Czy dopasowane CV może coś zmyślić?**
 Nie wolno mu, i prompty to mówią: przeredagować, nigdy nie zmyślać. `generate-pdf` blokuje CV z liczbami lub faktami, których nie ma w twoich źródłach, chyba że przekażesz `--skip-fact-check`. Tryb `pdf` uruchamia też `cv-title-check.mjs`, który porównuje każdą nazwę stanowiska w dopasowanym CV z nazwą, jaką cv.md podaje dla tej samej pracy (dopasowanie po firmie i datach), i pyta, czy zachować, czy cofnąć każdą, która się różni. Tylko ostrzega, nie blokuje, bo przeredagowanie nazwy stanowiska bywa twoją decyzją. Nic jeszcze nie ocenia przeformułowań: śledzi to [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (kontrola wierności blokująca przy niezgodności). Do tego czasu czytaj każde CV przed wysłaniem. [Zastrzeżenie prawne](LEGAL_DISCLAIMER.md) mówi to samo dłużej.
 
@@ -499,8 +495,7 @@ rebound-ops działa na Windows. Konfiguracja specyficzna dla platformy i znane p
 Nie. rebound-ops to filtr, a nie narzędzie do masowego automatycznego aplikowania. AI ocenia, szereguje i pisze szkice; ty sprawdzasz i decydujesz. Pisze szkice i wypełnia pola; nigdy nie składa aplikacji. Ty klikasz Wyślij. Właśnie o to chodzi w projekcie z człowiekiem w pętli.
 
 **Czy rebound-ops jest darmowy i open source?**
-The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
-
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md).
 ## Zastrzeżenie prawne
 
 **rebound-ops to lokalne narzędzie open source, NIE usługa hostowana.** Używając tego oprogramowania, przyjmujesz do wiadomości, że:

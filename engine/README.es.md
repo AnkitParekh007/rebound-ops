@@ -1,7 +1,5 @@
 # ReboundOps engine
 
-> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
-
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
 ## Qué hace rebound-ops por ti
@@ -396,8 +394,6 @@ El dashboard TUI en Go, los scripts de Node.js y los modos del agente de IA resp
 ## Preguntas frecuentes (FAQ)
 
 **¿Qué es rebound-ops?**
-ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
-
 **¿Puede el CV personalizado inventarse cosas?**
 No debe, y los prompts lo dicen: reformular, nunca inventar. `generate-pdf` bloquea un CV con cifras o datos que no estén en tus fuentes, salvo que pases `--skip-fact-check`. El modo `pdf` también ejecuta `cv-title-check.mjs`, que compara cada cargo del CV adaptado con el que cv.md da al mismo puesto (emparejado por empresa y fechas) y te pregunta si quieres mantener o revertir cualquiera que difiera. Solo avisa, no bloquea, porque reformular un cargo a veces es decisión tuya. Nada juzga todavía los cambios de redacción: de eso se ocupa [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (control de fidelidad que bloquea si falla). Hasta entonces, lee cada CV antes de enviarlo. El [aviso legal](LEGAL_DISCLAIMER.md) dice lo mismo con más palabras.
 
@@ -417,8 +413,7 @@ rebound-ops funciona en Windows. La configuración específica de la plataforma 
 No. rebound-ops es un filtro, no un aplicador masivo a ciegas. La IA evalúa, puntúa y redacta; tú revisas y decides. Redacta y rellena; nunca envía. Tú pulsas Enviar. Ese diseño con una persona al mando es justo el sentido de todo.
 
 **¿rebound-ops es gratis y open source?**
-The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
-
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md).
 ## Aviso legal
 
 **rebound-ops es una herramienta local y open source, NO un servicio alojado.** Al usar este software, aceptas que:

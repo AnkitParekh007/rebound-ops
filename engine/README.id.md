@@ -1,7 +1,5 @@
 # ReboundOps engine
 
-> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
-
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
 ## Apa yang dilakukan rebound-ops untuk Anda
@@ -401,8 +399,6 @@ Dashboard TUI Go, skrip Node.js, dan semua mode agen AI secara otomatis mematuhi
 ## FAQ
 
 **Apa itu rebound-ops?**
-ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
-
 **Apakah CV yang disesuaikan bisa mengarang hal yang tidak nyata?**
 Tidak boleh, dan *prompt*-nya secara tegas menginstruksikan demikian: susun ulang kalimatnya, jangan pernah mengarang bebas. Skrip `generate-pdf` akan memblokir pembuatan CV jika ada angka atau fakta yang tidak ditemukan di dalam sumber data Anda, kecuali jika Anda menyertakan *flag* `--skip-fact-check`. Mode `pdf` juga menjalankan `cv-title-check.mjs`, yang membandingkan setiap nama jabatan di CV yang disesuaikan dengan nama jabatan yang tertulis di cv.md untuk pekerjaan yang sama (dicocokkan berdasarkan perusahaan dan tanggal), lalu menanyakan apakah Anda ingin mempertahankan atau mengembalikan setiap nama jabatan yang berbeda. Pemeriksaan ini hanya memberi peringatan, tidak memblokir, karena membingkai ulang nama jabatan terkadang memang keputusan Anda. Belum ada yang menilai perubahan gaya bahasa: *issue* [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (pemeriksaan keakuratan berbasis *fail-closed*) melacak hal tersebut. Sampai saat itu, pastikan Anda selalu membaca setiap CV sebelum mengirimkannya. [Penafian Hukum (Legal Disclaimer)](LEGAL_DISCLAIMER.md) menjelaskan hal yang sama secara lebih rinci.
 
@@ -422,8 +418,7 @@ rebound-ops dapat berjalan dengan baik di Windows. Panduan penyiapan khusus Wind
 Tidak. rebound-ops adalah penyaring (*filter*), bukan alat pelamar massal membabi buta (*spray-and-pray auto-applier*). AI bertugas mengevaluasi, mengurutkan prioritas, dan membuat draf; Anda yang meninjau dan memutuskan. Alat ini menyiapkan draf dan membantu mengisi kolom formulir, tetapi tidak pernah menekan kirim. Anda yang menekan tombol Submit. Konsep *human-in-the-loop* inilah inti utamanya.
 
 **Apakah rebound-ops gratis dan open source?**
-The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
-
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md).
 ## Penafian (Disclaimer)
 
 **rebound-ops adalah alat *open-source* lokal, BUKAN layanan terkelola (*hosted service*).** Dengan menggunakan perangkat lunak ini, Anda memahami dan menyetujui bahwa:

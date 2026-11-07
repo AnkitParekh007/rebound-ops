@@ -83,8 +83,7 @@ before use (the demo journey does not need them).
    pre-fills from the live session. `localStorage` holds two non-personal flags
    (`reboundops:visited`, `reboundops:prefers-tools`). An automated browser test
    checks storage during drafting and after the plan is created.
-   (Before this change the full intake draft was stored — see
-   [docs/ux-originality-audit.md](../../docs/ux-originality-audit.md).)
+   (Earlier builds stored the full intake draft in sessionStorage; that is no longer the case.)
 4. The opportunities handoff passes only the visible search text, in the URL
    fragment (`#/scan?q=…`), which never leaves the browser. The scan view applies
    it as a filter to postings it already has; no job board is contacted until
@@ -170,10 +169,10 @@ states; journey design system in light/dark; automated API + browser tests.
 **Linked only:** the job-search views receive at most the visible search text;
 they do not read ReboundOps recovery data, and the next-step panel only
 displays. The job-search screens keep their existing components (not
-redesigned). Planned follow-ups
+redesigned on this pass). Planned follow-ups
 are tracked in [docs/roadmap.md](../../docs/roadmap.md).
 
 ## Licences
 
-License and redistribution information for `workspace/` and `engine/` is documented in
-[THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
+`workspace/` and `engine/` are MIT-licensed ReboundOps components. See
+[THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) for dependency redistribution notes.

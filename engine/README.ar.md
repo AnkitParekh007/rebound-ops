@@ -1,7 +1,5 @@
 # ReboundOps engine
 
-> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
-
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
 ## ماذا يفعل rebound-ops من أجلك
@@ -453,8 +451,6 @@ rebound-ops/
 ## الأسئلة الشائعة (FAQ)
 
 **ما هو rebound-ops؟**
-ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
-
 **هل يمكن للسيرة الذاتية المخصّصة أن تختلق أشياء؟**
 لا يجوز لها، والأوامر النصية تقول ذلك: أعد الصياغة، ولا تختلق أبدًا. يمنع `generate-pdf` إنشاء سيرة ذاتية تتضمن أرقامًا أو حقائق غير موجودة في مصادرك، ما لم تمرّر `--skip-fact-check`. ويشغّل وضع `pdf` أيضًا `cv-title-check.mjs`، الذي يقارن كل مسمى وظيفي في السيرة الذاتية المخصّصة بالمسمى الذي يذكره cv.md للوظيفة نفسها (بمطابقة الشركة والتواريخ)، ويسألك هل تُبقي أي مسمى مختلف أم تعيده. وهو ينبّه ولا يمنع، لأن إعادة صياغة المسمى قد تكون قرارك أحيانًا. ولا شيء يحكم على إعادة الصياغة بعدُ: تتابع ذلك القضية [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (تحقق من الدقة يوقف العملية عند الاختلاف). حتى ذلك الحين، اقرأ كل سيرة ذاتية قبل إرسالها. [إخلاء المسؤولية القانوني](LEGAL_DISCLAIMER.md) يقول الشيء نفسه بكلمات أكثر.
 
@@ -474,8 +470,7 @@ ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitP
 لا. rebound-ops مرشِّح، لا أداة تقديم تلقائي عشوائي. الذكاء الاصطناعي يقيّم ويرتّب ويصيغ المسودات؛ وأنت تراجع وتقرر. يصوغ الإجابات ويملأ الحقول؛ ولا يقدّم الطلب أبدًا. أنت تضغط «إرسال». هذا التصميم الذي يُبقي الإنسان في الحلقة هو جوهر الفكرة.
 
 **هل rebound-ops مجاني ومفتوح المصدر؟**
-The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
-
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md).
 ## إخلاء المسؤولية
 
 **rebound-ops أداة محلية مفتوحة المصدر، وليست خدمة مستضافة.** باستخدامك لهذا البرنامج، فإنك تقر بما يلي:

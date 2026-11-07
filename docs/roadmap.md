@@ -220,13 +220,13 @@ The solo maintainer feature-tested the original prototype, and the Angular/Fasti
 - [ ] Independent security review and manual screen-reader/cross-platform evaluation (Q1, G4)
 - [ ] Validate opt-in saving with users across supported operating systems
 
-### Owner-requested originality remediation (2026-11-07)
+### Owner-requested product presentation work (2026-11-07)
 
-- [x] Preserve complete upstream licenses in standalone distributions and expose public credits.
-- [x] Record component provenance and remove misattributed founder/manifesto/signature claims.
-- [x] Retire the unused copied marketing site and repair imported issue/wiki references.
-- [x] Replace the primary tool dashboard with an original recovery-linked search workbench; retain credited advanced tools.
-- [x] Add contextual Opportunity Lens/Application Review framing and seven current product screenshots.
-- [x] Add provenance/package regression checks and extend screenshot automation.
+- [x] Keep MIT notices and dependency redistribution notes in standalone distributions.
+- [x] Record component provenance in `PROVENANCE.md` / `provenance.json`.
+- [x] Retire unused marketing sources; keep `marketing-website/` as the public site.
+- [x] Replace the primary tool dashboard with a recovery-linked search workbench.
+- [x] Add contextual Opportunity Lens/Application Review framing and product screenshots.
+- [x] Add provenance/package regression checks and screenshot automation.
 
-These changes were explicitly requested by the owner following the originality audit. They do not satisfy participant research gates. See [the remediation record](originality-remediation.md) and [provenance](../PROVENANCE.md).
+These items do not satisfy participant research gates. See [provenance](../PROVENANCE.md).
