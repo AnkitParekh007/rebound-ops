@@ -400,10 +400,10 @@ The Go dashboard TUI, Node.js scripts, and AI agent modes all automatically resp
 ## FAQ
 
 **What is rebound-ops?**
-rebound-ops ([github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops), also known as **reboundops**) is an open-source AI job search that runs locally in your AI coding CLI (Claude Code, Codex, OpenCode and others) and leaves every decision to you. It evaluates job offers against your CV, generates ATS-tailored PDFs, finds the right person to contact, and tracks everything in one place: you always have the final call. It is adapted from [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops) under MIT; see [provenance](../PROVENANCE.md).
+rebound-ops ([github.com/AnkitParekh007/rebound-ops](https://github.com/AnkitParekh007/rebound-ops), also known as **reboundops**) is an open-source AI job search that runs locally in your AI coding CLI (Claude Code, Codex, OpenCode and others) and leaves every decision to you. It evaluates job offers against your CV, generates ATS-tailored PDFs, finds the right person to contact, and tracks everything in one place: you always have the final call. See [provenance](../PROVENANCE.md).
 
 **Can the tailored CV invent things?**
-It must not, and the prompts say so: reformulate, never fabricate. `generate-pdf` blocks a CV whose numbers or facts are missing from your sources, unless you pass `--skip-fact-check`. The `pdf` mode also runs `cv-title-check.mjs`, which compares each job title in the tailored CV with the title cv.md gives the same job (matched by company and dates) and asks you to keep or revert any that differ. It warns rather than blocks, because reframing a title is sometimes your call. Nothing judges rewording yet: [#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411) (fail-closed faithfulness check) tracks that. Until then, read every CV before you send it. The [Legal Disclaimer](LEGAL_DISCLAIMER.md) says the same in longer words.
+It must not, and the prompts say so: reformulate, never fabricate. `generate-pdf` blocks a CV whose numbers or facts are missing from your sources, unless you pass `--skip-fact-check`. The `pdf` mode also runs `cv-title-check.mjs`, which compares each job title in the tailored CV with the title cv.md gives the same job (matched by company and dates) and asks you to keep or revert any that differ. It warns rather than blocks, because reframing a title is sometimes your call. Nothing judges rewording yet: track faithfulness checks in this repository’s issues. Until then, read every CV before you send it. The [Legal Disclaimer](LEGAL_DISCLAIMER.md) says the same in longer words.
 
 **Can I run rebound-ops for free, or on a cheaper / local model?**
 Yes. rebound-ops is CLI-agnostic and runs on free and local models (OpenRouter free models, Ollama or any OpenAI-compatible endpoint), so you are not tied to a paid subscription. See [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md) for the full setup.
@@ -436,8 +436,8 @@ See [LEGAL_DISCLAIMER.md](LEGAL_DISCLAIMER.md) for full details. This software i
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
 ## Upstream authorship
 
-The underlying engine was created by Ankit Parekh and rebound-ops contributors. ReboundOps maintains modifications and integration, not the upstream creator’s biography, signatures or job-search outcomes. Original notices remain in LICENSE and ../THIRD_PARTY_NOTICES.md.
+Maintained by Ankit Parekh and ReboundOps contributors. Do not treat engineering demos as participant outcomes. See LICENSE and ../THIRD_PARTY_NOTICES.md.

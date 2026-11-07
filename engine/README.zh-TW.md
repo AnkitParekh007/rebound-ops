@@ -1,6 +1,6 @@
 # ReboundOps engine
 
-> Attribution: This engine adapts [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors (MIT). ReboundOps maintains an adapted integration. See [provenance](../PROVENANCE.md) and the original notices. This attribution correction is maintained in English.
+> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
 
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
@@ -453,10 +453,10 @@ Go 版儀表板 TUI、Node.js 腳本和 AI 代理模式都會自動遵循這個�
 ## 常見問題（FAQ）
 
 **rebound-ops 是什麼？**
-ReboundOps integrates a modified MIT-licensed [rebound-ops engine](https://github.com/rebound-ops-hq/rebound-ops), originally created by Ankit Parekh and contributors. It did not originate the upstream manifesto or its founder outcomes. See [provenance](../PROVENANCE.md). (Attribution correction maintained in English.)
+ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
 
 **客製化履歷會捏造內容嗎？**
-不應該，提示詞裡也這麼寫：只改寫，絕不捏造。`generate-pdf` 會擋下數字或事實在你的資料來源中找不到的履歷，除非你傳入 `--skip-fact-check`。`pdf` 模式還會執行 `cv-title-check.mjs`：它依公司和日期，把客製化履歷中的每個職稱與 cv.md 中同一份工作的職稱比對，有不同就請你決定保留還是改回。它只提醒、不阻擋，因為調整職稱的寫法有時是你自己的選擇。目前還沒有任何檢查評判改寫：[#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411)（不通過即阻止的真實性檢查）在追蹤這一點。在此之前，每份履歷送出前都請自己讀一遍。[法律聲明](LEGAL_DISCLAIMER.md) 用更長的篇幅說了同樣的話。
+不應該，提示詞裡也這麼寫：只改寫，絕不捏造。`generate-pdf` 會擋下數字或事實在你的資料來源中找不到的履歷，除非你傳入 `--skip-fact-check`。`pdf` 模式還會執行 `cv-title-check.mjs`：它依公司和日期，把客製化履歷中的每個職稱與 cv.md 中同一份工作的職稱比對，有不同就請你決定保留還是改回。它只提醒、不阻擋，因為調整職稱的寫法有時是你自己的選擇。目前還沒有任何檢查評判改寫：[#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411)（不通過即阻止的真實性檢查）在追蹤這一點。在此之前，每份履歷送出前都請自己讀一遍。[法律聲明](LEGAL_DISCLAIMER.md) 用更長的篇幅說了同樣的話。
 
 **我可以免費執行 rebound-ops，或改用較便宜／本機的模型嗎？**
 可以。rebound-ops 不綁定特定 CLI，也能跑在免費與本機模型上（OpenRouter 的免費模型、Ollama，或任何相容 OpenAI 的端點），所以你不必被付費訂閱綁住。完整設定見 [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md)。
@@ -474,7 +474,7 @@ rebound-ops 可以在 Windows 上執行。平台相關的設定和已知的坑�
 不會。rebound-ops 是篩選器，不是亂槍打鳥的自動投遞工具。AI 負責評估、排序與草擬；審閱與決定由你來做。它會草擬、填寫，但從不送出。由你按下送出。這種保留人工把關的設計，正是整套系統的重點。
 
 **rebound-ops 是免費且開源的嗎？**
-The source is MIT-licensed; optional AI providers may charge separately. Our own [product principles](../docs/principles.md) do not collect public signatures. The upstream manifesto remains the work of its original authors. (Attribution correction maintained in English.)
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
 
 ## 免責聲明
 
@@ -489,4 +489,4 @@ The source is MIT-licensed; optional AI providers may charge separately. Our own
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

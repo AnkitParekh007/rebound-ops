@@ -1,5 +1,7 @@
 import Fastify, { type FastifyReply } from 'fastify';
 import { randomUUID, createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { loadAiProvider, type AiProvider } from './provider.js';
 import { SessionStore, SessionStorageError } from './storage.js';
 import {
@@ -27,22 +29,76 @@ type TargetParams = IdParams & { targetId: string };
 type RequirementParams = TargetParams & { requirementId: string };
 type DocumentParams = IdParams & { documentId: string };
 
+type AiCounterState = {
+  attempts: number;
+  successful: number;
+  failed: number;
+  reportedInputTokens: number;
+  reportedOutputTokens: number;
+};
+
+function resolveAiCounterPath(dataDir?: string, override?: string | null): string | null {
+  if (override === null) return null;
+  if (override) return override;
+  if (process.env.REBOUNDOPS_AI_COUNTER_FILE) return process.env.REBOUNDOPS_AI_COUNTER_FILE;
+  if (dataDir) return join(dataDir, 'ai-attempt-counters.json');
+  return null;
+}
+
+function readAiCounters(file: string | null): AiCounterState {
+  const empty = { attempts: 0, successful: 0, failed: 0, reportedInputTokens: 0, reportedOutputTokens: 0 };
+  if (!file || !existsSync(file)) return empty;
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as Partial<AiCounterState>;
+    return {
+      attempts: Number.isSafeInteger(parsed.attempts) && (parsed.attempts ?? 0) >= 0 ? parsed.attempts! : 0,
+      successful: Number.isSafeInteger(parsed.successful) && (parsed.successful ?? 0) >= 0 ? parsed.successful! : 0,
+      failed: Number.isSafeInteger(parsed.failed) && (parsed.failed ?? 0) >= 0 ? parsed.failed! : 0,
+      reportedInputTokens: Number.isSafeInteger(parsed.reportedInputTokens) && (parsed.reportedInputTokens ?? 0) >= 0 ? parsed.reportedInputTokens! : 0,
+      reportedOutputTokens: Number.isSafeInteger(parsed.reportedOutputTokens) && (parsed.reportedOutputTokens ?? 0) >= 0 ? parsed.reportedOutputTokens! : 0
+    };
+  } catch {
+    return empty;
+  }
+}
+
+function writeAiCounters(file: string | null, state: AiCounterState): void {
+  if (!file) return;
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
+}
+
 export function buildApp(options: {
   aiProvider?: AiProvider; dataDir?: string;
   /** Test seam: override the migration chain. Production uses the registered chain. */
   sessionMigration?: MigrationOptions;
+  /** Test seam: absolute path for durable AI attempt counters, or null to force memory-only. */
+  aiCounterFile?: string | null;
+  /** Test seam: override max AI attempts (defaults to env or 10). */
+  maxAiAttempts?: number;
 } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 128 * 1024 });
   const sessions = new SessionStore(options.dataDir, { migration: options.sessionMigration });
   const aiProvider = options.aiProvider ?? loadAiProvider();
-  let aiRequests = 0;
-  let aiSuccesses = 0;
-  let aiFailures = 0;
-  let reportedInputTokens = 0;
-  let reportedOutputTokens = 0;
-  const maxAiAttempts = 10;
+  const aiCounterFile = resolveAiCounterPath(options.dataDir, options.aiCounterFile);
+  const stored = readAiCounters(aiCounterFile);
+  let aiRequests = stored.attempts;
+  let aiSuccesses = stored.successful;
+  let aiFailures = stored.failed;
+  let reportedInputTokens = stored.reportedInputTokens;
+  let reportedOutputTokens = stored.reportedOutputTokens;
+  const envMax = Number.parseInt(process.env.REBOUNDOPS_AI_MAX_ATTEMPTS ?? '', 10);
+  const maxAiAttempts = options.maxAiAttempts
+    ?? (Number.isSafeInteger(envMax) && envMax > 0 ? envMax : 10);
   const maxAiPayloadBytes = 20_000;
   const now = () => new Date().toISOString();
+  const persistAiCounters = () => writeAiCounters(aiCounterFile, {
+    attempts: aiRequests,
+    successful: aiSuccesses,
+    failed: aiFailures,
+    reportedInputTokens,
+    reportedOutputTokens
+  });
 
   app.addHook('onRequest', async (request, reply) => {
     // Explicitly refuse DNS rebinding and browser cross-site requests; never
@@ -101,7 +157,9 @@ export function buildApp(options: {
     successful: aiSuccesses,
     failed: aiFailures,
     reportedInputTokens,
-    reportedOutputTokens
+    reportedOutputTokens,
+    countersDurable: Boolean(aiCounterFile),
+    spendCeiling: 'Set a provider-side workspace spend limit before live calls. Local attempt counters are not a currency ceiling.'
   }));
 
   app.get('/api/health', async () => ({
@@ -299,7 +357,8 @@ export function buildApp(options: {
       return reply.code(413).send({ error: 'AI_PAYLOAD_TOO_LARGE' });
     }
     if (aiRequests >= maxAiAttempts) return reply.code(429).send({ error: 'AI_REQUEST_LIMIT' });
-    aiRequests += 1; // no automatic retry and bounded number of calls per API process
+    aiRequests += 1; // no automatic retry; count is durable when a counter file is configured
+    persistAiCounters();
     try {
       const response = await aiProvider.analyze(payload);
       const detailed = 'analysis' in response ? response : { analysis: response, usage: null };
@@ -314,6 +373,7 @@ export function buildApp(options: {
         reportedInputTokens += usage.inputTokens;
         reportedOutputTokens += usage.outputTokens;
       }
+      persistAiCounters();
       // Provider output is never applied to evidence, job reviews or session state.
       return reply.send({
         analysis, usage, provider: aiProvider.name, model: aiProvider.model,
@@ -321,6 +381,7 @@ export function buildApp(options: {
       });
     } catch {
       aiFailures++;
+      persistAiCounters();
       // Never log the provider input, API key or raw model response.
       return reply.code(502).send({ error: 'AI_RESULT_UNAVAILABLE' });
     }

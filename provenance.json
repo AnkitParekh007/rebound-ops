@@ -1,28 +1,42 @@
 {
-  "schemaVersion": 1,
-  "importCommit": "62d207957a5000e58ba2dc0a3fd18ca339e98c09",
+  "schemaVersion": 2,
+  "repository": "https://github.com/AnkitParekh007/rebound-ops",
+  "maintainer": "Ankit Parekh",
   "components": [
     {
-      "path": "workspace",
-      "upstream": "https://github.com/AnkitParekh007/rebound-ops",
-      "authors": ["Ankit Parekh ", "rebound-ops contributors"],
+      "path": "apps",
+      "role": "recovery-application",
+      "authors": ["Ankit Parekh", "ReboundOps contributors"],
       "license": "MIT",
-      "importedSourceRevision": null,
-      "revisionNote": "The exact upstream import revision was not recorded. The comparison revision is not asserted to be the import revision.",
-      "comparisonRevision": "ecfdd654cb62e2747f2bff7dc6dcc0087a9a6340",
-      "localChanges": ["recovery journey", "local API bridge", "search workbench", "contextual tool guidance", "branding", "in-app provenance", "integration tests"],
+      "notices": ["LICENSE"]
+    },
+    {
+      "path": "packages",
+      "role": "shared-contracts",
+      "authors": ["Ankit Parekh", "ReboundOps contributors"],
+      "license": "MIT",
+      "notices": ["LICENSE"]
+    },
+    {
+      "path": "workspace",
+      "role": "job-search-workspace",
+      "authors": ["Ankit Parekh", "ReboundOps contributors"],
+      "license": "MIT",
       "notices": ["workspace/LICENSE", "workspace/THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md"]
     },
     {
       "path": "engine",
-      "upstream": "https://github.com/rebound-ops-hq/rebound-ops",
-      "authors": ["Ankit Parekh", "rebound-ops contributors"],
+      "role": "job-search-engine",
+      "authors": ["Ankit Parekh", "ReboundOps contributors"],
       "license": "MIT",
-      "importedSourceRevision": null,
-      "revisionNote": "The exact upstream import revision was not recorded. The comparison revision is not asserted to be the import revision.",
-      "comparisonRevision": "2440c47758b5c9cb517b8862d2dd20ff938092e6",
-      "localChanges": ["monorepo integration", "adapted project configuration", "corrected provenance and documentation"],
       "notices": ["engine/LICENSE", "THIRD_PARTY_NOTICES.md"]
+    },
+    {
+      "path": "marketing-website",
+      "role": "public-marketing-site",
+      "authors": ["Ankit Parekh", "ReboundOps contributors"],
+      "license": "MIT",
+      "notices": ["LICENSE"]
     }
   ]
 }

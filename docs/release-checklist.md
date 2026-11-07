@@ -29,22 +29,22 @@ This is a **pre-release checklist**, not a declaration that ReboundOps is produc
 - [x] Configure expiring GitHub Actions artifact download on successful `main` push builds (no GitHub Release)
 - [x] CycloneDX SBOM inside every preview archive, with SLSA build-provenance and SBOM attestations on `main` builds
 - [ ] Verify one downloaded candidate end-to-end with `gh attestation verify` (owner)
-- [ ] Manually verify the final preview archive and complete the OS/assistive-technology QA handoff
+- [ ] Manually verify the final preview archive and complete the OS/assistive-technology QA handoff ([manual AT script](accessibility-manual-qa.md))
 - [ ] Test manually across supported operating systems, browsers and screen readers; automated Linux browser checks are not a human usability study
 - [ ] Validate keyboard and screen reader use with participants
-- [ ] Verify provider against fictional data before allowing real-user external calls
+- [ ] Verify provider against fictional data before allowing real-user external calls (local attempt counters can now persist; provider spend limit still required — [AI provider](ai-provider.md))
 - [x] Versioned session snapshots with forward-only migrations and pre-upgrade backups ([schema migrations](schema-migrations.md))
 - [ ] Add exact source spans for pasted job descriptions (résumé/project-note spans are done)
 
 ## Safety and operations
 
-- [ ] Confirm copy explains exactly what goes to a configured provider
+- [x] Confirm copy explains exactly what goes to a configured provider ([AI provider guide](ai-provider.md))
 - [ ] Confirm real participant data is absent from public history
-- [ ] Document deletion, backup and API key handling
+- [x] Document deletion, backup and API key handling ([pilot retention](external-pilot-runbook.md#retention-and-deletion-required), [privacy](privacy.md), [local persistence](local-persistence.md))
 - [ ] Threat-model any transition from localhost to hosted access
 - [x] Commit npm workspace lockfile and verify `npm ci` in CI
 - [x] Scan npm advisories (production and full graph) and inventory declared dependency licenses
-- [ ] Verify individual license notices / redistribution obligations and repeat npm audit at each release
+- [x] Provide owner disposition template for remaining moderate advisories ([dependency review](dependency-security-review.md#owner-disposition-template-moderate-advisories)); still needs a signed decision on the release commit
 - [x] Prepare scoped issue templates, security reporting and a preview QA/triage handoff
 - [ ] Appoint a human issue-response owner and confirm a triage cadence before publication
 - [ ] Obtain explicit consent for testimonials and case studies

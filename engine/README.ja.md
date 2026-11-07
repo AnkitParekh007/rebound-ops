@@ -1,6 +1,6 @@
 # ReboundOps engine
 
-> Attribution: This engine adapts [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors (MIT). ReboundOps maintains an adapted integration. See [provenance](../PROVENANCE.md) and the original notices. This attribution correction is maintained in English.
+> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
 
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
@@ -453,10 +453,10 @@ Go のダッシュボード TUI、Node.js スクリプト、AI エージェン�
 ## FAQ
 
 **rebound-ops とは何ですか？**
-ReboundOps integrates a modified MIT-licensed [rebound-ops engine](https://github.com/rebound-ops-hq/rebound-ops), originally created by Ankit Parekh and contributors. It did not originate the upstream manifesto or its founder outcomes. See [provenance](../PROVENANCE.md). (Attribution correction maintained in English.)
+ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
 
 **カスタマイズされた履歴書が事実をでっち上げることはありますか？**
-あってはならず、プロンプトにもそう書いてあります：言い換えはしても、でっち上げはしない。`generate-pdf` は、あなたの情報源にない数字や事実を含む CV をブロックします（`--skip-fact-check` を渡した場合を除く）。`pdf` モードは `cv-title-check.mjs` も実行します。これはカスタマイズした CV の各職名を、cv.md に書かれた同じ職歴（会社と期間で照合）の職名と比べ、違いがあれば残すか元に戻すかをあなたに確認します。職名の言い回しを変えるのはあなたの判断であることもあるため、警告するだけでブロックはしません。言い換えの判断はまだ何もしません：[#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411)（不一致なら止める忠実性チェック）がそれを追跡しています。それまでは、送る前にすべての履歴書を読んでください。[免責事項](LEGAL_DISCLAIMER.md) にも同じことがより長く書いてあります。
+あってはならず、プロンプトにもそう書いてあります：言い換えはしても、でっち上げはしない。`generate-pdf` は、あなたの情報源にない数字や事実を含む CV をブロックします（`--skip-fact-check` を渡した場合を除く）。`pdf` モードは `cv-title-check.mjs` も実行します。これはカスタマイズした CV の各職名を、cv.md に書かれた同じ職歴（会社と期間で照合）の職名と比べ、違いがあれば残すか元に戻すかをあなたに確認します。職名の言い回しを変えるのはあなたの判断であることもあるため、警告するだけでブロックはしません。言い換えの判断はまだ何もしません：[#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411)（不一致なら止める忠実性チェック）がそれを追跡しています。それまでは、送る前にすべての履歴書を読んでください。[免責事項](LEGAL_DISCLAIMER.md) にも同じことがより長く書いてあります。
 
 **rebound-ops を無料で、あるいはより安価なモデルやローカルモデルで動かせますか？**
 はい。rebound-ops は CLI に依存せず、無料モデルやローカルモデル（OpenRouter の無料モデル、Ollama、または OpenAI 互換のエンドポイント）で動くので、有料サブスクリプションに縛られません。完全なセットアップは [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md) を参照してください。
@@ -474,7 +474,7 @@ rebound-ops は Windows で動きます。プラットフォーム固有のセ�
 いいえ。rebound-ops はフィルターであって、数を撃つ自動応募ツールではありません。AI が評価し、順位を付け、下書きを作り、あなたが確認して決めます。下書きも入力もしますが、送信は決してしません。送信ボタンを押すのはあなたです。この Human-in-the-Loop の設計こそが核心です。
 
 **rebound-ops は無料でオープンソースですか？**
-The source is MIT-licensed; optional AI providers may charge separately. Our own [product principles](../docs/principles.md) do not collect public signatures. The upstream manifesto remains the work of its original authors. (Attribution correction maintained in English.)
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
 
 ## 免責事項
 
@@ -489,4 +489,4 @@ The source is MIT-licensed; optional AI providers may charge separately. Our own
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

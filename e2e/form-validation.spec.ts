@@ -20,7 +20,7 @@ test('contract validation blocks invalid intake locally with accessible inline e
   await expect(page.getByLabel('Available hours per week')).toHaveAccessibleDescription('Enter 20 or less.');
   expect(created, 'no API call for an invalid form').toEqual([]);
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
   expect(results.violations.filter(v => ['serious', 'critical'].includes(v.impact ?? ''))).toEqual([]);
 
   await role.fill('Fictional Platform Engineer');

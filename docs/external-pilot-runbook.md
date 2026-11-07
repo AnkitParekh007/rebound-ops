@@ -8,6 +8,20 @@ Aim for **five discovery interviews**, of which **at least three** may opt to co
 
 Before inviting anyone, decide where you will privately store consent and notes, who can access them, a deletion date, and how participants can withdraw or request deletion. Do not put participant exports or contact details in this public repository.
 
+### Retention and deletion (required)
+
+Keep a private facilitator log (outside Git) with:
+
+| Artifact | Keep until | Then |
+| --- | --- | --- |
+| Raw interview notes / recordings | Synthesis complete, or ≤30 days after the session (whichever is sooner) | Delete or irreversibly redact |
+| Downloaded pilot-feedback Markdown | Redaction + aggregate summary done, or ≤30 days | Delete; never commit |
+| Session JSON backups created during a session | End of that facilitated session unless the participant keeps their own copy | Delete from the facilitator machine |
+| Consent record (who agreed, when, scope) | Until the pilot evaluation report is finalized, then ≤90 days unless a longer legal hold applies | Delete or anonymize |
+| Aggregate scorecard / go-no-go notes | May be retained without identifiers | Keep identifiers out |
+
+If a participant withdraws or asks for deletion, remove their identifiable artifacts promptly and note the request in the private log. Aggregated counts may remain if they cannot identify the person.
+
 ## Participation invitation (owner sends manually, never bulk-spam)
 
 > Hi — I'm building ReboundOps, a free, open-source tool to help experienced software professionals regain momentum after a layoff or career transition. I'm looking for candid feedback from a few volunteers. Would you be open to a 20–30 minute conversation about what is most difficult during a career transition? If you want, we can also test a local prototype with fictional data for about 30 minutes, plus an optional seven-day check-in. This is research, not job placement or a promise of career advice. You can skip questions, decline the prototype, or stop at any point. I won't publish your name, résumé or comments without separate permission.

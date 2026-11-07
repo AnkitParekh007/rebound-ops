@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { buildApp } from '../../../dist/api/app.js';
 
 const maliciousRequirement =
@@ -110,6 +113,51 @@ test('provider errors are sanitized and ten-attempt limit prevents additional ca
     assert.equal(status.failed, 10);
     assert.equal(status.reportedOutputTokens, 0);
   } finally { await app.close(); }
+});
+
+test('AI attempt counters persist across process restarts when a counter file is configured', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'reboundops-ai-counters-'));
+  const counterFile = join(dir, 'ai-attempt-counters.json');
+  const provider = {
+    name: 'fictional-mock', model: 'offline-evaluation',
+    async analyze(payload) {
+      return {
+        analysis: {
+          findings: payload.target.requirements.map(r => ({
+            requirementId: r.id, assessment: 'uncertain', evidenceIds: [],
+            explanation: 'Not independent proof.', nextTest: 'Review a work sample.'
+          })),
+          caution: 'Unverified claim.'
+        },
+        usage: { inputTokens: 11, outputTokens: 7 }
+      };
+    }
+  };
+  try {
+    const first = buildApp({ aiProvider: provider, aiCounterFile: counterFile, maxAiAttempts: 3 });
+    try {
+      const { s, base, targetId, preview } = await setup(first);
+      const r = await first.inject({ method: 'POST', url: base + '/ai/analyze', payload: {
+        expectedRevision: s.revision, targetId, previewHash: preview.previewHash, consent: true
+      } });
+      assert.equal(r.statusCode, 200);
+      const status = (await first.inject({ method: 'GET', url: '/api/ai/status' })).json();
+      assert.equal(status.attempts, 1);
+      assert.equal(status.countersDurable, true);
+    } finally { await first.close(); }
+
+    const second = buildApp({ aiProvider: provider, aiCounterFile: counterFile, maxAiAttempts: 3 });
+    try {
+      const status = (await second.inject({ method: 'GET', url: '/api/ai/status' })).json();
+      assert.equal(status.attempts, 1);
+      assert.equal(status.successful, 1);
+      assert.equal(status.reportedInputTokens, 11);
+      assert.equal(status.reportedOutputTokens, 7);
+      assert.match(readFileSync(counterFile, 'utf8'), /"attempts": 1/);
+    } finally { await second.close(); }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('tampered previews are refused before any provider request', async () => {

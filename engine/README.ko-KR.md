@@ -1,6 +1,6 @@
 # ReboundOps engine
 
-> Attribution: This engine adapts [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors (MIT). ReboundOps maintains an adapted integration. See [provenance](../PROVENANCE.md) and the original notices. This attribution correction is maintained in English.
+> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
 
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
@@ -453,10 +453,10 @@ Go 대시보드 TUI, Node.js 스크립트, AI 에이전트 모드 모두 이 결
 ## FAQ
 
 **rebound-ops가 뭔가요?**
-ReboundOps integrates a modified MIT-licensed [rebound-ops engine](https://github.com/rebound-ops-hq/rebound-ops), originally created by Ankit Parekh and contributors. It did not originate the upstream manifesto or its founder outcomes. See [provenance](../PROVENANCE.md). (Attribution correction maintained in English.)
+ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
 
 **맞춤 이력서가 없는 내용을 지어낼 수 있나요?**
-그래서는 안 되며, 프롬프트에도 그렇게 적혀 있습니다: 다듬되, 절대 지어내지 않는다. `generate-pdf`는 당신의 원본 자료에 없는 숫자나 사실이 담긴 이력서를 막습니다(`--skip-fact-check`를 넘기지 않는 한). `pdf` 모드는 `cv-title-check.mjs`도 실행합니다. 맞춤 이력서의 각 직함을 cv.md에 적힌 같은 경력(회사와 기간으로 대조)의 직함과 비교하고, 다른 것이 있으면 유지할지 되돌릴지 묻습니다. 직함을 달리 표현하는 것이 당신의 선택일 때도 있으므로 경고만 하고 막지는 않습니다. 바꿔 쓴 표현을 판단하는 검사는 아직 없습니다: [#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411) (실패 시 차단하는 충실도 검사)이 이를 추적합니다. 그때까지는 보내기 전에 모든 이력서를 읽어보세요. [법적 고지](LEGAL_DISCLAIMER.md)에도 같은 내용이 더 길게 적혀 있습니다.
+그래서는 안 되며, 프롬프트에도 그렇게 적혀 있습니다: 다듬되, 절대 지어내지 않는다. `generate-pdf`는 당신의 원본 자료에 없는 숫자나 사실이 담긴 이력서를 막습니다(`--skip-fact-check`를 넘기지 않는 한). `pdf` 모드는 `cv-title-check.mjs`도 실행합니다. 맞춤 이력서의 각 직함을 cv.md에 적힌 같은 경력(회사와 기간으로 대조)의 직함과 비교하고, 다른 것이 있으면 유지할지 되돌릴지 묻습니다. 직함을 달리 표현하는 것이 당신의 선택일 때도 있으므로 경고만 하고 막지는 않습니다. 바꿔 쓴 표현을 판단하는 검사는 아직 없습니다: [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (실패 시 차단하는 충실도 검사)이 이를 추적합니다. 그때까지는 보내기 전에 모든 이력서를 읽어보세요. [법적 고지](LEGAL_DISCLAIMER.md)에도 같은 내용이 더 길게 적혀 있습니다.
 
 **rebound-ops를 무료로, 또는 더 저렴한 모델이나 로컬 모델로 쓸 수 있나요?**
 네. rebound-ops는 CLI에 종속되지 않으며 무료 및 로컬 모델(OpenRouter 무료 모델, Ollama, 또는 OpenAI 호환 엔드포인트)에서 실행되므로 유료 구독에 묶이지 않습니다. 전체 설정은 [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md)를 참고하세요.
@@ -474,7 +474,7 @@ rebound-ops는 Windows에서 실행됩니다. 플랫폼별 설정과 알려진 �
 아니요. rebound-ops는 필터이지 무차별 자동 지원 도구가 아닙니다. AI가 평가하고 순위를 매기고 초안을 쓰면, 당신이 검토하고 결정합니다. 초안을 쓰고 양식을 채우지만, 절대 제출하지 않습니다. 제출 버튼은 당신이 누릅니다. 이 Human-in-the-Loop 설계가 핵심입니다.
 
 **rebound-ops는 무료이고 오픈 소스인가요?**
-The source is MIT-licensed; optional AI providers may charge separately. Our own [product principles](../docs/principles.md) do not collect public signatures. The upstream manifesto remains the work of its original authors. (Attribution correction maintained in English.)
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
 
 ## 면책 조항
 
@@ -489,4 +489,4 @@ The source is MIT-licensed; optional AI providers may charge separately. Our own
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

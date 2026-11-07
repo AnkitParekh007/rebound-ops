@@ -53,8 +53,10 @@ The API returns a SHA-256 digest of the exact JSON and the session revision. Ana
 - `possible_support` requires a cited confirmed claim and is *not* proof of qualification.
 - Other statuses must not carry evidence IDs.
 - Suggestions are returned to the UI but **never applied automatically**.
-- API provider retries are disabled; output tokens are bounded, AI payloads are capped at 20,000 UTF-8 bytes, and attempts are limited to ten per API process.
-- The status endpoint reports attempted, successful and failed requests plus input/output tokens reported by successfully validated provider responses. It returns no prompt text or user identifiers. These counts are **not** a spend ceiling and may undercount failed charged calls.
+- API provider retries are disabled; output tokens are bounded, AI payloads are capped at 20,000 UTF-8 bytes, and attempts default to ten (`REBOUNDOPS_AI_MAX_ATTEMPTS` may raise or lower the local ceiling).
+- Attempt counters persist across API restarts when `REBOUNDOPS_DATA_DIR` is set (file: `ai-attempt-counters.json`) or when `REBOUNDOPS_AI_COUNTER_FILE` points at an explicit path. Without either, counters are memory-only and reset on process restart.
+- The status endpoint reports attempted, successful and failed requests plus input/output tokens reported by successfully validated provider responses. It returns no prompt text or user identifiers. These counts are **not** a currency spend ceiling and may undercount failed charged calls.
+- **Before any live paid evaluation:** set a provider-side workspace spend limit in the Anthropic (or other) console. That provider limit is the real money ceiling; local attempt counters only bound request count.
 - If disabled, provider calls are refused; errors never echo raw provider responses or secrets.
 - Mock tests verify consent, stale hashes, fabricated evidence rejection, prompt-injection-like inputs, error sanitization, token metadata, request cap and no state mutation.
 - See [synthetic evaluation and the live-provider approval gate](ai-evaluation.md).
@@ -64,6 +66,6 @@ The API returns a SHA-256 digest of the exact JSON and the session revision. Ana
 - The source data is still untrusted. Prompt injection can arise from job listings and achievement text; the system prompt treats it as data, but no prompt-based defense is infallible.
 - A valid schema cannot guarantee true, appropriate or useful career guidance.
 - API providers can change availability and pricing. This feature has not been live-tested in CI.
-- The ten-attempt limit constrains requests, not actual currency spend; monitor real usage.
+- Local attempt limits constrain request count, not currency spend; always pair live tests with a provider workspace spend limit.
 - Do not enable AI for human participants until consent, provider terms and privacy expectations have been reviewed.
 - When a user changes session data, the Angular UI discards the previous preview.

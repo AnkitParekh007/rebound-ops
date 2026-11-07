@@ -1,6 +1,6 @@
 # ReboundOps engine
 
-> Attribution: This engine adapts [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors (MIT). ReboundOps maintains an adapted integration. See [provenance](../PROVENANCE.md) and the original notices. This attribution correction is maintained in English.
+> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
 
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
@@ -453,10 +453,10 @@ Go dashboard TUI, Node.js betikleri ve yapay zekâ ajan modlarının tümü bu �
 ## SSS
 
 **rebound-ops nedir?**
-ReboundOps integrates a modified MIT-licensed [rebound-ops engine](https://github.com/rebound-ops-hq/rebound-ops), originally created by Ankit Parekh and contributors. It did not originate the upstream manifesto or its founder outcomes. See [provenance](../PROVENANCE.md). (Attribution correction maintained in English.)
+ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
 
 **Uyarlanmış CV bir şeyler uydurabilir mi?**
-Uydurmamalı, prompt'lar da böyle diyor: yeniden ifade et, asla uydurma. `--skip-fact-check` vermediğin sürece `generate-pdf`, kaynaklarında bulunmayan sayı veya bilgi içeren bir CV'yi engeller. `pdf` modu ayrıca `cv-title-check.mjs`'i çalıştırır: uyarlanmış CV'deki her iş unvanını, cv.md'nin aynı iş için verdiği unvanla (şirket ve tarihlere göre eşleştirerek) karşılaştırır ve farklı olan her unvanı korumak mı yoksa geri almak mı istediğini sana sorar. Bir unvanı farklı ifade etmek bazen senin kararın olduğu için yalnızca uyarır, engellemez. İfade değişikliklerini henüz hiçbir şey değerlendirmiyor: bunu [#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411) (uyuşmazlıkta engelleyen sadakat denetimi) takip ediyor. O zamana kadar, göndermeden önce her CV'yi oku. [Yasal uyarı](LEGAL_DISCLAIMER.md) aynı şeyi daha uzun söylüyor.
+Uydurmamalı, prompt'lar da böyle diyor: yeniden ifade et, asla uydurma. `--skip-fact-check` vermediğin sürece `generate-pdf`, kaynaklarında bulunmayan sayı veya bilgi içeren bir CV'yi engeller. `pdf` modu ayrıca `cv-title-check.mjs`'i çalıştırır: uyarlanmış CV'deki her iş unvanını, cv.md'nin aynı iş için verdiği unvanla (şirket ve tarihlere göre eşleştirerek) karşılaştırır ve farklı olan her unvanı korumak mı yoksa geri almak mı istediğini sana sorar. Bir unvanı farklı ifade etmek bazen senin kararın olduğu için yalnızca uyarır, engellemez. İfade değişikliklerini henüz hiçbir şey değerlendirmiyor: bunu [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (uyuşmazlıkta engelleyen sadakat denetimi) takip ediyor. O zamana kadar, göndermeden önce her CV'yi oku. [Yasal uyarı](LEGAL_DISCLAIMER.md) aynı şeyi daha uzun söylüyor.
 
 **rebound-ops'u ücretsiz veya daha ucuz / yerel bir modelde çalıştırabilir miyim?**
 Evet. rebound-ops CLI'dan bağımsızdır ve ücretsiz ve yerel modellerde çalışır (OpenRouter ücretsiz modelleri, Ollama veya herhangi bir OpenAI uyumlu uç nokta), bu yüzden ücretli bir aboneliğe bağlı değilsin. Tam kurulum için bkz. [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md).
@@ -474,7 +474,7 @@ rebound-ops Windows'ta çalışır. Platforma özel kurulum ve bilinen pürüzle
 Hayır. rebound-ops bir filtredir, rastgele başvuru yağdıran bir otomatik başvurucu değil. Yapay zekâ değerlendirir, sıralar ve taslak yazar; sen gözden geçirir ve karar verirsin. Taslakları hazırlar ve alanları doldurur; asla göndermez. Gönder'e sen basarsın. Bu insan-döngüde tasarımı meselenin özüdür.
 
 **rebound-ops ücretsiz ve açık kaynak mı?**
-The source is MIT-licensed; optional AI providers may charge separately. Our own [product principles](../docs/principles.md) do not collect public signatures. The upstream manifesto remains the work of its original authors. (Attribution correction maintained in English.)
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
 
 ## Sorumluluk Reddi
 
@@ -489,4 +489,4 @@ Tüm ayrıntılar için bkz. [LEGAL_DISCLAIMER.md](LEGAL_DISCLAIMER.md). Bu yaz�
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

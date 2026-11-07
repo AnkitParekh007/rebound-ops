@@ -244,10 +244,10 @@ Pushes and merged pull requests to `main` trigger the marketing workflow: test t
 
 ## Project status
 
-ReboundOps is a developer preview with recovery workflows and integrated job-search tools.
+ReboundOps is a **local-first developer preview**. [rebound-ops.org](https://rebound-ops.org) is the static marketing site only; the recovery API and workspace run on your computer and are not a hosted multi-user product.
 
-Engineering checks and fictional demonstrations are not participant validation or proof of job-search outcomes. External user evaluation, manual accessibility checks and live-provider validation remain documented work in the [roadmap](docs/roadmap.md).
+Engineering checks and fictional demonstrations are not participant validation or proof of job-search outcomes. External user evaluation, manual accessibility checks and live-provider validation remain documented work in the [roadmap](docs/roadmap.md). See [product principles](docs/principles.md), [provenance](PROVENANCE.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## License
 
-MIT. See the [root license](LICENSE) and the applicable [workspace](workspace/LICENSE) and [engine](engine/LICENSE) licenses. Component-specific terms also apply to their distributions.
+MIT. See the [root license](LICENSE), [workspace license](workspace/LICENSE), [engine license](engine/LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

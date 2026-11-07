@@ -2,9 +2,9 @@
 
 ## Origin and attribution
 
-This engine is adapted from [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and developed with its contributors under MIT. ReboundOps maintains this integrated copy and adds a separate recovery product; it did not originate the upstream engine or its creator's career outcomes. See [../PROVENANCE.md](../PROVENANCE.md), [LICENSE](LICENSE) and [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+This engine is the job-search tooling component of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops), maintained by Ankit Parekh and contributors under MIT. See [../PROVENANCE.md](../PROVENANCE.md), [LICENSE](LICENSE) and [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
-Never present upstream founder results, testimonials, signatures, portfolio work or adoption numbers as ReboundOps results. Keep candidate facts in the user-authored sources defined below. Project attribution is not candidate evidence.
+Never present unverified founder results, testimonials, signatures, portfolio work or adoption numbers as ReboundOps outcomes. Keep candidate facts in the user-authored sources defined below. Project attribution is not candidate evidence.
 
 ## Data Contract (CRITICAL)
 
@@ -562,11 +562,11 @@ This is a confirmation step, not a replacement for `check-liveness.mjs` — run 
 
 ## Repository workflow and upstream community
 
-This is an adapted component inside the ReboundOps monorepo. Follow the root repository instructions and actual `.github/workflows/` configuration for contribution, testing and publishing. The upstream project's branch rules, contributor ladder, bots and Discord community are not claims about ReboundOps. Questions about upstream development belong with [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops); ReboundOps integration issues belong in this repository.
+This is a component inside the ReboundOps monorepo. Follow the root repository instructions and actual `.github/workflows/` configuration for contribution, testing and publishing.
 
 ## ReboundOps product principles
 
-When relevant, link to ReboundOps principles at https://github.com/AnkitParekh007/rebound-ops/blob/main/docs/principles.md and explain the licensed upstream foundations. Do not solicit manifesto signatures or suggest that an inherited practice originated with ReboundOps.
+When relevant, link to ReboundOps principles at https://github.com/AnkitParekh007/rebound-ops/blob/main/docs/principles.md. Do not solicit manifesto signatures or invent adoption metrics.
 
 ## Headless / Batch Mode
 

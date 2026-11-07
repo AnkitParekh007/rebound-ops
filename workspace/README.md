@@ -41,9 +41,9 @@ Open http://127.0.0.1:4317. Pipeline counter should now read `0 pending`. The Ma
 
 ## Product principles and origins
 
-ReboundOps adds an evidence-led recovery journey and integrates job-search tooling adapted from [rebound-ops](https://github.com/AnkitParekh007/rebound-ops), created by Ankit Parekh  and contributors, and [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors. These foundations are MIT-licensed and remain credited; their authors do not endorse ReboundOps.
+This workspace is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops), maintained by Ankit Parekh and contributors under MIT.
 
-Read [our product principles](https://github.com/AnkitParekh007/rebound-ops/blob/main/docs/principles.md) and [the provenance ledger](https://github.com/AnkitParekh007/rebound-ops/blob/main/PROVENANCE.md). ReboundOps does not claim the upstream manifesto’s origin or founder outcomes. The complete applicable UI notice ships in this package’s LICENSE and THIRD_PARTY_NOTICES.md.
+Read [product principles](https://github.com/AnkitParekh007/rebound-ops/blob/main/docs/principles.md) and the [provenance ledger](https://github.com/AnkitParekh007/rebound-ops/blob/main/PROVENANCE.md). Engineering checks are not participant outcomes. The package ships LICENSE and THIRD_PARTY_NOTICES.md for standalone distributions.
 
 ## Why?
 
@@ -598,4 +598,4 @@ See the repository [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -40,7 +40,7 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 |---|---|---|---|
 | A1 | ~~Only **invariant** tests exist (consent, IDs, injection, caps). There is no **quality** evaluation set with expected outcomes or metrics~~ **Done (B4)** | Mock tests cannot say whether suggestions are useful or over-claim support; a model change cannot be regression-tested | Versioned fictional golden set (≥20 cases incl. red-team scenarios from the [rubric](evaluation-rubric.md)) with metrics: invalid-output rate, over-claimed `possible_support` rate (human-labelled), gap-recall, latency, tokens |
 | A2 | ~~Prompt and model are not versioned or recorded with outputs~~ **Done (B4)** | Results can't be reproduced or compared after a prompt or model change | Prompt ID/version constant; return `{model, promptVersion}` with every analysis; changing either requires a golden-set rerun |
-| A3 | Spend control is a per-process attempt counter that resets on restart; no currency ceiling | Restarting the process removes the cap | Require a provider-side workspace spend limit before live tests; document it as the real ceiling; optionally persist counters with durable storage |
+| A3 | ~~Spend control resets on restart~~ Counters can persist via `REBOUNDOPS_DATA_DIR` / `REBOUNDOPS_AI_COUNTER_FILE`; still no currency ceiling | Money risk remains if provider limits are unset | Require a provider-side workspace spend limit before live tests; local counters only bound request count |
 | A4 | No user-feedback loop on AI suggestions (accept/dismiss) | AI usefulness can't be measured during the pilot | Explicit "apply suggestion" action that goes through the existing manual requirement review, plus local-only accept/dismiss counts included in the pilot feedback export |
 | A5 | ~~No fairness / responsible-AI test cases (career breaks, non-native English phrasing, seniority/age signals)~~ **Done (B4)** | Career guidance is high-impact; the target users skew experienced | Add to the golden set; reviewer checks tone and assessment parity across paired cases |
 | A6 | Highest-value AI use (reviewable claim **extraction** from pasted documents with span citations, original engineering issue 3) is not built | The span/citation infrastructure exists, so this is the natural next AI capability | **Deferred** until G2 (live eval) passes and pilot shows that manual claim entry is a real friction point |
@@ -59,7 +59,7 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 | # | Gap | Why it matters | Response |
 |---|---|---|---|
 | D1 | ~~`schemaVersion: z.literal(1)` with no migration path for saved sessions or JSON backups~~ | The first schema change in a pilot upgrade would have made participants' saved sessions and backups unreadable | **Done (B1):** forward-only migration chain applied on disk load and backup restore, pre-upgrade `.backup` files, newer-version refusal, frozen v1 fixture; see [schema migrations](schema-migrations.md) |
-| D2 | No stated retention guidance for pilot artifacts (backups, feedback exports, facilitator notes) | Privacy promises depend on facilitators deleting data on schedule | Add retention/deletion step to the pilot runbook (e.g. delete raw notes after synthesis) |
+| D2 | ~~No stated retention guidance for pilot artifacts~~ **Documented** in the pilot runbook | Privacy promises depend on facilitators following the schedule | Facilitators must still execute deletion; engineering cannot prove compliance |
 
 ### 2.5 Security and supply chain
 
@@ -74,7 +74,7 @@ The gaps are grouped by architecture domain and ranked by their impact on the ne
 
 | # | Gap | Response |
 |---|---|---|
-| Q1 | No explicit conformance target; axe covers only serious/critical rules | Declare **WCAG 2.2 AA** as target; extend axe to all rules with a triaged baseline; manual screen-reader pass (NVDA + VoiceOver) remains a gate (#9) |
+| Q1 | ~~No explicit conformance target; axe covers only serious/critical rules~~ Target + manual script documented; axe tags now include WCAG 2.2 AA for serious/critical | Declare **WCAG 2.2 AA** as target ([manual QA](accessibility-manual-qa.md)); extend axe beyond serious/critical with a triaged baseline later; human screen-reader pass (NVDA + VoiceOver) remains a gate (#9) |
 
 ### 2.7 Documentation drift — resolved (B0, 5 Nov 2026)
 

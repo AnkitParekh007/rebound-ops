@@ -1,6 +1,6 @@
 # ReboundOps engine
 
-> Attribution: This engine adapts [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors (MIT). ReboundOps maintains an adapted integration. See [provenance](../PROVENANCE.md) and the original notices. This attribution correction is maintained in English.
+> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
 
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
@@ -453,10 +453,10 @@ rebound-ops/
 ## FAQ
 
 **Що таке rebound-ops?**
-ReboundOps integrates a modified MIT-licensed [rebound-ops engine](https://github.com/rebound-ops-hq/rebound-ops), originally created by Ankit Parekh and contributors. It did not originate the upstream manifesto or its founder outcomes. See [provenance](../PROVENANCE.md). (Attribution correction maintained in English.)
+ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
 
 **Чи може адаптоване резюме щось вигадати?**
-Не має права, і промпти це кажуть: переформульовувати, ніколи не вигадувати. `generate-pdf` блокує резюме, у якому є цифри чи факти, відсутні у ваших джерелах, якщо тільки ви не передасте `--skip-fact-check`. Режим `pdf` також запускає `cv-title-check.mjs`: він порівнює кожну назву посади в адаптованому резюме з назвою, яку cv.md дає тій самій роботі (зіставлення за компанією та датами), і питає, залишити чи повернути кожну, що відрізняється. Він лише попереджає, а не блокує, бо переформулювати назву посади іноді ваше рішення. Переформулювання поки ніщо не оцінює: це відстежує [#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411) (перевірка достовірності, що блокує в разі невідповідності). До того часу читайте кожне резюме перед відправкою. [Юридичне застереження](LEGAL_DISCLAIMER.md) каже те саме довше.
+Не має права, і промпти це кажуть: переформульовувати, ніколи не вигадувати. `generate-pdf` блокує резюме, у якому є цифри чи факти, відсутні у ваших джерелах, якщо тільки ви не передасте `--skip-fact-check`. Режим `pdf` також запускає `cv-title-check.mjs`: він порівнює кожну назву посади в адаптованому резюме з назвою, яку cv.md дає тій самій роботі (зіставлення за компанією та датами), і питає, залишити чи повернути кожну, що відрізняється. Він лише попереджає, а не блокує, бо переформулювати назву посади іноді ваше рішення. Переформулювання поки ніщо не оцінює: це відстежує [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (перевірка достовірності, що блокує в разі невідповідності). До того часу читайте кожне резюме перед відправкою. [Юридичне застереження](LEGAL_DISCLAIMER.md) каже те саме довше.
 
 **Чи можу я запускати rebound-ops безкоштовно або на дешевшій / локальній моделі?**
 Так. rebound-ops не залежить від CLI і працює на безкоштовних та локальних моделях (безкоштовні моделі OpenRouter, Ollama або будь-який OpenAI-сумісний ендпоінт), тож ви не прив'язані до платної підписки. Повне налаштування: [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md).
@@ -474,7 +474,7 @@ rebound-ops працює на Windows. Специфічне для платфо�
 Ні. rebound-ops є фільтром, а не інструментом масової автоматичної розсилки. AI оцінює, ранжує і готує чернетки; ви переглядаєте і вирішуєте. Він готує чернетки й заповнює поля; він ніколи не подає заявку. Ви натискаєте «Надіслати». Саме в цьому дизайні з людиною в контурі вся суть.
 
 **Чи rebound-ops безкоштовний і з відкритим кодом?**
-The source is MIT-licensed; optional AI providers may charge separately. Our own [product principles](../docs/principles.md) do not collect public signatures. The upstream manifesto remains the work of its original authors. (Attribution correction maintained in English.)
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
 
 ## Застереження
 
@@ -489,4 +489,4 @@ The source is MIT-licensed; optional AI providers may charge separately. Our own
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

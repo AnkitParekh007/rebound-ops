@@ -1,6 +1,6 @@
 # ReboundOps engine
 
-> Attribution: This engine adapts [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors (MIT). ReboundOps maintains an adapted integration. See [provenance](../PROVENANCE.md) and the original notices. This attribution correction is maintained in English.
+> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
 
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
@@ -453,10 +453,10 @@ Go डैशबोर्ड TUI, Node.js स्क्रिप्ट और AI �
 ## अक्सर पूछे जाने वाले प्रश्न (FAQ)
 
 **rebound-ops क्या है?**
-ReboundOps integrates a modified MIT-licensed [rebound-ops engine](https://github.com/rebound-ops-hq/rebound-ops), originally created by Ankit Parekh and contributors. It did not originate the upstream manifesto or its founder outcomes. See [provenance](../PROVENANCE.md). (Attribution correction maintained in English.)
+ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
 
 **क्या अनुकूलित CV कुछ गढ़ सकता है?**
-नहीं गढ़ना चाहिए, और प्रॉम्प्ट यही कहते हैं: दोबारा लिखो, कभी गढ़ो मत। `generate-pdf` ऐसे CV को रोक देता है जिसके आँकड़े या तथ्य आपके स्रोतों में नहीं हैं, जब तक आप `--skip-fact-check` न दें। `pdf` मोड `cv-title-check.mjs` भी चलाता है, जो अनुकूलित CV के हर पद के नाम की तुलना उसी नौकरी के लिए cv.md में दिए पद के नाम से करता है (कंपनी और तारीखों से मिलाकर), और जो भी अलग हो उसे रखने या वापस बदलने के बारे में आपसे पूछता है। यह सिर्फ़ चेतावनी देता है, रोकता नहीं, क्योंकि पद के नाम को अलग ढंग से लिखना कभी-कभी आपका फ़ैसला होता है। दोबारा लिखे गए शब्दों को अभी कुछ भी नहीं परखता: [#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411) (सत्यता जाँच जो विफल होने पर रोक दे) इसे ट्रैक करता है। तब तक, भेजने से पहले हर CV पढ़ें। [क़ानूनी अस्वीकरण](LEGAL_DISCLAIMER.md) यही बात ज़्यादा शब्दों में कहता है।
+नहीं गढ़ना चाहिए, और प्रॉम्प्ट यही कहते हैं: दोबारा लिखो, कभी गढ़ो मत। `generate-pdf` ऐसे CV को रोक देता है जिसके आँकड़े या तथ्य आपके स्रोतों में नहीं हैं, जब तक आप `--skip-fact-check` न दें। `pdf` मोड `cv-title-check.mjs` भी चलाता है, जो अनुकूलित CV के हर पद के नाम की तुलना उसी नौकरी के लिए cv.md में दिए पद के नाम से करता है (कंपनी और तारीखों से मिलाकर), और जो भी अलग हो उसे रखने या वापस बदलने के बारे में आपसे पूछता है। यह सिर्फ़ चेतावनी देता है, रोकता नहीं, क्योंकि पद के नाम को अलग ढंग से लिखना कभी-कभी आपका फ़ैसला होता है। दोबारा लिखे गए शब्दों को अभी कुछ भी नहीं परखता: [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (सत्यता जाँच जो विफल होने पर रोक दे) इसे ट्रैक करता है। तब तक, भेजने से पहले हर CV पढ़ें। [क़ानूनी अस्वीकरण](LEGAL_DISCLAIMER.md) यही बात ज़्यादा शब्दों में कहता है।
 
 **क्या मैं rebound-ops मुफ़्त में, या सस्ते / लोकल मॉडल पर चला सकता हूँ?**
 हाँ। rebound-ops CLI-निरपेक्ष है और मुफ़्त और लोकल मॉडल पर चलता है (OpenRouter के मुफ़्त मॉडल, Ollama, या कोई भी OpenAI-संगत एंडपॉइंट), इसलिए आप किसी पेड सब्सक्रिप्शन से बँधे नहीं हैं। पूरे सेटअप के लिए [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md) देखें।
@@ -474,7 +474,7 @@ rebound-ops Windows पर चलता है। प्लेटफ़ॉर्
 नहीं। rebound-ops एक फ़िल्टर है, अंधाधुंध ऑटो-आवेदन करने वाला टूल नहीं। AI मूल्यांकन, रैंकिंग और ड्राफ़्ट करता है; आप समीक्षा और फ़ैसला करते हैं। यह ड्राफ़्ट बनाता है और फ़ॉर्म भरता है; सबमिट कभी नहीं करता। आप Submit दबाते हैं। यही human-in-the-loop डिज़ाइन पूरी बात है।
 
 **क्या rebound-ops मुफ़्त और ओपन सोर्स है?**
-The source is MIT-licensed; optional AI providers may charge separately. Our own [product principles](../docs/principles.md) do not collect public signatures. The upstream manifesto remains the work of its original authors. (Attribution correction maintained in English.)
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
 
 ## Disclaimer
 
@@ -489,4 +489,4 @@ The source is MIT-licensed; optional AI providers may charge separately. Our own
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

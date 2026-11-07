@@ -1,6 +1,6 @@
 # ReboundOps engine
 
-> Attribution: This engine adapts [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors (MIT). ReboundOps maintains an adapted integration. See [provenance](../PROVENANCE.md) and the original notices. This attribution correction is maintained in English.
+> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
 
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
@@ -396,10 +396,10 @@ Go dashboard TUI, Node.js ஸ்கிரிப்ட்கள், AI ஏஜெ�
 ## அடிக்கடி கேட்கப்படும் கேள்விகள் (FAQ)
 
 **rebound-ops என்றால் என்ன?**
-ReboundOps integrates a modified MIT-licensed [rebound-ops engine](https://github.com/rebound-ops-hq/rebound-ops), originally created by Ankit Parekh and contributors. It did not originate the upstream manifesto or its founder outcomes. See [provenance](../PROVENANCE.md). (Attribution correction maintained in English.)
+ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
 
 **தனிப்பயனாக்கப்பட்ட CV எதையாவது புனையுமா?**
-புனையக்கூடாது, ப்ராம்ப்ட்களும் அதையே சொல்கின்றன: மறுவடிவமைக்கலாம், ஒருபோதும் புனையக்கூடாது. உங்கள் மூலங்களில் இல்லாத எண்களோ தகவல்களோ கொண்ட CV-ஐ `generate-pdf` தடுக்கிறது, நீங்கள் `--skip-fact-check` கொடுத்தால் தவிர. `pdf` பயன்முறை `cv-title-check.mjs`-ஐயும் இயக்குகிறது: தனிப்பயனாக்கிய CV-யில் உள்ள ஒவ்வொரு பதவிப் பெயரையும், அதே வேலைக்கு cv.md தரும் பதவிப் பெயருடன் (நிறுவனம், தேதிகள் மூலம் பொருத்தி) ஒப்பிட்டு, வேறுபடும் ஒவ்வொன்றையும் வைத்துக்கொள்வதா திரும்ப மாற்றுவதா என்று உங்களிடம் கேட்கிறது. பதவிப் பெயரை மாற்றி அமைப்பது சில நேரங்களில் உங்கள் முடிவாக இருக்கலாம் என்பதால், அது எச்சரிக்கை மட்டுமே தருகிறது, தடுப்பதில்லை. மாற்றி எழுதியதை இன்னும் எதுவும் மதிப்பிடுவதில்லை: [#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411) (பொருந்தாவிட்டால் தடுக்கும் உண்மைத்தன்மைச் சோதனை) இதைக் கண்காணிக்கிறது. அதுவரை, அனுப்பும் முன் ஒவ்வொரு CV-ஐயும் படியுங்கள். [சட்டப்பூர்வ மறுப்பு](LEGAL_DISCLAIMER.md) இதையே அதிக வார்த்தைகளில் சொல்கிறது.
+புனையக்கூடாது, ப்ராம்ப்ட்களும் அதையே சொல்கின்றன: மறுவடிவமைக்கலாம், ஒருபோதும் புனையக்கூடாது. உங்கள் மூலங்களில் இல்லாத எண்களோ தகவல்களோ கொண்ட CV-ஐ `generate-pdf` தடுக்கிறது, நீங்கள் `--skip-fact-check` கொடுத்தால் தவிர. `pdf` பயன்முறை `cv-title-check.mjs`-ஐயும் இயக்குகிறது: தனிப்பயனாக்கிய CV-யில் உள்ள ஒவ்வொரு பதவிப் பெயரையும், அதே வேலைக்கு cv.md தரும் பதவிப் பெயருடன் (நிறுவனம், தேதிகள் மூலம் பொருத்தி) ஒப்பிட்டு, வேறுபடும் ஒவ்வொன்றையும் வைத்துக்கொள்வதா திரும்ப மாற்றுவதா என்று உங்களிடம் கேட்கிறது. பதவிப் பெயரை மாற்றி அமைப்பது சில நேரங்களில் உங்கள் முடிவாக இருக்கலாம் என்பதால், அது எச்சரிக்கை மட்டுமே தருகிறது, தடுப்பதில்லை. மாற்றி எழுதியதை இன்னும் எதுவும் மதிப்பிடுவதில்லை: [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (பொருந்தாவிட்டால் தடுக்கும் உண்மைத்தன்மைச் சோதனை) இதைக் கண்காணிக்கிறது. அதுவரை, அனுப்பும் முன் ஒவ்வொரு CV-ஐயும் படியுங்கள். [சட்டப்பூர்வ மறுப்பு](LEGAL_DISCLAIMER.md) இதையே அதிக வார்த்தைகளில் சொல்கிறது.
 
 **rebound-ops-ஐ இலவசமாகவோ, மலிவான / லோக்கல் மாடலிலோ இயக்க முடியுமா?**
 ஆம். rebound-ops CLI-agnostic; இலவச மற்றும் லோக்கல் மாடல்களில் (OpenRouter இலவச மாடல்கள், Ollama, அல்லது எந்த OpenAI-compatible endpoint) இயங்கும், எனவே நீங்கள் கட்டணச் சந்தாவுடன் கட்டுப்படவில்லை. முழு அமைப்பிற்கு [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md) பார்க்கவும்.
@@ -417,7 +417,7 @@ rebound-ops Windows-இல் இயங்கும். தளம் சார�
 இல்லை. rebound-ops ஒரு வடிகட்டி, கண்மூடித்தனமாக விண்ணப்பிக்கும் auto-applier அல்ல. AI மதிப்பிட்டு, தரவரிசைப்படுத்தி, வரைவு எழுதுகிறது; நீங்கள் மதிப்பாய்வு செய்து முடிவெடுக்கிறீர்கள். அது வரைவு எழுதி, படிவங்களை நிரப்புகிறது; ஒருபோதும் சமர்ப்பிப்பதில்லை. நீங்கள் Submit-ஐ அழுத்துகிறீர்கள். இந்த human-in-the-loop வடிவமைப்பே முழு நோக்கம்.
 
 **rebound-ops இலவசமா, ஓப்பன் சோர்ஸா?**
-The source is MIT-licensed; optional AI providers may charge separately. Our own [product principles](../docs/principles.md) do not collect public signatures. The upstream manifesto remains the work of its original authors. (Attribution correction maintained in English.)
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
 
 ## Disclaimer
 
@@ -432,4 +432,4 @@ The source is MIT-licensed; optional AI providers may charge separately. Our own
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

@@ -20,6 +20,22 @@ The high-severity path normalization/route-guard issue is [GHSA-83w8-p2f5-377r](
 
 **Post-upgrade audit result (3 November 2026):** zero critical and zero high findings, but **three moderate npm advisory entries remain**, reported under `@fastify/static`, `glob` and `minimatch` (the dependency chain, not three independent user-facing features). The lock currently pins `@fastify/static 10.1.8` → `glob 13.0.6` → `minimatch 10.2.6`. The newer [minimatch advisory GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) concerns computational amplification with attacker-controlled glob patterns and is fixed only in minimatch 11.0.1+. The currently installed glob 13 declares `minimatch ^10.2.2`, so blindly overriding it across a major version could break consumers. ReboundOps does not intentionally accept user-supplied glob patterns, and the API is localhost-only; nonetheless these are **unresolved moderate findings**, not a clean-audit claim. Track upstream compatible updates before any public deployment, and do not suppress the audit results.
 
+### Owner disposition template (moderate advisories)
+
+Complete before any public GitHub Release or hosted exposure:
+
+| Field | Entry |
+| --- | --- |
+| Review date | |
+| Commit / lockfile SHA reviewed | |
+| Advisories considered | GHSA-3g3m-2fjr-6pw4 (glob), GHSA-g3hv-75wg-m249 (minimatch), related `@fastify/static` chain |
+| Reachability in ReboundOps | Localhost static hosting of a fixed Angular build; wildcard:false mode not enabled; no user-supplied globs |
+| Decision | Accept residual risk for localhost pilot / Remediate via upstream bump / Block release |
+| Owner initials | |
+| Next re-check date | |
+
+Until this table is filled for the release commit, treat moderate findings as an open G4 item.
+
 This is a point-in-time review. Advisory data may change after a green build. Actual runtime exploitability depends on deployment and route configuration; ReboundOps remains localhost-only.
 
 ## License inventory

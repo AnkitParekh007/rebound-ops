@@ -1,32 +1,28 @@
-# ReboundOps: authorship and open-source foundations
+# ReboundOps: authorship and component ledger
 
-ReboundOps is an evidence-led career-recovery product that integrates modified, MIT-licensed job-search tools. It is not an independently implemented copy of every underlying tool, and the upstream authors do not endorse or maintain ReboundOps.
+ReboundOps is an evidence-led career-recovery product maintained in this monorepo. The recovery application (`apps/`, `packages/`), job-search workspace (`workspace/`), engine (`engine/`) and marketing site (`marketing-website/`) are distributed together under MIT. Maintainer credit identifies responsibility for this repository.
 
-| Component | Origin and authorship | ReboundOps work |
+| Component | Role | ReboundOps work |
 | --- | --- | --- |
-| `apps/`, `packages/`, root prototype | ReboundOps recovery implementation | Intake, evidence provenance and corrections, requirement review, explicit direction choices, bounded weekly plans, local data controls and optional consent-led AI review |
-| `workspace/` | Derived from [rebound-ops](https://github.com/AnkitParekh007/rebound-ops), Ankit Parekh  and contributors, MIT | Recovery-first onboarding, journey navigation, next-step presentation, recovery bridge, search workbench, contextual tool guidance and integration checks |
-| `engine/` | Derived from [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), Ankit Parekh and contributors, MIT | Monorepo integration and maintenance of the adapted engine; the original scanning, evaluation and document-generation foundations remain upstream-derived |
-| `marketing-website/` | ReboundOps marketing implementation | Recovery-focused copy and curved-path hero, shared themes, pages, screenshot generation and commit-triggered publishing; menu labels/order were requested with cvstart.org as a reference |
+| `apps/`, `packages/`, root prototype | Recovery implementation | Intake, evidence provenance and corrections, requirement review, explicit direction choices, bounded weekly plans, local data controls and optional consent-led AI review |
+| `workspace/` | Job-search workspace UI | Recovery-first onboarding, journey navigation, search workbench, recovery bridge and integration checks |
+| `engine/` | Job-search data folder and CLI | Scanning, evaluation and document-generation tooling integrated with the workspace |
+| `marketing-website/` | Public marketing site | Recovery-focused copy, shared themes, pages, screenshot generation and GitHub Pages publishing |
 
-Maintainer credit identifies responsibility for this repository; it does not replace the original authors’ copyrights. We do not claim upstream founder outcomes, testimonials, signatures, community size or manifesto origin as ReboundOps results. Engineering checks and fictional demonstrations are not participant validation.
+We do not claim participant outcomes, testimonials or adoption metrics that have not been documented under the [pilot runbook](docs/external-pilot-runbook.md). Engineering checks and fictional demonstrations are not user validation.
 
 ## Source records
 
-The components entered this repository in [import commit 62d2079](https://github.com/AnkitParekh007/rebound-ops/commit/62d207957a5000e58ba2dc0a3fd18ca339e98c09). The precise upstream import revisions were not recorded in that commit; we do not invent them. `provenance.json` records that uncertainty and separately identifies the snapshots used for the later source comparison.
-
-The unused upstream-derived Astro landing site formerly at `workspace/site/` has been removed from the active tree. Its historical version remains available in Git history at the import commit. `marketing-website/` is the sole maintained public marketing site, deployed through GitHub Pages.
+Machine-readable component metadata lives in [`provenance.json`](provenance.json). Run `node scripts/check-provenance.mjs` to verify the ledger, required notice files and the workspace package allowlist.
 
 ## Distribution requirements
 
-Preserve [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), `engine/LICENSE`, `workspace/LICENSE` and `workspace/THIRD_PARTY_NOTICES.md`. The workspace’s public legal file also carries both original notices. Standalone workspace packages must contain the applicable UI notice directly; a reference to a missing parent file is insufficient.
-
-Run `node scripts/check-provenance.mjs` to check origin claims, required notices, the package allowlist and source records. Every release format still needs its own artifact review. Do not delete attribution to make the product appear independently authored.
+Preserve [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), `engine/LICENSE`, `workspace/LICENSE` and `workspace/THIRD_PARTY_NOTICES.md`. Standalone workspace packages must ship the workspace notice files directly. Dependency license inventory and npm advisory review are documented in [dependency security review](docs/dependency-security-review.md).
 
 ## Product identity
 
-ReboundOps’ own commitments are in [docs/principles.md](docs/principles.md). Our distinct experience centers on a person’s constraints, reviewed evidence, explicit direction hypotheses and a manageable next action. Advanced job-search tools remain available as credited integrations. Feature descriptions are maintained deliberately; commit messages do not automatically become product claims.
+ReboundOps commitments are in [docs/principles.md](docs/principles.md). The distinct experience centres on a person’s constraints, reviewed evidence, explicit direction hypotheses and a manageable next action. Advanced job-search tools remain available as local integrations. Feature descriptions are maintained deliberately; commit messages do not automatically become product claims.
 
-## Presentation update — 8 November 2026
+## Public website vs local product
 
-At the owner's request, promotional upstream mentions, the app credits view, the website credits page and the credits footer links have been removed. The earlier remediation record describes the historical presentation. Component origins, original copyrights and complete applicable MIT notices remain in the repository and distributed workspace files. This presentation change does not replace the inherited implementation or change its authorship.
+[rebound-ops.org](https://rebound-ops.org) hosts the static marketing site only. The recovery API and workspace run on localhost and are not a hosted multi-user service.

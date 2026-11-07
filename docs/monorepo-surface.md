@@ -1,0 +1,25 @@
+# Monorepo surface plan (workspace + engine)
+
+## Why this note exists
+
+The recovery MVP (`apps/`, `packages/`) is relatively small. `workspace/` and `engine/` are large inherited job-search surfaces (hundreds of tests and many CLI scripts). That size raises maintenance cost and increases the chance that marketing or docs overstate a single coherent “product.”
+
+## Near-term policy (no mass deletion)
+
+1. Treat **recovery app** as the validated product path for pilots.
+2. Treat **workspace/engine** as optional local job-search tooling launched via `scripts/start-demo.sh`.
+3. Do not sync recovery sessions into `engine/` without an explicit consent UI (roadmap deferred item).
+4. Keep provenance/license checks green; do not claim upstream founder outcomes.
+
+## Candidate reductions (owner decision required)
+
+| Candidate | Benefit | Risk |
+| --- | --- | --- |
+| Stop shipping unused engine plugin directories in preview archives | Smaller artifacts | Breaks operators who rely on those plugins |
+| Quarantine `engine/web` / dashboard extras behind docs | Clearer MVP boundary | Contributor confusion if paths move |
+| Freeze engine feature work until G1 | Protects validation focus | Delays job-search polish |
+| Extract workspace into a separate repo later | Cleaner product boundary | Split release/process cost |
+
+## Decision trigger
+
+Revisit after G3 (pilot value). If participants never use workspace tools, prefer documentation demotion over a risky delete. If they do, invest in the recovery↔workspace handoff rather than more engine surface.

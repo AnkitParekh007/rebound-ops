@@ -1,6 +1,6 @@
 # ReboundOps engine
 
-> Attribution: This engine adapts [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors (MIT). ReboundOps maintains an adapted integration. See [provenance](../PROVENANCE.md) and the original notices. This attribution correction is maintained in English.
+> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
 
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
@@ -400,10 +400,10 @@ TUI dashboard viết bằng Go, các script Node.js và các mode của AI agent
 ## Câu hỏi thường gặp
 
 **rebound-ops là gì?**
-ReboundOps integrates a modified MIT-licensed [rebound-ops engine](https://github.com/rebound-ops-hq/rebound-ops), originally created by Ankit Parekh and contributors. It did not originate the upstream manifesto or its founder outcomes. See [provenance](../PROVENANCE.md). (Attribution correction maintained in English.)
+ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
 
 **CV đã điều chỉnh có thể bịa ra thông tin không?**
-Không được phép, và các prompt đã nói rõ: diễn đạt lại, không bao giờ bịa. `generate-pdf` chặn CV có số liệu hoặc thông tin không có trong nguồn của bạn, trừ khi bạn truyền `--skip-fact-check`. Chế độ `pdf` cũng chạy `cv-title-check.mjs`, công cụ so sánh từng chức danh trong CV đã tùy chỉnh với chức danh mà cv.md ghi cho cùng công việc đó (ghép theo công ty và thời gian), rồi hỏi bạn muốn giữ hay đổi lại chức danh nào khác biệt. Nó chỉ cảnh báo chứ không chặn, vì diễn đạt lại một chức danh đôi khi là quyết định của bạn. Chưa có gì đánh giá cách diễn đạt lại: [#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411) (kiểm tra tính trung thực theo hướng chặn khi lỗi) đang theo dõi việc này. Cho đến lúc đó, hãy đọc từng CV trước khi gửi. [Tuyên bố miễn trừ pháp lý](LEGAL_DISCLAIMER.md) nói điều tương tự bằng lời dài hơn.
+Không được phép, và các prompt đã nói rõ: diễn đạt lại, không bao giờ bịa. `generate-pdf` chặn CV có số liệu hoặc thông tin không có trong nguồn của bạn, trừ khi bạn truyền `--skip-fact-check`. Chế độ `pdf` cũng chạy `cv-title-check.mjs`, công cụ so sánh từng chức danh trong CV đã tùy chỉnh với chức danh mà cv.md ghi cho cùng công việc đó (ghép theo công ty và thời gian), rồi hỏi bạn muốn giữ hay đổi lại chức danh nào khác biệt. Nó chỉ cảnh báo chứ không chặn, vì diễn đạt lại một chức danh đôi khi là quyết định của bạn. Chưa có gì đánh giá cách diễn đạt lại: [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (kiểm tra tính trung thực theo hướng chặn khi lỗi) đang theo dõi việc này. Cho đến lúc đó, hãy đọc từng CV trước khi gửi. [Tuyên bố miễn trừ pháp lý](LEGAL_DISCLAIMER.md) nói điều tương tự bằng lời dài hơn.
 
 **Tôi có thể chạy rebound-ops miễn phí, hoặc trên mô hình rẻ hơn / cục bộ không?**
 Được. rebound-ops không phụ thuộc CLI và chạy được trên mô hình miễn phí và cục bộ (mô hình miễn phí của OpenRouter, Ollama hoặc bất kỳ endpoint tương thích OpenAI nào), nên bạn không bị ràng buộc với gói trả phí. Xem [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md) để biết cách thiết lập đầy đủ.
@@ -421,7 +421,7 @@ rebound-ops chạy được trên Windows. Thiết lập riêng cho nền tảng
 Không. rebound-ops là một bộ lọc, không phải công cụ tự ứng tuyển hàng loạt. AI đánh giá, xếp hạng và soạn nháp; bạn xem lại và quyết định. Nó soạn và điền; nó không bao giờ nộp. Bạn bấm Submit. Thiết kế có con người trong vòng lặp đó chính là cốt lõi.
 
 **rebound-ops có miễn phí và mã nguồn mở không?**
-The source is MIT-licensed; optional AI providers may charge separately. Our own [product principles](../docs/principles.md) do not collect public signatures. The upstream manifesto remains the work of its original authors. (Attribution correction maintained in English.)
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
 
 ## Miễn trừ trách nhiệm
 
@@ -436,4 +436,4 @@ Xem [LEGAL_DISCLAIMER.md](LEGAL_DISCLAIMER.md) để biết chi tiết. Phần m
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

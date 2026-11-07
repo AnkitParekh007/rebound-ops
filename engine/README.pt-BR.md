@@ -1,6 +1,6 @@
 # ReboundOps engine
 
-> Attribution: This engine adapts [rebound-ops](https://github.com/rebound-ops-hq/rebound-ops), created by Ankit Parekh and contributors (MIT). ReboundOps maintains an adapted integration. See [provenance](../PROVENANCE.md) and the original notices. This attribution correction is maintained in English.
+> Attribution: This engine is part of the [ReboundOps monorepo](https://github.com/AnkitParekh007/rebound-ops) (MIT). See [provenance](../PROVENANCE.md). This attribution note is maintained in English.
 
 The job-search data folder and command-line scripts behind the **ReboundOps Workspace** (`../workspace`), part of the [rebound-ops](https://github.com/AnkitParekh007/rebound-ops) monorepo. Start the integrated demo from the repository root with `scripts/start-demo.sh`.
 
@@ -453,10 +453,10 @@ O dashboard TUI em Go, os scripts Node.js e os modos do agente de IA respeitam a
 ## FAQ
 
 **O que é o rebound-ops?**
-ReboundOps integrates a modified MIT-licensed [rebound-ops engine](https://github.com/rebound-ops-hq/rebound-ops), originally created by Ankit Parekh and contributors. It did not originate the upstream manifesto or its founder outcomes. See [provenance](../PROVENANCE.md). (Attribution correction maintained in English.)
+ReboundOps maintains this engine inside the [monorepo](https://github.com/AnkitParekh007/rebound-ops). Engineering checks are not participant outcomes. See [provenance](../PROVENANCE.md). (Attribution note maintained in English.)
 
 **O currículo personalizado pode inventar coisas?**
-Não deve, e os prompts dizem isso: reformular, nunca inventar. O `generate-pdf` bloqueia um currículo com números ou fatos que não estão nas suas fontes, a menos que você passe `--skip-fact-check`. O modo `pdf` também executa o `cv-title-check.mjs`, que compara cada cargo do currículo adaptado com o cargo que o cv.md dá para o mesmo emprego (pareado por empresa e datas) e pergunta se você quer manter ou reverter qualquer um que seja diferente. Ele só avisa, não bloqueia, porque reformular um cargo às vezes é decisão sua. Nada julga reformulações ainda: a [#1411](https://github.com/rebound-ops-hq/rebound-ops/issues/1411) (verificação de fidelidade que bloqueia em caso de falha) acompanha isso. Até lá, leia cada currículo antes de enviar. O [aviso legal](LEGAL_DISCLAIMER.md) diz o mesmo com mais palavras.
+Não deve, e os prompts dizem isso: reformular, nunca inventar. O `generate-pdf` bloqueia um currículo com números ou fatos que não estão nas suas fontes, a menos que você passe `--skip-fact-check`. O modo `pdf` também executa o `cv-title-check.mjs`, que compara cada cargo do currículo adaptado com o cargo que o cv.md dá para o mesmo emprego (pareado por empresa e datas) e pergunta se você quer manter ou reverter qualquer um que seja diferente. Ele só avisa, não bloqueia, porque reformular um cargo às vezes é decisão sua. Nada julga reformulações ainda: a [#1411](https://github.com/AnkitParekh007/rebound-ops/issues/1411) (verificação de fidelidade que bloqueia em caso de falha) acompanha isso. Até lá, leia cada currículo antes de enviar. O [aviso legal](LEGAL_DISCLAIMER.md) diz o mesmo com mais palavras.
 
 **Posso rodar o rebound-ops de graça ou em um modelo local / mais barato?**
 Sim. O rebound-ops é independente de CLI e roda em modelos gratuitos e locais (modelos gratuitos do OpenRouter, Ollama ou qualquer endpoint compatível com OpenAI), então você não fica preso a uma assinatura paga. Veja [docs/RUNNING_ON_A_BUDGET.md](docs/RUNNING_ON_A_BUDGET.md) para a configuração completa.
@@ -474,7 +474,7 @@ O rebound-ops roda no Windows. A configuração específica da plataforma e as a
 Não. O rebound-ops é um filtro, não um disparador automático de candidaturas em massa. A IA avalia, ranqueia e redige; você revisa e decide. Ele redige e preenche; nunca envia. Você clica em Enviar. Esse design com o humano no loop é justamente o ponto.
 
 **O rebound-ops é gratuito e open source?**
-The source is MIT-licensed; optional AI providers may charge separately. Our own [product principles](../docs/principles.md) do not collect public signatures. The upstream manifesto remains the work of its original authors. (Attribution correction maintained in English.)
+The source is MIT-licensed; optional AI providers may charge separately. See [product principles](../docs/principles.md). (Attribution note maintained in English.)
 
 ## Aviso legal
 
@@ -489,4 +489,4 @@ Veja [LEGAL_DISCLAIMER.md](LEGAL_DISCLAIMER.md) para todos os detalhes. Este sof
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This folder is derived from third-party MIT-licensed software; the original notices are reproduced in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
