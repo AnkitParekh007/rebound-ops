@@ -97,6 +97,8 @@ Additional tools include statistics, interview preparation, networking, career p
 
 ## Screenshots
 
+[Watch or download the launch videos](media/launch/README.md) — widescreen and LinkedIn formats.
+
 These bundled captures use fictional demonstration data. The [website gallery](https://rebound-ops.org/screenshots/) shows the source commit and capture date for automatically generated production screenshots.
 
 ![ReboundOps search workbench with a recovery action and practical job-search decisions](marketing-website/public/assets/dashboard.png)
