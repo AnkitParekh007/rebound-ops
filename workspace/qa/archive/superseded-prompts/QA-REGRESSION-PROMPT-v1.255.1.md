@@ -27,7 +27,7 @@ node evals/workflow/run.mjs
    subprocess body-score путь отдаёт верные скоры.
 
 ## §2 — Регрессии (не трогать)
-Всё из v1.255.0: vi как 19-я локаль (switcher ×19, locale-sweep ×19, cvstart /vi/ 200), cold-load
+Всё из v1.255.0: vi как 19-я локаль (switcher ×19, locale-sweep ×19, reboundops-site /vi/ 200), cold-load
 bundle (90 script tags / 87 bundlable — drift-гейт обновлён), snapshot-safety R-12, 11 LLM-инвариантов,
 SPA must-fixes, Paylocity, IPv6-SSRF + ReDoS, pipeline skip contract, wiki-banner gate.
 

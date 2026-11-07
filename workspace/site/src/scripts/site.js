@@ -60,7 +60,7 @@ for (const details of document.querySelectorAll('details.lang-switcher')) {
     const opt = e.target.closest('[role="option"]');
     if (opt && opt.dataset.code) {
       try {
-        localStorage.setItem('cvstart-lang', opt.dataset.code);
+        localStorage.setItem('reboundops-site-lang', opt.dataset.code);
       } catch {
         /* private mode */
       }
@@ -172,7 +172,7 @@ if ('IntersectionObserver' in window && !reduced) {
   if (!banner) return;
   let stored = null;
   try {
-    stored = localStorage.getItem('cvstart-lang');
+    stored = localStorage.getItem('reboundops-site-lang');
   } catch {
     return;
   }
@@ -207,14 +207,14 @@ if ('IntersectionObserver' in window && !reduced) {
   link.href = target.path;
   link.addEventListener('click', () => {
     try {
-      localStorage.setItem('cvstart-lang', target.code);
+      localStorage.setItem('reboundops-site-lang', target.code);
     } catch {
       /* ignore */
     }
   });
   banner.querySelector('#lang-banner-dismiss').addEventListener('click', () => {
     try {
-      localStorage.setItem('cvstart-lang', current);
+      localStorage.setItem('reboundops-site-lang', current);
     } catch {
       /* ignore */
     }

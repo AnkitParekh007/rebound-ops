@@ -2,7 +2,7 @@
 
 Three fixes, all reported from outside: a mobile top-bar that wrapped into a
 second row of wide pills, and the two findings from the v1.231.1 browser
-regression (FIND-1 parent drift on the server, FIND-2 the cvstart.ru redirect).
+regression (FIND-1 parent drift on the server, FIND-2 the reboundops.example redirect).
 
 ---
 
@@ -78,18 +78,18 @@ deploy by checksum (`rsync -rn --checksum`), never by exit code.
 
 ---
 
-## §3 — FIND-2: the cvstart.ru redirect
+## §3 — FIND-2: the reboundops.example redirect
 
 The redirect prepended `/ru/` to every path without looking at what was there.
 
 | request | before | now |
 |---|---|---|
-| `cvstart.ru/` | `/ru/` ✅ | `/ru/` ✅ |
-| `cvstart.ru/help/` | `/ru/help/` ✅ | `/ru/help/` ✅ |
-| `cvstart.ru/ru/help/` | `/ru/ru/help/` **404** | `/ru/help/` ✅ |
-| `cvstart.ru/en/help/` | `/ru/en/help/` **404** | `/help/` ✅ |
-| `cvstart.ru/de/` | `/ru/de/` **404** | `/de/` ✅ |
-| `cvstart.ru/enterprise/` | `/ru/enterprise/` | `/ru/enterprise/` — unchanged |
+| `reboundops.example/` | `/ru/` ✅ | `/ru/` ✅ |
+| `reboundops.example/help/` | `/ru/help/` ✅ | `/ru/help/` ✅ |
+| `reboundops.example/ru/help/` | `/ru/ru/help/` **404** | `/ru/help/` ✅ |
+| `reboundops.example/en/help/` | `/ru/en/help/` **404** | `/help/` ✅ |
+| `reboundops.example/de/` | `/ru/de/` **404** | `/de/` ✅ |
+| `reboundops.example/enterprise/` | `/ru/enterprise/` | `/ru/enterprise/` — unchanged |
 
 `en` is **stripped**, not passed through: reboundops.example serves English at the root
 and has no `/en/` directory. The locale test is anchored and requires `/` or
@@ -106,7 +106,7 @@ browser, or read the served HTML and confirm it contains the `LOCALES` test.
 - Collage / Telegram (strict) / Gem REST against live data: none are configured
   in `portals.yml`, so no rows from them appear in a scan. Covered by unit tests
   (14 + 24 + 23), not reproducible from the browser.
-- Mail on cvstart.ru after the Cloudflare migration — only a real message
+- Mail on reboundops.example after the Cloudflare migration — only a real message
   proves the MX survived.
 
 ---
@@ -117,4 +117,4 @@ browser, or read the served HTML and confirm it contains the `LOCALES` test.
 - [ ] top bar one row at 320 / 360 / 390 / 430 px, icons visible, labels hidden
 - [ ] top bar labels return above 900 px
 - [ ] prod `/api/health` → `parentVersion: 1.32.0`
-- [ ] the four cvstart.ru path forms in §3, in a real browser
+- [ ] the four reboundops.example path forms in §3, in a real browser

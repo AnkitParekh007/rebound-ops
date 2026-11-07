@@ -1514,12 +1514,12 @@ Zablokowane dwukrotnie: `node:vm` na prawdziwym `withSpinner` i kliknięcie w pr
 
 ## [1.231.2] — 2026-09-06
 
-**Naprawiono — mobilny górny pasek łamał się na dwa wiersze, serwer działał na starszym projekcie nadrzędnym, a przekierowanie cvstart.ru dawało 404 dla każdej ścieżki, która już nazywała język.**
+**Naprawiono — mobilny górny pasek łamał się na dwa wiersze, serwer działał na starszym projekcie nadrzędnym, a przekierowanie reboundops.example dawało 404 dla każdej ścieżki, która już nazywała język.**
 
 ### Naprawiono
 - **Mobilny górny pasek znów mieści się w jednym wierszu, akcje tylko ikonami.** Przyciski akcji były wypychane do drugiego wiersza na całą szerokość: telefon pokazywał `[☰ · szukaj]` nad `[🔔 🌙 Doctor Otwórz Scan]` — dwie szerokie pigułki we własnym wierszu. Teraz to kwadraty 36 px (🩺 / ⚡) obok dzwonka i przełącznika motywu, a przy 320 px wszystko mieści się w jednym wierszu. Zmierzone, nie oszacowane na oko: szerokość dokumentu równa się widocznemu obszarowi przy 320, 360, 390 i 430 px oraz w całym paśmie 560–760 px, gdzie wcześniej przyciski nachodziły na pole wyszukiwania. **Język nie wpływa już na układ mobilny**, bo etykieta jest ukryta, a przycisk to stały kwadrat; powyżej 900 px etykiety wracają bez zmian.
 - **Serwer działał na projekcie nadrzędnym 1.31.0, choć wydanie zbudowano pod 1.32.0.** `/api/health` na serwerze produkcyjnym zgłaszał `parentVersion: 1.31.0`. Zsynchronizowano 95 plików wykonawczych, dwa usunięto. Wykryte przez QA w przeglądarce na powierzchni produkcyjnej.
-- **`cvstart.ru` dodawał `/ru/` do każdej ścieżki, nie patrząc, co już tam było.** `/ru/help` stawało się `/ru/ru/help`, a `/en/help` — `/ru/en/help`; oba 404. Pierwsze to efekt skopiowania adresu z głównej witryny; drugie całkowicie odcinało anglojęzycznego odwiedzającego od wersji angielskiej. Teraz ścieżka nazywająca już jeden z 16 prefiksów przechodzi bez zmian, `en` jest usuwane (angielski jest w katalogu głównym), reszta nadal dostaje `/ru/`.
+- **`reboundops.example` dodawał `/ru/` do każdej ścieżki, nie patrząc, co już tam było.** `/ru/help` stawało się `/ru/ru/help`, a `/en/help` — `/ru/en/help`; oba 404. Pierwsze to efekt skopiowania adresu z głównej witryny; drugie całkowicie odcinało anglojęzycznego odwiedzającego od wersji angielskiej. Teraz ścieżka nazywająca już jeden z 16 prefiksów przechodzi bez zmian, `en` jest usuwane (angielski jest w katalogu głównym), reszta nadal dostaje `/ru/`.
 
 ### Zmieniono
 - **98 nieaktualnych promptów QA przeniesiono do `qa/archive/superseded-prompts/`.** `qa/README.md` dokumentuje od v1.137.0, że na górnym poziomie zostaje tylko prompt bieżącego wydania — reguły nie stosowano przez 95 wydań.

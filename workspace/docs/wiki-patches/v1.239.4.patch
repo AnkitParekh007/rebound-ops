@@ -249,7 +249,7 @@ index 0574d9a..b1f3d35 100644
 -> 현재 릴리스: **v1.239.3** · Node ≥ 18 · Express 4 + 바닐라 JS SPA · 스캐너 어댑터 103개 · 라우트 모듈 37개 · UI 로케일 17개 · 단위 테스트 3778개.
 +> 현재 릴리스: **v1.239.4** · Node ≥ 18 · Express 4 + 바닐라 JS SPA · 스캐너 어댑터 103개 · 라우트 모듈 37개 · UI 로케일 17개 · 단위 테스트 3782개.
  >
- > _비공식 UI — rebound-ops / santifer와 제휴하거나 보증받지 않았습니다._
+ > _비공식 UI — rebound-ops / the original author와 제휴하거나 보증받지 않았습니다._
  
 diff --git a/Home.md b/Home.md
 index 3479843..8271ac2 100644

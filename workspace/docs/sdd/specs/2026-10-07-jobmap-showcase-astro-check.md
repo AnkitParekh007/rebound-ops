@@ -61,7 +61,7 @@ resolution.
 1. Red: reproduce the ts(2307) locally with `npx astro check`.
 2. Fix the single import (local interface, same shape).
 3. Green: criteria 1–3 locally, twice (проверяй несколько раз).
-4. Branch `fix/cvstart-pages-astro-check` → PR → CI → merge; watch the Pages
+4. Branch `fix/reboundops-site-pages-astro-check` → PR → CI → merge; watch the Pages
    workflow to green.
 
 ## Risks and invariants touched

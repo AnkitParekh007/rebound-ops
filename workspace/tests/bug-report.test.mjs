@@ -42,7 +42,7 @@ test('logbuf ring buffer caps at 20 newest entries', () => {
 
 test('scrub redacts home paths + secret-looking tokens', () => {
   const { BugReport } = loadLibs();
-  assert.equal(BugReport.scrub('/Users/sergey/cv.md failed'), '~/cv.md failed');
+  assert.equal(BugReport.scrub('/Users/jane/cv.md failed'), '~/cv.md failed');
   assert.equal(BugReport.scrub('/home/alex/data'), '~/data');
   assert.ok(!/ABCDEFGH12345678/.test(BugReport.scrub('api-key=ABCDEFGH12345678')));
   // Bare (unlabelled) provider keys must be redacted too — common in SDK traces.
@@ -66,7 +66,7 @@ test('fingerprint is deterministic + stable across volatile status codes', () =>
 test('issueBody carries the privacy floor + the format marker, scrubs the description', () => {
   const { BugReport } = loadLibs();
   const d = { version: '1.98.0', parentVersion: '1.16.0', route: '#/cv', ua: 'X', viewport: '800×600', okChecks: 18, failChecks: ['portals.yml'], logs: ['[api] /api/cv → 500'] };
-  const body = BugReport.issueBody(d, 'crash when I open /Users/sergey/cv.md');
+  const body = BugReport.issueBody(d, 'crash when I open /Users/jane/cv.md');
   assert.match(body, /## What happened/);
   assert.match(body, /## Environment/);
   assert.match(body, /\*\*Version:\*\* `1\.98\.0` · parent `1\.16\.0`/);
@@ -77,7 +77,7 @@ test('issueBody carries the privacy floor + the format marker, scrubs the descri
   assert.match(body, /Contains NO CV, profile/);
   // the user's description is scrubbed (home path → ~)
   assert.match(body, /~\/cv\.md/);
-  assert.ok(!/\/Users\/sergey/.test(body), 'home path must be scrubbed out');
+  assert.ok(!/\/Users\/jane/.test(body), 'home path must be scrubbed out');
 });
 
 test('issueUrl targets the web-ui repo with title + labels + fingerprint in body', () => {

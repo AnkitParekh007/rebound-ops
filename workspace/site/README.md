@@ -48,7 +48,7 @@ prefixes: `/es/ /fr/ /pt-br/ /ko/ /ja/ /ru/ /zh-cn/ /zh-tw/ /pl/ /uk/ /da/
 /ar/ /de/ /it/ /tr/`. Arabic is RTL (`<html dir="rtl">`, logical
 properties). There are **no Accept-Language redirects** — a dismissible
 one-time banner offers the browser's language; the choice is stored in
-`localStorage` under `cvstart-lang`. Every page carries hreflang
+`localStorage` under `reboundops-site-lang`. Every page carries hreflang
 alternates ×16 + `x-default`, absolute canonicals on `https://github.com/AnkitParekh007/rebound-ops`,
 and JSON-LD (`SoftwareApplication` on landings, `TechArticle` on help).
 

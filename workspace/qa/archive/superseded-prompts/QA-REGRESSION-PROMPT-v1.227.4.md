@@ -58,7 +58,7 @@ No registry, scanner-source, route-contract, server, i18n-dict or help-bundle ch
 This defect existed because v1.227.3's own code comment claimed `title_filter` **and** `content_filter` while only the title path was wired — the comment was written from intent rather than from the code. The AI review caught exactly that gap. The comment now states what each filter actually does, including the deliberate acronym asymmetry.
 
 ## §7 — Carried forward
-- **SURF-1 · cvstart.ru** — still `https_certificate.state: "new"` after a full API remove/re-add and 50 days stuck. Needs one manual remove/re-add in Settings → Pages, then left alone. **Never verify with local `curl`** (Kaspersky MITM); use `openssl s_client -verify_hostname` or a clean machine.
+- **SURF-1 · reboundops.example** — still `https_certificate.state: "new"` after a full API remove/re-add and 50 days stuck. Needs one manual remove/re-add in Settings → Pages, then left alone. **Never verify with local `curl`** (Kaspersky MITM); use `openssl s_client -verify_hostname` or a clean machine.
 - **prod server** — Basic-auth gated; needs an unauthenticated `/api/health` + HSTS to be verifiable from a clean machine.
 - **280 px** viewport overflow — documented, not gated.
 

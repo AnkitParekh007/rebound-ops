@@ -54,7 +54,7 @@ Three suites call `window.stop()` before asserting no console errors. Chromium r
 3. `npm run test:e2e:browser` a few times — the locale sweep must not flake.
 
 ## §6 — Carried forward
-- **SURF-1 · cvstart.ru** — domain now **account-verified** (takeover window closed); certificate still `new` after a correct file-level reset. GitHub-side wait, or their support.
+- **SURF-1 · reboundops.example** — domain now **account-verified** (takeover window closed); certificate still `new` after a correct file-level reset. GitHub-side wait, or their support.
 - **prod server** — Basic-auth gated; needs an unauthenticated `/api/health` + HSTS to be verifiable from a clean machine.
 - **280 px** viewport overflow — documented, not gated.
 - **Worth considering:** the box has 956 MB RAM and Node caps at 490 MB. The scan now fits with room to spare, but a larger `portals.yml` will approach it again. Either raise the cap (`NODE_OPTIONS=--max-old-space-size=`) or keep an eye on peak heap as the query list grows.
