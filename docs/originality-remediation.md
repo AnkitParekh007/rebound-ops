@@ -7,7 +7,7 @@
 - Preserve MIT license files for `workspace/` and `engine/`.
 - Record component provenance in `PROVENANCE.md` / `provenance.json`.
 - Retire unused copied marketing sources; keep `marketing-website/` as the public site.
-- Replace inherited “command center” framing with recovery-linked search workbench content where applicable.
+- Replace “command center” framing with recovery-linked search workbench content where applicable.
 - Add provenance package checks (`scripts/check-provenance.mjs`) and screenshot automation for the marketing site.
 
 ## Current policy

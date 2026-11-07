@@ -4,8 +4,8 @@ The recovery journey (`#/start`, `#/recovery`, `#/directions`, `#/opportunities`
 `#/evidence`) uses its own design language, implemented in
 [`workspace/public/css/journey.css`](../workspace/public/css/journey.css) with brand colour
 tokens from [`workspace/public/css/reboundops.css`](../workspace/public/css/reboundops.css).
-The job-search tools keep their inherited (MIT-licensed, third-party-derived) components for
-now; they are **not** presented as redesigned.
+The job-search tools retain their existing components; the journey styling described
+here does not imply that every tool screen has been redesigned.
 
 ## Principles
 
@@ -90,12 +90,12 @@ stones (a stepping-stone role). No third-party icon set or reference-site asset 
 ## Navigation
 
 - Desktop: "Your recovery" (My next step, Explore directions, Find opportunities, Applications,
-  My evidence) above a "Tools & settings" toggle that collapses every inherited tool group.
+  My evidence) above a "Tools & settings" toggle that collapses every job-search tool group.
   Visiting a tool opens the section so its active item stays visible.
 - Mobile (≤760px, journey screens): a four-item bottom bar (Next step, Directions,
   Opportunities, More → the drawer with everything else).
 - Job-search screens: a quiet one-line "My next step" panel above the content.
-- On journey screens the inherited search bar, AI-key banner, setup toasts and docs chat are
+- On journey screens the workspace search bar, AI-key banner, setup toasts and docs chat are
   hidden; they remain on the tool screens where they are relevant.
 
 ## Accessibility checks (automated in `workspace/scripts/reboundops-smoke.mjs --browser`)

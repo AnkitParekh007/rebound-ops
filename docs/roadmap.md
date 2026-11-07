@@ -151,7 +151,7 @@ Still deferred: automated job scraping, auto-applying, recruiter contact harvest
 | Durable recovery sessions through the bridge (`REBOUNDOPS_DATA_DIR`) | Demo users lose sessions on API restart | Existing opt-in disk persistence; bridge allowlist for the persistence route |
 | Translations for the Workspace recovery screens (English only today) | Non-English pilot participants | Workspace locale dictionaries |
 | Vector (SVG) logo | Print or large-format use | Source artwork from the logo owner |
-| Workspace Home redesign (replace the inherited "Command Center" composition) | Journey screens validated with real job seekers | `docs/design-system.md` components; keep every tool reachable |
+| Workspace Home redesign (replace the existing "Command Center" composition) | Journey screens validated with real job seekers | `docs/design-system.md` components; keep every tool reachable |
 | Opportunity Lens inside Vacancy search / Evaluate ("why this might help your direction / what is unknown") | Handoff in use | Grounded only in real posting data and the chosen route; no invented fit ratings |
 | Weekly Reflection (what I tried, learned, continue / change / pause) | Users finish a seven-day plan | Contract support for reflection notes (the API has `review` notes today) |
 | "I couldn't do this" action state | Users report blocked steps | Contract change: an action outcome other than completed; no falsified progress |

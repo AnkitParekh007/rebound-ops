@@ -438,6 +438,6 @@ See [LEGAL_DISCLAIMER.md](LEGAL_DISCLAIMER.md) for full details. This software i
 
 MIT — see [LICENSE](LICENSE). Dependency and redistribution notes are in [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
-## Upstream authorship
+## Maintenance
 
 Maintained by Ankit Parekh and ReboundOps contributors. Do not treat engineering demos as participant outcomes. See LICENSE and ../THIRD_PARTY_NOTICES.md.

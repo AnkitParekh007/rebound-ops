@@ -13,7 +13,7 @@ Historical baseline: the primary dashboard has since been replaced by the Reboun
 | Supplied screenshots | `ReboundOps-screens-2026-11-07.zip` — 47 light + 47 dark full-page captures, every image opened on two contact sheets (filename order). |
 | Own baseline captures | 9 views × 4 widths (1440, 768, 390, 320) × 2 themes = 72 images, fictional "Use fictional demo" data, `main` @ `78ca92c`. Kept in `docs/ux-review/before/` (light 1440/390 subset committed). |
 | Live checks | `http://127.0.0.1:4317` with the ReboundOps API on `127.0.0.1:4174`; `sessionStorage` read after the recovery flow; horizontal-overflow measured per page. |
-| Reference (to avoid copying) | `https://cvstart.org/#screenshots` (landing page text and the "One tab instead of ten" product tour), plus the upstream workspace layout already present in this repo. |
+| Reference (to avoid copying) | `https://cvstart.org/#screenshots` (landing page text and the "One tab instead of ten" product tour), plus the workspace layout already present in this repo. |
 
 **Measured facts from the baseline run**
 
@@ -48,7 +48,7 @@ Persona questions: **What is this? / Why am I doing this? / What do I click? / C
 | Behaviour | Choosing "I already know my target" **navigates away immediately** to the dashboard — surprising, no confirmation (code: `recovery.js` goal `change` handler). |
 | Trust/privacy | Privacy copy says answers go "only to the ReboundOps API … memory-only" — **inaccurate**: the draft is also written to `sessionStorage`. |
 | Mobile | 390 px: the key banner and the 280 px logo push the question below the fold. |
-| Similarity | Card + form composition inherited from workspace components. |
+| Similarity | Card + form composition uses existing workspace components. |
 | Severity / remedy | **P0** — progressive 4-step flow (goal → essentials → optional → review), explicit Continue for "I know my target", accurate one-sentence privacy note, no draft in storage. Files: `workspace/public/js/views/recovery.js`, `workspace/public/js/lib/rebound-state.js`. **Check:** step 1 shows only the question and five choices; `sessionStorage` holds no intake text. |
 
 ### 2. Recovery directions (`#/recovery`, no plan) — `02-recovery-directions.png`

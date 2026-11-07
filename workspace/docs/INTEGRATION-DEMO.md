@@ -169,12 +169,11 @@ states; journey design system in light/dark; automated API + browser tests.
 
 **Linked only:** the job-search views receive at most the visible search text;
 they do not read ReboundOps recovery data, and the next-step panel only
-displays. The job-search screens keep their inherited components (not
+displays. The job-search screens keep their existing components (not
 redesigned). Planned follow-ups
 are tracked in [docs/roadmap.md](../../docs/roadmap.md).
 
 ## Licences
 
-`workspace/` and `engine/` are derived from MIT-licensed third-party projects;
-their original notices are reproduced verbatim in
+License and redistribution information for `workspace/` and `engine/` is documented in
 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
