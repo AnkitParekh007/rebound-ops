@@ -31,6 +31,9 @@ export class SessionApiService {
   savedSessions(): Promise<SavedSessionSummary[]> {
     return firstValueFrom(this.http.get<SavedSessionSummary[]>('/api/sessions/saved'));
   }
+  testAiConnection(): Promise<{ connected: boolean; checkedAt: string }> {
+    return firstValueFrom(this.http.post<{ connected: boolean; checkedAt: string }>('/api/ai/test-connection', { consent: true }));
+  }
   aiStatus(): Promise<AiStatus> {
     return firstValueFrom(this.http.get<AiStatus>('/api/ai/status'));
   }

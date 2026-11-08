@@ -1,10 +1,13 @@
 <header class="topbar">
   <a href="/" class="brand" aria-label="ReboundOps home"><span class="brand-mark" aria-hidden="true">↗</span> ReboundOps</a>
+  <button type="button" [attr.aria-expanded]="store.aiSetupOpen()" aria-controls="ai-setup" (click)="store.aiSetupOpen.set(!store.aiSetupOpen())">Set up AI assistance</button>
   <span class="tag">Phase 2 · Local preview</span>
 </header>
 
 <main class="shell">
   <h1 class="visually-hidden">ReboundOps</h1>
+
+  <div id="ai-setup" [hidden]="!store.aiSetupOpen()"><rb-ai-setup /></div>
 
   <div class="wizard" [class.solo]="!store.session()">
     @if (store.session()) {

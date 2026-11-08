@@ -6,21 +6,41 @@
 
 The API reports `enabled: false` at `GET /api/ai/status`. Every core workflow (intake, evidence, job comparison, plan, review, backups, Markdown) works without a model or API key.
 
-## Setup (on your own development machine only)
+## Guided setup
 
-1. Create an Anthropic API key using your provider account; it may incur charges.
-2. Keep it out of the repository and frontend. `.env.example` documents the needed variables but is **not loaded automatically**.
-3. Set environment variables in the terminal that launches the local API:
+Choose **Set up AI assistance** in the recovery app header, or from the integrated workspace's start screen or Settings. In the workspace it opens `#/ai-setup`. Recovery supports Anthropic; the workspace's other AI tools have separate provider settings.
+
+The setup screen reads configuration without contacting Anthropic. It distinguishes **AI not configured**, **Configured — connection not tested**, **AI connected**, and **Connection test failed**. Connection results belong to the current API process and reset when it restarts.
+
+## Configure the local server
+
+Create an Anthropic key and set a provider-side workspace spend limit. Stop any running launcher first. In Bash, from the repository root, enter the key privately rather than placing it in shell history:
+
+```sh
+read -rsp 'Anthropic API key: ' ANTHROPIC_API_KEY; echo
+export ANTHROPIC_API_KEY
+bash scripts/start-demo.sh --ai
+```
+
+Alternatively, use `REBOUNDOPS_AI_ENABLED=true bash scripts/start-demo.sh` with the key already exported. With no opt-in, the launcher keeps AI off; `--no-ai` explicitly overrides the flag. Opt-in without a key fails before starting services. The launcher passes the key to the recovery API and strips known provider keys from the workspace process environment. Workspace tools retain their separate file-based configuration.
+
+The integrated bridge provides recovery AI status and connection testing, but not requirement-review operations. For the full recovery review, stop the integrated launcher and start Angular with the same exported key:
 
 ```sh
 export REBOUNDOPS_AI_ENABLED=true
-export ANTHROPIC_API_KEY='your-private-server-side-key'
-export REBOUNDOPS_ANTHROPIC_MODEL='claude-sonnet-5-5'
 npm run dev
 ```
 
-4. `npm run dev` starts the API and the Angular frontend together; both processes inherit the variables, but only the API reads them; the Angular dev server does not put them into the browser bundle. (To run them separately: `npm run dev:api` in this terminal and `npm run dev:web` in another.)
-5. Add a job target, preview the exact payload in the UI, then make an explicit consent decision.
+Open `http://127.0.0.1:4200`. Only the API reads the key; the Angular frontend does not embed it. `.env.example` documents variables but is not loaded automatically. `REBOUNDOPS_ANTHROPIC_MODEL` overrides the default model; choose a model available in your account and compatible with structured output.
+
+## Test the connection, then approve each review
+
+1. Open **Set up AI assistance** and select **Refresh AI status** after a server restart.
+2. Choose **Test connection — contact Anthropic**. This explicit action requests metadata for the configured model using the server-side key. It sends no career records and does not generate text. It verifies access, not review quality or future availability.
+3. If it fails, check the key, enablement flag, model access and network in the server environment. Errors are sanitized. Tests are limited to one per 30 seconds and do not consume the local analysis-attempt allowance.
+4. In Angular, add a job target, confirm evidence, preview the exact payload and separately consent to sending that review. A connection test does not authorize a career-data request. Provider charges may apply to reviews.
+
+API: `GET /api/ai/status` is passive. `POST /api/ai/test-connection` accepts only `{ "consent": true }`, rejects additional fields and retains the Host/Origin restrictions. The same allowlisted operations are exposed through `/api/rebound/ai/*` in the integrated workspace. Keys cannot be submitted or read through these endpoints.
 
 The provider configuration and model name may change with upstream availability. Official reference: https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript and https://platform.claude.com/docs/en/build-with-claude/structured-outputs
 

@@ -191,3 +191,16 @@ test('evidence review forwards only a valid status for a UUID evidence id', asyn
   }
   assert.equal(seen, null);
 });
+
+test('recovery AI status and explicit metadata test use fixed upstream endpoints', async () => {
+  let r = await fetch(base + '/api/rebound/ai/status');
+  assert.equal(r.status, 200);
+  assert.equal(seen.url, '/api/ai/status');
+  r = await post('/api/rebound/ai/test-connection', { consent: true });
+  assert.equal(r.status, 201);
+  assert.equal(seen.url, '/api/ai/test-connection');
+  assert.deepEqual(seen.body, { consent: true });
+  for (const body of [{}, { consent: false }, { consent: true, key: 'must-not-forward' }]) {
+    assert.equal((await post('/api/rebound/ai/test-connection', body)).status, 400);
+  }
+});

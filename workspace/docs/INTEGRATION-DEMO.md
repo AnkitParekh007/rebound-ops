@@ -1,6 +1,6 @@
 # ReboundOps — integrated recovery + job-search demo
 
-> **Local demo only; not publicly hosted; AI off; no personal data used.**
+> **Local-first workspace; not publicly hosted; recovery AI requires explicit opt-in.**
 > One repository, three parts: the ReboundOps recovery API (`apps/`,
 > `packages/`), the ReboundOps Workspace job-search UI (`workspace/`) and the
 > ReboundOps engine data folder and CLI scripts (`engine/`).
@@ -20,7 +20,7 @@ ReboundOps Workspace (Express, workspace/)                                      
   /api/*            job-search routes ── read/write engine/ (REBOUND_OPS_ROOT)   │
   /api/rebound/*    allowlisted bridge ──fetch──► ReboundOps API                 │
                                                   http://127.0.0.1:4174 (Fastify, apps/api)
-                                                  memory-only sessions, AI off
+                                                  memory-only sessions, AI off by default
 ```
 
 * **Recovery comes first.** A first-time visitor with no URL hash lands on
@@ -56,8 +56,7 @@ scripts/start-demo.sh
 
 Then open **http://127.0.0.1:4317/#/start**. The script runs `npm ci` where
 `node_modules` is missing (root and `workspace/`), builds the contracts and API,
-starts both servers on loopback and stops both on Ctrl+C. AI keys are unset for
-both processes and `REBOUNDOPS_AI_ENABLED=false`.
+starts both servers on loopback and stops both on Ctrl+C. Recovery AI is off by default. Use `--ai` with an exported `ANTHROPIC_API_KEY` to opt in, or `--no-ai` to keep it off. Known provider keys are stripped from the workspace process environment.
 
 Manual equivalent (two terminals, from the repository root):
 
@@ -98,9 +97,9 @@ before use (the demo journey does not need them).
 `server/lib/routes/reboundops.mjs`:
 
 * Fixed destination `http://127.0.0.1:<REBOUNDOPS_API_PORT|4174>`; clients
-  cannot choose host, path or method. Eight allowlisted actions (health, create,
+  cannot choose host, path or method. Ten allowlisted actions (health, create,
   read, choose route, mark action, export, replace intake, record evidence
-  review); any other
+  review, recovery AI status, explicit model-metadata connection test); any other
   `/api/rebound/*` path returns `404 NOT_IN_ALLOWLIST`.
 * Session and evidence IDs must be UUIDs; action IDs must match `(return|shift|bridge)-[1-7]`;
   evidence status must be `unverified`, `confirmed` or `rejected`;
@@ -176,3 +175,7 @@ are tracked in [docs/roadmap.md](../../docs/roadmap.md).
 
 `workspace/` and `engine/` are MIT-licensed ReboundOps components. See
 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) for dependency redistribution notes.
+
+## Recovery AI setup
+
+Open **Set up AI assistance** from Start or Settings (`#/ai-setup`). Export a key privately in the launcher terminal, then run `bash scripts/start-demo.sh --ai`. The setup page shows configuration status and offers an explicit model-metadata connection test. No career data is sent by that test. Status and test requests use fixed `/api/rebound/ai/*` bridge endpoints; no credentials are accepted from the browser. Full requirement review remains in the Angular app: stop the launcher and run `REBOUNDOPS_AI_ENABLED=true npm run dev` with the key exported. See [Recovery AI setup](../../docs/ai-provider.md).

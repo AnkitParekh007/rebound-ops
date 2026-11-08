@@ -225,3 +225,9 @@
 /* Map attribution link: the map library hard-codes blue (#0078A8) and loads after
    this sheet, so match with higher specificity instead of relying on order. */
 html .leaflet-container .leaflet-control-attribution a { color: var(--cv3-accent); }
+
+.rj-ai-setup { min-width: 0; max-width: 920px; overflow-wrap: anywhere; }
+.rj-ai-setup pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; border: 1px solid currentColor; border-radius: 10px; font-size: 16px; line-height: 1.7; }
+.rj-ai-setup h2 { margin-top: 32px; }
+.rj-ai-setup p { font-size: 18px; line-height: 1.75; }
+.rj-ai-setup button { white-space: normal; }

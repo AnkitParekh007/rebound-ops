@@ -21,6 +21,8 @@ export interface SavedSessionSummary {
 }
 
 export interface AiStatus {
+  connectionStatus?: 'not-configured' | 'not-tested' | 'connected' | 'failed';
+  connectionCheckedAt?: string | null;
   enabled: boolean;
   provider: string | null;
   model: string | null;

@@ -1,0 +1,28 @@
+<section class="panel" aria-labelledby="ai-setup-heading">
+  <h2 id="ai-setup-heading">Set up AI assistance</h2>
+  <p>Recovery AI uses <strong>Anthropic</strong>. Workspace AI tools have separate provider settings. Core recovery works without AI.</p>
+  <p role="status"><strong>Recovery AI:</strong>
+    @if (!store.aiStatus()) { Status unavailable — start the recovery server and refresh. }
+    @else if (!store.aiStatus()?.enabled) { AI not configured }
+    @else if (store.aiStatus()?.connectionStatus === 'connected') { AI connected — verified in this server process }
+    @else if (store.aiStatus()?.connectionStatus === 'failed') { Connection test failed }
+    @else { Configured — connection not tested }
+  </p>
+  @if (store.aiStatus()?.enabled) { <p>Provider: {{ store.aiStatus()?.provider }} · Model: {{ store.aiStatus()?.model }}</p> }
+  <ol>
+    <li>Create a key in your Anthropic account and set a provider-side spend limit. Provider charges may apply to reviews.</li>
+    <li>Keep your key in the local server environment, not in this browser or Git. Stop the launcher first, then run these commands from the repository root in Bash:</li>
+  </ol>
+  <pre tabindex="0" aria-label="AI setup terminal commands">read -rsp 'Anthropic API key: ' ANTHROPIC_API_KEY; echo
+export ANTHROPIC_API_KEY
+bash scripts/start-demo.sh --ai</pre>
+  <p>For this standalone Angular interface, use <code>export REBOUNDOPS_AI_ENABLED=true</code> followed by <code>npm run dev</code> instead of the launcher. Set <code>REBOUNDOPS_ANTHROPIC_MODEL</code> to override the server’s default model. Environment files are not loaded automatically.</p>
+  <div class="actions">
+    <button type="button" (click)="store.refreshAiConnection()" [disabled]="store.aiConnectionBusy()">Refresh AI status</button>
+    <button type="button" (click)="store.testAiConnection()" [disabled]="!store.aiStatus()?.enabled || store.aiConnectionBusy()">{{ store.aiConnectionBusy() ? 'Testing connection…' : 'Test connection — contact Anthropic' }}</button>
+  </div>
+  <p class="muted">Testing requests metadata for the configured model using the server-side key. It sends no career records and does not generate text. A successful test checks access, not the quality of AI advice. Tests are limited to one per 30 seconds.</p>
+  <p role="status">{{ store.aiConnectionMessage() }}</p>
+  <p>After setup, add a job target under <strong>Jobs you are looking at</strong>, preview the exact payload and consent to that review. Suggestions never change evidence automatically.</p>
+  <p><a href="https://rebound-ops.org/docs/ai/" target="_blank" rel="noopener">Read the AI setup guide ↗</a></p>
+</section>

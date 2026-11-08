@@ -235,6 +235,7 @@
     }
     root.append(body);
     go(step);
+    root.append(h('p', null, [h('a', { href: '#/ai-setup', text: 'Set up AI assistance (optional) →' })]));
     return root;
   });
 

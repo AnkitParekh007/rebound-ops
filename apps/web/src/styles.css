@@ -158,3 +158,8 @@ footer{color:#52695c}
   *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
 }
 .ob-welcome .ob-actions .primary{margin-left:0}
+
+/* Recovery AI setup remains available before a session exists. */
+.topbar { flex-wrap: wrap; gap: 12px; }
+#ai-setup pre { white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid #819c8d; border-radius: 8px; padding: 16px; font-size: .9rem; }
+#ai-setup .panel { max-width: 900px; }

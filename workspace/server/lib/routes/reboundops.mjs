@@ -1,9 +1,11 @@
 /**
  * ReboundOps Next — narrow same-origin bridge to the ReboundOps Fastify API.
  *
- * This is a PROXY, not a second data store. It exposes six allowlisted
+ * This is a PROXY, not a second data store. It exposes allowlisted
  * actions and forwards them to a server-controlled destination:
  *
+ *   GET  /api/rebound/ai/status                       → GET /api/ai/status
+ *   POST /api/rebound/ai/test-connection              → POST /api/ai/test-connection
  *   GET  /api/rebound/health                          → GET  /api/health
  *   POST /api/rebound/sessions                        → POST /api/sessions
  *   GET  /api/rebound/sessions/:id                    → GET  /api/sessions/:id
@@ -96,7 +98,7 @@ async function forward(res, method, path, body) {
   let upstream;
   try { upstream = reboundUpstream(); } catch { return res.status(500).json({ error: 'BRIDGE_MISCONFIGURED' }); }
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), path === "/api/ai/test-connection" ? 15_000 : TIMEOUT_MS);
   let response;
   try {
     response = await fetch(upstream + path, {
@@ -153,6 +155,11 @@ function sessionId(req, res, next) {
 }
 
 export function registerReboundOpsRoutes(app) {
+  app.get('/api/rebound/ai/status', (req, res) => forward(res, 'GET', '/api/ai/status'));
+  app.post('/api/rebound/ai/test-connection', writeRateLimit(), sizeGuard, (req, res) => {
+    if (!req.body || req.body.consent !== true || Object.keys(req.body).length !== 1) return bad(res, 'Explicit connection-test consent is required; send no career data');
+    return forward(res, 'POST', '/api/ai/test-connection', { consent: true });
+  });
   app.get('/api/rebound/health', (req, res) => forward(res, 'GET', '/api/health'));
 
   app.post('/api/rebound/sessions', writeRateLimit(), sizeGuard, (req, res) => {

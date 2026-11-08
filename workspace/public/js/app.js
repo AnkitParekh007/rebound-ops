@@ -121,7 +121,7 @@ I18n.onChange(() => {
       const msg = document.createElement('span');
       msg.textContent = I18n.t(
         'onboarding.noKey.title',
-        'No LLM key set — “⚡ Run live” is in manual-prompt mode.');
+        'Workspace AI not configured — live workspace tools use manual prompts. Recovery AI has separate setup.');
       const cta = document.createElement('a');
       cta.href = '#/config?tab=api-keys';
       cta.className = 'btn btn-sm btn-dark';

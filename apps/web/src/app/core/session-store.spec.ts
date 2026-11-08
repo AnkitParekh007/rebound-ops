@@ -169,4 +169,23 @@ describe('SessionStore', () => {
     expect(store.apiAvailable()).toBe(false);
     expect(store.error()).toMatch(/Local API is not running/);
   });
+  it('clears a stale AI connection when status refresh loses the server', async () => {
+    api.aiStatus.mockResolvedValueOnce({ enabled: true, connectionStatus: 'connected' });
+    await store.refreshAiConnection();
+    expect(store.aiStatus()?.connectionStatus).toBe('connected');
+    api.aiStatus.mockRejectedValueOnce(new Error('offline'));
+    await store.refreshAiConnection();
+    expect(store.aiStatus()).toBeNull();
+    expect(store.aiConnectionMessage()).toContain('unavailable');
+  });
+
+  it('connection failures refresh status and always release the busy state', async () => {
+    api.testAiConnection.mockRejectedValueOnce(new Error('provider error'));
+    api.aiStatus.mockResolvedValueOnce({ enabled: true, connectionStatus: 'failed' });
+    await store.testAiConnection();
+    expect(store.aiConnectionBusy()).toBe(false);
+    expect(store.aiStatus()?.connectionStatus).toBe('failed');
+    expect(store.aiConnectionMessage()).toContain('could not be verified');
+  });
+
 });

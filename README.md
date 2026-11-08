@@ -145,6 +145,11 @@ The engine also provides command-line scripts and assistant modes. Follow its se
 
 ### Recovery app
 
+Choose **Set up AI assistance** in the app header, or on the integrated workspace start screen / Settings. Recovery supports Anthropic. The screen explains private terminal key entry and can test model access without sending career records.
+
+With `ANTHROPIC_API_KEY` exported in the server terminal, run `bash scripts/start-demo.sh --ai` (or set `REBOUNDOPS_AI_ENABLED=true`). No flag keeps AI off; `--no-ai` overrides enablement. For full recovery requirement review, stop the launcher and run `REBOUNDOPS_AI_ENABLED=true npm run dev`, then open port 4200. The integrated workspace supports connection setup and status; requirement review lives in Angular.
+
+
 The recovery API's Anthropic adapter requires both `REBOUNDOPS_AI_ENABLED=true` and `ANTHROPIC_API_KEY` in the API process environment. The root `.env.example` documents settings; it is not automatically loaded to enable AI.
 
 For each request, the app previews the exact payload before a separate consent action sends it. The payload includes the selected job requirements and confirmed achievement claims. Suggestions do not automatically change your session. There is a ten-attempt limit per API process; it is not a persistent spending limit.

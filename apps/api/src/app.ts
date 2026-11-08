@@ -146,12 +146,45 @@ export function buildApp(options: {
     }
   }
 
+  let connectionStatus: 'not-tested' | 'connected' | 'failed' = 'not-tested';
+  let connectionCheckedAt: string | null = null;
+  let connectionTestBusy = false;
+  let lastConnectionTest = 0;
+
+  app.post('/api/ai/test-connection', async (request, reply) => {
+    const body = request.body as Record<string, unknown> | null;
+    if (!body || typeof body !== 'object' || Array.isArray(body) || body.consent !== true || Object.keys(body).length !== 1) {
+      return reply.code(400).send({ error: 'CONNECTION_TEST_CONSENT_REQUIRED' });
+    }
+    if (!aiProvider) return reply.code(503).send({ error: 'AI_NOT_CONFIGURED' });
+    if (!aiProvider.checkConnection) return reply.code(503).send({ error: 'CONNECTION_TEST_UNAVAILABLE' });
+    if (connectionTestBusy || Date.now() - lastConnectionTest < 30_000) {
+      return reply.header('Retry-After', '30').code(429).send({ error: 'CONNECTION_TEST_RATE_LIMITED' });
+    }
+    connectionTestBusy = true;
+    lastConnectionTest = Date.now();
+    try {
+      await aiProvider.checkConnection();
+      connectionStatus = 'connected';
+      connectionCheckedAt = now();
+      return { connected: true, checkedAt: connectionCheckedAt };
+    } catch {
+      connectionStatus = 'failed';
+      connectionCheckedAt = now();
+      return reply.code(502).send({ error: 'AI_CONNECTION_FAILED' });
+    } finally {
+      connectionTestBusy = false;
+    }
+  });
+
   app.get('/api/ai/status', async () => ({
     enabled: Boolean(aiProvider),
     provider: aiProvider?.name ?? null,
     model: aiProvider?.model ?? null,
     promptVersion: aiProvider?.promptVersion ?? null,
-    disclosure: 'Data is not transmitted unless a user explicitly previews and consents to the exact payload.',
+    connectionStatus: aiProvider ? connectionStatus : 'not-configured',
+    connectionCheckedAt,
+    disclosure: 'Connection tests request model metadata without career records. Career reviews require preview and consent to the exact payload.',
     attempts: aiRequests,
     maxAttempts: maxAiAttempts,
     successful: aiSuccesses,

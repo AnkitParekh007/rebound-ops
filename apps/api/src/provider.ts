@@ -17,6 +17,7 @@ export interface AiProvider {
   model: string;
   /** Prompt identifier (`id@semver`) used by this provider; recorded with every analysis. */
   promptVersion?: string;
+  checkConnection?(): Promise<void>;
   analyze(payload: AiPayload): Promise<AiAnalysis | ProviderResult>;
 }
 
@@ -31,6 +32,9 @@ export function loadAiProvider(): AiProvider | null {
     name: 'anthropic',
     model,
     promptVersion: PROMPT_VERSION,
+    async checkConnection(): Promise<void> {
+      await client.models.retrieve(model, undefined, { timeout: 10_000 });
+    },
     async analyze(payload: AiPayload): Promise<ProviderResult> {
       const response = await client.messages.parse({
         model,

@@ -49,3 +49,7 @@ Answers on branches the user left are dropped before saving.
 - Answers live only in the component's memory. A reload discards them; nothing is written to browser storage.
 
 Code: `apps/web/src/app/features/onboarding/` (`onboarding-flow.ts` holds the script and pure functions; it is unit-tested for every path).
+
+## Set up AI assistance (optional)
+
+The recovery header offers **Set up AI assistance** before you create a session. The integrated workspace has the same entry on Start and in Settings. Follow its private terminal configuration steps, explicitly test model access, then preview and approve each career review separately in Angular. See [AI setup](ai-provider.md). Core recovery remains available without a provider.

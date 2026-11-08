@@ -24,6 +24,8 @@ Effort target unchanged: 120–160 hours, before unavoidable participant schedul
 
 ## 2. Gap analysis
 
+**8 Nov engineering update:** guided Recovery AI setup is available before intake and from workspace Settings, with explicit metadata-only connection testing and launcher `--ai` / `--no-ai` opt-in. This does not close G2: live model-quality evaluation remains outstanding.
+
 The gaps are grouped by architecture domain and ranked by their impact on the next decision (pilot → preview), not by how hard they are.
 
 ### 2.1 Product and validation (critical path)

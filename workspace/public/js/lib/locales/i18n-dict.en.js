@@ -669,7 +669,7 @@ window.__I18N_DICT_EN = {
   'scan.consoleReady': "> ready. press scan button.",
   'scan.noResults': "No results. Run a scan above — results will appear here once it finishes.",
   'app.setupIssue': "Setup issue: ",
-  'onboarding.noKey.title': "No LLM key set — “⚡ Run live” is in manual-prompt mode. Set any one of Anthropic / Gemini / OpenAI / Qwen / …",
+  'onboarding.noKey.title': "Workspace AI not configured — live workspace tools use manual prompts. Recovery AI has separate setup.",
   'onboarding.noKey.cta': "Set up a key →",
   'onboarding.activeProvider': "Live eval",
   'cost.estimate': "Estimated cost",

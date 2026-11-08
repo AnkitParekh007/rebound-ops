@@ -973,6 +973,7 @@ Router.register('config', async () => {
   ]);
 
   const root = c('div', null, [
+    c('p', null, [c('a', { href: '#/ai-setup' }, 'Set up Recovery AI assistance →'), ' — separate from workspace provider settings below.']),
     c('header', { className: 'page-header' }, [
       c('div', null, [
         HelpHint.title(t('config.title', 'App settings'), 'help.hint.config'),

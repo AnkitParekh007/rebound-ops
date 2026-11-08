@@ -22,6 +22,30 @@ import type {
  */
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
+  readonly aiSetupOpen = signal(false);
+  readonly aiConnectionBusy = signal(false);
+  readonly aiConnectionMessage = signal('');
+
+  async refreshAiConnection(): Promise<void> {
+    try { this._aiStatus.set(await this.api.aiStatus()); }
+    catch { this._aiStatus.set(null); this.aiConnectionMessage.set('Recovery service unavailable. Check the local server terminal.'); }
+  }
+
+  async testAiConnection(): Promise<void> {
+    if (this.aiConnectionBusy()) return;
+    this.aiConnectionBusy.set(true);
+    this.aiConnectionMessage.set('');
+    try {
+      await this.api.testAiConnection();
+      this.aiConnectionMessage.set('Connection verified. Review still requires a payload preview and consent.');
+    } catch {
+      this.aiConnectionMessage.set('Connection could not be verified. Check the server flag, key, model access and network. Wait 30 seconds before retrying.');
+    } finally {
+      await this.refreshAiConnection();
+      this.aiConnectionBusy.set(false);
+    }
+  }
+
   private readonly api = inject(SessionApiService);
 
   private readonly _session = signal<Session | null>(null);

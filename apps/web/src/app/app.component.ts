@@ -11,6 +11,7 @@ import { JobTargetsComponent } from './features/job-targets/job-targets.componen
 import { RoutesComponent } from './features/routes/routes.component';
 import { PlanComponent } from './features/plan/plan.component';
 import { PilotFeedbackComponent } from './features/pilot-feedback/pilot-feedback.component';
+import { AiSetupComponent } from './features/ai-setup/ai-setup.component';
 import { DataControlsComponent } from './features/data-controls/data-controls.component';
 
 /** Application shell: page frame, step navigation, global messages and step composition. */
@@ -18,7 +19,7 @@ import { DataControlsComponent } from './features/data-controls/data-controls.co
   selector: 'rb-root',
   imports: [
     NgTemplateOutlet, IntakeComponent, OnboardingComponent, EvidenceComponent, JobTargetsComponent, RoutesComponent,
-    PlanComponent, PilotFeedbackComponent, DataControlsComponent
+    PlanComponent, PilotFeedbackComponent, DataControlsComponent, AiSetupComponent
   ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -48,6 +49,15 @@ export class AppComponent implements OnInit {
   });
 
   constructor() {
+    effect(() => {
+      if (!this.store.aiSetupOpen()) return;
+      afterNextRender(() => {
+        const heading = this.document.getElementById('ai-setup-heading');
+        heading?.setAttribute('tabindex', '-1');
+        heading?.focus();
+        heading?.scrollIntoView?.({ block: 'start' });
+      }, { injector: this.injector });
+    });
     // Keep the tab title in step with the visible step.
     effect(() => {
       const step = this.wizard.currentStep();
