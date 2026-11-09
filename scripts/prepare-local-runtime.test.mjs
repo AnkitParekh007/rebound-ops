@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { prepareDependencies, prepareBrowser } from './prepare-local-runtime.mjs';
@@ -57,7 +57,7 @@ test('a missing browser installs through the locked Playwright CLI and then veri
   const executable=join(dir,'downloaded-browser');let verified=false;
   try {
     await prepareBrowser(dir,{env:{},load:async()=>({executablePath:()=>executable,launch:async()=>{assert.equal(readFileSync(executable,'utf8'),'downloaded');verified=true;return {close:async()=>{}};}}),run:(program,args)=>{
-      assert.equal(program,process.execPath);assert.deepEqual(args,[join(pkg,'cli.js'),'install','chromium']);writeFileSync(executable,'downloaded');return true;
+      assert.equal(program,process.execPath);assert.deepEqual(args,[join(realpathSync(pkg),'cli.js'),'install','chromium']);writeFileSync(executable,'downloaded');return true;
     }});
     assert(verified);
   }finally{rmSync(dir,{recursive:true,force:true});}
