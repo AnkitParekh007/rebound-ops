@@ -9,15 +9,15 @@ const flow = (labels) =>
 const faq = (question, answer) =>
   `<details><summary>${question}<span aria-hidden="true">+</span></summary><p>${answer}</p></details>`;
 export const navigation = [
-  ["how-it-works", "How it works"],
-  ["features", "Features"],
-  ["screenshots", "Screenshots"],
-  ["sources", "Sources"],
-  ["compare", "Compare"],
-  ["methodology", "Methodology"],
-  ["docs", "Docs"],
-  ["help", "Help"],
-  ["faq", "FAQ"],
+  ["how-it-works", "Workflow"],
+  ["features", "Toolkit"],
+  ["screenshots", "App Preview"],
+  ["sources", "Job Boards"],
+  ["compare", "Side by Side"],
+  ["methodology", "Our Approach"],
+  ["docs", "User Guide"],
+  ["help", "Setup"],
+  ["faq", "Questions"],
 ];
 const sources = [
   [
