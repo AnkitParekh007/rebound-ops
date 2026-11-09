@@ -47,6 +47,9 @@
           @if (error('bridgeTarget'); as message) { <span class="field-error" id="intake-bridgeTarget-error">{{ message }}</span> }
         </div>
       </div>
+      @if (store.session()) {
+        <p>Your current plan and check-in stay saved. A lower time limit applies to your next plan if this one no longer fits. Removing or rewriting achievements here clears their review links and any correction history for removed claims. Use Things you did to correct a claim and keep its history.</p>
+      }
       <div class="actions">
         <button class="primary" type="submit" [disabled]="store.busy() || !store.apiAvailable()">{{ store.session() ? 'Update intake' : 'Create recovery session' }} <span aria-hidden="true">→</span></button>
         <button class="secondary" type="button" (click)="demo()">Use fictional example</button>

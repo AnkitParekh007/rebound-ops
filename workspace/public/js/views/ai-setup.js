@@ -28,7 +28,7 @@ Router.register('ai-setup', async () => {
   root.append(state,
     h('h2', { text: '1. Configure the local server' }),
     h('p', { text: 'Create a key in your Anthropic account and set a provider-side spend limit. Stop the launcher, then run these commands from the repository root in Bash. The key is entered privately in the terminal; do not paste it into a browser or commit it.' }),
-    h('pre', { tabindex: '0', 'aria-label': 'AI setup terminal commands', text: "read -rsp 'Anthropic API key: ' ANTHROPIC_API_KEY; echo\nexport ANTHROPIC_API_KEY\nbash scripts/start-demo.sh --ai" }),
+    h('pre', { tabindex: '0', 'aria-label': 'AI setup terminal commands', text: "read -rsp 'Anthropic API key: ' ANTHROPIC_API_KEY; echo\nexport ANTHROPIC_API_KEY\nnpm start -- --ai" }),
     h('p', { text: 'Set REBOUNDOPS_ANTHROPIC_MODEL to override the server default. Environment files are not loaded automatically. Restarting clears the connection-test result, not your provider account.' }),
     h('h2', { text: '2. Verify access' }),
     h('p', { text: 'Testing contacts Anthropic for metadata about the configured model. It sends no career records and does not generate text. A successful test verifies access, not advice quality. One test is allowed per 30 seconds.' }),

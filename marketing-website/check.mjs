@@ -183,7 +183,7 @@ assert.equal(
   "git clone https://github.com/AnkitParekh007/rebound-ops.git",
 );
 await copyButtons[1].listeners.click();
-assert.equal(copied, "cd rebound-ops\nscripts/start-demo.sh");
+assert.equal(copied, "cd rebound-ops\nnpm start");
 shotButtons[0].dataset.shotFile = "start-0123456789ab.png";
 for (const button of shotButtons) {
   button.listeners.click();

@@ -11,7 +11,7 @@
 window.__I18N_DICT_EN = {
   "cv.pdfOutputUnavailable": "Cannot verify PDF output. Check the local server and retry.",
   "cv.pdfFailed": "PDF export failed",
-  "cv.pdfRepair": "Check the log. If dependencies are missing, stop the app and rerun scripts/start-demo.sh, then retry.",
+  "cv.pdfRepair": "Check the log. If dependencies are missing, stop the app and run npm start again, then retry.",
   "cv.pdfNoOutput": "No new PDF was produced. Existing files were not downloaded. Check the log and retry.",
 
 

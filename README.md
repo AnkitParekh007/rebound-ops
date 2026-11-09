@@ -27,7 +27,7 @@ AI assistance is optional. Recovery directions are hypotheses to explore, and jo
 
 - **Node.js 24.15.0+ recommended.** The root application also supports Node 22.22.3+ and 26+, as declared in [package.json](package.json).
 - **npm**, included with Node.js.
-- **Bash and curl** for the integrated workspace launcher. On Windows, use WSL or a compatible Bash environment; the Angular development commands below do not require Bash.
+- **Git** to clone the repository. Use your usual terminal on macOS, Linux or Windows.
 - An AI provider key is **not required** for the recovery workflow.
 
 ### 1. Install the repository
@@ -35,19 +35,19 @@ AI assistance is optional. Recovery directions are hypotheses to explore, and jo
 ```sh
 git clone https://github.com/AnkitParekh007/rebound-ops.git
 cd rebound-ops
-npm ci
-npm ci --prefix workspace --ignore-scripts
 ```
 
 This monorepo already contains the recovery app, job-search workspace and engine. No second repository or remote installer is needed.
 
-### 2. Start the integrated recovery and job-search demo
+### 2. Start the integrated recovery and job-search workspace
 
 ```sh
-bash scripts/start-demo.sh
+npm start
 ```
 
 Open **http://127.0.0.1:4317/#/start**.
+
+Run `npm run doctor` to check Node, npm, lockfiles and local ports before installing dependencies.
 
 The launcher verifies locked dependencies for the root app, workspace and engine, installs Chromium when needed, checks that the browser can start, builds the recovery API and starts both local services. The first run needs network access for packages and the browser download. A fresh-checkout browser smoke test in CI covers PDF export, failure feedback and tracker writes. If Chromium reports missing Linux libraries, follow the printed `npx playwright install --with-deps chromium` instructions from `engine/` and rerun. Keep its terminal open; press **Ctrl+C** to stop them. Start with the fictional example to explore the screens before entering your own information.
 
@@ -55,7 +55,7 @@ The launcher verifies locked dependencies for the root app, workspace and engine
 
 | Mode | Command from the repository root | Address | Use it for |
 | --- | --- | --- | --- |
-| **Integrated workspace** | `bash scripts/start-demo.sh` | `http://127.0.0.1:4317/#/start` | Recovery screens followed by discovery, CV and application tools. |
+| **Integrated workspace** | `npm start` | `http://127.0.0.1:4317/#/start` | Recovery screens followed by discovery, CV and application tools. |
 | **Angular recovery app** | `npm run dev` | `http://127.0.0.1:4200` | The fuller evidence workflow, exact citations, requirement review, backups and opt-in persistence. |
 | **Production-local recovery app** | `npm run build`, then `npm run start -w @reboundops/api` | `http://127.0.0.1:4174` | Serve the compiled Angular app and recovery API from one local process. |
 
@@ -147,7 +147,7 @@ The engine also provides command-line scripts and assistant modes. Follow its se
 
 Choose **Set up AI assistance** in the app header, or on the integrated workspace start screen / Settings. Recovery supports Anthropic. The screen explains private terminal key entry and can test model access without sending career records.
 
-With `ANTHROPIC_API_KEY` exported in the server terminal, run `bash scripts/start-demo.sh --ai` (or set `REBOUNDOPS_AI_ENABLED=true`). No flag keeps AI off; `--no-ai` overrides enablement. For full recovery requirement review, choose **Open full recovery** from Start or My next step. The launcher already serves the full interface on port 4174 using the same session. The integrated workspace supports connection setup and status; requirement review lives in Angular.
+With `ANTHROPIC_API_KEY` exported in the server terminal, run `npm start -- --ai` (or set `REBOUNDOPS_AI_ENABLED=true`). No flag keeps AI off; `--no-ai` overrides enablement. For full recovery requirement review, choose **Open full recovery** from Start or My next step. The launcher already serves the full interface on port 4174 using the same session. The integrated workspace supports connection setup and status; requirement review lives in Angular.
 
 
 The recovery API's Anthropic adapter requires both `REBOUNDOPS_AI_ENABLED=true` and `ANTHROPIC_API_KEY` in the API process environment. The root `.env.example` documents settings; it is not automatically loaded to enable AI.

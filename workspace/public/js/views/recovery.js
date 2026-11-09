@@ -117,7 +117,9 @@
           ]),
         ]))),
       ]);
-      const budget = h('p', { className: 'rj-budget', text: `About ${duration(plan.plannedMinutes)} planned within your ${duration(plan.budgetMinutes)} a week.` });
+      const budget = h('p', { className: 'rj-budget', text: plan.budgetMinutes === s.intake.weeklyHours * 60
+        ? `About ${duration(plan.plannedMinutes)} planned within your ${duration(plan.budgetMinutes)} a week.`
+        : `This saved week has ${duration(plan.plannedMinutes)} of work. Your new ${duration(s.intake.weeklyHours * 60)} limit applies to your next plan.` });
       main = next
         ? h('section', { className: 'rj-next', 'aria-labelledby': 'rj-next-h' }, [
           h('p', { className: 'rj-kicker' }, [icon('next', 18), 'Your next useful step']),
@@ -175,6 +177,11 @@
           plan ? h('div', { className: 'rj-row-links' }, [
             h('a', { href: '#/directions', text: 'Change direction' }),
             h('button', { type: 'button', className: 'rj-btn rj-btn--link', text: 'Download plan (Markdown)', onclick: exportPlan }),
+          ]) : null,
+          plan ? h('nav', { 'aria-label': 'Work on your plan', className: 'rj-row-links' }, [
+            h('a', { href: '#/evidence', text: '1. Review an achievement' }),
+            h('a', { href: '#/cv', text: '2. Draft a résumé bullet' }),
+            h('a', { href: '#/tracker', text: '3. Record an application' }),
           ]) : null,
           experiment, say,
         ]),

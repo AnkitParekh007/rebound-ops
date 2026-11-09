@@ -35,21 +35,21 @@ export const ROUTE_TITLES: Record<RouteId, string> = {
 
 const TASKS: Record<RouteId, ReadonlyArray<readonly [string, number]>> = {
   return: [
-    ['Identify three achievements and verify their sources', 30],
+    ['Write one résumé bullet and attach the source that supports it', 30],
     ['Compare two supplied role descriptions to confirmed evidence', 45],
     ['Revise one application asset using only supported claims', 50],
     ['Send one targeted application or request a relevant conversation', 50],
     ['Review evidence and outcomes; decide what to test next', 25]
   ],
   shift: [
-    ['Inventory verified transferable work and missing requirements', 30],
+    ['Compare one target-role requirement with one achievement and write down one evidence gap', 30],
     ['Compare two adjacent-role descriptions and choose one gap', 45],
     ['Create a small, time-boxed proof-of-work outline', 60],
     ['Request practitioner feedback on the example', 45],
     ['Record the result and update the hypothesis', 20]
   ],
   bridge: [
-    ['List deliverables you can already produce', 30],
+    ['Write a three-line outline for one deliverable you can offer', 30],
     ['Define a narrow contract scope and clear exclusions', 40],
     ['Prepare a non-confidential example of prior work', 45],
     ['Ask one relevant contact for feedback or review an opportunity', 50],
@@ -102,8 +102,31 @@ export function createSession(input: Intake, id: string, now: string): Session {
 
 export function replaceIntake(session: Session, input: Intake): Session {
   const intake = IntakeSchema.parse(input);
-  // Explicitly invalidate prior route selection, progress and review after changing evidence/constraints.
-  return validateRestoredSession({ ...session, intake, routes: buildRoutes(intake), jobTargets: [], sourceDocuments: [], corrections: [], plan: null, reviewNotes: '' });
+  const previousEvidence = new Map(session.intake.evidence.map(item => [item.id, item]));
+  const unchangedConfirmed = new Set<string>();
+  intake.evidence = intake.evidence.map(item => {
+    const previous = previousEvidence.get(item.id);
+    if (previous?.claim === item.claim) {
+      if (previous.status === 'confirmed') unchangedConfirmed.add(item.id);
+      return previous;
+    }
+    return previous ? { ...item, status: 'unverified' } : item;
+  });
+  const evidenceIds = new Set(intake.evidence.map(item => item.id));
+  const jobTargets = session.jobTargets.map(target => ({
+    ...target,
+    requirements: target.requirements.map(requirement =>
+      requirement.evidenceIds.some(id => !unchangedConfirmed.has(id))
+        ? { ...requirement, status: 'unreviewed' as const, evidenceIds: [] }
+        : requirement)
+  }));
+  const plan = session.plan && session.plan.plannedMinutes <= intake.weeklyHours * 60
+    ? { ...session.plan, budgetMinutes: intake.weeklyHours * 60 }
+    : session.plan;
+  return validateRestoredSession({
+    ...session, intake, routes: buildRoutes(intake), jobTargets, plan,
+    corrections: session.corrections.filter(event => evidenceIds.has(event.evidenceId))
+  });
 }
 
 /** Exact excerpts are anchored using UTF-16 JS offsets into a stored, user-pasted document. */
@@ -275,7 +298,10 @@ export function validateRestoredSession(session: Session): Session {
   }
   if (validated.plan) {
     const plan = validated.plan;
-    if (plan.budgetMinutes !== validated.intake.weeklyHours * 60 ||
+    // A saved week can retain its original budget after availability is reduced.
+    if (plan.budgetMinutes < 60 || plan.budgetMinutes > 1200 || plan.budgetMinutes % 60 !== 0 ||
+        (plan.budgetMinutes !== validated.intake.weeklyHours * 60 &&
+          plan.plannedMinutes <= validated.intake.weeklyHours * 60) ||
         plan.plannedMinutes !== plan.actions.reduce((n, a) => n + a.minutes, 0) ||
         plan.plannedMinutes > plan.budgetMinutes ||
         plan.actions.some((a, i) => a.day !== i + 1)) {

@@ -156,6 +156,9 @@ jobs:
         run: npm test
       - name: Production Angular build
         run: npm run build:web
+      - name: Verify local workspace start, stop and restart
+        timeout-minutes: 8
+        run: node scripts/smoke-local-launch.mjs
       - name: Local preview package (not uploaded or released)
         run: npm run package:preview
       - name: Extract, verify, install and smoke-test

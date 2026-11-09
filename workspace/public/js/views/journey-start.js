@@ -2,15 +2,14 @@
 /**
  * ReboundOps — goal-first start (#/start) and "Edit my answers" (#/start/edit).
  *
- * Four short steps: 1 goal · 2 essentials · 3 optional context · 4 review.
- * The draft lives in this module's memory only (never browser storage). The
- * values sent match IntakeSchema; optional fields stay empty when skipped.
+ * Four short steps with an optional, browser-local first-intake draft.
  */
 (function () {
   const RS = window.ReboundState;
   const { h, icon, URGENCY, errorText, confirm, status, header } = window.Journey;
   const GOAL_ICON = { similar: 'return', new: 'shift', income: 'bridge', known: 'opportunities', unsure: 'directions' };
   const STEPS = ['Your goal', 'The essentials', 'Optional context', 'Review'];
+  const DRAFT_KEY = 'reboundops.intake-draft.v1';
   const EXAMPLE = {
     goal: 'similar', role: 'Software Engineer', weeklyHours: 4, urgency: 'soon',
     priorities: 'Keep remote options open; protect weekday evenings.', location: 'Remote (example)',
@@ -19,12 +18,33 @@
     example: true,
   };
 
-  let draft = null;     // memory only
+  let draft = null;
   let step = 0;
   let editing = null;   // the session being edited, if any
+  let keepDraft = false;
 
   function blank() {
     return { goal: '', role: '', weeklyHours: 4, urgency: 'soon', priorities: '', location: '', shiftTarget: '', bridgeTarget: '', achievements: '', example: false };
+  }
+  function loadDraft() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(DRAFT_KEY));
+      const defaults = blank();
+      if (!saved || !Number.isInteger(saved.step) || saved.step < 0 || saved.step >= STEPS.length ||
+          !saved.answers || Object.keys(defaults).some(key => typeof saved.answers[key] !== typeof defaults[key])) return;
+      const answers = saved.answers;
+      if ((answers.goal && !Object.hasOwn(RS.GOALS, answers.goal)) ||
+          !Object.hasOwn(URGENCY, answers.urgency) || !Number.isInteger(answers.weeklyHours) ||
+          answers.weeklyHours < 1 || answers.weeklyHours > 20 || answers.example) return;
+      draft = answers;
+      step = saved.step;
+      keepDraft = true;
+    } catch { /* Storage may be unavailable or the saved draft malformed. */ }
+  }
+  function saveDraft() {
+    if (keepDraft && !editing && !draft.example) {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, answers: draft }));
+    }
   }
   function fromSession(s) {
     const i = s.intake;
@@ -42,15 +62,27 @@
     const x = [...b].map((n) => n.toString(16).padStart(2, '0')).join('');
     return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`;
   }
-  function achievementLines() { return draft.achievements.split('\n').map((s) => s.trim()).filter(Boolean); }
+  function achievementLines() {
+    const saved = editing?.intake.evidence.map(item => item.claim);
+    if (saved && draft.achievements === saved.join('\n')) return saved;
+    return draft.achievements.split('\n').map((s) => s.trim()).filter(Boolean);
+  }
   function toIntake() {
     const goal = RS.GOALS[draft.goal];
-    const prior = editing ? new Map(editing.intake.evidence.map((e) => [e.claim, e.id])) : new Map();
+    const prior = [...(editing?.intake.evidence || [])];
+    const previous = editing && fromSession(editing);
+    const priorities = previous && previous.goal === draft.goal && previous.priorities === draft.priorities
+      ? editing.intake.priorities
+      : [goal ? `Goal: ${goal.label}.` : '', draft.priorities.trim()].filter(Boolean).join(' ').slice(0, 1200);
     return {
       role: draft.role.trim(), location: draft.location.trim(), weeklyHours: Number(draft.weeklyHours), urgency: draft.urgency,
-      priorities: [goal ? `Goal: ${goal.label}.` : '', draft.priorities.trim()].filter(Boolean).join(' ').slice(0, 1200),
+      priorities,
       shiftTarget: draft.shiftTarget.trim(), bridgeTarget: draft.bridgeTarget.trim(),
-      evidence: achievementLines().map((claim) => ({ id: prior.get(claim) || uuid(), claim, source: { kind: 'manual', label: 'Self-reported in ReboundOps' }, status: 'unverified' })),
+      evidence: achievementLines().map((claim) => {
+        const index = prior.findIndex(item => item.claim === claim);
+        if (index >= 0) return prior.splice(index, 1)[0];
+        return { id: uuid(), claim, source: { kind: 'manual', label: 'Self-reported in ReboundOps' }, status: 'unverified' };
+      }),
     };
   }
 
@@ -179,10 +211,10 @@
       ]),
       h('details', { className: 'rj-privacy' }, [
         h('summary', {}, [icon('lock', 16), 'Your answers stay on this computer. How?']),
-        h('p', { text: 'They are sent only to the ReboundOps service running on this computer, which keeps them in memory unless you explicitly choose local saving. Your browser keeps just a reference to the plan, not your answers. Saved files and JSON downloads contain your career data. Nothing is sent to an AI service, and nothing is written into the job-search files.' }),
+        h('p', { text: 'Your answers go to the ReboundOps service on this computer and stay in memory unless you choose local saving. The browser keeps a plan reference and holds unfinished answers only if you enable draft recovery. Saved files and JSON downloads contain your career data. This step sends nothing to AI and writes nothing into job-search files.' }),
       ]),
       !editing ? h('label', {}, [saveLocally, ' Save on this computer after each change (recommended). Local files are plaintext; use a private account. Leave unchecked for memory only: work is lost when the app stops unless you download a JSON backup.']) : null,
-      editing ? h('p', { className: 'rj-warn', text: 'Saving rebuilds your three directions and clears your current plan. Achievements go back to “not reviewed”.' }) : null,
+      editing ? h('p', { className: 'rj-measure', text: 'Your plan and check-in stay saved. A lower time limit applies to your next plan if this one no longer fits. Removing or rewriting achievements clears their review links and any correction history for removed claims. Use Open full recovery to correct a claim and keep its history.' }) : null,
       h('div', { className: 'rj-actions' }, [submit, h('button', { type: 'button', className: 'rj-btn rj-btn--quiet', text: 'Back', onclick: () => go(draft.example ? 0 : 2) })]),
     ]);
     form.addEventListener('submit', async (ev) => {
@@ -203,6 +235,10 @@
         if (saved.ok) RS.setSession(saved.data);
         else { window.UI.toast('Your plan is in memory; local saving failed. Download a JSON backup from My next step. ' + errorText(saved), 'error'); }
       }
+      if (!editing && keepDraft && !draft.example) {
+        try { localStorage.removeItem(DRAFT_KEY); keepDraft = false; }
+        catch { window.UI.toast('The browser draft could not be removed. Clear it from Start on this browser.', 'error'); }
+      }
       draft = null; editing = null; step = 0;
       Router.go('/recovery');
     });
@@ -219,11 +255,29 @@
       const s = RS.session();
       if (s && (!editing || editing.id !== s.id)) { editing = s; draft = fromSession(s); step = 3; }
     } else if (editing) { editing = null; draft = null; step = 0; }
-    if (!draft) { draft = blank(); step = 0; }
+    if (!draft) { draft = blank(); step = 0; if (!isEdit) loadDraft(); }
 
     const root = h('div', { className: 'rj rj-start' });
     const say = status();
     const body = h('div', { className: 'rj-start__body' });
+    const remember = h('input', { type: 'checkbox', checked: keepDraft });
+    const draftStatus = status();
+    function persistDraft() {
+      try { saveDraft(); }
+      catch { draftStatus.textContent = 'This browser could not save your draft. Keep this tab open to finish.'; }
+    }
+    remember.addEventListener('change', () => {
+      try {
+        if (!remember.checked) localStorage.removeItem(DRAFT_KEY);
+        keepDraft = remember.checked;
+        saveDraft();
+        draftStatus.textContent = keepDraft ? 'Draft recovery is on.' : 'Saved draft removed.';
+      } catch {
+        keepDraft = !remember.checked;
+        remember.checked = keepDraft;
+        draftStatus.textContent = 'This browser could not change draft saving.';
+      }
+    });
     const titles = ['What would help you move forward right now?', 'Start with the essentials', 'Anything else that matters?', editing ? 'Review your changes' : 'Check your answers'];
     const ledes = [
       'Pick the closest fit. It shapes the directions you will compare — you still choose.',
@@ -237,10 +291,18 @@
       const hd = header(editing ? 'Edit my answers' : `Step ${step + 1} of 4 · ${STEPS[step]}`, titles[step], ledes[step]);
       const content = step === 0 ? stepGoal(go) : step === 1 ? stepEssentials(go, (m) => { say.textContent = m; }) : step === 2 ? stepOptional(go, (m) => { say.textContent = m; }) : stepReview(go, (m) => { say.textContent = m; });
       body.replaceChildren(hd, stepper(), ...content.filter(Boolean), say);
+      persistDraft();
       const t = body.querySelector('h1');
       if (t && document.activeElement !== document.body) { t.setAttribute('tabindex', '-1'); t.focus(); }
     }
+    body.addEventListener('input', persistDraft);
+    body.addEventListener('change', persistDraft);
     root.append(body);
+    if (!editing) root.append(h('div', { className: 'rj-aside' }, [
+      h('label', {}, [remember, ' Keep my unfinished answers in this browser']),
+      h('p', { text: 'Without this option, refreshing or closing the tab discards unfinished answers. A saved draft stays on this browser until you submit it or turn this off. Use it on a private device.' }),
+      draftStatus,
+    ]));
     go(step);
     root.append(h('p', null, [h('a', { href: '#/ai-setup', text: 'Set up AI assistance (optional) →' })]));
     root.append(resumePanel);

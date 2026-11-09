@@ -84,17 +84,21 @@ test('invalid requests, stale revisions and untrusted origins are rejected', asy
   await app.close();
 });
 
-test('changing constraints resets the plan and loses old progress intentionally', async () => {
+test('reducing availability keeps the saved week and updates the next plan budget', async () => {
   const app = buildApp();
   let r = await app.inject({ method: 'POST', url: '/api/sessions', payload: { intake } });
   let s = r.json();
   r = await app.inject({ method: 'PUT', url: '/api/sessions/' + s.id + '/route', payload: { expectedRevision: s.revision, routeId: 'return' } });
   s = r.json();
+  const savedPlan = s.plan;
   r = await app.inject({ method: 'PUT', url: '/api/sessions/' + s.id + '/intake',
     payload: { expectedRevision: s.revision, intake: { ...intake, weeklyHours: 1 } } });
   s = r.json();
-  assert.equal(s.plan, null);
+  assert.equal(r.statusCode, 200);
+  assert.deepEqual(s.plan, savedPlan);
   assert.equal(s.intake.weeklyHours, 1);
+  r = await app.inject({ method: 'PUT', url: '/api/sessions/' + s.id + '/route', payload: { expectedRevision: s.revision, routeId: 'shift' } });
+  assert.equal(r.json().plan.budgetMinutes, 60);
   await app.close();
 });
 

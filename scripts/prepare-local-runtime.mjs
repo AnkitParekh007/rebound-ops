@@ -6,7 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 function command(program, args, cwd, quiet = false) {
-  const result = spawnSync(program, args, { cwd, stdio: quiet ? 'pipe' : 'inherit', timeout: 300_000 });
+  const npmPath = program === 'npm' && process.env.npm_execpath;
+  const windowsNpm = program === 'npm' && process.platform === 'win32' && !npmPath;
+  const result = spawnSync(npmPath ? process.execPath : windowsNpm ? 'npm.cmd' : program,
+    npmPath ? [npmPath, ...args] : args,
+    { cwd, stdio: quiet ? 'pipe' : 'inherit', timeout: 300_000, shell: windowsNpm });
   return result.status === 0 && !result.error;
 }
 

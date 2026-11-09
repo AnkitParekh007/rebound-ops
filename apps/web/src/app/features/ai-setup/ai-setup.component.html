@@ -15,7 +15,7 @@
   </ol>
   <pre tabindex="0" aria-label="AI setup terminal commands">read -rsp 'Anthropic API key: ' ANTHROPIC_API_KEY; echo
 export ANTHROPIC_API_KEY
-bash scripts/start-demo.sh --ai</pre>
+npm start -- --ai</pre>
   <p>The launcher already serves this full recovery interface with the same session. Switching interfaces needs no restart. Save your session or download a JSON backup before restarting to enable AI. Developers running <code>npm run dev</code> separately can set <code>REBOUNDOPS_AI_ENABLED=true</code> in that API terminal. Set <code>REBOUNDOPS_ANTHROPIC_MODEL</code> to override the server’s default model. Environment files are not loaded automatically.</p>
   <div class="actions">
     <button type="button" (click)="store.refreshAiConnection()" [disabled]="store.aiConnectionBusy()">Refresh AI status</button>

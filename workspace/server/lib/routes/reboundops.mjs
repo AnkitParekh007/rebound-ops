@@ -116,7 +116,7 @@ async function forward(res, method, path, body) {
     const timedOut = err && err.name === 'AbortError';
     return res.status(timedOut ? 504 : 503).json({
       error: timedOut ? 'RECOVERY_SERVICE_TIMEOUT' : 'RECOVERY_SERVICE_OFFLINE',
-      message: 'Recovery service is offline. Start it with scripts/start-demo.sh (or npm run start -w @reboundops/api) from the rebound-ops folder.',
+      message: 'Recovery service is offline. Start it with npm start (or npm run start -w @reboundops/api) from the rebound-ops folder.',
     });
   }
   try {

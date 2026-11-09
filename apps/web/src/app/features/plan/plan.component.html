@@ -36,6 +36,9 @@
       <button class="primary" type="button" [disabled]="store.busy()" (click)="saveReview()">Save check-in</button>
       <button class="secondary" type="button" [disabled]="store.busy()" (click)="download()">Export Markdown</button>
     </div>
+    @if (plan.budgetMinutes !== session().intake.weeklyHours * 60) {
+      <p>This saved week keeps its original budget. Your new time limit applies when you choose your next plan.</p>
+    }
     @if (session().reviewNotes) {
       <p class="saved-review"><strong>Last saved check-in:</strong> {{ session().reviewNotes }}</p>
     }

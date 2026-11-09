@@ -1,7 +1,7 @@
 /** Real first-use regression: isolated checkout, advertised launcher, browser UI. */
 import assert from 'node:assert/strict';
 import { smokeWorkspaceReadiness } from './smoke-workspace-readiness.mjs';
-import { spawn, execFileSync } from 'node:child_process';
+import { fork, execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -13,23 +13,50 @@ async function freePort() {
   const server=net.createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const port=server.address().port;await new Promise(r=>server.close(r));return port;
 }
+async function waitForHealth(origin, child, log) {
+  const deadline = Date.now() + 240000;
+  while (true) {
+    if (child.exitCode !== null || child.signalCode !== null) throw Error('Launcher exited before readiness: ' + log());
+    try { if ((await fetch(origin + '/api/rebound/health')).ok) return; } catch {}
+    assert(Date.now() < deadline, 'Launcher readiness timeout: ' + log());
+    await new Promise(r => setTimeout(r, 250));
+  }
+}
+
+async function stopLauncher(child, signal) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise((resolveExit, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Launcher did not stop after ' + signal)), 8000);
+    child.once('exit', () => { clearTimeout(timeout); resolveExit(); });
+    if (process.platform === 'win32') child.disconnect();
+    else child.kill(signal);
+  });
+}
+
+async function assertPortReleased(port) {
+  const probe = net.createServer();
+  await new Promise((ready, reject) => {
+    probe.once('error', reject);
+    probe.listen(port, '127.0.0.1', () => probe.close(ready));
+  });
+}
+
 export async function runLaunchSmoke(checkout) {
   const port=await freePort(), apiPort=await freePort();
   const dataHome=mkdtempSync(join(tmpdir(),'rebound-smoke-data-'));
   const env={...process.env,XDG_DATA_HOME:dataHome,PORT:String(port),REBOUNDOPS_API_PORT:String(apiPort),REBOUND_OPS_ROOT:join(checkout,'engine'),REBOUNDOPS_AI_ENABLED:'false'};
   for(const key of Object.keys(env))if(/KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL/.test(key))delete env[key];
   delete env.REBOUNDOPS_DATA_DIR;delete env.REBOUNDOPS_AI_COUNTER_FILE;
-  const child=spawn('bash',['scripts/start-demo.sh'],{cwd:checkout,env,stdio:['ignore','pipe','pipe']});
-  let log='',browser;child.stdout.on('data',d=>{log=(log+d).slice(-20000);process.stdout.write(d);});child.stderr.on('data',d=>{log=(log+d).slice(-20000);process.stderr.write(d);});
+  let log='',browser,child;
+  const start = () => {
+    child = fork(join(checkout, 'scripts', 'start.mjs'), [], { cwd:checkout, env, stdio:['ignore','pipe','pipe','ipc'] });
+    child.stdout.on('data',d=>{log=(log+d).slice(-20000);process.stdout.write(d);});
+    child.stderr.on('data',d=>{log=(log+d).slice(-20000);process.stderr.write(d);});
+  };
   const origin=`http://127.0.0.1:${port}`;
   try {
-    const deadline=Date.now()+240000;
-    while(true){
-      if(child.exitCode!==null)throw Error('Launcher exited before readiness: '+log);
-      try {const r=await fetch(origin+'/api/rebound/health');if(r.ok)break;}catch{}
-      assert(Date.now()<deadline,'Launcher readiness timeout: '+log);
-      await new Promise(r=>setTimeout(r,250));
-    }
+    start();
+    await waitForHealth(origin, child, () => log);
     const {chromium}=createRequire(join(checkout,'engine','package.json'))('playwright');
     browser=await chromium.launch({headless:true,...(env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{})});
     const context=await browser.newContext({acceptDownloads:true});const page=await context.newPage();page.setDefaultTimeout(20000);
@@ -59,6 +86,14 @@ export async function runLaunchSmoke(checkout) {
     await page.getByText(/Will set #1/).waitFor();const outcome=page.waitForResponse(r=>r.url().endsWith('/api/outcome'));await page.getByRole('button',{name:'Record outcome',exact:true}).click();assert.equal((await outcome).status(),200);
     assert(readFileSync(join(checkout,'engine','data','applications.md'),'utf8').includes('| Interview |'));
     await page.goto(origin+'/#/start');
+    await page.getByRole('checkbox',{name:'Keep my unfinished answers in this browser',exact:true}).check();
+    await page.getByRole('radio',{name:/Find similar work/}).check();
+    await page.getByRole('button',{name:'Continue',exact:true}).click();
+    await page.getByLabel('Your current or most recent role').fill('Fictional draft engineer');
+    await page.reload();
+    assert.equal(await page.getByLabel('Your current or most recent role').inputValue(),'Fictional draft engineer');
+    await page.getByRole('checkbox',{name:'Keep my unfinished answers in this browser',exact:true}).uncheck();
+    await page.reload();
     await page.getByRole('button',{name:'Use a fictional example',exact:true}).click();
     await page.getByRole('checkbox',{name:/Save on this computer after each change/}).check();
     await page.getByRole('button',{name:'Compare my directions',exact:true}).click();
@@ -66,7 +101,18 @@ export async function runLaunchSmoke(checkout) {
     await page.goto(origin+'/#/directions');await page.locator('[data-route-id="return"] button').click();
     await page.getByRole('button',{name:'Mark as done',exact:true}).click();
     await page.getByText(/1 of .* steps done/).first().waitFor();
-    await page.goto(origin+'/#/evidence');await page.getByRole('button',{name:'I have reviewed this',exact:true}).click();
+    await page.getByRole('navigation',{name:'Work on your plan'}).getByRole('link',{name:/Draft a résumé bullet/}).waitFor();
+    await page.getByRole('navigation',{name:'Work on your plan'}).getByRole('link',{name:/Review an achievement/}).click();
+    await page.getByRole('button',{name:'I have reviewed this',exact:true}).click();
+    await page.getByText('Reviewed by you',{exact:true}).waitFor();
+    await page.goto(origin+'/#/recovery');
+    await page.getByRole('link',{name:'Edit my answers',exact:true}).click();
+    await page.getByRole('button',{name:'Change location',exact:true}).click();
+    await page.getByLabel('Where you would like to work').fill('Fictional remote location');
+    await page.getByRole('button',{name:'Continue',exact:true}).click();
+    await page.getByRole('button',{name:'Save my answers',exact:true}).click();
+    await page.getByText(/1 of .* steps done/).first().waitFor();
+    await page.goto(origin+'/#/evidence');
     await page.getByText('Reviewed by you',{exact:true}).waitFor();
     const session=await page.evaluate(()=>window.ReboundState.session());
     const sameSession=await context.newPage();await sameSession.goto(origin+'/#/recovery');
@@ -75,11 +121,12 @@ export async function runLaunchSmoke(checkout) {
     await sameSession.goto(recoveryUrl);await sameSession.getByText('Saved on this computer.',{exact:true}).waitFor();
     assert.equal(await sameSession.locator('.brand-logo').evaluate(img=>img.complete&&img.naturalWidth>0),true);
     assert.equal(JSON.parse(readFileSync(join(dataHome,'reboundops','sessions',session.id+'.json'),'utf8')).session.plan.actions.filter(a=>a.completed).length,1);
-    // Read the same persisted plan in a fresh API process (a real restart, without browser fixtures).
-    const {buildApp}=await import('../dist/api/app.js');
-    const restarted=buildApp({dataDir:join(dataHome,'reboundops','sessions')});
-    try { const response=await restarted.inject({method:'GET',url:'/api/sessions/'+session.id});assert.equal(response.statusCode,200);assert.equal(response.json().plan.actions.filter(a=>a.completed).length,1); }
-    finally { await restarted.close(); }
+    await stopLauncher(child, 'SIGTERM');
+    await Promise.all([assertPortReleased(port), assertPortReleased(apiPort)]);
+    start();
+    await waitForHealth(origin, child, () => log);
+    await page.goto(origin+'/#/recovery');
+    await page.getByText(/1 of .* steps done/).first().waitFor();
     await page.goto(origin+'/#/tracker');await page.getByRole('button',{name:'Add application',exact:true}).click();
     await page.getByRole('textbox',{name:'Company',exact:true}).fill('Fictional Manual Studio');
     await page.getByRole('textbox',{name:'Role',exact:true}).fill('Platform Engineer');
@@ -97,7 +144,8 @@ export async function runLaunchSmoke(checkout) {
     console.log('PASS: launcher, real PDF export, truthful failure, tracker status and outcome writes.');
   }finally{
     await browser?.close();
-    const stopped=new Promise(r=>child.once('exit',r));if(child.exitCode===null){child.kill('SIGTERM');await stopped;}
+    await stopLauncher(child, 'SIGINT');
+    await Promise.all([assertPortReleased(port), assertPortReleased(apiPort)]);
     rmSync(dataHome,{recursive:true,force:true});
   }
 }

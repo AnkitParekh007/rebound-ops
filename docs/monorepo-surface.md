@@ -7,7 +7,7 @@ The recovery MVP (`apps/`, `packages/`) is relatively small. `workspace/` and `e
 ## Near-term policy (no mass deletion)
 
 1. Treat **recovery app** as the primary workflow to evaluate in pilots.
-2. Treat **workspace/engine** as optional local job-search tooling launched via `scripts/start-demo.sh`.
+2. Treat **workspace/engine** as optional local job-search tooling launched via `npm start`.
 3. Do not sync recovery sessions into `engine/` without an explicit consent UI (roadmap deferred item).
 4. Keep provenance/license checks green; do not invent participant outcome claims.
 

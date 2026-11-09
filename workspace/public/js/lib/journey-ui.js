@@ -76,7 +76,7 @@ window.Journey = (function () {
   function errorText(r) {
     const d = r && r.data;
     if (!r || r.status === 0 || (d && (d.error === 'RECOVERY_SERVICE_OFFLINE' || d.error === 'RECOVERY_SERVICE_TIMEOUT'))) {
-      return 'The ReboundOps recovery service is not running. Start it with scripts/start-demo.sh from the rebound-ops folder, then try again. Job-search tools still work on their own.';
+      return 'The ReboundOps recovery service is not running. Start it with npm start from the rebound-ops folder, then try again. Job-search tools still work on their own.';
     }
     if (d && d.error === 'STALE_REVISION') return 'Your plan changed in another tab. It has been refreshed with the latest version — please try again.';
     if (d && d.error === 'SESSION_NOT_FOUND') return 'This plan is no longer available. Plans are kept in memory only, so they end when ReboundOps restarts.';

@@ -160,7 +160,7 @@ Router.register('cv', async () => {
               const detail = event === 'error' ? (data?.message || 'Connection lost')
                 : (typeof data?.code === 'number' ? 'exit ' + data.code : 'process interrupted');
               fail(t('cv.pdfFailed', 'PDF export failed') + ' — ' + detail + '. ' +
-                t('cv.pdfRepair', 'Check the log above. If dependencies are missing, stop the app and rerun scripts/start-demo.sh, then retry.'));
+                t('cv.pdfRepair', 'Check the log above. If dependencies are missing, stop the app and rerun npm start, then retry.'));
               return;
             }
             const after = await pdfFiles();

@@ -46,16 +46,16 @@ set `REBOUND_OPS_ROOT` to point it elsewhere. Personal files the engine creates
 
 ## Run it
 
-Requirements: Node 24.15+ or 26, npm, git, bash, curl.
+Requirements: Node 24.15+ (24.x), 22.22.3+ (22.x), or 26+, plus npm and Git. Use your usual terminal on macOS, Linux or Windows. Run `npm run doctor` to check prerequisites and ports.
 
 ```bash
 git clone https://github.com/AnkitParekh007/rebound-ops.git
 cd rebound-ops
-scripts/start-demo.sh
+npm start
 ```
 
 Then open **http://127.0.0.1:4317/#/start**. The script verifies package-lock fingerprints and installed dependencies in the root, `workspace/` and engine. Missing, changed or incomplete installs run `npm ci`. It installs Chromium when needed, verifies that it can launch, then builds the contracts and API,
-starts both servers on loopback and stops both on Ctrl+C. Recovery AI is off by default. Use `--ai` with an exported `ANTHROPIC_API_KEY` to opt in, or `--no-ai` to keep it off. Known provider keys are stripped from the workspace process environment.
+starts both servers on loopback and stops both on Ctrl+C. Recovery AI is off by default. Use `npm start -- --ai` with an exported `ANTHROPIC_API_KEY` to opt in, or `npm start -- --no-ai` to keep it off. Known provider keys are stripped from the workspace process environment.
 
 Manual equivalent (two terminals, from the repository root):
 
@@ -68,19 +68,18 @@ The launcher installs the engine's locked dependencies for both workspace featur
 
 ## Data flow and privacy
 
-1. The start flow keeps its draft in page memory only, then posts `{ intake }` to `POST /api/rebound/sessions`. The bridge rebuilds
+1. The start flow keeps unfinished answers in page memory by default. **Keep my unfinished answers in this browser** opts into a local draft that survives refresh and reopening at the same address. Submitting the draft or turning the option off removes it. The start flow posts `{ intake }` to `POST /api/rebound/sessions`. The bridge rebuilds
    the intake from known fields only; every achievement is sent as
    `source.kind: 'manual'`, `status: 'unverified'` regardless of what the client
-   sent. ReboundOps validates it again with its strict Zod schema.
+   sent. ReboundOps validates it again with its strict Zod schema. On edits, the recovery API retains the original review and source for matching evidence IDs and unchanged claims.
 2. The session begins in memory. The launcher configures a private folder outside Git; explicit **Save on this computer** consent enables saving after each change. Start and My next step provide JSON backup/restore and saved-session resume. Memory-only sessions without backups are lost on restart.
 3. The browser keeps **only a reference** in `sessionStorage`
    (`reboundops:handoff` = `sessionId`, `goal` key, `suggestedRoute`) — no role,
    priorities, location, targets or achievement text; the session itself is
    fetched from the API into page memory on each load. "Edit my answers"
-   pre-fills from the live session. For explicitly saved sessions, `localStorage` additionally holds only the session UUID so another tab can resume it. `localStorage` also holds two non-personal flags
+   pre-fills from the live session. For explicitly saved sessions, `localStorage` holds the session UUID so another tab can resume it. It also holds the optional draft if enabled and two non-personal flags
    (`reboundops:visited`, `reboundops:prefers-tools`). An automated browser test
    checks storage during drafting and after the plan is created.
-   (Earlier builds stored the full intake draft in sessionStorage; that is no longer the case.)
 4. The opportunities handoff passes only the visible search text, in the URL
    fragment (`#/scan?q=…`), which never leaves the browser. The scan view applies it as a results filter and proposes it as the actual query in a review dialog. The user reviews enabled companies, title/location filters and regional queries before confirming. Regional sources require explicit opt-in. The query overrides title keywords for that run; existing location/content filters still apply.
 5. **Recovery does not automatically write to the engine folder** — no CV, profile,
@@ -174,7 +173,7 @@ are tracked in [docs/roadmap.md](../../docs/roadmap.md).
 
 ## Recovery AI setup
 
-Open **Set up AI assistance** from Start or Settings (`#/ai-setup`). Export a key privately in the launcher terminal, then run `bash scripts/start-demo.sh --ai`. The setup page shows configuration status and offers an explicit model-metadata connection test. No career data is sent by that test. Status and test requests use fixed `/api/rebound/ai/*` bridge endpoints; no credentials are accepted from the browser. Full requirement review remains in the Angular app: use **Open full recovery** from Start or My next step; the launcher serves the same session and AI configuration on the API port. See [Recovery AI setup](../../docs/ai-provider.md).
+Open **Set up AI assistance** from Start or Settings (`#/ai-setup`). Export a key privately in the launcher terminal, then run `npm start -- --ai`. The setup page shows configuration status and offers an explicit model-metadata connection test. No career data is sent by that test. Status and test requests use fixed `/api/rebound/ai/*` bridge endpoints; no credentials are accepted from the browser. Full requirement review remains in the Angular app: use **Open full recovery** from Start or My next step; the launcher serves the same session and AI configuration on the API port. See [Recovery AI setup](../../docs/ai-provider.md).
 
 ## Startup readiness
 

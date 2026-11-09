@@ -7,6 +7,8 @@
   "workspaces": ["packages/*", "apps/*"],
   "description": "Evidence-led career recovery: Angular app, localhost API and typed contracts",
   "scripts": {
+    "start": "node scripts/start.mjs",
+    "doctor": "node scripts/start.mjs --doctor",
     "dev": "npm run build:contracts && concurrently --names api,web --prefix-colors cyan,magenta --kill-others-on-fail \"npm:dev:api\" \"npm:dev:web\"",
     "dev:web": "npm run start -w @reboundops/web",
     "test:e2e": "playwright test",

@@ -54,6 +54,10 @@ export class IntakeComponent {
   readonly guided = output<void>();
 
   private readonly sessionId = computed(() => this.store.session()?.id ?? null);
+  private readonly validateEvidenceLines = linesValidator({
+    min: 0, max: MAX_EVIDENCE_LINES, item: EvidenceSchema.shape.claim,
+    tooFew: '', tooMany: 'Use at most 15 evidence lines.', itemLabel: 'Line'
+  });
 
   /** Typed form; every rule comes from the shared IntakeSchema the API enforces. */
   readonly form = new FormGroup({
@@ -70,10 +74,11 @@ export class IntakeComponent {
     bridgeTarget: text(blank.bridgeTarget, field.bridgeTarget),
     evidenceText: new FormControl(blank.evidenceText, {
       nonNullable: true,
-      validators: linesValidator({
-        min: 0, max: MAX_EVIDENCE_LINES, item: EvidenceSchema.shape.claim,
-        tooFew: '', tooMany: 'Use at most 15 evidence lines.', itemLabel: 'Line'
-      })
+      validators: control => {
+        const existing = this.store.session()?.intake.evidence;
+        return existing && control.value === existing.map(item => item.claim).join('\n')
+          ? null : this.validateEvidenceLines(control);
+      }
     })
   });
 
@@ -129,7 +134,7 @@ export class IntakeComponent {
       priorities: v.priorities.trim(),
       shiftTarget: v.shiftTarget.trim(),
       bridgeTarget: v.bridgeTarget.trim(),
-      evidence: evidenceFromLines(v.evidenceText)
+      evidence: evidenceFromLines(v.evidenceText, this.store.session()?.intake.evidence)
     };
   }
 }
