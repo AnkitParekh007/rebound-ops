@@ -718,6 +718,10 @@ Router.register('dashboard', async () => {
   ]);
 
   saveSnapshot();
+  root.prepend(c('nav', { className: 'card mb-3', 'aria-label': 'Your job-search steps', style: { display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '16px' } }, [
+    c('a', { href: '#/recovery' }, '1 · Your next step'), c('a', { href: '#/cv' }, '2 · Prepare your CV'),
+    c('a', { href: '#/portals' }, '3 · Set up job sources'), c('a', { href: '#/tracker' }, '4 · Track applications'), c('a', { href: '#/recovery' }, 'Back up your work')
+  ]));
   return root;
 });
 

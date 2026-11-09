@@ -210,6 +210,7 @@ export async function runRuScan(opts = {}) {
   const { writeFiles = true, onLog = () => {}, onProgress = () => {}, fetchImpl = makeTimeoutFetch(), signal } = opts;
   const cfg = loadConfig();
   if (opts.queryText) { cfg.queries = [String(opts.queryText).trim()]; cfg.negative = []; cfg.warnings = []; }
+  if (opts.locationText) cfg.locationFilter = { ...cfg.locationFilter, allow: String(opts.locationText).split(',').map(x => x.trim()).filter(Boolean), strict: true };
   const seen = loadSeenUrls();
 
   const log = (s, line) => onLog(s, line);
@@ -375,7 +376,8 @@ export async function runRuScan(opts = {}) {
 
   return {
     cfg,
-    counts: { raw: totalUnique, removedNeg, dup, fresh: fresh.length },
+    sourceStatus: { attempted: calls.attempted, failed: calls.failed, retainedPrevious: calls.attempted > 0 && calls.failed >= calls.attempted },
+    counts: { matching: filtered.length, raw: totalUnique, removedNeg, dup, fresh: fresh.length },
     fresh,
     errors,
   };

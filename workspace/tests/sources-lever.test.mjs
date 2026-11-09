@@ -147,7 +147,7 @@ test('lever: categories.commitment never leaks into workplaceType', async () => 
       hostedUrl: 'https://jobs.lever.co/acme/4',
     }]),
   });
-  assert.equal(job.workplaceType, 'Onsite'); // was 'Full-time'
+  assert.equal(job.workplaceType, 'Unknown'); // commitment and a city do not establish work model
   assert.equal(job.isRemote, false);
   assert.equal(job.snippet, 'Platform'); // team still feeds snippet
 });

@@ -1,3 +1,4 @@
+import { inferWorkModel } from '../work-model.mjs';
 /**
  * Ashby public posting-api wrapper.
  *   GET https://api.ashbyhq.com/posting-api/job-board/<slug>?includeCompensation=true
@@ -138,7 +139,7 @@ function normalize(j) {
   // exported flag matches the location string.
   const wtLower = typeof j.workplaceType === 'string' ? j.workplaceType.trim().toLowerCase() : '';
   const isRemote = wtLower ? wtLower === 'remote' : j.isRemote === true;
-  const wt = j.workplaceType || (isRemote ? 'Remote' : 'Onsite');
+  const wt = j.workplaceType || (isRemote ? 'Remote' : 'Unknown');
 
   // Compensation summary
   let salary = '';
@@ -158,7 +159,7 @@ function normalize(j) {
     salary,
     location: formatLocation(j),
     isRemote,
-    workplaceType: wt,
+    ...inferWorkModel({ structured: wt, location: formatLocation(j), title: j.title }),
     relocates: false,
     date: j.publishedAt || '',
     snippet: '',

@@ -8,6 +8,7 @@
  * `j.description ?? j.snippet` (en-scanner.mjs), so without it every Greenhouse
  * board passed that filter blind.
  */
+import { inferWorkModel } from '../work-model.mjs';
 import { htmlToText } from '../html-to-text.mjs';
 import { fetchJson, labeledHttpError } from '../http-json.mjs';
 import { requireArray, requireContainer } from './_shape.mjs';
@@ -190,9 +191,11 @@ function normalize(j, officeMap = null) {
     if (fromMap && fromMap.size > 0) loc = [loc, ...[...fromMap].sort()].join(' · ');
   }
   const allLocs = [loc, ...offices].filter(Boolean).join(' · ');
-  const isRemote = /remote|anywhere|fully\s*distributed/i.test(allLocs) ||
-                   /\bremote\b/i.test(j.title);
-  const isHybrid = /hybrid/i.test(allLocs);
+  const description = contentToText(j.content);
+  const structured = j.workplaceType || (j.metadata || []).find(m => /^(?:workplace[ _-]?type|work[ _-]?model|work[ _-]?arrangement)$/i.test(m.name || ''))?.value;
+  // Work-model policy often lives in the footer beyond the 4 KB display excerpt.
+  // Read a bounded 20 KB body for evidence without enlarging cached descriptions.
+  const work = inferWorkModel({ structured, location: allLocs, title: j.title, description: htmlToText(j.content, { cap: 20000 }) });
   const relocates = /\b(visa|relocation|relocates?|sponsorship)\b/i.test(allLocs + ' ' + (j.title || ''));
   return {
     id: `gh-${j.id}`,
@@ -201,12 +204,11 @@ function normalize(j, officeMap = null) {
     url: j.absolute_url || '',
     salary: '', // greenhouse rarely exposes salary in board-api
     location: loc || (offices[0] || ''),
-    isRemote,
-    workplaceType: isRemote ? 'Remote' : (isHybrid ? 'Hybrid' : 'Onsite'),
+    ...work,
     relocates,
     date: j.first_published || j.updated_at || '',
     snippet: '',
-    description: contentToText(j.content),
+    description,
     source: 'greenhouse',
   };
 }

@@ -263,6 +263,7 @@ Router.register('scan', async () => {
   const scanProgressLabel = c('span', { className: 'scan-progress-label', 'aria-hidden': 'true' }, t('scan.progress', 'Scanning…'));
   const scanProgressWrap = c('div', { className: 'scan-progress-wrap' }, [scanProgressLabel, scanProgress]);
   scanProgressWrap.hidden = true;
+  const summaryRegion = c('div', { id: 'scan-summary', className: 'card', role: 'status', 'aria-live': 'polite', hidden: true, style: { padding: '12px', margin: '12px 0' } });
   const resultsEl = c('div', { id: 'scan-results' });
 
   const dryRun = c('input', { type: 'checkbox', id: 'dry-run' });
@@ -286,6 +287,7 @@ Router.register('scan', async () => {
     c('option', { value: 'remote' }, t('scan.remoteOnly')),
     c('option', { value: 'hybrid' }, t('scan.hybrid')),
     c('option', { value: 'onsite' }, t('scan.onsite', 'on-site')),
+    c('option', { value: 'unknown' }, 'Work model unknown'),
     c('option', { value: 'reloc' }, t('scan.reloc')),
   ]);
   // v1.67.0 — salary от/до range. Numbers only; bounds are currency-agnostic
@@ -535,10 +537,11 @@ Router.register('scan', async () => {
   // resetResultsCache all exist; the Scan/Stop buttons defer to it via `runner`
   // (file-size split → public/js/views/scan/runner.js).
   runner = window.createScanRunner({
-    consoleEl, statusRegion, errBanner, terminalEl,
+    consoleEl, statusRegion, summaryRegion, errBanner, terminalEl,
     scanProgress, scanProgressBar, scanProgressLabel, scanProgressWrap,
     scanBtn, stopBtn, dryRun, companySelect, maxPerSource,
     t, c, refreshResults, resetResultsCache,
+    showScanResults: (query) => { filtersApi.resetFilters(); filterText.value = query || ''; commit(); },
   });
   // v1.243.0 (views-3) — stash the runner at module scope so the hashchange
   // teardown can close an in-flight EventSource when the user navigates away.
@@ -711,7 +714,7 @@ Router.register('scan', async () => {
       ]),
     ]),
 
-    c('div', null, [errBanner, scanProgressWrap, statusRegion, terminalEl]),
+    c('div', null, [errBanner, scanProgressWrap, statusRegion, summaryRegion, terminalEl]),
 
     repostsPanel,
 

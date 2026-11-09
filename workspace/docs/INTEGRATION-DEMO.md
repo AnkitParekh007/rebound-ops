@@ -183,3 +183,11 @@ Startup stops before launching services if dependency installation or Chromium v
 ## Reviewed context reuse
 
 The full recovery link reopens the existing session by UUID, with no restart. CV offers **Review achievements from recovery** for confirmed claims only; the draft is editable and appends to the unsaved editor. Profile offers **Reuse recovery context** for selected role/location fields; populated fields are unselected by default. Two-pager offers an editable preferences preview which appends to the form. These actions never save automatically, never replace the whole file, and do not establish independent verification. Use each form’s Save action deliberately.
+
+## Discovery, manual reviews and concrete experiments
+
+Scan review opens **Portals** for source setup, accepts an explicit per-run role/location limit, and defaults to showing the reviewed query while clearing old display filters. Regional sources remain opt-in. Failed/partial summaries disclose unavailable sources and retained older results. Unsupported work-model assumptions are shown as Unknown with source explanations. Portals supports adding a known supported board URL without a discovery probe; direct DNS-pinned discovery retains its request protections and reports incomplete probes.
+
+**Bring a web-chat answer back** saves explicitly reviewed external output as a local report without applying claims or scores. CV handoffs omit achievements already present in the editor. Both recovery interfaces allow replacing a weekly task with a concrete experiment, preserving its allocated minutes and resetting that task's completion mark. The saved Session shape is unchanged.
+
+**Download combined career backup** packages the active session with eligible workspace records. Restore previews files and keeps existing files unselected by default. Source credentials are redacted; provider settings and PDFs are omitted. See [local persistence](../../docs/local-persistence.md) for limits and restore behavior.

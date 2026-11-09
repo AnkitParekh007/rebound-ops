@@ -85,19 +85,19 @@
         ? 'btn btn-danger scan-stop-btn'
         : 'btn btn-ghost scan-stop-btn';
     }
-    function announce(msg) { statusRegion.textContent = msg; }
+    function announce(msg) { statusRegion.textContent = msg; if (ctx.summaryRegion) { ctx.summaryRegion.textContent = msg; ctx.summaryRegion.hidden = !msg; } }
     function clearScanError() { errBanner.hidden = true; errBanner.textContent = ''; }
-    function showScanError(msg) {
+    function showScanError(msg, partial = false) {
       errBanner.textContent = '';
       errBanner.appendChild(c('strong', null,
-        '✗ ' + t('scan.errBannerTitle', 'Scan failed') + ': '));
+        (partial ? '⚠ Partial scan' : '✗ ' + t('scan.errBannerTitle', 'Scan failed')) + ': '));
       errBanner.appendChild(c('span', null, String(msg || 'unknown error')));
       errBanner.appendChild(c('button', {
         className: 'btn btn-ghost',
         onClick: () => { clearScanError(); if (lastRunFn) lastRunFn(); },
       }, '↻ ' + t('scan.errRetry', 'Retry scan')));
       errBanner.hidden = false;
-      announce(t('scan.statusFailed', 'Scan failed') + ': ' + (msg || ''));
+      announce(String(msg || (partial ? 'Partial scan' : 'Scan failed')));
       setTerminalState('error');   // v1.244.2 — dot turns red until the next run
     }
     function stopScan() {
@@ -221,23 +221,34 @@
         const intent = new URLSearchParams((window.location.hash || '').split('?')[1] || '').get('q') || '';
         const query = c('input', { type: 'text', className: 'input', maxLength: 140, value: intent, 'aria-label': 'Actual scan query' });
         const regional = c('input', { type: 'checkbox' });
+        const showQuery = c('input', { type: 'checkbox', checked: true });
+        const location = c('input', { type: 'text', className: 'input', maxLength: 160, 'aria-label': 'Locations for this scan', placeholder: 'e.g. India, Bengaluru — blank keeps configured filters' });
+        const recoveryLocation = window.ReboundState?.session()?.intake?.location || '';
+        const summary = c('p', {}, `${plan.companies.length} enabled source(s): ${plan.companies.join(', ') || 'none'}. Existing location rules: ${(Array.isArray(plan.locationFilter?.allow) ? plan.locationFilter.allow : []).join(', ') || 'no required locations'}.`);
+        const advanced = c('details', {}, [c('summary', {}, 'Advanced source settings')]);
         const info = c('pre', { style: { whiteSpace: 'pre-wrap' } }, JSON.stringify({ selectedCompany: companySelect.value || 'All enabled companies', maximumPerSource: maxPerSource.value || 'Unlimited', dryRun: dryRun.checked, enabledCompanies: plan.companies, configuredTitleFilter: plan.titleFilter, configuredLocationFilter: plan.locationFilter, contentFilter: plan.contentFilter, regionalSourcesAndGeography: plan.regional, regionalQueries: plan.regionalQueries }, null, 2));
+        advanced.append(info);
         const notice = c('p', { role: 'status' });
         form.append(c('p', {}, 'Review actual scan inputs before contacting external job boards. The query replaces configured positive and negative title keywords for this run only. ATS scans filter downloaded titles; regional sources receive the query directly. Existing location/content filters still apply; your recovery location is not automatically applied.'),
           c('label', {}, ['Actual scan query (leave empty to use configured title keywords)', query]),
-          c('label', {}, [regional, ' Include Russia-focused regional sources (explicit opt-in)']), info, notice,
-          c('a', { href: '#/config' }, 'Review source configuration'),
+          c('label', {}, ['Locations for this scan (comma-separated; applies only to this run)', location]),
+          c('p', {}, recoveryLocation ? 'Your recovery preference: ' + recoveryLocation + '. Review specific place names above; free-text preferences are not automatically converted into filters.' : 'Location limits require an explicit place name. Blank uses existing rules.'),
+          c('label', {}, [showQuery, ' Show this query’s results and clear older display filters']),
+          c('label', {}, [regional, ' Include Russia-focused regional sources (explicit opt-in)']), summary, advanced, notice,
+          c('a', { href: '#/portals' }, 'Add or review job sources'),
           c('button', { type: 'submit', className: 'btn btn-primary' }, 'Confirm and scan'));
         form.addEventListener('submit', ev => {
           ev.preventDefault();
           if (!plan.companies.length && !regional.checked) { notice.textContent = 'No ATS companies are enabled. Add sources before scanning, or explicitly select regional sources if relevant.'; return; }
-          UI.closeModal(); runScanAll({ confirmed: true, queryText: query.value.trim(), source: regional.checked ? (plan.companies.length ? 'both' : 'regional') : 'ats' });
+          UI.closeModal(); runScanAll({ confirmed: true, queryText: query.value.trim(), locationText: location.value.trim(), showQuery: showQuery.checked, source: regional.checked ? (plan.companies.length ? 'both' : 'regional') : 'ats' });
         });
         UI.modal('Review scan inputs', form); return;
       }
       const params = new URLSearchParams();
       params.set('source', reviewed.source);
       if (reviewed.queryText) params.set('queryText', reviewed.queryText);
+      if (reviewed.locationText) params.set('location', reviewed.locationText);
+      if (reviewed.showQuery && ctx.showScanResults) ctx.showScanResults(reviewed.queryText);
       if (dryRun.checked) params.set('dryRun', '1');
       const company = companySelect.value;
       if (company) params.set('company', company);
@@ -246,6 +257,7 @@
       consoleEl.textContent = '';
       clearScanError();
       setScanRunning(true);
+      announce('Scanning selected sources…');
       lastRunFn = runScanAll;
       resetResultsCache();   // v1.80.0 — clear before scan; poll + done refill
       UI.toast(t('scan.runAll', 'Scanning all sources…'), 'success');
@@ -260,6 +272,8 @@
 
       let phase = null;       // 'ats' | 'regional' as we move between phases
       let totalNew = 0;
+      let totalFetched = 0, totalMatched = 0;
+      const outcomes = [];
       activeES = API.stream('/api/stream/scan?' + params.toString(), (ev, data) => {
         if (ev === 'start') {
           // Inferred from the server-emitted script label so a single stream
@@ -277,9 +291,10 @@
           consoleEl.scrollTop = consoleEl.scrollHeight;
         } else if (ev === 'done') {
           const fresh = data.counts?.fresh ?? 0;
-          totalNew += fresh;
+          totalNew += fresh; totalFetched += data.counts?.raw || 0; totalMatched += data.counts?.matching ?? fresh;
           const label = phase === 'ats' ? 'ATS' : 'Regional';
-          appendMeta(consoleEl, `✓ ${label} done · NEW=${fresh}\n`);
+          const outcome = data.status || (data.errors ? 'partial' : 'success'); outcomes.push(outcome);
+          appendMeta(consoleEl, `${outcome === 'success' ? '✓' : '⚠'} ${label} ${outcome} · NEW=${fresh}\n`);
           // The consolidated `source=both` stream emits an intermediate `done`
           // with `final:false` (ATS) then a terminal one (Regional). Only the
           // terminal done ends the run.
@@ -291,8 +306,16 @@
             __cancelActiveScanPoll();
             clearActiveES();
             setScanRunning(false);
-            setTerminalState('done');   // v1.244.2 — green dot after a clean finish
-            announce(t('scan.statusDone', 'Scan complete') + ' · NEW=' + totalNew);
+            const failed = outcomes.every(x => x === 'failed');
+            const partial = !failed && outcomes.some(x => x !== 'success');
+            const message = failed ? 'Scan failed: no selected source could be read. Check source access and network settings. Older results, if any, have been retained.'
+              : partial ? `Partial scan: some sources failed. ${totalNew} new offers; retained results may be older.`
+              : `Scan complete · ${totalFetched} fetched · ${totalMatched} matched · NEW=${totalNew}`;
+            setTerminalState(failed || partial ? 'error' : 'done');
+            announce(message);
+            if (failed || partial) showScanError(message, partial);
+            if (ctx.showScanResults && ctx.summaryRegion) ctx.summaryRegion.appendChild(c('button', { type: 'button', className: 'btn btn-sm', onClick: () => ctx.showScanResults(reviewed.queryText) }, 'Show this scan’s results'));
+            UI.toast(message, failed ? 'error' : partial ? 'warn' : 'success');
             __activeScanDoneTimeout = setTimeout(() => {
               __activeScanDoneTimeout = null;
               refreshResults().catch(() => {});
@@ -313,16 +336,7 @@
           showScanError(label + ' — ' + msg);
         }
       });
-      // EventSource closes on the last `done`; show the summary toast then.
-      // We can't easily distinguish "ATS done" from "all done" without a
-      // server-side `phase: 'final'` marker, so the toast fires on each done
-      // and the user reads the meta line for context.
-      Promise.resolve().then(() => {
-        // Defensive: schedule a final summary once the stream is idle.
-        setTimeout(() => {
-          if (totalNew > 0) UI.toast(`${t('nav.scan', 'Scan')}: ${totalNew} ${t('scan.newOffers', 'new offers')}`, 'success');
-        }, 800);
-      });
+
     }
 
     // Appends a dim "meta" line to the SSE console (run markers, done/error
@@ -803,7 +817,7 @@ repostsPanel.addEventListener('toggle', async () => {
               c('p', { style: { color: 'var(--foggy)', marginTop: '8px' } }, portalsErr.message),
             ])
           : companies.length === 0
-          ? c('div', { className: 'empty' }, t('scan.allDisabled'))
+          ? c('div', { className: 'empty' }, [c('p', {}, companies.length ? 'Your job sources are disabled.' : 'No job sources have been added yet.'), c('a', { href: '#/portals', className: 'btn' }, 'Add a job source')])
           : c('div', null, [toggleBtn, filterIn, list]),
       ]),
     };

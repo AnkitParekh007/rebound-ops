@@ -1,3 +1,4 @@
+import { inferWorkModel } from '../work-model.mjs';
 /**
  * Lever public postings API.
  *   GET https://api.lever.co/v0/postings/<slug>
@@ -95,8 +96,7 @@ function normalize(j) {
     url: j.hostedUrl || j.applyUrl || '',
     salary: j.salaryRange?.min ? `${j.salaryRange.min}-${j.salaryRange.max} ${j.salaryRange.currency}` : '',
     location,
-    isRemote,
-    workplaceType: isRemote ? 'Remote' : (isHybrid ? 'Hybrid' : 'Onsite'),
+    ...inferWorkModel({ structured: j.workplaceType, location, title: j.text }),
     relocates: false,
     date: j.createdAt ? new Date(j.createdAt).toISOString() : '',
     snippet: cats.team || cats.department || '',

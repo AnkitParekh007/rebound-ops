@@ -34,9 +34,10 @@ Router.register('ai-setup', async () => {
     h('p', { text: 'Testing contacts Anthropic for metadata about the configured model. It sends no career records and does not generate text. A successful test verifies access, not advice quality. One test is allowed per 30 seconds.' }),
     h('div', { className: 'rj-actions' }, [refresh, test]), message,
     h('h2', { text: '3. Preview and approve a review' }),
-    h('p', { text: 'Recovery requirement review is available in the full Angular app. Stop this launcher, then run npm run dev in a terminal with ANTHROPIC_API_KEY and REBOUNDOPS_AI_ENABLED=true. Open http://127.0.0.1:4200, add a job target, confirm evidence and preview the exact payload before consenting. Provider charges may apply. Suggestions never update evidence automatically.' }),
+    h('p', { text: 'Use Open full recovery from Start or My next step to continue the same session. Switching interfaces needs no restart. Enabling AI for the first time requires restarting the launcher with --ai and the key exported; save your session or download a JSON backup first. Add a job target, confirm evidence and preview the exact payload before consenting. Provider charges may apply. Suggestions never update evidence automatically.' }),
     h('p', null, [h('a', { href: '#/config?tab=api-keys', text: 'Workspace AI provider settings' })]),
     h('p', null, [h('a', { href: 'https://rebound-ops.org/docs/ai/', target: '_blank', rel: 'noopener', text: 'Recovery AI setup guide ↗' })]),
+    h('p', null, [h('a', { href: '#/recovery', text: 'Open my plan and backup controls →' })]),
     h('p', null, [h('a', { href: '#/start', text: 'Continue without AI →' })]));
   await load(); return root;
 });

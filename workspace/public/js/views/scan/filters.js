@@ -176,7 +176,7 @@
       };
       add('q', t('scan.lblSearch', 'Search'), filterText.value, () => { filterText.value = ''; });
       add('ex', t('scan.lblExclude', 'Exclude'), filterExclude.value, () => { filterExclude.value = ''; });
-      const typeLabel = { remote: t('scan.remoteOnly', 'Remote only'), hybrid: t('scan.hybrid', 'Hybrid'), onsite: t('scan.onsite', 'on-site'), reloc: t('scan.reloc', 'Relocation') }[filterRemote.value];
+      const typeLabel = { unknown: 'Unknown', remote: t('scan.remoteOnly', 'Remote only'), hybrid: t('scan.hybrid', 'Hybrid'), onsite: t('scan.onsite', 'on-site'), reloc: t('scan.reloc', 'Relocation') }[filterRemote.value];
       if (typeLabel) out.push({ key: 'type', label: t('scan.lblType', 'Work type'), value: typeLabel, clear: () => { filterRemote.value = ''; } });
       add('smin', t('scan.salaryFrom', 'Salary from'), filterSalaryMin.value, () => { filterSalaryMin.value = ''; });
       add('smax', t('scan.salaryTo', 'Salary to'), filterSalaryMax.value, () => { filterSalaryMax.value = ''; });
@@ -421,7 +421,7 @@
         return (o ? o.textContent : el.value).replace(/\s*\(\d+\)\s*$/, '');
       };
       const typeMap = {
-        remote: t('scan.remoteOnly', 'Remote'), hybrid: t('scan.hybrid', 'Hybrid'),
+        unknown: 'Unknown', remote: t('scan.remoteOnly', 'Remote'), hybrid: t('scan.hybrid', 'Hybrid'),
         onsite: t('scan.onsite', 'on-site'), reloc: t('scan.reloc', 'reloc'),
       };
       const ageMap = { 1: t('scan.age1d', '24h'), 7: t('scan.age7d', '7d'), 30: t('scan.age30d', '30d') };

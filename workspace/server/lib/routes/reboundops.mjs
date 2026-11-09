@@ -217,7 +217,13 @@ export function registerReboundOpsRoutes(app) {
     return forward(res, 'PUT', `/api/sessions/${req.params.id}/evidence/${req.params.evidenceId}`, { expectedRevision, status });
   });
 
-  app.get('/api/rebound/sessions/:id/export', sessionId, (req, res) =>
+  app.put('/api/rebound/sessions/:id/actions/:actionId/experiment', writeRateLimit(), sessionId, sizeGuard, (req, res) => {
+    const { expectedRevision, title } = req.body || {};
+    if (!ACTION_RE.test(req.params.actionId) || !isRevision(expectedRevision) || typeof title !== 'string' || title.trim().length < 3 || title.length > 500) return bad(res, 'Choose an action and a task of 3–500 characters');
+    return forward(res, 'PUT', `/api/sessions/${req.params.id}/actions/${req.params.actionId}/experiment`, { expectedRevision, title });
+  });
+
+  app.get('/api/rebound/sessions/:id/export' , sessionId, (req, res) =>
     forward(res, 'GET', `/api/sessions/${req.params.id}/export`));
 
   // Anything else under /api/rebound is not part of the allowlist.

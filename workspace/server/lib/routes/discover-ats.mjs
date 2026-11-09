@@ -56,7 +56,7 @@ export function registerDiscoverAtsRoutes(app) {
     }
     try {
       const out = await discoverAts(company);
-      return res.json({ company: out.company, results: out.results });
+      return res.json({ company: out.company, results: out.results, incomplete: out.incomplete, failedProbes: out.failures?.length || 0 });
     } catch (e) {
       return res.status(500).json({ error: String((e && e.message) || e).slice(0, 200) });
     }
@@ -90,12 +90,11 @@ export function registerDiscoverAtsRoutes(app) {
     if (!resolveAdapter({ name, careers_url: careersUrl })) {
       return res.status(400).json({ error: 'careers_url is not a recognized ATS board' });
     }
-    if (!existsSync(PATHS.portals)) return res.status(404).json({ error: 'portals.yml not found' });
 
     try {
       let outcome = 'error'; // 'added' | 'duplicate' | 'parse-error' | 'error'
       await withFileLock(PATHS.portals, async () => {
-        const raw = readFileSync(PATHS.portals, 'utf8');
+        const raw = existsSync(PATHS.portals) ? readFileSync(PATHS.portals, 'utf8') : 'tracked_companies: []\n';
         let existing = [];
         try {
           const doc = yaml.load(raw) || {};

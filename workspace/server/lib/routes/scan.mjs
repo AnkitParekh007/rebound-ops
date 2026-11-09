@@ -1,3 +1,4 @@
+import { conservativeWorkModel } from '../work-model.mjs';
 /**
  * Scan routes — in-process portal scanners + last-scan accessor.
  *
@@ -61,6 +62,7 @@ async function driveOne({ send, runner, label, query, signal, final = true }) {
   const isAborted = () => signal.aborted;
   try {
     const result = await runner({
+      locationText: typeof query.location === 'string' ? query.location.trim().slice(0,160) : undefined,
       queryText: typeof query.queryText === 'string' ? query.queryText.trim().slice(0,140) : undefined,
       writeFiles: query.dryRun !== '1',
       companyName: query.company ? String(query.company) : undefined,
@@ -77,7 +79,13 @@ async function driveOne({ send, runner, label, query, signal, final = true }) {
     // regional phase could fire — that's the user-reported bug ("ATS
     // scanned but no Russian sites").
     if (isAborted()) return { ok: false, aborted: true };
-    send('done', { code: 0, counts: result.counts, errors: result.errors.length, final });
+    const tally = result.sourceStatus;
+    const failures = result.errors.length;
+    const status = tally
+      ? (!tally.attempted || tally.failed >= tally.attempted ? 'failed' : tally.failed > 0 ? 'partial' : 'success')
+      : failures ? (result.counts?.raw > 0 ? 'partial' : 'failed') : 'success';
+    send('done', { code: status === 'failed' ? 1 : 0, status, counts: result.counts, errors: failures,
+      sourceStatus: tally, retainedPrevious: tally?.retainedPrevious || status === 'failed', final });
     return { ok: true, result };
   } catch (err) {
     if (!isAborted()) send('error', { message: err && err.message });
@@ -224,7 +232,9 @@ export function registerScanRoutes(app) {
     // row gains `fit: {band, score}` when config/profile.yml names target
     // roles. Never filters, orders or changes a count; missing/invalid profile
     // → rows served untouched (no chips).
-    const snapshot = annotateSnapshotFit(loadLastScan(), loadProfileTargetRoles());
+    const raw = loadLastScan();
+    for (const region of ['en', 'ru']) if (raw[region]) for (const key of ['fresh', 'filtered']) if (Array.isArray(raw[region][key])) raw[region][key] = raw[region][key].map(conservativeWorkModel);
+    const snapshot = annotateSnapshotFit(raw, loadProfileTargetRoles());
     const q = String(req.query.q || '').trim();
     const region = String(req.query.region || '').trim().toLowerCase();
     const setName = String(req.query.set || 'filtered').trim().toLowerCase();

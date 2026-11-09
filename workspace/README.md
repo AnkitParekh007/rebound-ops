@@ -121,7 +121,7 @@ Global keyboard shortcuts:
 
 Zero-token portal scanning that actually returns vacancies. **One 🌐 Scan button** in the UI runs every configured source in a single sweep:
 
-- **Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday** — public boards-api for every company in `portals.yml::tracked_companies` with a recognizable ATS pattern. Bundled list covers Stripe, GitLab, Vercel, Cloudflare, Datadog, Discord, Elastic, Grafana Labs, CockroachDB, Fastly, Twilio, Coinbase, Reddit, Robinhood, Affirm, Lyft, Linear, Supabase, PostHog, Ramp, Modal Labs, Railway, Browserbase, JetBrains — extend or trim freely.
+- **Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday** — public boards-api for every company in `portals.yml::tracked_companies` with a recognizable ATS pattern. Add the boards you want through Portals. A fresh launcher does not enable a bundled company list; example blocks are documented below.
 - **RSS boards** — any job board that exposes an RSS/Atom feed (LaraJobs, WeWorkRemotely, RemoteOK, golangprojects, …). Add `provider: rss` + the feed URL to `portals.yml` — no code changes required.
 - **Aggregator boards (v1.75.0)** — seven board-wide / config-driven sources beyond per-company ATSes: **RemoteOK / Remotive / Working Nomads** (board-wide remote feeds, select with `provider: remoteok|remotive|workingnomads`) and **IBM / Arbeitsagentur / Glints / Jobstreet · SEEK** (config-driven, each reads a per-entry `<provider>:` block). See `docs/portals-examples.md` for copy-paste `tracked_companies` entries. They run the same `title_filter` / `location_filter` / `content_filter` + dedup + pipeline-append flow as every other source.
 - **Telegram channels (v1.228.0)** — any **public** channel, listed in a top-level `telegram_channels:` block and read from its `t.me/s/<channel>` web preview: no bot token, no API key. Telegram publishes no RSS and the Bot API cannot read a channel your bot does not administer, so the preview is the only route. **A channel post is prose, not a job record** — the title is the first substantive line, company and location come only from explicit labels, and separating real postings from ads is your `title_filter`'s job. Treat these as leads, not listings.
@@ -166,7 +166,7 @@ russian_portals:
   queries: ["Senior PHP", "Senior Go", "Tech Lead"]
 ```
 
-All sources flow through a single SSE endpoint: `/api/stream/scan?source=ats|regional|both`. The **🌐 Scan** UI button calls `source=both` so every adapter (Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday + hh.ru + Habr Career + Trudvsem + GetMatch + GeekJob) runs in one connection. Honors `AbortSignal` on client disconnect — no orphan fetches.
+All sources flow through a single SSE endpoint: `/api/stream/scan?source=ats|regional|both`. The **🌐 Scan** UI button reviews sources first. ATS sources run by default; regional sources require explicit opt-in. The selected adapters (Greenhouse / Ashby / Lever / Workable / SmartRecruiters / Workday + hh.ru + Habr Career + Trudvsem + GetMatch + GeekJob) runs in one connection. Honors `AbortSignal` on client disconnect — no orphan fetches.
 
 ---
 
@@ -534,7 +534,7 @@ from this file.
 ### 2. Edit your profile (`config/profile.yml`)
 
 ```bash
-$EDITOR rebound-ops/config/profile.yml
+$EDITOR engine/config/profile.yml
 ```
 
 Replace the placeholders for full name, email, location, LinkedIn, target
@@ -544,13 +544,12 @@ field — they're how every JD is matched against you.
 ### 3. Tune the scanner (`portals.yml`)
 
 ```bash
-$EDITOR rebound-ops/portals.yml
+$EDITOR engine/portals.yml
 ```
 
 Set `title_filter.positive` (e.g. `"PHP"`, `"Go"`, `"Backend"`, `"Senior"`)
 and `title_filter.negative` (e.g. `"Junior"`, `"Java"`, `"iOS"`) to your
-stack and seniority. The bundled `tracked_companies` list already includes
-3 verified Greenhouse / Ashby boards (GitLab, Vercel, Linear). For 24+ more
+stack and seniority. Use **Portals → Discover ATS board**, or add a known supported HTTPS board URL. A fresh launcher does not pre-enable companies. For 24+ more
 ready-to-paste blocks, see [`docs/portals-examples.md`](docs/portals-examples.md).
 
 If you want hh.ru / Habr Career scanning, edit the `russian_portals:` block

@@ -1,5 +1,6 @@
 /** Real first-use regression: isolated checkout, advertised launcher, browser UI. */
 import assert from 'node:assert/strict';
+import { smokeWorkspaceReadiness } from './smoke-workspace-readiness.mjs';
 import { spawn, execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -60,7 +61,7 @@ export async function runLaunchSmoke(checkout) {
     await page.goto(origin+'/#/start');
     await page.getByRole('button',{name:'Use a fictional example',exact:true}).click();
     await page.getByRole('checkbox',{name:/Save on this computer after each change/}).check();
-    await page.getByRole('button',{name:'Create my plan',exact:true}).click();
+    await page.getByRole('button',{name:'Compare my directions',exact:true}).click();
     await page.getByText('Saved on this computer after every change.',{exact:true}).waitFor();
     await page.goto(origin+'/#/directions');await page.locator('[data-route-id="return"] button').click();
     await page.getByRole('button',{name:'Mark as done',exact:true}).click();
@@ -89,6 +90,8 @@ export async function runLaunchSmoke(checkout) {
     assert((await page.locator('#cv-editor').inputValue()).startsWith(previousCv));
     assert((await page.locator('#cv-editor').inputValue()).includes(session.intake.evidence[0].claim));
     assert.equal((await (await fetch(origin+'/api/cv')).json()).markdown,previousCv,'handoff never auto-saves CV');
+    const saveDraft=page.waitForResponse(r=>r.url().endsWith('/api/cv')&&r.request().method()==='PUT');await page.locator('#content button').filter({hasText:/^Save$/}).click();await saveDraft;
+    await smokeWorkspaceReadiness(page, origin);
     console.log('PASS: reviewed achievements append to draft without overwriting or auto-saving.');
     console.log('PASS: recovery save, second-tab resume, same-session full interface, persisted restart, manual application entry.');
     console.log('PASS: launcher, real PDF export, truthful failure, tracker status and outcome writes.');

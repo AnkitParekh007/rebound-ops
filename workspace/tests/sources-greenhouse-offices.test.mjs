@@ -203,3 +203,10 @@ test('fetchGreenhouse: drops rows whose absolute_url is not https (scheme unchec
   const out = await fetchGreenhouse('https://boards-api.greenhouse.io/v1/boards/acme/jobs', { fetchImpl });
   assert.deepEqual(out.map((j) => j.id), ['gh-1'], 'a non-https absolute_url has no safe dedup key — row dropped');
 });
+
+test('remote policy beyond the display excerpt still establishes work model without expanding cached descriptions', async () => {
+  const jobs=await fetchGreenhouse('https://boards-api.greenhouse.io/v1/boards/acme/jobs',{
+    fetchImpl:async()=>({ok:true,json:async()=>({jobs:[{id:42,title:'Backend Engineer',absolute_url:'https://job-boards.greenhouse.io/acme/jobs/42',location:{name:'Bangalore, India'},content:'<p>'+('Context '.repeat(700))+'All of our roles are remote, with country eligibility requirements.</p>'}]})})
+  });
+  assert.equal(jobs[0].workplaceType,'Remote');assert.equal(jobs[0].isRemote,true);assert.match(jobs[0].workplaceEvidence,/Employer description/);assert.equal(jobs[0].description.length,4000);
+});

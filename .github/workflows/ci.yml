@@ -26,6 +26,10 @@ jobs:
           npm audit --omit=dev --json > "$RUNNER_TEMP/npm-audit-prod.json" || true
           npm audit --json > "$RUNNER_TEMP/npm-audit-full.json" || true
           npm run review:deps -- "$RUNNER_TEMP/npm-audit-prod.json" "$RUNNER_TEMP/npm-audit-full.json"
+      - name: Install job-search workspace dependencies for journey regression tests
+        run: npm ci --prefix workspace --ignore-scripts --no-audit --no-fund
+      - name: Test discovery outcomes, work-model evidence and safe career backups
+        run: node --test workspace/tests/readiness-remediation.test.mjs workspace/tests/scan-consolidated.test.mjs workspace/tests/sources-greenhouse-offices.test.mjs workspace/tests/reboundops-bridge.test.mjs
       - name: Test contracts, API and preserved manual pilot
         run: npm test
       - name: Compile Angular production application

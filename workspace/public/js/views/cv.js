@@ -72,7 +72,11 @@ Router.register('cv', async () => {
       if (!result.ok) { UI.toast('Open your recovery session first.', 'warn'); return; }
       const evidence = result.data.intake.evidence.filter(e => e.status === 'confirmed');
       if (!evidence.length) { UI.toast('Review your achievements in Recovery first. Only claims confirmed by you can be proposed here.', 'warn'); return; }
-      const draft = c('textarea', { className: 'textarea', rows: 10, 'aria-label': 'Review recovery achievements' }, '\n\n## Selected achievements\n' + evidence.map(e => '- ' + e.claim).join('\n'));
+      const normalize = value => value.replace(/^[-*#\s]+/gm, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const existing = normalize(ta.value);
+      const newEvidence = evidence.filter(e => !existing.includes(normalize(e.claim)));
+      if (!newEvidence.length) { UI.toast('These reviewed achievements are already in your CV. Nothing was added.', 'info'); return; }
+      const draft = c('textarea', { className: 'textarea', rows: 10, 'aria-label': 'Review recovery achievements' }, '\n\n## Selected achievements\n' + newEvidence.map(e => '- ' + e.claim).join('\n'));
       const apply = c('button', { type: 'button', className: 'btn btn-primary', onClick: () => {
         ta.value += draft.value; ta.dispatchEvent(new Event('input', { bubbles: true })); UI.closeModal();
       } }, 'Append reviewed text to editor');

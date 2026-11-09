@@ -142,3 +142,16 @@ test('saved session files have private mode on Unix-like systems', withDirectory
     assert.equal(statSync(join(dir, s.id + '.json')).mode & 0o077, 0);
   } finally { await app.close(); }
 }));
+
+test('a personalized experiment preserves its budget and survives saving/reopening', withDirectory(async dir => {
+  let app=buildApp({dataDir:dir});
+  let s=(await app.inject({method:'POST',url:'/api/sessions',payload:{intake}})).json();
+  s=(await app.inject({method:'PUT',url:`/api/sessions/${s.id}/route`,payload:{expectedRevision:s.revision,routeId:'shift'}})).json();
+  const action=s.plan.actions[0],title='Build a small Terraform sandbox and record what remains unproven.';
+  const originalBudget=s.plan.plannedMinutes;
+  s=(await app.inject({method:'PUT',url:`/api/sessions/${s.id}/actions/${action.id}/experiment`,payload:{expectedRevision:s.revision,title}})).json();
+  assert.equal(s.plan.actions[0].title,title);assert.equal(s.plan.actions[0].minutes,action.minutes);assert.equal(s.plan.plannedMinutes,originalBudget);
+  s=(await app.inject({method:'PUT',url:`/api/sessions/${s.id}/persistence`,payload:{expectedRevision:s.revision,mode:'disk'}})).json();
+  await app.close();app=buildApp({dataDir:dir});
+  try {assert.equal((await app.inject({method:'GET',url:`/api/sessions/${s.id}`})).json().plan.actions[0].title,title);}finally{await app.close();}
+}));

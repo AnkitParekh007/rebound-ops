@@ -163,18 +163,25 @@ Router.register('cv-studio', async () => {
   const maskOut = c('textarea', { className: 'input', rows: '10', readonly: 'readonly', style: { width: '100%', fontFamily: 'monospace', fontSize: '12px', marginTop: '10px' } });
   A11yDump.label(maskOut, t('a11y.readonlyOutput', 'Generated result — read only'));
   const maskStat = c('div', { style: { fontSize: '12px', color: 'var(--foggy)', marginTop: '6px' } });
+  const maskWarning = c('p', { role: 'alert', style: { color: 'var(--danger, #a63126)' } });
+  const profileName = c('button', { type: 'button', className: 'btn', onClick: async () => {
+    try { const p = await API.get('/api/profile'); nameInput.value = p.profile?.candidate?.full_name || ''; if (!nameInput.value) maskWarning.textContent = 'Add your full name in Profile or enter it here.'; else { toggles.name.checked = true; runMask(); } } catch { maskWarning.textContent = 'Could not load Profile. Enter the full name here.'; }
+  } }, 'Use my saved profile name');
   const copyBtn = c('button', { className: 'btn btn-ghost btn-sm', type: 'button', style: { marginTop: '8px' } }, t('cvs.copy', 'Copy masked CV'));
 
   function runMask() {
     const opts = { email: toggles.email.checked, phone: toggles.phone.checked, links: toggles.links.checked, address: toggles.address.checked, name: toggles.name.checked ? nameInput.value.trim() : false };
     const { markdown, counts } = (window.CvPrivacy && CvPrivacy.mask) ? CvPrivacy.mask(cvMarkdown, opts) : { markdown: cvMarkdown, counts: {} };
-    maskOut.value = markdown;
+    const missingName = toggles.name.checked && (!nameInput.value.trim() || !counts.name);
+    maskWarning.textContent = missingName ? 'Name masking is incomplete. Enter the full name exactly as it appears in the CV before copying.' : 'Review the output yourself: masking does not guarantee removal of every identifier.';
+    nameInput.setAttribute('aria-invalid', String(missingName));
+    copyBtn.disabled = Boolean(missingName);
+    maskOut.value = missingName ? '' : markdown;
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
     maskStat.textContent = total
       ? `${total} ${t('cvs.redacted', 'item(s) redacted')} — email ${counts.email || 0}, phone ${counts.phone || 0}, links ${counts.links || 0}, address ${counts.address || 0}, name ${counts.name || 0}.`
       : t('cvs.nothingRedacted', 'Nothing matched the current mask settings.');
   }
-  Object.values(toggles).forEach((cb) => cb.addEventListener('change', runMask));
   nameInput.addEventListener('input', () => { if (toggles.name.checked) runMask(); });
   copyBtn.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(maskOut.value); UI.toast(t('cvs.copied', 'Copied'), 'success'); }
@@ -192,9 +199,10 @@ Router.register('cv-studio', async () => {
       mk('name', 'cvs.mName', 'Name → initials', false),
       nameInput,
     ]),
-    maskOut, maskStat, copyBtn,
+    profileName, maskWarning, maskOut, maskStat, copyBtn,
   ]);
   root.appendChild(maskCard);
+  Object.values(toggles).forEach((cb) => cb.addEventListener('change', runMask));
   runMask();
 
   // ── 3. Make it human / voice match ──

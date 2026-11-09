@@ -256,6 +256,16 @@ Router.register('portals', async () => {
     c('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' } }, [discInput, discBtn]),
     discResults,
   ]);
+  const knownUrl = c('input', { type: 'url', className: 'input', 'aria-label': 'Known ATS board URL', placeholder: 'https://job-boards.greenhouse.io/company' });
+  const knownMessage = c('p', { role: 'status' });
+  const knownAdd = c('button', { type: 'button', className: 'btn', onClick: async () => {
+    if (!discInput.value.trim() || !knownUrl.value.trim()) { knownMessage.textContent = 'Enter the company name above and its HTTPS board URL.'; return; }
+    knownAdd.disabled = true;
+    try { await API.post('/api/portals/track', {name:discInput.value.trim(),careers_url:knownUrl.value.trim()}); await loadCompanies(); knownMessage.textContent='Source added. Run a scan or health check to verify availability.'; }
+    catch(error) { knownMessage.textContent=error.message || 'Could not add this board.'; }
+    finally { knownAdd.disabled=false; }
+  } }, 'Add known board URL');
+  discCard.append(c('details', {}, [c('summary', {}, 'Already know the board URL?'),c('p', {}, 'Add a Greenhouse, Ashby or Lever board without a discovery probe. Only supported HTTPS hosts are accepted. Availability is checked by your next scan or health check.'),c('label', {}, ['Known ATS board URL',knownUrl]),knownAdd,knownMessage]));
   root.appendChild(discCard);
 
   // ── Health check ────────────────────────────────────────────────────
@@ -585,6 +595,7 @@ Router.register('portals', async () => {
     try {
       const r = await API.post('/api/portals/discover', { company });
       renderDiscover((r && r.company) || company, (r && r.results) || []);
+      if (r?.incomplete) discResults.prepend(c('p', { role: 'alert' }, 'Some board checks could not be completed. No result does not establish that the company has no board. Check network/proxy access and retry; existing sources are unchanged.'));
     } catch (err) {
       UI.toast((err && err.message) || t('portals.discoverFailed', 'Discovery failed'), 'error');
     } finally {

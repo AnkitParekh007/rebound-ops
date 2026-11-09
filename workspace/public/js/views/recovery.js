@@ -154,6 +154,18 @@
       say.textContent = 'Your plan was downloaded as a Markdown file.';
     }
 
+    const experiment = plan ? h('details', {}, [h('summary', { text: 'Make a step specific to your evidence gap' })]) : null;
+    if (experiment) {
+      const select = h('select', { 'aria-label': 'Step to replace' }, plan.actions.map(action => h('option', { value: action.id, text: `Day ${action.day} · ${action.minutes} minutes · ${action.title}` })));
+      const text = h('textarea', { 'aria-label': 'Your concrete experiment', maxLength: 500, rows: 3, required: true });
+      experiment.append(h('p', { text: 'Replace a task with a concrete experiment. The allocated minutes stay the same; its completion mark resets.' }), select, text);
+      for (const target of s.jobTargets || []) for (const requirement of target.requirements.filter(item => item.status === 'gap')) experiment.append(h('button', { type: 'button', className: 'rj-btn', text: 'Use gap: ' + requirement.text, onclick: () => { text.value = `Test “${requirement.text.slice(0,200)}” with one small sandbox example. Record what worked and what remains unproven; do not claim production experience.`; } }));
+      experiment.append(h('button', { type: 'button', className: 'rj-btn', text: 'Save experiment', onclick: async () => {
+        if (text.value.trim().length < 3) { say.textContent = 'Describe a concrete experiment first.'; return; }
+        const current = RS.session(); const result = await RS.call('PUT', `/sessions/${current.id}/actions/${select.value}/experiment`, { expectedRevision: current.revision, title: text.value.trim() });
+        if (result.ok) { RS.setSession(result.data); Router.render(); } else say.textContent = errorText(result);
+      } }));
+    }
     const route = plan ? s.routes.find((r) => r.id === plan.routeId) : null;
     root.append(
       header('My next step', plan ? (route ? `Testing: ${RS.ROUTE_TITLES[route.id]}` : 'Your plan') : 'You have three directions to compare', null),
@@ -164,7 +176,7 @@
             h('a', { href: '#/directions', text: 'Change direction' }),
             h('button', { type: 'button', className: 'rj-btn rj-btn--link', text: 'Download plan (Markdown)', onclick: exportPlan }),
           ]) : null,
-          say,
+          experiment, say,
         ]),
         snapshot(s),
       ]),

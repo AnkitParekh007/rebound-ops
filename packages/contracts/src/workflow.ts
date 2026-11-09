@@ -297,6 +297,11 @@ export function completeAction(session: Session, actionId: string, completed: bo
   } };
 }
 
+export function personalizeAction(session: Session, actionId: string, title: string): Session {
+  if (!session.plan?.actions.some(action => action.id === actionId)) throw new Error('Action not found.');
+  return { ...session, plan: { ...session.plan, actions: session.plan.actions.map(action => action.id === actionId ? { ...action, title, completed: false } : action) } };
+}
+
 export function recordReview(session: Session, notes: string): Session {
   return { ...session, reviewNotes: notes.trim() };
 }

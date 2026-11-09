@@ -425,7 +425,8 @@ window.ScanResults = (function () {
       if (exTerms.length && exTerms.some((term) => hay.includes(term))) return false;      // exclude (ANY)
       if (fr === 'remote' && !r.isRemote) return false;
       if (fr === 'hybrid' && !/hybrid/i.test(r.workplaceType || '')) return false;
-      if (fr === 'onsite' && (r.isRemote || /remote|hybrid/i.test(r.workplaceType || ''))) return false;
+      if (fr === 'onsite' && !/^onsite$/i.test(r.workplaceType || '')) return false;
+      if (fr === 'unknown' && (r.isRemote || (r.workplaceType && r.workplaceType !== 'Unknown'))) return false;
       if (fr === 'reloc' && !r.relocates) return false;
       if (fs && r.source !== fs) return false;
       if (fc && !window.Countries.rowInCountry(r, fc)) return false;
@@ -454,6 +455,7 @@ window.ScanResults = (function () {
       }
       return true;
     });
+    ctx.resultsEl.appendChild(c('p', { role: 'status' }, `${rows.length} of ${allRows.length} source matches shown with the current display filters.`));
     if (!rows.length) {
       ctx.resultsEl.appendChild(c('div', { className: 'empty' }, t('track.noMatch')));
       return;
@@ -483,7 +485,8 @@ window.ScanResults = (function () {
     // CAR-115 — the row nodes are built ONCE and kept in `rowNodes`; the
     // windowed tbody below attaches only the visible slice of them.
     const rowNodes = sorted.map((r) => {
-      const wt = r.workplaceType || (r.isRemote ? 'Remote' : 'Onsite');
+      const wt = r.workplaceType || (r.isRemote ? 'Remote' : 'Unknown');
+      const workEvidence = r.workplaceEvidence || 'Work-model label from the source; confirm on the employer listing.';
       // v1.244.0 — signal-icon rail (spec AC2 / §Implementation contract):
       // boost, title-fit, fit-score, trust and reloc render as compact
       // role="img" icons in a left rail of the posting cell, each with a
@@ -606,7 +609,7 @@ window.ScanResults = (function () {
       const metaEl = c('div', {
         className: 'scan-posting-meta',
         'aria-label': t('scan.postedMeta', 'Posting details'),
-        title: metaText,
+        title: metaText + ' — ' + workEvidence,
       }, logo ? [logo, metaText] : metaText);
       // THE bounded column (spec §Implementation contract): signal rail +
       // exactly two one-line text blocks (title / meta), CSS-ellipsized.

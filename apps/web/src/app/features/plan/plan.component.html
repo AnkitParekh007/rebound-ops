@@ -15,6 +15,20 @@
         </li>
       }
     </ol>
+    <details>
+      <summary>Make a step specific to your evidence gap</summary>
+      <p>Replace one task with a concrete experiment. Its allocated minutes and the weekly budget stay the same; its completion mark resets.</p>
+      @for (target of session().jobTargets; track target.id) {
+        @for (requirement of target.requirements; track requirement.id) {
+          @if (requirement.status === 'gap') { <button type="button" class="secondary" (click)="suggestExperiment(requirement.text)">Draft an experiment for: {{ requirement.text }}</button> }
+        }
+      }
+      <form [formGroup]="experiment" (ngSubmit)="saveExperiment()">
+        <label>Step to replace <select formControlName="actionId">@for (action of plan.actions; track action.id) { <option [value]="action.id">Day {{ action.day }} · {{ action.minutes }} minutes · {{ action.title }}</option> }</select></label>
+        <label>Your concrete experiment <textarea formControlName="title" rows="3" maxlength="500"></textarea></label>
+        <button class="primary" type="submit" [disabled]="experiment.invalid || store.busy()">Save experiment</button>
+      </form>
+    </details>
     <p class="progress" aria-live="polite">{{ store.completedCount() }} of {{ plan.actions.length }} actions completed</p>
     <label>Check-in notes and real-world outcomes <textarea [formControl]="notes" [attr.aria-invalid]="!!error()" [attr.aria-describedby]="error() ? 'plan-notes-error' : null" rows="3" maxlength="2000" placeholder="What happened? What would you change?"></textarea></label>
     @if (error(); as message) { <span class="field-error" id="plan-notes-error">{{ message }}</span> }

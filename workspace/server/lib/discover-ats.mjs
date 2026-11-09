@@ -283,7 +283,8 @@ async function probeVendorSlug(vendor, slug, fetchImpl, signal) {
     const jobs = await resolved.adapter.fetch(resolved.endpoint, { fetchImpl, signal });
     const jobCount = Array.isArray(jobs) ? jobs.length : 0;
     return { status: jobCount > 0 ? 'match' : 'empty', jobCount, careers_url };
-  } catch {
+  } catch (error) {
+    if (/\b(?:404|410)\b/.test(String(error?.message || ''))) return { status: 'empty', jobCount: 0, careers_url };
     // 404 (no such board), timeout, SSRF-block, cross-origin redirect, non-JSON:
     // all "not resolved" for this candidate.
     return { status: 'error', jobCount: 0, careers_url };
@@ -303,6 +304,7 @@ export async function discoverAts(name, deps = {}) {
   const company = String(name || '').trim();
   const slugsTried = deriveSlugs(company);
   const results = [];
+  const failures = [];
   if (!company || !slugsTried.length) return { company, slugsTried, results };
 
   const get = deps.safeGet || _get;
@@ -315,11 +317,12 @@ export async function discoverAts(name, deps = {}) {
       if (budget.count >= MAX_PROBES) break;
       // eslint-disable-next-line no-await-in-loop
       const r = await probeVendorSlug(vendor, slug, fetchImpl, deps.signal);
+      if (r.status === 'error') failures.push({ vendor: vendor.id, slug });
       if (r.status === 'match') {
         results.push({ vendor: vendor.id, label: vendor.label, slug, careers_url: r.careers_url, jobCount: r.jobCount });
         break; // first slug that resolves this vendor wins
       }
     }
   }
-  return { company, slugsTried, results };
+  return { company, slugsTried, results, failures, incomplete: failures.length > 0 };
 }

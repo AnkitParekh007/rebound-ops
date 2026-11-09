@@ -105,6 +105,9 @@ export class SessionApiService {
   selectRoute(id: string, expectedRevision: number, routeId: RouteId): Promise<Session> {
     return firstValueFrom(this.http.put<Session>(this.path(id, 'route'), { expectedRevision, routeId }));
   }
+  personalizeAction(id: string, expectedRevision: number, actionId: string, title: string): Promise<Session> {
+    return firstValueFrom(this.http.put<Session>(this.path(id, 'actions', actionId, 'experiment'), { expectedRevision, title }));
+  }
   setActionCompleted(id: string, expectedRevision: number, actionId: string, completed: boolean): Promise<Session> {
     return firstValueFrom(this.http.put<Session>(this.path(id, 'actions', actionId), { expectedRevision, completed }));
   }

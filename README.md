@@ -27,7 +27,7 @@ AI assistance is optional. Recovery directions are hypotheses to explore, and jo
 
 - **Node.js 24.15.0+ recommended.** The root application also supports Node 22.22.3+ and 26+, as declared in [package.json](package.json).
 - **npm**, included with Node.js.
-- **Bash and curl** for the integrated demo launcher. On Windows, use WSL or a compatible Bash environment; the Angular development commands below do not require Bash.
+- **Bash and curl** for the integrated workspace launcher. On Windows, use WSL or a compatible Bash environment; the Angular development commands below do not require Bash.
 - An AI provider key is **not required** for the recovery workflow.
 
 ### 1. Install the repository
@@ -59,7 +59,7 @@ The launcher verifies locked dependencies for the root app, workspace and engine
 | **Angular recovery app** | `npm run dev` | `http://127.0.0.1:4200` | The fuller evidence workflow, exact citations, requirement review, backups and opt-in persistence. |
 | **Production-local recovery app** | `npm run build`, then `npm run start -w @reboundops/api` | `http://127.0.0.1:4174` | Serve the compiled Angular app and recovery API from one local process. |
 
-The integrated workspace and Angular frontend are separate interfaces. Their recovery API is shared, but the integrated bridge exposes a narrower set of operations. The launcher serves the full recovery interface on port 4174 as well: choose **Open full recovery** to continue the same session without restarting. Start and My next step offer explicit local saving, JSON backup/restore and resume. Job-search files and recovery-session records are **not automatically synchronized**; CV, Profile and Two-pager offer editable, consent-based prefills before their own Save actions.
+The integrated workspace and Angular frontend are separate interfaces. Their recovery API is shared, but the integrated bridge exposes a narrower set of operations. The launcher serves the full recovery interface on port 4174 as well: choose **Open full recovery** to continue the same session without restarting. Start and My next step offer explicit local saving, JSON backup/restore and resume. Use **Download combined career backup** from Start or My next step for one private export of the current recovery session and eligible workspace records; restore previews file replacements. Provider settings and generated PDFs are excluded. Job-search files and recovery-session records are **not automatically synchronized**; CV, Profile and Two-pager offer editable, consent-based prefills before their own Save actions.
 
 [Integrated demo guide](workspace/docs/INTEGRATION-DEMO.md) · [Demo walkthrough](workspace/docs/DEMO-WALKTHROUGH.md) · [Guided recovery onboarding](docs/onboarding.md)
 
@@ -76,7 +76,7 @@ The recovery app supports up to 15 achievement claims, three pasted source docum
 
 ## Workspace guide
 
-With the integrated demo running, these routes open inside the workspace:
+With the integrated workspace running, these routes open inside the workspace:
 
 | Page | Route | What to expect |
 | --- | --- | --- |
@@ -242,8 +242,8 @@ Pushes and merged pull requests to `main` trigger the marketing workflow: test t
 
 | Problem | Check |
 | --- | --- |
-| Recovery service is offline | Start the integrated demo or `npm run dev`; check the API terminal. Default recovery API port: `4174`. |
-| Port is already in use | Stop the earlier local process. The integrated demo normally uses `4317` and `4174`; Angular development also uses `4200`. |
+| Recovery service is offline | Start the integrated workspace or `npm run dev`; check the API terminal. Default recovery API port: `4174`. |
+| Port is already in use | Stop the earlier local process. The integrated workspace normally uses `4317` and `4174`; Angular development also uses `4200`. |
 | Scan returns no useful jobs | Check enabled boards and filters in `engine/portals.yml`, source health and your profile. An empty result is not proof that no suitable roles exist. |
 | AI action is unavailable | Check the configuration for that specific app. Recovery AI and workspace provider settings are separate. |
 | A session disappeared | Memory-only sessions do not survive API restarts. Restore your JSON backup or resume an explicitly saved session in the Angular app. |

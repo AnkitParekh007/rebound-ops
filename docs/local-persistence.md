@@ -32,3 +32,11 @@ If the UI shows skipped saved files: stop the API, make a private backup of the 
 ## Test coverage and limitations
 
 Synthetic tests exercise opt-in defaults, persistence across process restarts, opt-out, deletion, imported-backup consent reset, invalid files and leftover temporary data. No real-user or cross-platform pilot testing is claimed. An explicit manual JSON export remains recommended before major upgrades.
+
+## Combined career backup
+
+Start and My next step offer **Download combined career backup**. The versioned JSON contains the current recovery session and eligible local CV, profile, two-pager, memory, tracker, pipeline, source settings, reports and job descriptions. Provider settings, generated PDFs and browser data are excluded. Known source credentials are redacted; review the plaintext backup before sharing or moving it. Limits are 2 MB of workspace content, 512 KB per file and up to 100 reports plus 100 job descriptions.
+
+Combined restore previews filenames and whether each exists. Existing files begin unselected; selecting one explicitly replaces it. Only known career paths are accepted, symlink paths are rejected, and file hashes are checked under locks before writes. A changed file requires a fresh preview. Dangerous Markdown markup is removed on restore. Errors report any files already written; this is not a cross-service transaction. Recovery restores under a new ID in memory; original sessions remain available, and saving needs renewed consent. Large recovery snapshots can be extracted as raw JSON for the full recovery interface.
+
+Raw recovery JSON still contains only the recovery session. Combined backups do not synchronize the two interfaces or create cloud accounts.

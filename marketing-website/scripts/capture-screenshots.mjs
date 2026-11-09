@@ -161,7 +161,7 @@ if (process.argv.includes("--server")) {
       );
       if (id === 'start') {
         await page.getByRole('button', { name: 'Use a fictional example', exact: true }).click();
-        await page.getByRole('button', { name: 'Create my plan', exact: true }).click();
+        await page.getByRole('button', { name: 'Compare my directions', exact: true }).click();
         await page.waitForURL('**/#/recovery');
         await page.locator('.rj-home').waitFor();
       }

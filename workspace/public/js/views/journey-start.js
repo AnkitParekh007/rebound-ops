@@ -163,7 +163,7 @@
       h('dd', {}, [h('span', { text: value || 'Not added' }), h('button', { type: 'button', className: 'rj-btn rj-btn--link', text: 'Change', 'aria-label': `Change ${label.toLowerCase()}`, onclick: () => go(toStep) })]),
     ]);
     const lines = achievementLines();
-    const submit = h('button', { type: 'submit', className: 'rj-btn rj-btn--primary', text: editing ? 'Save my answers' : 'Create my plan' });
+    const submit = h('button', { type: 'submit', className: 'rj-btn rj-btn--primary', text: editing ? 'Save my answers' : 'Compare my directions' });
     const saveLocally = h('input', { type: 'checkbox' });
     const form = h('form', { className: 'rj-review', novalidate: true }, [
       draft.example ? h('p', { className: 'rj-tag rj-tag--example', text: 'Example — fictional answers' }) : null,

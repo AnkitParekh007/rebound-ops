@@ -1,3 +1,4 @@
+import { conservativeWorkModel } from './work-model.mjs';
 /**
  * EN portal scanner — Greenhouse / Ashby / Lever.
  *
@@ -603,7 +604,7 @@ export async function runEnScan(opts = {}) {
   const perCo = fetchedPerCo.map((list) => (Array.isArray(list) ? list : []));
   const allRaw = perCo.flat();
   // v1.33.0 (WS4) — optional portals.yml location_filter. No key → pass-all.
-  const locOk = buildLocationFilter(portals.location_filter);
+  const locOk = buildLocationFilter(opts.locationText ? { ...portals.location_filter, allow: String(opts.locationText).split(',').map(x => x.trim()).filter(Boolean), strict: true } : portals.location_filter);
   // v1.75.0 (#974) — optional content_filter on a posting's description/snippet.
   // No key → pass-all; only sources that ship a description are affected.
   const contentOk = buildContentFilter(portals.content_filter);
@@ -621,6 +622,7 @@ export async function runEnScan(opts = {}) {
   // seniority_boost keyword. The boost stamp is INFORMATIONAL — it
   // doesn't filter; the SPA uses it to surface a badge so users see why
   // a row is ranked higher.
+  for (let index = 0; index < allRaw.length; index++) allRaw[index] = conservativeWorkModel(allRaw[index]);
   const basePasses = (j) => titleOk(j.title)
     && locOk(j.location)
     && tierOk(j.title)
@@ -770,7 +772,8 @@ export async function runEnScan(opts = {}) {
   }
 
   return {
-    counts: { raw: allRaw.length, removedTitle, yearsSkipped: yearsSkipped.length, cooldownSkipped, dup, fresh: fresh.length, skipped, runDup, capped: cappedAway },
+    sourceStatus: { attempted: withApi.length + detectFailures, failed: fetchFailures + detectFailures, retainedPrevious: (withApi.length + detectFailures) > 0 && (fetchFailures + detectFailures) >= (withApi.length + detectFailures) },
+    counts: { matching: afterCooldown.length, raw: allRaw.length, removedTitle, yearsSkipped: yearsSkipped.length, cooldownSkipped, dup, fresh: fresh.length, skipped, runDup, capped: cappedAway },
     fresh,
     errors,
     truncatedSources,

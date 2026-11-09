@@ -14132,27 +14132,6 @@
     "ta": "பின்வாங்கல்: இந்த டெனன்ட்டுக்கு /rebound-ops scan (Playwright) பயன்படுத்துங்கள்",
     "vi": "dự phòng: dùng /rebound-ops scan (Playwright) cho tenant này"
   },
-  "scan.allDisabled": {
-    "en": "All companies disabled (enabled: false).",
-    "es": "Todas las empresas deshabilitadas.",
-    "pt-BR": "Todas as empresas desabilitadas.",
-    "ko": "모든 회사가 비활성화됨.",
-    "ja": "すべての会社が無効です。",
-    "ru": "Все компании отключены (enabled: false).",
-    "zh-CN": "所有公司已禁用。",
-    "zh-TW": "所有公司已停用。",
-    "fr": "Toutes les entreprises désactivées (enabled: false).",
-    "pl": "Wszystkie firmy wyłączone (enabled: false).",
-    "uk": "Всі компанії вимкнено (enabled: false).",
-    "da": "Alle virksomheder deaktiveret (enabled: false).",
-    "ar": "جميع الشركات معطّلة (enabled: false).",
-    "de": "Alle Unternehmen deaktiviert (enabled: false).",
-    "it": "Tutte le aziende disabilitate (enabled: false).",
-    "tr": "Tüm şirketler devre dışı (enabled: false).",
-    "hi": "सभी कंपनियाँ अक्षम हैं (enabled: false)।",
-    "ta": "எல்லா நிறுவனங்களும் முடக்கப்பட்டுள்ளன (enabled: false).",
-    "vi": "Mọi công ty đều bị tắt (enabled: false)."
-  },
   "api.netError": {
     "en": "Network error",
     "es": "Error de red",
@@ -18102,7 +18081,7 @@
     "vi": "Đánh giá việc làm"
   },
   "eval.subtitle": {
-    "en": "Canonical A–G analysis: Role, CV match, Strategy, Comp, Personalization, STAR stories. Score + legitimacy in report header.",
+    "en": "Review the role, compare requirements with your experience, identify gaps and prepare questions. Any AI score is an estimate, not a hiring prediction.",
     "es": "Análisis canónico A–G: Rol, ajuste del CV, Estrategia, Compensación, Personalización, historias STAR. Puntaje y legitimidad en la cabecera del informe.",
     "pt-BR": "Análise canônica A–G: Vaga, aderência do CV, Estratégia, Remuneração, Personalização, histórias STAR. Pontuação e legitimidade no cabeçalho do relatório.",
     "ko": "표준 A–G 분석: 역할, CV 일치, 전략, 보상, 개인화, STAR 스토리. 점수 + 신뢰도는 리포트 헤더에.",
@@ -26186,27 +26165,6 @@
     "ta": "ஒவ்வொரு கூற்றையும் உங்கள் CV-க்கு எதிராகச் சரிபார்க்கிறது…",
     "vi": "Đang kiểm tra từng tuyên bố so với CV của bạn…"
   },
-  "cvs.vfUnavailable": {
-    "en": "Fact-check needs the parent rebound-ops project (verify-cv-facts.mjs) next to this app.",
-    "es": "La verificación necesita el proyecto rebound-ops (verify-cv-facts.mjs) junto a esta app.",
-    "pt-BR": "A verificação precisa do projeto rebound-ops (verify-cv-facts.mjs) junto a este app.",
-    "ko": "사실 확인에는 이 앱 옆에 rebound-ops(verify-cv-facts.mjs)가 필요합니다.",
-    "ja": "ファクトチェックにはこのアプリの隣に rebound-ops（verify-cv-facts.mjs）が必要です。",
-    "ru": "Для проверки нужен проект rebound-ops (verify-cv-facts.mjs) рядом с этим приложением.",
-    "zh-CN": "核对功能需要本应用旁的 rebound-ops 项目（verify-cv-facts.mjs）。",
-    "zh-TW": "核對功能需要本應用旁的 rebound-ops 專案（verify-cv-facts.mjs）。",
-    "fr": "La vérification nécessite le projet rebound-ops (verify-cv-facts.mjs) à côté de cette appli.",
-    "pl": "Sprawdzanie wymaga projektu rebound-ops (verify-cv-facts.mjs) obok tej aplikacji.",
-    "uk": "Для перевірки потрібен проєкт rebound-ops (verify-cv-facts.mjs) поруч із цим застосунком.",
-    "da": "Faktatjek kræver rebound-ops-projektet (verify-cv-facts.mjs) ved siden af denne app.",
-    "ar": "يتطلب التحقق مشروع rebound-ops (verify-cv-facts.mjs) بجوار هذا التطبيق.",
-    "de": "Die Prüfung braucht das rebound-ops-Projekt (verify-cv-facts.mjs) neben dieser App.",
-    "it": "La verifica richiede il progetto rebound-ops (verify-cv-facts.mjs) accanto a questa app.",
-    "tr": "Denetim, bu uygulamanın yanında rebound-ops projesini (verify-cv-facts.mjs) gerektirir.",
-    "hi": "जाँच के लिए इस ऐप के पास rebound-ops प्रोजेक्ट (verify-cv-facts.mjs) चाहिए।",
-    "ta": "உண்மைச் சரிபார்ப்புக்கு இந்தப் பயன்பாட்டின் அருகில் பெற்றோர் rebound-ops திட்டம் (verify-cv-facts.mjs) தேவை.",
-    "vi": "Kiểm chứng sự kiện cần dự án rebound-ops gốc (verify-cv-facts.mjs) nằm cạnh ứng dụng này."
-  },
   "cvs.vfFailed": {
     "en": "Could not fact-check the text",
     "es": "No se pudo verificar el texto",
@@ -26248,27 +26206,6 @@
     "hi": "पहले जाँचने के लिए कुछ पाठ पेस्ट करें।",
     "ta": "உண்மைச் சரிபார்க்க முதலில் சில உரையை ஒட்டுங்கள்.",
     "vi": "Dán văn bản cần kiểm chứng trước."
-  },
-  "cvs.vfPass": {
-    "en": "Grounded — every claim traces to your CV, profile, or two-pager.",
-    "es": "Fundamentado — cada afirmación proviene de tu CV, perfil o two-pager.",
-    "pt-BR": "Fundamentado — cada afirmação vem do seu CV, perfil ou two-pager.",
-    "ko": "근거 있음 — 모든 주장이 CV·프로필·two-pager로 이어집니다.",
-    "ja": "裏付けあり — すべての主張が CV・プロフィール・two-pager にたどれます。",
-    "ru": "Обосновано — каждое утверждение прослеживается к вашему CV, профилю или two-pager.",
-    "zh-CN": "有据可依——每条主张都能追溯到你的简历、档案或 two-pager。",
-    "zh-TW": "有據可依——每條主張都能追溯到你的履歷、檔案或 two-pager。",
-    "fr": "Fondé — chaque affirmation remonte à votre CV, profil ou two-pager.",
-    "pl": "Poparte — każde twierdzenie wywodzi się z Twojego CV, profilu lub two-pagera.",
-    "uk": "Обґрунтовано — кожне твердження простежується до вашого CV, профілю чи two-pager.",
-    "da": "Underbygget — hver påstand kan spores til dit CV, profil eller two-pager.",
-    "ar": "مدعوم — كل ادعاء يعود إلى سيرتك أو ملفك أو صفحتيك.",
-    "de": "Belegt — jede Aussage lässt sich auf deinen Lebenslauf, dein Profil oder den Two-Pager zurückführen.",
-    "it": "Fondato — ogni affermazione risale al tuo CV, profilo o two-pager.",
-    "tr": "Temellendirilmiş — her iddia CV, profil veya two-pager'ınıza dayanıyor.",
-    "hi": "प्रमाणित — हर दावा आपके CV, प्रोफ़ाइल या two-pager तक जाता है।",
-    "ta": "அடிப்படையுடையது — ஒவ்வொரு கூற்றும் உங்கள் CV, சுயவிவரம் அல்லது இரு-பக்கத்திற்குச் செல்கிறது.",
-    "vi": "Có gốc rễ — mọi tuyên bố đều truy được về CV, hồ sơ hoặc hai-trang của bạn."
   },
   "cvs.vfWarn": {
     "en": "Advisory — soft phrases worth a second look.",

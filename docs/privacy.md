@@ -54,3 +54,7 @@ Use fictional sample data for public demonstrations. Keep keys and participant r
 ## Git protection for workspace records
 
 CVs, profile and two-pager settings, private memory, career plans, plugin configuration and generated career-record directories belong to the user layer. Ignore rules keep these canonical paths out of ordinary `git add .`; the release audit also rejects them if force-staged. System scaffolds and fictional test fixtures remain trackable. Ignore rules do not remove an already tracked file or copies in Git history. Never force-add personal records.
+
+## Reviewed workspace portability
+
+Combined career backups are explicit downloads of private plaintext records. They exclude provider configuration and generated PDFs, redact known source credentials, and require a file-by-file restore preview before overwriting existing workspace files. Only supported career-data paths are accepted. The backup and any extracted recovery JSON require separate private storage and deletion; deleting a live session does not delete downloads. See [local persistence](local-persistence.md) for limits and partial-error handling.

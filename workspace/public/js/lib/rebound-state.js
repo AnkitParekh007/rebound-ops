@@ -146,22 +146,70 @@ window.ReboundState = (function () {
         const r = await call('PUT', `/sessions/${s.id}/persistence`, { expectedRevision: s.revision, mode });
         if (r.ok) { setSession(r.data); window.Router.render(); } else say.textContent = window.Journey.errorText(r);
       } }));
-      box.append(h('button', { type: 'button', className: 'rj-btn', text: 'Download backup (JSON)', onclick: () => {
-        const url = URL.createObjectURL(new Blob([JSON.stringify(session(), null, 2)], { type: 'application/json' }));
+      box.append(h('button', { type: 'button', className: 'rj-btn', text: 'Download backup (JSON)', onclick: async () => {
+        const latest = await load(); if (!latest.ok) { say.textContent = window.Journey.errorText(latest); return; }
+        const url = URL.createObjectURL(new Blob([JSON.stringify(latest.data, null, 2)], { type: 'application/json' }));
         const a = h('a', { href: url, download: 'reboundops-backup.json' }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         say.textContent = 'Backup downloaded. It contains personal career data; store it privately.';
       } }));
     }
+    box.append(h('button', { type: 'button', className: 'rj-btn', text: 'Download combined career backup', onclick: async () => {
+      try {
+        if (hasSession()) { const latest = await load(); if (!latest.ok) { say.textContent = window.Journey.errorText(latest); return; } }
+        const workspace = await window.API.get('/api/workspace/backup');
+        if (!await window.Journey.confirm({ title: 'Download private career records?', body: [workspace.notice, 'The download includes this recovery session, CV, profile, preferences, tracker, source configuration, reports and job descriptions. Keep the plaintext file outside Git and shared folders.'], confirmLabel: 'Download private backup', cancelLabel: 'Cancel' })) return;
+        const payload = { format: 'reboundops-combined-backup', version: 1, recovery: session(), workspace: workspace.files };
+        const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+        const a = h('a', { href: url, download: 'reboundops-combined-backup.json' }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        say.textContent = 'Combined backup downloaded. Provider key settings and generated PDFs are excluded.';
+      } catch (error) { say.textContent = error.message || 'Could not create backup.'; }
+    } }));
     const file = h('input', { type: 'file', accept: '.json,application/json', onchange: async () => {
       const f = file.files?.[0]; if (!f) return;
-      if (f.size > 60 * 1024) { say.textContent = 'This backup is too large for the workspace bridge. Restore it using the full recovery interface.'; return; }
+      if (f.size > 2500 * 1024) { say.textContent = 'Choose a backup smaller than 2.5 MB.'; return; }
       try {
-        const r = await call('POST', '/sessions/restore', { session: JSON.parse(await f.text()) });
+        const backup = JSON.parse(await f.text());
+        if (backup?.format === 'reboundops-combined-backup') {
+          if (backup.version !== 1) throw new Error('Unsupported combined backup version');
+          const preview = await window.API.post('/api/workspace/restore-preview', { files: backup.workspace });
+          const content = h('div');
+          content.append(h('p', { text: 'Select files to restore. Existing files start unselected. Selecting one explicitly replaces it; a changed file will require a new preview. Recovery restores with a new ID and starts in memory only.' }));
+          const chosen = [];
+          for (const item of preview.files) {
+            const checkbox = h('input', { type: 'checkbox', checked: !item.exists });
+            chosen.push({ ...item, checkbox }); content.append(h('label', {}, [checkbox, item.name + (item.exists ? ' — replace existing file' : ' — create new file')]));
+          }
+          const recover = h('input', { type: 'checkbox', checked: Boolean(backup.recovery) });
+          const large = backup.recovery && JSON.stringify({session:backup.recovery}).length > 60 * 1024;
+          if (large) { recover.checked = false; recover.disabled = true; content.append(h('p', { text: 'This recovery snapshot exceeds the workspace bridge limit. Extract it below and restore it using the full recovery interface. Workspace files can be restored separately.' })); }
+          content.append(h('label', {}, [recover, 'Restore the recovery session as a new memory-only session']));
+          if (backup.recovery) content.append(h('button', { type: 'button', className: 'rj-btn', text: 'Extract recovery JSON', onclick: () => {
+            const url = URL.createObjectURL(new Blob([JSON.stringify(backup.recovery)], { type:'application/json' })); const a=h('a',{href:url,download:'reboundops-recovery.json'}); document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+          } }));
+          const message = h('p', { role: 'status' });
+          const apply = h('button', { type: 'button', className: 'rj-btn', text: 'Restore selected records', onclick: async () => {
+            apply.disabled = true;
+            try {
+              const selected = chosen.filter(item => item.checkbox.checked);
+              if (!selected.length && !recover.checked) { message.textContent = 'Select records to restore.'; return; }
+              // Validate recovery first, then write workspace files. A restore never replaces the original session.
+              let restored = null;
+              if (recover.checked) { const result=await call('POST','/sessions/restore',{session:backup.recovery}); if (!result.ok) { message.textContent=window.Journey.errorText(result);return; } restored=result.data; }
+              if (selected.length) await window.API.post('/api/workspace/restore', { files:Object.fromEntries(selected.map(item=>[item.name,backup.workspace[item.name]])),expectedHashes:Object.fromEntries(selected.map(item=>[item.name,item.currentHash])) });
+              if (restored) setSession(restored);
+              window.UI.closeModal(); window.Router.go('/recovery'); window.Router.render();
+            } catch(error) { message.textContent = (error.message || 'Restore failed.') + ' Review again before retrying. A recovery copy may have been created; original sessions remain available.'; }
+            finally { apply.disabled=false; }
+          } });
+          content.append(apply,message);window.UI.modal('Review combined backup restore',content);return;
+        }
+        if (f.size > 60 * 1024) { say.textContent = 'Restore this recovery backup in the full recovery interface; it exceeds the workspace bridge limit.'; return; }
+        const r = await call('POST', '/sessions/restore', { session: backup });
         if (!r.ok) { say.textContent = window.Journey.errorText(r); return; }
         setSession(r.data); window.Router.go('/recovery'); window.Router.render();
       } catch { say.textContent = 'Choose a valid ReboundOps JSON backup.'; }
     } });
-    box.append(h('label', {}, ['Restore a JSON backup (creates a memory-only session)', file]));
+    box.append(h('label', {}, ['Restore a recovery or combined JSON backup (recovery starts in memory only)', file]));
     const saved = await call('GET', '/sessions/saved');
     if (saved.ok) for (const item of saved.data) box.append(h('button', { type: 'button', className: 'rj-btn', text: `Resume ${item.role} · ${new Date(item.updatedAt).toLocaleDateString()}`, onclick: async () => {
       const r = await call('GET', `/sessions/${item.id}`); if (r.ok) { setSession(r.data); window.Router.go('/recovery'); window.Router.render(); } else say.textContent = window.Journey.errorText(r);

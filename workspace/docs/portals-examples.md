@@ -1,6 +1,6 @@
 # portals.yml — ready-to-paste blocks
 
-Drop these into the `tracked_companies:` list of your `rebound-ops/portals.yml`
+Drop these into the `tracked_companies:` list of your `engine/portals.yml` (the default launcher data root)
 to enable scanning. The classic per-company ATSes are
 **Greenhouse · Ashby · Lever · Workable · SmartRecruiters · Workday**, joined in
 v1.76.0 by the per-tenant ATSes **BambooHR · Breezy HR · Comeet · Personio ·

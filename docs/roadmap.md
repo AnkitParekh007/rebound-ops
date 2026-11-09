@@ -26,6 +26,8 @@ Effort target unchanged: 120–160 hours, before unavoidable participant schedul
 
 **9 Nov high-priority journey repairs:** H1 save/backup/resume controls on the integrated path; H2 reviewed source/query inputs and regional opt-in; H3 manual application entry; H4 optional fact-check sources and targeted errors; H5 self-contained web-chat prompts; H6 same-session full recovery and reviewed CV/profile/preferences prefills. Full recovery uses ReboundOps orange branding and light/dark themes. Engineering checks do not close human validation or live AI gates.
 
+**9 Nov readiness remediation:** R1–R6 implemented: failed/partial scan summaries, reviewed query/display alignment, evidence-based work models with Unknown fallback, source onboarding and incomplete-probe diagnostics, current AI navigation guidance and guarded name masking. Added concrete time-bounded experiments, reviewed external-answer saving, task navigation, duplicate-aware CV transfers and combined private career backup/restore. This is engineering delivery; G1–G4 still require their documented human/live-provider evidence.
+
 ## 2. Gap analysis
 
 **8 Nov engineering update:** guided Recovery AI setup is available before intake and from workspace Settings, with explicit metadata-only connection testing and launcher `--ai` / `--no-ai` opt-in. This does not close G2: live model-quality evaluation remains outstanding.

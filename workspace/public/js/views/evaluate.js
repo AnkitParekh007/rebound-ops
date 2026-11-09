@@ -132,6 +132,20 @@ Router.register('evaluate', async () => {
   function renderResult(r) {
     out.innerHTML = '';
     if (r.mode === 'manual') {
+      const answer = c('textarea', { className: 'textarea', rows: 10, maxLength: 500000, 'aria-label': 'Reviewed web-chat answer' });
+      const title = c('input', { className: 'input', maxLength: 100, 'aria-label': 'Review name', placeholder: 'Company and role, for example Northstar Platform Engineer' });
+      const consent = c('input', { type: 'checkbox' });
+      const message = c('p', { role: 'status' });
+      const save = c('button', { type: 'button', className: 'btn btn-primary', onClick: async () => {
+        if (!consent.checked || !answer.value.trim() || !title.value.trim()) { message.textContent='Name the review, paste the answer and confirm you reviewed it.';return; }
+        save.disabled = true;
+        try {
+          const slug = 'manual-' + title.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,80) + '-' + Date.now();
+          await API.post('/api/reports', {slug, markdown: '# ' + title.value.trim() + '\n\nUser-reviewed external answer. Not independently verified. No career claims or application score were applied automatically.\n\n' + answer.value});
+          message.replaceChildren(c('a',{href:'#/reports/'+slug},'Open saved review'),c('span',{},' · '),c('a',{href:'#/tracker'},'Track an application'));
+        } catch(error) { message.textContent=error.message || 'Could not save review.'; } finally { save.disabled=false; }
+      } }, 'Save reviewed answer locally');
+      out.append(c('details', {}, [c('summary',{},'Bring a web-chat answer back'),c('p',{},'Review the answer against your actual experience. Saving creates a local report; it does not update your CV, evidence, fit score or tracker.'),c('label',{},['Review name',title]),c('label',{},['Reviewed web-chat answer',answer]),c('label',{},[consent,' I reviewed this answer and want to keep it locally']),save,message]));
       out.appendChild(c('div', { className: 'card' }, [
         c('div', { className: 'badge badge-warn mb-3' }, t('eval.manualMode')),
         c('p', null, r.message),

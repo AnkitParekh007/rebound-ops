@@ -303,6 +303,9 @@ export class SessionStore {
     return this.mutate((id, rev) => this.api.setActionCompleted(id, rev, actionId, completed), 'Progress updated.');
   }
 
+  async personalizeAction(actionId: string, title: string): Promise<void> {
+    await this.mutate((id, rev) => this.api.personalizeAction(id, rev, actionId, title), 'Your experiment was saved within the existing time budget. Its completion mark was reset.');
+  }
   saveReview(notes: string): Promise<Session | null> {
     return this.mutate((id, rev) => this.api.recordReview(id, rev, notes),
       'Review recorded in the current API session.');

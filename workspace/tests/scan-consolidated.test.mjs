@@ -145,3 +145,13 @@ test('web-chat evaluation includes the source contents and posting', async () =>
   assert.match(prompt, /cannot access the filesystem/);
   assert.match(prompt, /Missing or truncated sources are unknown/);
 });
+
+test('source failures distinguish unsuccessful and partial scans, including retained results', async () => {
+  const {__scanRunners}=await import('../server/lib/routes/scan.mjs');const original=__scanRunners.en;
+  try {
+    __scanRunners.en=async()=>({counts:{raw:0,fresh:0},errors:['Source unavailable'],sourceStatus:{attempted:1,failed:1,retainedPrevious:true}});
+    const failed=await(await fetch(baseUrl+'/api/stream/scan?source=ats')).text();assert.match(failed,/"status":"failed"/);assert.match(failed,/"code":1/);assert.match(failed,/"retainedPrevious":true/);
+    __scanRunners.en=async()=>({counts:{raw:3,fresh:2},errors:['One unavailable'],sourceStatus:{attempted:2,failed:1}});
+    assert.match(await(await fetch(baseUrl+'/api/stream/scan?source=ats')).text(),/"status":"partial"/);
+  } finally {__scanRunners.en=original;}
+});

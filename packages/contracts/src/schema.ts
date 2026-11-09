@@ -152,6 +152,7 @@ export const ReplaceIntakeSchema = z.strictObject({ expectedRevision: z.number()
 export const SelectRouteSchema = z.strictObject({ expectedRevision: z.number().int().nonnegative(), routeId: RouteIdSchema });
 export const EvidenceDecisionSchema = z.strictObject({ expectedRevision: z.number().int().nonnegative(), status: EvidenceSchema.shape.status });
 export const ActionDecisionSchema = z.strictObject({ expectedRevision: z.number().int().nonnegative(), completed: z.boolean() });
+export const PersonalizeActionSchema = z.strictObject({ expectedRevision: z.number().int().nonnegative(), title: z.string().trim().min(3).max(500) });
 export const ReviewSchema = z.strictObject({ expectedRevision: z.number().int().nonnegative(), notes: z.string().trim().max(2000) });
 
 export type Evidence = z.infer<typeof EvidenceSchema>;

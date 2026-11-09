@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { loadAiProvider, type AiProvider } from './provider.js';
 import { SessionStore, SessionStorageError } from './storage.js';
 import {
-  ActionDecisionSchema, AddJobTargetSchema, AiPreviewRequestSchema, AiAnalyzeRequestSchema, CreateSessionSchema, DeleteTargetSchema,
+  PersonalizeActionSchema, personalizeAction, ActionDecisionSchema, AddJobTargetSchema, AiPreviewRequestSchema, AiAnalyzeRequestSchema, CreateSessionSchema, DeleteTargetSchema,
   EvidenceDecisionSchema, CorrectEvidenceSchema, AddSourceDocumentSchema, PersistenceChoiceSchema,
   ReviewRequirementSchema, RestoreSessionRequestSchema,
   ReplaceIntakeSchema, ReviewSchema, SelectRouteSchema, SessionSchema,
@@ -433,7 +433,13 @@ export function buildApp(options: {
       completeAction(session, request.params.actionId, parsed.data.completed));
   });
 
-  app.put<{ Params: IdParams }>('/api/sessions/:id/review', async (request, reply) => {
+  app.put<{ Params: ActionParams }>('/api/sessions/:id/actions/:actionId/experiment', async (request, reply) => {
+    const parsed = PersonalizeActionSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    return mutate(request.params.id, parsed.data.expectedRevision, reply, session => personalizeAction(session, request.params.actionId, parsed.data.title));
+  });
+
+  app.put<{ Params: IdParams }>('/api/sessions/:id/review' , async (request, reply) => {
     const parsed = ReviewSchema.safeParse(request.body);
     if (!parsed.success) return invalid(reply, parsed.error);
     return mutate(request.params.id, parsed.data.expectedRevision, reply, session => recordReview(session, parsed.data.notes));

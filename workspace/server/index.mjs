@@ -1,3 +1,4 @@
+import { registerWorkspaceBackupRoutes } from './lib/routes/workspace-backup.mjs';
 /**
  * rebound-ops web UI — Express server
  *
@@ -571,6 +572,7 @@ export function createApp() {
   registerLivenessRoutes(app);        // GET /api/liveness?url= (ATS "still live?" check; zero-token/zero-browser, SSRF-safe)
   registerGeocodeRoutes(app);         // GET /api/geocode?q= (Nominatim, rate-limited + cached) for #/map
   registerMapRoutes(app);             // GET /api/map/jobs (pipeline + tracker rows with resolved locations) for #/map
+  registerWorkspaceBackupRoutes(app);
   registerReboundOpsRoutes(app);      // ReboundOps Next demo — allowlisted same-origin bridge to the ReboundOps API (127.0.0.1:4174)
   // ───────────────────────────── Catch-all → SPA ─────────────────────────────
 
