@@ -17,13 +17,14 @@ function safePath(name) {
   for (const part of name.split('/')) { current = resolve(current, part); try { if (lstatSync(current).isSymbolicLink()) throw new Error('Symlinked career paths cannot be backed up or restored'); } catch (error) { if (error.code !== 'ENOENT') throw error; } }
   return current;
 }
+const credentialKey = key => /(?:^|_)(?:api_key|apikey|key|token|secret|password|auth|authorization|cookie|credentials?)(?:_|$)/i.test(String(key).replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/[-.\s]/g, '_'));
 function sanitizeSources(value, key = '') {
-  if (/key|token|secret|password|authorization|cookie/i.test(key)) return '[redacted — reconfigure locally]';
+  if (credentialKey(key)) return '[redacted — reconfigure locally]';
   if (Array.isArray(value)) return value.map(item => sanitizeSources(item));
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k,v]) => [k,sanitizeSources(v,k)]));
   if (typeof value === 'string' && /^https?:\/\//.test(value)) {
     const url = new URL(value); url.username = ''; url.password = '';
-    for (const k of [...url.searchParams.keys()]) if (/key|token|secret|password|authorization/i.test(k)) url.searchParams.set(k, '[redacted]');
+    for (const k of [...url.searchParams.keys()]) if (credentialKey(k)) url.searchParams.set(k, '[redacted]');
     return url.href;
   }
   return value;

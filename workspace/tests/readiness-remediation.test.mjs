@@ -10,7 +10,7 @@ before(async()=>{
   mkdirSync(join(root,'config'));mkdirSync(join(root,'data'));
   writeFileSync(join(root,'cv.md'),'# Fictional engineer\n');
   writeFileSync(join(root,'config','config.yml'),'anthropic_key: do-not-export');
-  writeFileSync(join(root,'portals.yml'),'tracked_companies: []\napi_token: private-token\n');
+  writeFileSync(join(root,'portals.yml'),'tracked_companies: []\napi_token: private-token\nkeywords: [platform, backend]\n');
   const {createApp}=await import('../server/index.mjs');await new Promise(resolve=>{server=createApp().listen(0,'127.0.0.1',()=>{base='http://127.0.0.1:'+server.address().port;resolve()})});
 });
 after(async()=>{await new Promise(resolve=>server.close(resolve));rmSync(root,{recursive:true,force:true})});
@@ -25,7 +25,7 @@ test('a city is not evidence of onsite work; explicit source descriptions and me
 });
 test('combined workspace export excludes provider configuration and redacts known source credentials',async()=>{
   const data=await(await fetch(base+'/api/workspace/backup')).json();assert.match(data.files['cv.md'],/Fictional/);
-  assert.equal(data.files['config/config.yml'],undefined);assert.doesNotMatch(data.files['portals.yml'],/private-token/);
+  assert.equal(data.files['config/config.yml'],undefined);assert.doesNotMatch(data.files['portals.yml'],/private-token/);assert.match(data.files['portals.yml'],/platform/);assert.match(data.files['portals.yml'],/backend/);
 });
 test('restore requires a preview hash and refuses traversal, unknown files and symlink paths',async()=>{
   assert.equal((await post('/api/workspace/restore-preview',{files:{'../outside.md':'bad'}})).status,400);
