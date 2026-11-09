@@ -8,6 +8,11 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_PL = {
+  "cv.pdfOutputUnavailable": "Nie można zweryfikować pliku PDF. Sprawdź lokalny serwer i spróbuj ponownie.",
+  "cv.pdfFailed": "Eksport PDF nie powiódł się",
+  "cv.pdfRepair": "Sprawdź dziennik. Jeśli brakuje zależności, zatrzymaj aplikację i uruchom ponownie scripts/start-demo.sh.",
+  "cv.pdfNoOutput": "Nie utworzono nowego PDF. Nie pobrano istniejących plików. Sprawdź dziennik i spróbuj ponownie.",
+
   'track.outcome.btn': "Wynik",
   'track.outcome.record': "Zapisz wynik",
   'track.outcome.rejected': "Odrzucono",

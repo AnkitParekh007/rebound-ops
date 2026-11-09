@@ -9,6 +9,11 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_JA = {
+  "cv.pdfOutputUnavailable": "PDF出力を確認できません。ローカルサーバーを確認して再試行してください。",
+  "cv.pdfFailed": "PDFの書き出しに失敗しました",
+  "cv.pdfRepair": "ログを確認してください。依存関係が不足している場合は、アプリを停止して scripts/start-demo.sh を再実行してください。",
+  "cv.pdfNoOutput": "新しいPDFは生成されませんでした。既存ファイルはダウンロードしていません。ログを確認して再試行してください。",
+
   'track.outcome.btn': "結果",
   'track.outcome.record': "結果を記録",
   'track.outcome.rejected': "不採用",

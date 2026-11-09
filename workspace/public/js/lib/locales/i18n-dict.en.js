@@ -9,6 +9,12 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_EN = {
+  "cv.pdfOutputUnavailable": "Cannot verify PDF output. Check the local server and retry.",
+  "cv.pdfFailed": "PDF export failed",
+  "cv.pdfRepair": "Check the log. If dependencies are missing, stop the app and rerun scripts/start-demo.sh, then retry.",
+  "cv.pdfNoOutput": "No new PDF was produced. Existing files were not downloaded. Check the log and retry.",
+
+
   'track.outcome.btn': "Outcome",
   'track.outcome.record': "Record outcome",
   'track.outcome.rejected': "Rejected",
@@ -669,7 +675,7 @@ window.__I18N_DICT_EN = {
   'scan.consoleReady': "> ready. press scan button.",
   'scan.noResults': "No results. Run a scan above — results will appear here once it finishes.",
   'app.setupIssue': "Setup issue: ",
-  'onboarding.noKey.title': "Workspace AI not configured — live workspace tools use manual prompts. Recovery AI has separate setup.",
+  'onboarding.noKey.title': "Workspace AI not configured — live workspace tools use manual prompts. Set Anthropic / Gemini / OpenAI / Qwen / … in workspace settings. Recovery AI has separate setup.",
   'onboarding.noKey.cta': "Set up a key →",
   'onboarding.activeProvider': "Live eval",
   'cost.estimate': "Estimated cost",

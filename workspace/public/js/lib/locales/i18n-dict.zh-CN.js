@@ -9,6 +9,11 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_ZH_CN = {
+  "cv.pdfOutputUnavailable": "无法验证 PDF 输出。请检查本地服务器并重试。",
+  "cv.pdfFailed": "PDF 导出失败",
+  "cv.pdfRepair": "请检查日志。若缺少依赖，请停止应用并重新运行 scripts/start-demo.sh。",
+  "cv.pdfNoOutput": "未生成新的 PDF。未下载现有文件。请检查日志并重试。",
+
   'track.outcome.btn': "结果",
   'track.outcome.record': "记录结果",
   'track.outcome.rejected': "被拒",

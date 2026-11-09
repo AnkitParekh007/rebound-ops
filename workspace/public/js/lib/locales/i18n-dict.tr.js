@@ -9,6 +9,11 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_TR = {
+  "cv.pdfOutputUnavailable": "PDF çıktısı doğrulanamadı. Yerel sunucuyu kontrol edip tekrar deneyin.",
+  "cv.pdfFailed": "PDF dışa aktarma başarısız",
+  "cv.pdfRepair": "Günlüğü kontrol edin. Bağımlılıklar eksikse uygulamayı durdurup scripts/start-demo.sh komutunu yeniden çalıştırın.",
+  "cv.pdfNoOutput": "Yeni PDF oluşturulmadı. Mevcut dosyalar indirilmedi. Günlüğü kontrol edip tekrar deneyin.",
+
   'track.outcome.btn': "Sonuç",
   'track.outcome.record': "Sonucu kaydet",
   'track.outcome.rejected': "Reddedildi",

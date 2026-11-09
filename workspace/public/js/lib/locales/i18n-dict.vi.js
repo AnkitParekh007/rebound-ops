@@ -9,6 +9,11 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_VI = {
+  "cv.pdfOutputUnavailable": "Không thể xác minh PDF. Hãy kiểm tra máy chủ cục bộ và thử lại.",
+  "cv.pdfFailed": "Xuất PDF thất bại",
+  "cv.pdfRepair": "Kiểm tra nhật ký. Nếu thiếu gói phụ thuộc, dừng ứng dụng và chạy lại scripts/start-demo.sh.",
+  "cv.pdfNoOutput": "Không tạo PDF mới. Không tải các tệp hiện có. Kiểm tra nhật ký và thử lại.",
+
   'track.outcome.btn': "Kết quả",
   'track.outcome.record': "Ghi nhận kết quả",
   'track.outcome.rejected': "Bị từ chối",

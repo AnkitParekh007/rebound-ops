@@ -9,6 +9,11 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_HI = {
+  "cv.pdfOutputUnavailable": "PDF आउटपुट सत्यापित नहीं हो सका। स्थानीय सर्वर जाँचें और फिर प्रयास करें।",
+  "cv.pdfFailed": "PDF निर्यात विफल",
+  "cv.pdfRepair": "लॉग जाँचें। निर्भरताएँ नहीं हैं तो ऐप रोककर scripts/start-demo.sh फिर चलाएँ।",
+  "cv.pdfNoOutput": "नया PDF नहीं बना। मौजूदा फ़ाइलें डाउनलोड नहीं की गईं। लॉग जाँचें और फिर प्रयास करें।",
+
   'track.outcome.btn': "परिणाम",
   'track.outcome.record': "परिणाम दर्ज करें",
   'track.outcome.rejected': "अस्वीकृत",

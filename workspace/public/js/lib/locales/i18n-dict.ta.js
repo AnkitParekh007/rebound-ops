@@ -16,6 +16,11 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_TA = {
+  "cv.pdfOutputUnavailable": "PDF வெளியீட்டைச் சரிபார்க்க முடியவில்லை. உள்ளூர் சேவையகத்தைச் சரிபார்த்து மீண்டும் முயலவும்.",
+  "cv.pdfFailed": "PDF ஏற்றுமதி தோல்வி",
+  "cv.pdfRepair": "பதிவைப் பார்க்கவும். சார்புகள் இல்லாவிட்டால் செயலியை நிறுத்தி scripts/start-demo.sh ஐ மீண்டும் இயக்கவும்.",
+  "cv.pdfNoOutput": "புதிய PDF உருவாக்கப்படவில்லை. ஏற்கெனவே உள்ள கோப்புகள் பதிவிறக்கப்படவில்லை. பதிவைப் பார்த்து மீண்டும் முயலவும்.",
+
   'track.outcome.btn': "முடிவுறுநிலை",
   'track.outcome.record': "முடிவுறுநிலையைப் பதிவு செய்",
   'track.outcome.rejected': "மறுக்கப்பட்டது",

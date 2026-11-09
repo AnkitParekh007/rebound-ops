@@ -8,6 +8,11 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_AR = {
+  "cv.pdfOutputUnavailable": "تعذر التحقق من ملف PDF. تحقق من الخادم المحلي وأعد المحاولة.",
+  "cv.pdfFailed": "فشل تصدير PDF",
+  "cv.pdfRepair": "راجع السجل. إذا كانت التبعيات مفقودة، أوقف التطبيق وأعد تشغيل scripts/start-demo.sh.",
+  "cv.pdfNoOutput": "لم يتم إنشاء ملف PDF جديد. لم يتم تنزيل الملفات الموجودة. راجع السجل وأعد المحاولة.",
+
   'track.outcome.btn': "النتيجة",
   'track.outcome.record': "تسجيل النتيجة",
   'track.outcome.rejected': "مرفوض",

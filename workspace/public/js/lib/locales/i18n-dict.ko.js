@@ -9,6 +9,11 @@
  * Structured-data fixture: exempt from the 400-LOC file-size rule.
  */
 window.__I18N_DICT_KO = {
+  "cv.pdfOutputUnavailable": "PDF 출력을 확인할 수 없습니다. 로컬 서버를 확인하고 다시 시도하세요.",
+  "cv.pdfFailed": "PDF 내보내기 실패",
+  "cv.pdfRepair": "로그를 확인하세요. 의존성이 없으면 앱을 중지하고 scripts/start-demo.sh를 다시 실행하세요.",
+  "cv.pdfNoOutput": "새 PDF가 생성되지 않았습니다. 기존 파일은 다운로드하지 않았습니다. 로그를 확인하고 다시 시도하세요.",
+
   'track.outcome.btn': "결과",
   'track.outcome.record': "결과 기록",
   'track.outcome.rejected': "불합격",
