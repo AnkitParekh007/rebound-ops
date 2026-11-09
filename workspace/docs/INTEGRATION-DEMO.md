@@ -54,8 +54,7 @@ cd rebound-ops
 scripts/start-demo.sh
 ```
 
-Then open **http://127.0.0.1:4317/#/start**. The script runs `npm ci` where
-`node_modules` is missing (root and `workspace/`), builds the contracts and API,
+Then open **http://127.0.0.1:4317/#/start**. The script verifies package-lock fingerprints and installed dependencies in the root, `workspace/` and engine. Missing, changed or incomplete installs run `npm ci`. It installs Chromium when needed, verifies that it can launch, then builds the contracts and API,
 starts both servers on loopback and stops both on Ctrl+C. Recovery AI is off by default. Use `--ai` with an exported `ANTHROPIC_API_KEY` to opt in, or `--no-ai` to keep it off. Known provider keys are stripped from the workspace process environment.
 
 Manual equivalent (two terminals, from the repository root):
@@ -179,3 +178,7 @@ are tracked in [docs/roadmap.md](../../docs/roadmap.md).
 ## Recovery AI setup
 
 Open **Set up AI assistance** from Start or Settings (`#/ai-setup`). Export a key privately in the launcher terminal, then run `bash scripts/start-demo.sh --ai`. The setup page shows configuration status and offers an explicit model-metadata connection test. No career data is sent by that test. Status and test requests use fixed `/api/rebound/ai/*` bridge endpoints; no credentials are accepted from the browser. Full requirement review remains in the Angular app: stop the launcher and run `REBOUNDOPS_AI_ENABLED=true npm run dev` with the key exported. See [Recovery AI setup](../../docs/ai-provider.md).
+
+## Startup readiness
+
+Startup stops before launching services if dependency installation or Chromium verification fails. The engine has a committed lockfile; the launcher installs it with lifecycle scripts disabled and performs browser installation and launch verification explicitly. Existing verified dependency sets are reused, while changed locks or an incomplete dependency tree trigger repair. First-time setup needs registry and browser-download access. On Linux, a missing-library error points to `cd engine && npx playwright install --with-deps chromium`; a supported installed Chrome can instead be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.

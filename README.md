@@ -49,7 +49,7 @@ bash scripts/start-demo.sh
 
 Open **http://127.0.0.1:4317/#/start**.
 
-The launcher builds the recovery API and starts both local services. Keep its terminal open; press **Ctrl+C** to stop them. Start with the fictional example to explore the screens before entering your own information.
+The launcher verifies locked dependencies for the root app, workspace and engine, installs Chromium when needed, checks that the browser can start, builds the recovery API and starts both local services. The first run needs network access for packages and the browser download. A fresh-checkout browser smoke test in CI covers PDF export, failure feedback and tracker writes. If Chromium reports missing Linux libraries, follow the printed `npx playwright install --with-deps chromium` instructions from `engine/` and rerun. Keep its terminal open; press **Ctrl+C** to stop them. Start with the fictional example to explore the screens before entering your own information.
 
 ### Choose the app mode that fits your task
 

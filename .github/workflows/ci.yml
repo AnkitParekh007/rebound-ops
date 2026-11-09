@@ -48,6 +48,9 @@ jobs:
       - name: Run cross-browser end-to-end and accessibility tests
         timeout-minutes: 12
         run: npm run test:e2e
+      - name: Verify fresh local launcher, PDF export and tracker writes
+        timeout-minutes: 6
+        run: node scripts/smoke-local-launch.mjs
       - name: Audit release inputs for accidental private files
         run: npm run audit:release
       - name: Check legacy browser prototype

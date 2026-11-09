@@ -50,3 +50,7 @@ Provider billing and data policies apply. Do not enable it for confidential data
 - Before adding an AI provider, show exactly what information would leave the machine and obtain user consent.
 
 Use fictional sample data for public demonstrations. Keep keys and participant records out of GitHub.
+
+## Git protection for workspace records
+
+CVs, profile and two-pager settings, private memory, career plans, plugin configuration and generated career-record directories belong to the user layer. Ignore rules keep these canonical paths out of ordinary `git add .`; the release audit also rejects them if force-staged. System scaffolds and fictional test fixtures remain trackable. Ignore rules do not remove an already tracked file or copies in Git history. Never force-add personal records.

@@ -4,6 +4,8 @@
 
 ### Added
 
+- Complete local runtime preparation: locked engine install, interrupted-install repair and explicit Chromium installation/launch checks before services start. Private career files are ignored and rejected by the release audit when forced into Git. CV PDF export checks exit status and changed non-empty output before success/download; failed exports remain retryable.
+
 - Guided Recovery AI setup in both interfaces, passive configuration status and an explicit model-metadata connection test with no career records. The launcher accepts `--ai` / `--no-ai`; keys stay in the recovery server environment. Setup docs explain configuration, testing and separate per-review consent.
 - Plain-language option names: Return / Shift / Bridge are now shown as "Similar work to before", "A new kind of work" and "A stepping-stone role" in the options step, the Markdown export, the guided questions and the pilot feedback question, with plainer card wording. Stored route IDs and labels are unchanged, so existing sessions and backups load as before.
 - One-command local start: `npm run dev` builds the contracts and runs the API and the Angular UI together (via `concurrently`, a development-only dependency), with prefixed logs and one Ctrl+C to stop both.

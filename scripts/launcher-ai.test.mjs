@@ -12,7 +12,7 @@ test('launcher default strips keys, explicit opt-in passes the key only to recov
     const log = join(dir, 'children.log');
     writeFileSync(join(dir, 'npm'), '#!/bin/sh\nexit 0\n', { mode: 0o700 });
     writeFileSync(join(dir, 'curl'), '#!/bin/sh\nexit 0\n', { mode: 0o700 });
-    writeFileSync(join(dir, 'node'), '#!/bin/sh\nprintf "%s|%s|%s\\n" "$PWD" "$REBOUNDOPS_AI_ENABLED" "${ANTHROPIC_API_KEY:+present}" >> "$LAUNCHER_TEST_LOG"\n', { mode: 0o700 });
+    writeFileSync(join(dir, 'node'), '#!/bin/sh\nif [ \"${LAUNCHER_PREPARE_FAIL:-}\" = true ] && [ \"$1\" != \"../../dist/api/server.js\" ] && [ \"$1\" != \"server/index.mjs\" ]; then exit 1; fi\nprintf "%s|%s|%s\\n" "$PWD" "$REBOUNDOPS_AI_ENABLED" "${ANTHROPIC_API_KEY:+present}" >> "$LAUNCHER_TEST_LOG"\n', { mode: 0o700 });
     const env = { ...process.env, PATH: dir + ':' + process.env.PATH, LAUNCHER_TEST_LOG: log,
       ANTHROPIC_API_KEY: 'fictional-key-for-process-isolation-test', REBOUNDOPS_AI_ENABLED: 'false' };
     for (const [args, flag, key, envFlag = 'false'] of [[[], 'true', 'present', 'true'], [[], 'false', ''], [['--ai'], 'true', 'present'], [['--ai','--no-ai'], 'false','']]) {
@@ -26,5 +26,8 @@ test('launcher default strips keys, explicit opt-in passes the key only to recov
     }
     assert.equal(spawnSync('bash',[launcher,'--ai'],{env:{...env,ANTHROPIC_API_KEY:''}}).status,2);
     assert.equal(spawnSync('bash',[launcher,'--unknown'],{env}).status,2);
+    writeFileSync(log, '');
+    assert.notEqual(spawnSync('bash',[launcher],{env:{...env,LAUNCHER_PREPARE_FAIL:'true'}}).status,0);
+    assert.equal(readFileSync(log,'utf8'),'','No service starts after a failed runtime preflight');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

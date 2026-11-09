@@ -93,16 +93,10 @@ Router.register('cv', async () => {
     pdfBox.appendChild(list);
   }
 
-  // Snapshot the latest PDF in the output dir so we can detect what
-  // generate-pdf.mjs produced and trigger a browser download for it.
-  async function latestPdfName() {
-    try {
-      const r = await API.get('/api/output/pdfs');
-      const files = r.files || [];
-      if (!files.length) return null;
-      // /api/output/pdfs returns files sorted newest-first.
-      return files[0].name;
-    } catch { return null; }
+  // File metadata distinguishes a new/updated output from an older PDF.
+  async function pdfFiles() {
+    const result = await API.get('/api/output/pdfs');
+    return result.files || [];
   }
 
   function triggerDownload(name) {
@@ -119,40 +113,56 @@ Router.register('cv', async () => {
     UI.toast(t('cv.pdfRunning', 'Generating PDF…'));
     btn.classList.add('is-loading');
     btn.disabled = true;
-    const before = await latestPdfName();
     const lines = [];
     const console_ = c('pre', { className: 'console', style: { maxHeight: '320px', overflow: 'auto' } }, '');
     UI.modal(t('cv.pdfTitle', 'Generate PDF'), console_);
-    const es = API.stream('/api/stream/pdf', async (event, data) => {
-      if (event === 'log' && data.line) {
-        lines.push(data.line);
-        console_.textContent = lines.join('\n');
-        console_.scrollTop = console_.scrollHeight;
-      } else if (event === 'done') {
-        lines.push(`✓ done (exit ${data.code})`);
-        console_.textContent = lines.join('\n');
-        UI.toast(t('cv.pdfDone', 'PDF generated'), 'success');
-        await loadPdfList();
-        const after = await latestPdfName();
-        // Only auto-download if generate-pdf produced a NEW file; otherwise
-        // a no-op rerun would silently re-download the same artifact.
-        if (after && after !== before) {
-          triggerDownload(after);
+    let settled = false;
+    const release = () => { btn.classList.remove('is-loading'); btn.disabled = false; };
+    const fail = (message) => {
+      lines.push('✗ ' + message);
+      console_.textContent = lines.join('\n');
+      UI.toast(message, 'error');
+    };
+    let before;
+    try { before = await pdfFiles(); }
+    catch { fail(t('cv.pdfOutputUnavailable', 'Cannot verify PDF output. Check the local server and retry.')); release(); return; }
+    try {
+      return API.stream('/api/stream/pdf', async (event, data) => {
+        if (settled) return;
+        if (event === 'log' && data && data.line) {
+          lines.push(data.line);
+          console_.textContent = lines.join('\n');
+          console_.scrollTop = console_.scrollHeight;
+        } else if (event === 'done' || event === 'error') {
+          settled = true;
+          try {
+            if (event === 'error' || !data || data.code !== 0) {
+              const detail = event === 'error' ? (data?.message || 'Connection lost')
+                : (typeof data?.code === 'number' ? 'exit ' + data.code : 'process interrupted');
+              fail(t('cv.pdfFailed', 'PDF export failed') + ' — ' + detail + '. ' +
+                t('cv.pdfRepair', 'Check the log above. If dependencies are missing, stop the app and rerun scripts/start-demo.sh, then retry.'));
+              return;
+            }
+            const after = await pdfFiles();
+            const output = after.find(file => file.size > 0 && !before.some(old =>
+              old.name === file.name && old.size === file.size && old.mtime === file.mtime));
+            if (!output) {
+              fail(t('cv.pdfNoOutput', 'No new PDF was produced. Existing files were not downloaded. Check the log and retry.'));
+              return;
+            }
+            await loadPdfList();
+            triggerDownload(output.name);
+            UI.toast(t('cv.pdfDone', 'PDF generated'), 'success');
+          } catch {
+            fail(t('cv.pdfOutputUnavailable', 'Cannot verify PDF output. Check the local server and retry.'));
+          } finally { release(); }
         }
-        btn.classList.remove('is-loading');
-        btn.disabled = false;
-      } else if (event === 'error') {
-        const hint = /ERR_MODULE_NOT_FOUND|playwright/i.test(data.message || '')
-          ? '\n\n' + t('cv.pdfNeedsPlaywright', 'Playwright is missing. Run in the parent project:\n  cd "$REBOUND_OPS_ROOT" && npm install && npx playwright install chromium')
-          : '';
-        lines.push('✗ ' + (data.message || 'error') + hint);
-        console_.textContent = lines.join('\n');
-        UI.toast(data.message || 'error', 'error');
-        btn.classList.remove('is-loading');
-        btn.disabled = false;
-      }
-    });
-    return es;
+      });
+    } catch {
+      settled = true;
+      fail(t('cv.pdfFailed', 'PDF export failed') + ' — ' + t('common.error', 'Error'));
+      release();
+    }
   }
 
   // Hidden file input — we'll click() it from the visible "Upload CV" button.

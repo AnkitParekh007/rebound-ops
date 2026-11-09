@@ -49,12 +49,7 @@ if [ "$AI_MODE" = false ]; then
   unset ANTHROPIC_API_KEY OPENAI_API_KEY GEMINI_API_KEY OPENROUTER_API_KEY QWEN_API_KEY GITHUB_MODELS_API_KEY || true
 fi
 
-if [ ! -d "$REPO/node_modules" ]; then
-  echo "→ Installing ReboundOps dependencies (npm ci)…"; (cd "$REPO" && npm ci --no-audit --no-fund)
-fi
-if [ ! -d "$WORKSPACE_DIR/node_modules" ]; then
-  echo "→ Installing Workspace dependencies (npm ci)…"; (cd "$WORKSPACE_DIR" && npm ci --no-audit --no-fund --ignore-scripts)
-fi
+node "$REPO/scripts/prepare-local-runtime.mjs"
 echo "→ Building ReboundOps contracts + API…"
 (cd "$REPO" && npm run build:contracts >/dev/null && npm run build:api >/dev/null)
 

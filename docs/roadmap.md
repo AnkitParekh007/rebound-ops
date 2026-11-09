@@ -22,6 +22,8 @@ Engineering has delivered the scope originally planned for weeks 3–6, about fo
 
 Effort target unchanged: 120–160 hours, before unavoidable participant scheduling delays.
 
+**9 Nov engineering update:** launch-review blockers B1–B3 repaired: locked root/workspace/engine startup verification with Chromium preflight; ignored user-layer career files plus release-audit enforcement; truthful CV PDF completion/error feedback. This does not close participant-validation or live AI-quality gates.
+
 ## 2. Gap analysis
 
 **8 Nov engineering update:** guided Recovery AI setup is available before intake and from workspace Settings, with explicit metadata-only connection testing and launcher `--ai` / `--no-ai` opt-in. This does not close G2: live model-quality evaluation remains outstanding.

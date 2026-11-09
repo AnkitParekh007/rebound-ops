@@ -11,6 +11,10 @@ These files contain your personal data, customizations, and work product. Update
 | `.rebound-ops-web/chats/*.json` | Local assistant conversation history (gitignored, not verified profile facts); only the chat API writes these files |
 | `.rebound-ops-web/cv-studio/*.json` | Your CV Studio edits to a tailored CV, one file per report number (gitignored); only the CV Studio API writes these files |
 | `cv.md` | Your CV in markdown |
+| `config/two-pager.yml` | Your role preferences, constraints and non-negotiables (gitignored) |
+| `config/memory.md` | Your private assistant preferences (gitignored) |
+| `config/career-plan.md` | Your saved career development plan (gitignored) |
+| `config/plugins.yml` | Your local plugin configuration (gitignored) |
 | `config/profile.yml` | Your identity, targets, comp range |
 | `config/cv-facts.json` | Your CV fact-check allowlist and forbidden phrases |
 | `config/benchmarks.yml` | Your market calibration benchmark overrides (optional; copy `templates/benchmarks.yml` here and edit — read by `funnel-velocity.mjs`) |

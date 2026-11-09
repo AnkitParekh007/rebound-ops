@@ -227,7 +227,7 @@ test('CLI: a missing script file fails loudly (exit 1, ENOENT on stderr)', async
 
 const REAL_HTML = readFileSync(join(REPO_ROOT, 'public', 'index.html'), 'utf8');
 
-test('real index.html: 107 script tags, 104 bundlable /js/ body scripts (regenerate when the shell changes)', () => {
+test('real index.html: 108 script tags, 105 bundlable /js/ body scripts (regenerate when the shell changes)', () => {
   const all = mod.scanScriptTags(REAL_HTML);
   // CAR-119 — +1: /js/lib/llm-page-kit.js (the shared AI-page template lib).
   // CAR-118 — +1: /js/lib/report-ops.js (the #/reports pure-helper lib).
@@ -240,9 +240,10 @@ test('real index.html: 107 script tags, 104 bundlable /js/ body scripts (regener
   // CAR-235 — +1: /js/lib/sidebar-resize.js (the resizable-sidebar lib).
   // ReboundOps Next demo — +2: /js/lib/rebound-state.js + /js/views/recovery.js.
   // ReboundOps journey — +2: /js/lib/journey-ui.js + /js/views/journey-start.js.
-  assert.equal(all.length, 107, 'total classic <script src> tags (104 /js/ body + 2 head + 1 leaflet)');
+  // Recovery AI setup adds /js/views/ai-setup.js.
+  assert.equal(all.length, 108, 'total classic <script src> tags (105 /js/ body + 2 head + 1 leaflet)');
   const srcs = mod.extractBundleScripts(REAL_HTML);
-  assert.equal(srcs.length, 104);
+  assert.equal(srcs.length, 105);
   assert.equal(srcs[0], '/js/lib/locales/i18n-dict.en.js');
   assert.equal(srcs[srcs.length - 1], '/js/app.js');
   assert.ok(srcs.includes('/js/lib/i18n.js'));

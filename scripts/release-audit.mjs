@@ -3,6 +3,7 @@
  * Refuse accidentally tracked local records, keys and private feedback reports.
  */
 import { execFileSync } from 'node:child_process';
+import { isCareerRecord } from './private-paths.mjs';
 import { readFileSync } from 'node:fs';
 
 let paths;
@@ -19,7 +20,7 @@ const privatePath = /(^|\/)(?:\.env(?:$|\.(?!example$)[^/]+$)|id_rsa|id_ed25519|
 const sensitiveSuffix = /\.(?:pem|p12|pfx|key)$/i;
 const violations = [];
 for (const path of paths) {
-  if (privatePath.test(path) || sensitiveSuffix.test(path)) {
+  if (privatePath.test(path) || sensitiveSuffix.test(path) || isCareerRecord(path)) {
     violations.push(path + ': private-looking file is tracked');
     continue;
   }
