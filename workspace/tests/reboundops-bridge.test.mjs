@@ -117,7 +117,7 @@ test('path params and shapes are validated', async () => {
 });
 
 test('only allowlisted actions exist', async () => {
-  for (const [m, p] of [['DELETE', `/api/rebound/sessions/${SID}`], ['POST', `/api/rebound/sessions/${SID}/ai/analyze`], ['GET', '/api/rebound/sessions/saved']]) {
+  for (const [m, p] of [['DELETE', `/api/rebound/sessions/${SID}`], ['POST', `/api/rebound/sessions/${SID}/ai/analyze`]]) {
     const r = await fetch(base + p, { method: m });
     assert.ok([400, 404].includes(r.status), `${m} ${p} → ${r.status}`);
   }
@@ -203,4 +203,18 @@ test('recovery AI status and explicit metadata test use fixed upstream endpoints
   for (const body of [{}, { consent: false }, { consent: true, key: 'must-not-forward' }]) {
     assert.equal((await post('/api/rebound/ai/test-connection', body)).status, 400);
   }
+});
+
+test('durable lifecycle uses allowlisted paths and strips extra write fields', async () => {
+  for (const path of ['/persistence/status', '/sessions/saved']) {
+    assert.equal((await fetch(base + '/api/rebound' + path)).status, 200);
+    assert.equal(seen.url, '/api' + path);
+  }
+  const response = await put(`/api/rebound/sessions/${SID}/persistence`, { expectedRevision: 2, mode: 'disk', destination: 'https://example.org' });
+  assert.equal(response.status, 200);
+  assert.deepEqual(seen.body, { expectedRevision: 2, mode: 'disk' });
+  assert.equal((await put(`/api/rebound/sessions/${SID}/persistence`, { expectedRevision: 2, mode: 'cloud' })).status, 400);
+  const restore = await post('/api/rebound/sessions/restore', { session: { id: SID }, extra: 'ignored' });
+  assert.equal(restore.status, 201);
+  assert.deepEqual(seen.body, { session: { id: SID } });
 });

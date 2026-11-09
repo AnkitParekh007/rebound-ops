@@ -31,6 +31,7 @@
   /** Shared loader: returns the session or renders a helpful state. */
   async function withSession(root, title) {
     if (!RS.hasSession()) {
+      root.append(await RS.dataControls());
       root.append(header('ReboundOps', title || 'Let’s start with one question', 'Answer a few short questions and ReboundOps will lay out three directions to test and a week that fits your time.'),
         h('div', { className: 'rj-empty' }, [
           h('div', { className: 'rj-empty__art', 'aria-hidden': 'true' }, [icon('bridge', 64)]),
@@ -44,7 +45,8 @@
     const r = await RS.load();
     if (r.ok) return r.data;
     if (r.status === 404) {
-      root.append(header('ReboundOps', 'Your earlier plan has ended', 'Plans are kept in memory only, so they end when ReboundOps restarts. Nothing was saved anywhere else. Starting again takes about two minutes.'),
+      root.append(await RS.dataControls());
+      root.append(header('ReboundOps', 'Your earlier plan has ended', 'This session is no longer available in memory. Resume a saved session or restore a JSON backup below. Sessions without local saving or a backup cannot be recovered after restart.'),
         h('div', { className: 'rj-actions' }, [h('a', { className: 'rj-btn rj-btn--primary', href: '#/start', text: 'Start again' }), h('a', { className: 'rj-btn rj-btn--quiet', href: '#/dashboard', text: 'Go to job-search tools' })]));
       return null;
     }
@@ -166,6 +168,7 @@
         ]),
         snapshot(s),
       ]),
+      await RS.dataControls(),
     );
     return root;
   });

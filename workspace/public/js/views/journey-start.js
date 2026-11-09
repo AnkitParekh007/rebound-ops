@@ -164,6 +164,7 @@
     ]);
     const lines = achievementLines();
     const submit = h('button', { type: 'submit', className: 'rj-btn rj-btn--primary', text: editing ? 'Save my answers' : 'Create my plan' });
+    const saveLocally = h('input', { type: 'checkbox' });
     const form = h('form', { className: 'rj-review', novalidate: true }, [
       draft.example ? h('p', { className: 'rj-tag rj-tag--example', text: 'Example — fictional answers' }) : null,
       h('dl', {}, [
@@ -178,8 +179,9 @@
       ]),
       h('details', { className: 'rj-privacy' }, [
         h('summary', {}, [icon('lock', 16), 'Your answers stay on this computer. How?']),
-        h('p', { text: 'They are sent only to the ReboundOps service running on this computer, which keeps them in memory until it stops. Your browser keeps just a reference to the plan, not your answers. Nothing is sent to an AI service, and nothing is written into the job-search files.' }),
+        h('p', { text: 'They are sent only to the ReboundOps service running on this computer, which keeps them in memory unless you explicitly choose local saving. Your browser keeps just a reference to the plan, not your answers. Saved files and JSON downloads contain your career data. Nothing is sent to an AI service, and nothing is written into the job-search files.' }),
       ]),
+      !editing ? h('label', {}, [saveLocally, ' Save on this computer after each change (recommended). Local files are plaintext; use a private account. Leave unchecked for memory only: work is lost when the app stops unless you download a JSON backup.']) : null,
       editing ? h('p', { className: 'rj-warn', text: 'Saving rebuilds your three directions and clears your current plan. Achievements go back to “not reviewed”.' }) : null,
       h('div', { className: 'rj-actions' }, [submit, h('button', { type: 'button', className: 'rj-btn rj-btn--quiet', text: 'Back', onclick: () => go(draft.example ? 0 : 2) })]),
     ]);
@@ -191,12 +193,16 @@
       const r = editing
         ? await RS.call('PUT', `/sessions/${editing.id}/intake`, { expectedRevision: editing.revision, intake })
         : await RS.call('POST', '/sessions', { intake });
-      submit.disabled = false;
       if (!r.ok) {
         if (r.status === 409 && r.data && r.data.session) RS.setSession(r.data.session);
-        say(errorText(r)); return;
+        submit.disabled = false; say(errorText(r)); return;
       }
       RS.setGoal(draft.goal); RS.markVisited(); RS.setPrefersTools(false); RS.setSession(r.data);
+      if (!editing && saveLocally.checked) {
+        const saved = await RS.call('PUT', `/sessions/${r.data.id}/persistence`, { expectedRevision: r.data.revision, mode: 'disk' });
+        if (saved.ok) RS.setSession(saved.data);
+        else { window.UI.toast('Your plan is in memory; local saving failed. Download a JSON backup from My next step. ' + errorText(saved), 'error'); }
+      }
       draft = null; editing = null; step = 0;
       Router.go('/recovery');
     });
@@ -206,6 +212,7 @@
   // ──────────────────────────────── view ────────────────────────────────
   Router.register('start', async (params) => {
     RS.markVisited();
+    const resumePanel = await RS.dataControls();
     const isEdit = params && params[0] === 'edit';
     if (isEdit) {
       if (!RS.session()) await RS.load();
@@ -236,6 +243,7 @@
     root.append(body);
     go(step);
     root.append(h('p', null, [h('a', { href: '#/ai-setup', text: 'Set up AI assistance (optional) →' })]));
+    root.append(resumePanel);
     return root;
   });
 

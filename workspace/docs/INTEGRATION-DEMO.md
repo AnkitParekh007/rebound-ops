@@ -20,7 +20,7 @@ ReboundOps Workspace (Express, workspace/)                                      
   /api/*            job-search routes ── read/write engine/ (REBOUND_OPS_ROOT)   │
   /api/rebound/*    allowlisted bridge ──fetch──► ReboundOps API                 │
                                                   http://127.0.0.1:4174 (Fastify, apps/api)
-                                                  memory-only sessions, AI off by default
+                                                  opt-in local saving, AI off by default
 ```
 
 * **Recovery comes first.** A first-time visitor with no URL hash lands on
@@ -64,8 +64,7 @@ npm ci && npm run build:contracts && npm run build:api && npm run start -w @rebo
 cd workspace && npm ci --ignore-scripts && node server/index.mjs
 ```
 
-The engine's own CLI scripts need `cd engine && npm install --no-package-lock`
-before use (the demo journey does not need them).
+The launcher installs the engine's locked dependencies for both workspace features and CLI scripts; no separate engine installation is needed.
 
 ## Data flow and privacy
 
@@ -73,20 +72,18 @@ before use (the demo journey does not need them).
    the intake from known fields only; every achievement is sent as
    `source.kind: 'manual'`, `status: 'unverified'` regardless of what the client
    sent. ReboundOps validates it again with its strict Zod schema.
-2. The session lives **in the ReboundOps API's memory** (lost on API restart).
+2. The session begins in memory. The launcher configures a private folder outside Git; explicit **Save on this computer** consent enables saving after each change. Start and My next step provide JSON backup/restore and saved-session resume. Memory-only sessions without backups are lost on restart.
 3. The browser keeps **only a reference** in `sessionStorage`
    (`reboundops:handoff` = `sessionId`, `goal` key, `suggestedRoute`) — no role,
    priorities, location, targets or achievement text; the session itself is
    fetched from the API into page memory on each load. "Edit my answers"
-   pre-fills from the live session. `localStorage` holds two non-personal flags
+   pre-fills from the live session. For explicitly saved sessions, `localStorage` additionally holds only the session UUID so another tab can resume it. `localStorage` also holds two non-personal flags
    (`reboundops:visited`, `reboundops:prefers-tools`). An automated browser test
    checks storage during drafting and after the plan is created.
    (Earlier builds stored the full intake draft in sessionStorage; that is no longer the case.)
 4. The opportunities handoff passes only the visible search text, in the URL
-   fragment (`#/scan?q=…`), which never leaves the browser. The scan view applies
-   it as a filter to postings it already has; no job board is contacted until
-   the person presses Scan.
-5. **Nothing is written to the engine folder** — no CV, profile,
+   fragment (`#/scan?q=…`), which never leaves the browser. The scan view applies it as a results filter and proposes it as the actual query in a review dialog. The user reviews enabled companies, title/location filters and regional queries before confirming. Regional sources require explicit opt-in. The query overrides title keywords for that run; existing location/content filters still apply.
+5. **Recovery does not automatically write to the engine folder** — no CV, profile,
    tracker, pipeline or activity-log entry. `/api/rebound/*` is not mapped in
    the activity log.
 6. Export is a deliberate click that downloads ReboundOps' own Markdown.
@@ -177,8 +174,12 @@ are tracked in [docs/roadmap.md](../../docs/roadmap.md).
 
 ## Recovery AI setup
 
-Open **Set up AI assistance** from Start or Settings (`#/ai-setup`). Export a key privately in the launcher terminal, then run `bash scripts/start-demo.sh --ai`. The setup page shows configuration status and offers an explicit model-metadata connection test. No career data is sent by that test. Status and test requests use fixed `/api/rebound/ai/*` bridge endpoints; no credentials are accepted from the browser. Full requirement review remains in the Angular app: stop the launcher and run `REBOUNDOPS_AI_ENABLED=true npm run dev` with the key exported. See [Recovery AI setup](../../docs/ai-provider.md).
+Open **Set up AI assistance** from Start or Settings (`#/ai-setup`). Export a key privately in the launcher terminal, then run `bash scripts/start-demo.sh --ai`. The setup page shows configuration status and offers an explicit model-metadata connection test. No career data is sent by that test. Status and test requests use fixed `/api/rebound/ai/*` bridge endpoints; no credentials are accepted from the browser. Full requirement review remains in the Angular app: use **Open full recovery** from Start or My next step; the launcher serves the same session and AI configuration on the API port. See [Recovery AI setup](../../docs/ai-provider.md).
 
 ## Startup readiness
 
 Startup stops before launching services if dependency installation or Chromium verification fails. The engine has a committed lockfile; the launcher installs it with lifecycle scripts disabled and performs browser installation and launch verification explicitly. Existing verified dependency sets are reused, while changed locks or an incomplete dependency tree trigger repair. First-time setup needs registry and browser-download access. On Linux, a missing-library error points to `cd engine && npx playwright install --with-deps chromium`; a supported installed Chrome can instead be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
+
+## Reviewed context reuse
+
+The full recovery link reopens the existing session by UUID, with no restart. CV offers **Review achievements from recovery** for confirmed claims only; the draft is editable and appends to the unsaved editor. Profile offers **Reuse recovery context** for selected role/location fields; populated fields are unselected by default. Two-pager offers an editable preferences preview which appends to the form. These actions never save automatically, never replace the whole file, and do not establish independent verification. Use each form’s Save action deliberately.

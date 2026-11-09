@@ -1,7 +1,8 @@
 <header class="topbar">
-  <a href="/" class="brand" aria-label="ReboundOps home"><span class="brand-mark" aria-hidden="true">↗</span> ReboundOps</a>
-  <button type="button" [attr.aria-expanded]="store.aiSetupOpen()" aria-controls="ai-setup" (click)="store.aiSetupOpen.set(!store.aiSetupOpen())">Set up AI assistance</button>
-  <span class="tag">Phase 2 · Local preview</span>
+  <a href="/" class="brand" aria-label="ReboundOps home"><img class="brand-logo" src="brand/reboundops-mark.png" width="36" height="36" alt=""> Rebound<span class="brand-ops">Ops</span></a>
+  <button type="button" class="secondary" [attr.aria-expanded]="store.aiSetupOpen()" aria-controls="ai-setup" (click)="store.aiSetupOpen.set(!store.aiSetupOpen())">Set up AI assistance</button>
+  <button type="button" class="secondary" (click)="toggleTheme()" [attr.aria-pressed]="darkTheme()" aria-label="Toggle dark theme">{{ darkTheme() ? 'Light theme' : 'Dark theme' }}</button>
+  <span class="tag">Local-first career workspace</span>
 </header>
 
 <main class="shell">
@@ -96,4 +97,4 @@
   </div>
 </main>
 
-<footer><span>ReboundOps · Open-source Phase 2</span><span>Evidence over scores. Progress over promises.</span></footer>
+<footer><span>ReboundOps · Your next chapter</span><span>Evidence over scores. Progress over promises.</span></footer>

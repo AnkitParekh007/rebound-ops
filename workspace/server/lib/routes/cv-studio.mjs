@@ -359,7 +359,10 @@ export function registerCvStudioRoutes(app) {
       dir = mkdtempSync(join(tmpdir(), 'coui-verify-'));
       const tmp = join(dir, 'candidate.md');
       writeFileSync(tmp, text, 'utf8');
-      const argv = [tmp, '--source', 'cv.md', '--source', 'config/profile.yml', '--source', 'config/two-pager.yml', '--json'];
+      if (!existsSync(resolve(PROJECT_ROOT, 'cv.md'))) return res.json({ available: false, reason: 'source-missing', detail: 'Save your CV in the Resume editor before checking facts.' });
+      const sources = ['cv.md', 'config/profile.yml', 'config/two-pager.yml'].filter(p => existsSync(resolve(PROJECT_ROOT, p)));
+      const missingOptional = ['config/profile.yml', 'config/two-pager.yml'].filter(p => !sources.includes(p));
+      const argv = [tmp, ...sources.flatMap(p => ['--source', p]), '--json'];
       const r = await runNodeScript(script, argv, { timeoutMs: 30_000 });
       const data = parseJsonStdout(r.stdout);
       // verify-cv-facts.mjs exits 1 on a 'block' verdict but still prints the
@@ -372,7 +375,7 @@ export function registerCvStudioRoutes(app) {
       if (!data || typeof data.verdict !== 'string') {
         return res.json({ available: false, reason: 'script-error', detail: sanitizeDetail(r.stderr) });
       }
-      return res.json({ available: true, ...data });
+      return res.json({ available: true, ...data, sources, missingOptional });
     } catch (e) {
       return res.json({ available: false, reason: 'script-error', detail: sanitizeDetail(String((e && e.message) || e)) });
     } finally {

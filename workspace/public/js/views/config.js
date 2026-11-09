@@ -385,6 +385,23 @@ Router.register('config', async () => {
       buildProfileForm(obj).forEach((n) => pfFormHost.appendChild(n));
       PROFILE_ARRAYS.forEach((a) => pfFormHost.appendChild(makeArrayEditor(a, obj)));
       profileTextarea.value = (data && data.raw) || '';
+      if (window.ReboundState?.hasSession()) pfFormHost.prepend(c('button', { type: 'button', className: 'btn', onClick: async () => {
+        const result = await window.ReboundState.load();
+        if (!result.ok) { UI.toast('Open your recovery session first.', 'warn'); return; }
+        const proposal = { 'candidate.location': result.data.intake.location, 'narrative.headline': result.data.intake.role };
+        const form = c('form');
+        const selected = [];
+        for (const [path, value] of Object.entries(proposal)) {
+          if (!value) continue;
+          const input = c('input', { className: 'input', value });
+          const checkbox = c('input', { type: 'checkbox', checked: !pfInputs[path]?.value });
+          selected.push({ path, input, checkbox });
+          form.append(c('label', {}, [checkbox, ({ 'candidate.location': 'Location', 'narrative.headline': 'Professional headline' }[path]) + (pfInputs[path]?.value ? ' (replaces current form value)' : ''), input]));
+        }
+        form.append(c('p', {}, 'Review and select fields to copy. Nothing is saved until you choose Save profile.'), c('button', { type: 'submit', className: 'btn btn-primary' }, 'Apply selected fields to form'));
+        form.addEventListener('submit', ev => { ev.preventDefault(); for (const item of selected) if (item.checkbox.checked && pfInputs[item.path]) { pfInputs[item.path].value = item.input.value; pfInputs[item.path].dispatchEvent(new Event('input', { bubbles: true })); } UI.closeModal(); });
+        UI.modal('Reuse recovery context', form);
+      } }, 'Reuse recovery context'));
       profileLoaded = true;
     } catch (e) {
       pfFormHost.innerHTML = '';

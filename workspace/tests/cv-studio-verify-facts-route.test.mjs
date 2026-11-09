@@ -89,6 +89,22 @@ test('JSON without a verdict field fails soft to {available:false, script-error}
   assert.equal(d.reason, 'script-error');
 });
 
+test('missing optional sources are omitted from the subprocess arguments', async () => {
+  rmSync(join(root, 'config', 'profile.yml'), { force: true });
+  writeFake(`const args=process.argv.slice(2); if(args.includes('config/profile.yml') || args.includes('config/two-pager.yml')) process.exit(2); console.log(JSON.stringify({verdict:'pass'}));`);
+  const d = await (await post('Software engineer.')).json();
+  assert.equal(d.available, true);
+  assert.deepEqual(d.sources, ['cv.md']);
+  assert.deepEqual(d.missingOptional, ['config/profile.yml', 'config/two-pager.yml']);
+});
+
+test('missing required CV names the real prerequisite', async () => {
+  rmSync(join(root, 'cv.md'), { force: true });
+  const d = await (await post('Software engineer.')).json();
+  assert.equal(d.reason, 'source-missing');
+  assert.match(d.detail, /Save your CV/);
+});
+
 test('fails soft to {available:false} when the script is absent', async () => {
   rmSync(join(root, 'verify-cv-facts.mjs'), { force: true });
   const r = await post('anything');

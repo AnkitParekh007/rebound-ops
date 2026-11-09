@@ -118,3 +118,30 @@ test('v1.20.0: retired /api/scan-ru/config returns 404', async () => {
   const res = await fetch(baseUrl + '/api/scan-ru/config');
   assert.equal(res.status, 404);
 });
+
+test('reviewed scan intent reaches the selected scanner without contacting other sources', async () => {
+  const { __scanRunners } = await import('../server/lib/routes/scan.mjs');
+  const original = { ...__scanRunners };
+  let received;
+  __scanRunners.en = async opts => { received = opts; return { counts: {}, errors: [] }; };
+  __scanRunners.ru = async () => { throw new Error('Regional scan must remain unselected'); };
+  try {
+    const text = await (await fetch(baseUrl + '/api/stream/scan?source=ats&dryRun=1&queryText=Platform%20Engineer')).text();
+    assert.equal(received.queryText, 'Platform Engineer');
+    assert.equal(received.writeFiles, false);
+    assert.doesNotMatch(text, /Regional scan must/);
+    const plan = await (await fetch(baseUrl + '/api/scan/plan')).json();
+    assert.ok(Array.isArray(plan.companies));
+    assert.ok(Array.isArray(plan.regionalQueries));
+  } finally { Object.assign(__scanRunners, original); }
+});
+
+test('web-chat evaluation includes the source contents and posting', async () => {
+  const { buildWebEvaluationPrompt } = await import('../server/lib/prompts.mjs');
+  const prompt = buildWebEvaluationPrompt('Synthetic Platform Engineer opening requiring TypeScript and Kubernetes.', 'en');
+  assert.match(prompt, /# x/);
+  assert.match(prompt, /full_name: T/);
+  assert.match(prompt, /Synthetic Platform Engineer/);
+  assert.match(prompt, /cannot access the filesystem/);
+  assert.match(prompt, /Missing or truncated sources are unknown/);
+});

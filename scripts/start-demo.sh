@@ -7,7 +7,7 @@
 #   engine/                       ReboundOps engine — job-search data folder and CLI scripts
 #
 # Starts:
-#   ReboundOps API        http://127.0.0.1:4174   — memory-only sessions, AI off unless opted in
+#   ReboundOps API        http://127.0.0.1:4174   — opt-in local saving, AI off unless opted in
 #   ReboundOps Workspace  http://127.0.0.1:4317   — open http://127.0.0.1:4317/#/start
 #
 # Ctrl+C stops both. Nothing listens on a non-loopback interface.
@@ -16,6 +16,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_DIR="$REPO/workspace"
 export REBOUND_OPS_ROOT="${REBOUND_OPS_ROOT:-$REPO/engine}"
+export REBOUNDOPS_DATA_DIR="${REBOUNDOPS_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/reboundops/sessions}"
 export REBOUNDOPS_API_PORT="${REBOUNDOPS_API_PORT:-4174}"
 UI_PORT="${PORT:-4317}"
 
@@ -50,8 +51,8 @@ if [ "$AI_MODE" = false ]; then
 fi
 
 node "$REPO/scripts/prepare-local-runtime.mjs"
-echo "→ Building ReboundOps contracts + API…"
-(cd "$REPO" && npm run build:contracts >/dev/null && npm run build:api >/dev/null)
+echo "→ Building ReboundOps contracts + API + recovery interface…"
+(cd "$REPO" && npm run build:contracts >/dev/null && npm run build:api >/dev/null && npm run build:web >/dev/null)
 
 pids=()
 cleanup() { for p in "${pids[@]:-}"; do kill "$p" 2>/dev/null || true; done; }

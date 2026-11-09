@@ -64,6 +64,22 @@ Router.register('cv', async () => {
     'aria-label': t('cv.editorAria', 'CV markdown editor — your professional resume in markdown format'),
   }, data.markdown || '');
   const pdfBox = c('div');
+  const recoveryTransfer = c('div');
+  if (window.ReboundState?.hasSession()) {
+    const transfer = c('button', { type: 'button', className: 'btn' }, 'Review achievements from recovery');
+    transfer.addEventListener('click', async () => {
+      const result = await window.ReboundState.load();
+      if (!result.ok) { UI.toast('Open your recovery session first.', 'warn'); return; }
+      const evidence = result.data.intake.evidence.filter(e => e.status === 'confirmed');
+      if (!evidence.length) { UI.toast('Review your achievements in Recovery first. Only claims confirmed by you can be proposed here.', 'warn'); return; }
+      const draft = c('textarea', { className: 'textarea', rows: 10, 'aria-label': 'Review recovery achievements' }, '\n\n## Selected achievements\n' + evidence.map(e => '- ' + e.claim).join('\n'));
+      const apply = c('button', { type: 'button', className: 'btn btn-primary', onClick: () => {
+        ta.value += draft.value; ta.dispatchEvent(new Event('input', { bubbles: true })); UI.closeModal();
+      } }, 'Append reviewed text to editor');
+      UI.modal('Review before adding to your CV', c('div', {}, [c('p', {}, 'These are your confirmations, not independent verification. Edit the draft below. Existing CV text is preserved; nothing is saved until you choose Save.'), draft, apply]));
+    });
+    recoveryTransfer.append(transfer);
+  }
 
   async function loadPdfList() {
     pdfBox.innerHTML = '';
@@ -220,6 +236,7 @@ Router.register('cv', async () => {
   });
 
   const root = c('div', null, [
+    recoveryTransfer,
     c('header', { className: 'page-header' }, [
       c('div', null, [
         // U-1 (v1.58.21) — promote #/cv H1 to match every other page:

@@ -24,14 +24,7 @@ bash scripts/start-demo.sh --ai
 
 Alternatively, use `REBOUNDOPS_AI_ENABLED=true bash scripts/start-demo.sh` with the key already exported. With no opt-in, the launcher keeps AI off; `--no-ai` explicitly overrides the flag. Opt-in without a key fails before starting services. The launcher passes the key to the recovery API and strips known provider keys from the workspace process environment. Workspace tools retain their separate file-based configuration.
 
-The integrated bridge provides recovery AI status and connection testing, but not requirement-review operations. For the full recovery review, stop the integrated launcher and start Angular with the same exported key:
-
-```sh
-export REBOUNDOPS_AI_ENABLED=true
-npm run dev
-```
-
-Open `http://127.0.0.1:4200`. Only the API reads the key; the Angular frontend does not embed it. `.env.example` documents variables but is not loaded automatically. `REBOUNDOPS_ANTHROPIC_MODEL` overrides the default model; choose a model available in your account and compatible with structured output.
+The integrated bridge provides recovery AI status and connection testing. For full requirement review, choose **Open full recovery** from Start or My next step. The launcher already serves the Angular app on the API port (4174 by default), with the same session and server-side AI configuration. No restart or repeated intake is required. Only the API reads the key; the Angular frontend does not embed it. `.env.example` documents variables but is not loaded automatically. `REBOUNDOPS_ANTHROPIC_MODEL` overrides the default model; choose a model available in your account and compatible with structured output.
 
 ## Test the connection, then approve each review
 

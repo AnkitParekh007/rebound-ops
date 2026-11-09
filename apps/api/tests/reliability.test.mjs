@@ -46,6 +46,10 @@ test('API rejects non-local Host headers, foreign origins and browser cross-site
     response = await app.inject({ method: 'GET', url: '/api/health',
       headers: { host: '127.0.0.1:4174', origin: 'http://127.0.0.1:4174' } });
     assert.equal(response.statusCode, 200);
+    response = await app.inject({ method: 'GET', url: '/api/health', headers: { host: '127.0.0.1:43821', origin: 'http://127.0.0.1:43821' } });
+    assert.equal(response.statusCode, 200, 'same-origin compiled app works on a custom local port');
+    response = await app.inject({ method: 'GET', url: '/api/health', headers: { host: '127.0.0.1:43821', origin: 'http://127.0.0.1:43822' } });
+    assert.equal(response.statusCode, 403, 'an unrelated local origin remains rejected');
   } finally { await app.close(); }
 });
 

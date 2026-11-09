@@ -589,6 +589,39 @@ Router.register('tracker', async () => {
       // destructive bulk ops as big buttons. Handlers unchanged — runFix
       // keeps its UI.confirm gate before the POST; the CSV import keeps its
       // preview → confirm modal (lib/tracker-import.js).
+      c('button', { type: 'button', className: 'btn btn-primary', onClick: () => {
+        const inputs = {};
+        const form = c('form');
+        for (const [key, label, type] of [['company','Company','text'], ['role','Role','text'], ['url','Job URL (optional)','url'], ['date','Application date','date'], ['notes','Note (optional)','text']]) {
+          const input = c('input', { className: 'input', type, required: key === 'company' || key === 'role', maxLength: key === 'notes' ? 200 : 300 });
+          if (key === 'date') input.value = new Date().toISOString().slice(0,10);
+          inputs[key] = input; form.append(c('label', { style: { display: 'block', marginBottom: '12px' } }, [label, input]));
+        }
+        const state = c('select', { className: 'input', 'aria-label': 'Application status' });
+        for (const value of (STAGES.length ? STAGES : ['Applied'])) state.append(c('option', { value, selected: value === fold('Applied') }, value));
+        form.append(c('label', {}, ['Status', state]));
+        const feedback = c('p', { role: 'status' });
+        const save = c('button', { type: 'submit', className: 'btn btn-primary' }, 'Save application');
+        form.append(c('p', {}, 'Record an application without an AI evaluation. No score will be invented.'), save, feedback);
+        form.addEventListener('submit', async ev => {
+          ev.preventDefault(); if (!form.reportValidity()) return;
+          save.disabled = true;
+          try {
+            const body = Object.fromEntries(Object.entries(inputs).map(([k,v]) => [k,v.value.trim()]));
+            // The tracker has one notes column; preserve both the URL and note there.
+            if (body.url) {
+              const combined = [body.url, body.notes].filter(Boolean).join(' · ');
+              if (combined.length > 200) { feedback.textContent = 'The URL and note share a 200-character tracker field. Shorten them before saving; nothing has been written.'; return; }
+              body.notes = combined;
+            }
+            const result = await API.post('/api/tracker', { ...body, status: state.value });
+            if (result.deduped) { feedback.textContent = 'This company and role are already recorded. Edit the existing application.'; return; }
+            UI.closeModal(); Router.render();
+          } catch (err) { feedback.textContent = err.message || 'Could not save application.'; }
+          finally { save.disabled = false; }
+        });
+        UI.modal('Add application', form);
+      } }, 'Add application'),
       buildHeaderMenu(rows, c, t),
     ]),
 

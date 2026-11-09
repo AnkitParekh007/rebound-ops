@@ -111,7 +111,7 @@ export function buildApp(options: {
       return reply.code(403).send({ error: 'CROSS_SITE_REJECTED' });
     }
     const origin = request.headers.origin;
-    if (origin && !allowedOrigins.has(origin)) {
+    if (origin && !allowedOrigins.has(origin) && origin !== `http://${host}`) {
       return reply.code(403).send({ error: 'ORIGIN_REJECTED' });
     }
     reply.header('Cache-Control', 'no-store');

@@ -213,9 +213,31 @@
     // `start` / `done` events in one stream so the UI sees both phases.
     // v1.18.0 — legacy `/api/stream/scan-{en,ru}` aliases retired.
     // Everything goes through the consolidated endpoint.
-    function runScanAll() {
+    async function runScanAll(reviewed) {
+      if (!reviewed || reviewed.confirmed !== true) {
+        let plan;
+        try { plan = await API.get('/api/scan/plan'); } catch (err) { UI.toast(err.message || 'Review source configuration first.', 'error'); return; }
+        const form = c('form');
+        const intent = new URLSearchParams((window.location.hash || '').split('?')[1] || '').get('q') || '';
+        const query = c('input', { type: 'text', className: 'input', maxLength: 140, value: intent, 'aria-label': 'Actual scan query' });
+        const regional = c('input', { type: 'checkbox' });
+        const info = c('pre', { style: { whiteSpace: 'pre-wrap' } }, JSON.stringify({ selectedCompany: companySelect.value || 'All enabled companies', maximumPerSource: maxPerSource.value || 'Unlimited', dryRun: dryRun.checked, enabledCompanies: plan.companies, configuredTitleFilter: plan.titleFilter, configuredLocationFilter: plan.locationFilter, contentFilter: plan.contentFilter, regionalSourcesAndGeography: plan.regional, regionalQueries: plan.regionalQueries }, null, 2));
+        const notice = c('p', { role: 'status' });
+        form.append(c('p', {}, 'Review actual scan inputs before contacting external job boards. The query replaces configured positive and negative title keywords for this run only. ATS scans filter downloaded titles; regional sources receive the query directly. Existing location/content filters still apply; your recovery location is not automatically applied.'),
+          c('label', {}, ['Actual scan query (leave empty to use configured title keywords)', query]),
+          c('label', {}, [regional, ' Include Russia-focused regional sources (explicit opt-in)']), info, notice,
+          c('a', { href: '#/config' }, 'Review source configuration'),
+          c('button', { type: 'submit', className: 'btn btn-primary' }, 'Confirm and scan'));
+        form.addEventListener('submit', ev => {
+          ev.preventDefault();
+          if (!plan.companies.length && !regional.checked) { notice.textContent = 'No ATS companies are enabled. Add sources before scanning, or explicitly select regional sources if relevant.'; return; }
+          UI.closeModal(); runScanAll({ confirmed: true, queryText: query.value.trim(), source: regional.checked ? (plan.companies.length ? 'both' : 'regional') : 'ats' });
+        });
+        UI.modal('Review scan inputs', form); return;
+      }
       const params = new URLSearchParams();
-      params.set('source', 'both');
+      params.set('source', reviewed.source);
+      if (reviewed.queryText) params.set('queryText', reviewed.queryText);
       if (dryRun.checked) params.set('dryRun', '1');
       const company = companySelect.value;
       if (company) params.set('company', company);

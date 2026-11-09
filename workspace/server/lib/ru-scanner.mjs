@@ -209,6 +209,7 @@ export async function runRuScan(opts = {}) {
   // (e.g. api.hh.ru from a blocked IP) can't hang the whole scan (v1.63.0).
   const { writeFiles = true, onLog = () => {}, onProgress = () => {}, fetchImpl = makeTimeoutFetch(), signal } = opts;
   const cfg = loadConfig();
+  if (opts.queryText) { cfg.queries = [String(opts.queryText).trim()]; cfg.negative = []; cfg.warnings = []; }
   const seen = loadSeenUrls();
 
   const log = (s, line) => onLog(s, line);

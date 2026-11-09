@@ -96,6 +96,7 @@ import { llmRateLimit, writeRateLimit } from '../rate-limit.mjs';
 import {
   bundleProjectContext,
   buildEvaluationPrompt,
+  buildWebEvaluationPrompt,
   buildEvaluationPromptParts,
   buildDeepPrompt,
   buildModePrompt,
@@ -239,13 +240,12 @@ export function registerLlmRoutes(app) {
     // single-shot prompt for external Claude/ChatGPT/Gemini (the two-step
     // contract is a server-side pipeline; a hand-run needs the one prompt).
     if (mode === 'manual') {
-      const promptParts = buildEvaluationPromptParts(jd, lang);
-      const promptText = promptParts.stable + promptParts.volatile;
+      const promptText = buildWebEvaluationPrompt(jd, lang);
       sseHead();
       send('done', {
         mode: 'manual',
         prompt: promptText,
-        message: 'Manual mode: copy this prompt into Claude/ChatGPT/Gemini.',
+        message: 'Review this prompt before copying to a web chat: it includes your CV and available profile/preferences. Copying shares them with that external provider.',
         saved,
       });
       return res.end();
@@ -316,8 +316,8 @@ export function registerLlmRoutes(app) {
     sseHead();
     send('done', {
       mode: 'manual',
-      message: 'No LLM key set — copy this prompt into Claude/ChatGPT/Gemini/Qwen',
-      prompt: buildEvaluationPrompt(jd, lang),
+      message: 'No LLM key set. Review before copying: this web-chat prompt includes your CV and available profile/preferences. Copying shares that data with your chosen external provider.',
+      prompt: buildWebEvaluationPrompt(jd, lang),
       saved,
     });
     return res.end();

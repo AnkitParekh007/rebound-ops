@@ -16,7 +16,13 @@
             "browser": "src/main.ts",
             "polyfills": [],
             "tsConfig": "tsconfig.app.json",
-            "assets": [],
+            "assets": [
+              {
+                "glob": "reboundops-mark.png",
+                "input": "public/brand",
+                "output": "brand"
+              }
+            ],
             "styles": [
               "src/styles.css"
             ]

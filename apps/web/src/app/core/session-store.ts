@@ -184,7 +184,7 @@ export class SessionStore {
 
   resumeSaved(id: string): Promise<Session | null> {
     return this.run(() => this.api.get(id),
-      'Saved session reopened from this computer. It has not been sent to the cloud.');
+      'Recovery session reopened from this computer. It has not been sent to the cloud.');
   }
 
   restoreBackup(file: File): Promise<Session | null> {

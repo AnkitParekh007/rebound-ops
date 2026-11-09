@@ -14,7 +14,8 @@ async function freePort() {
 }
 export async function runLaunchSmoke(checkout) {
   const port=await freePort(), apiPort=await freePort();
-  const env={...process.env,PORT:String(port),REBOUNDOPS_API_PORT:String(apiPort),REBOUND_OPS_ROOT:join(checkout,'engine'),REBOUNDOPS_AI_ENABLED:'false'};
+  const dataHome=mkdtempSync(join(tmpdir(),'rebound-smoke-data-'));
+  const env={...process.env,XDG_DATA_HOME:dataHome,PORT:String(port),REBOUNDOPS_API_PORT:String(apiPort),REBOUND_OPS_ROOT:join(checkout,'engine'),REBOUNDOPS_AI_ENABLED:'false'};
   for(const key of Object.keys(env))if(/KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL/.test(key))delete env[key];
   delete env.REBOUNDOPS_DATA_DIR;delete env.REBOUNDOPS_AI_COUNTER_FILE;
   const child=spawn('bash',['scripts/start-demo.sh'],{cwd:checkout,env,stdio:['ignore','pipe','pipe']});
@@ -56,10 +57,45 @@ export async function runLaunchSmoke(checkout) {
     await page.getByRole('button',{name:'Record outcome — Fictional Startup Studio',exact:true}).click();await page.getByRole('combobox',{name:'Record outcome',exact:true}).selectOption('interview_progress');await page.getByRole('textbox',{name:'Note (optional)',exact:true}).fill('Fictional note');await page.getByRole('button',{name:'Preview',exact:true}).click();
     await page.getByText(/Will set #1/).waitFor();const outcome=page.waitForResponse(r=>r.url().endsWith('/api/outcome'));await page.getByRole('button',{name:'Record outcome',exact:true}).click();assert.equal((await outcome).status(),200);
     assert(readFileSync(join(checkout,'engine','data','applications.md'),'utf8').includes('| Interview |'));
+    await page.goto(origin+'/#/start');
+    await page.getByRole('button',{name:'Use a fictional example',exact:true}).click();
+    await page.getByRole('checkbox',{name:/Save on this computer after each change/}).check();
+    await page.getByRole('button',{name:'Create my plan',exact:true}).click();
+    await page.getByText('Saved on this computer after every change.',{exact:true}).waitFor();
+    await page.goto(origin+'/#/directions');await page.locator('[data-route-id="return"] button').click();
+    await page.getByRole('button',{name:'Mark as done',exact:true}).click();
+    await page.getByText(/1 of .* steps done/).first().waitFor();
+    await page.goto(origin+'/#/evidence');await page.getByRole('button',{name:'I have reviewed this',exact:true}).click();
+    await page.getByText('Reviewed by you',{exact:true}).waitFor();
+    const session=await page.evaluate(()=>window.ReboundState.session());
+    const sameSession=await context.newPage();await sameSession.goto(origin+'/#/recovery');
+    await sameSession.getByText(/1 of .* steps done/).first().waitFor();
+    const recoveryUrl=await sameSession.getByRole('link',{name:/Open full recovery/}).getAttribute('href');
+    await sameSession.goto(recoveryUrl);await sameSession.getByText('Saved on this computer.',{exact:true}).waitFor();
+    assert.equal(await sameSession.locator('.brand-logo').evaluate(img=>img.complete&&img.naturalWidth>0),true);
+    assert.equal(JSON.parse(readFileSync(join(dataHome,'reboundops','sessions',session.id+'.json'),'utf8')).session.plan.actions.filter(a=>a.completed).length,1);
+    // Read the same persisted plan in a fresh API process (a real restart, without browser fixtures).
+    const {buildApp}=await import('../dist/api/app.js');
+    const restarted=buildApp({dataDir:join(dataHome,'reboundops','sessions')});
+    try { const response=await restarted.inject({method:'GET',url:'/api/sessions/'+session.id});assert.equal(response.statusCode,200);assert.equal(response.json().plan.actions.filter(a=>a.completed).length,1); }
+    finally { await restarted.close(); }
+    await page.goto(origin+'/#/tracker');await page.getByRole('button',{name:'Add application',exact:true}).click();
+    await page.getByRole('textbox',{name:'Company',exact:true}).fill('Fictional Manual Studio');
+    await page.getByRole('textbox',{name:'Role',exact:true}).fill('Platform Engineer');
+    await page.getByRole('button',{name:'Save application',exact:true}).click();await page.getByText('Fictional Manual Studio',{exact:true}).filter({visible:true}).first().waitFor();
+    await page.goto(origin+'/#/cv');const previousCv=await page.locator('#cv-editor').inputValue();
+    await page.getByRole('button',{name:'Review achievements from recovery',exact:true}).click();
+    await page.getByRole('button',{name:'Append reviewed text to editor',exact:true}).click();
+    assert((await page.locator('#cv-editor').inputValue()).startsWith(previousCv));
+    assert((await page.locator('#cv-editor').inputValue()).includes(session.intake.evidence[0].claim));
+    assert.equal((await (await fetch(origin+'/api/cv')).json()).markdown,previousCv,'handoff never auto-saves CV');
+    console.log('PASS: reviewed achievements append to draft without overwriting or auto-saving.');
+    console.log('PASS: recovery save, second-tab resume, same-session full interface, persisted restart, manual application entry.');
     console.log('PASS: launcher, real PDF export, truthful failure, tracker status and outcome writes.');
   }finally{
     await browser?.close();
     const stopped=new Promise(r=>child.once('exit',r));if(child.exitCode===null){child.kill('SIGTERM');await stopped;}
+    rmSync(dataHome,{recursive:true,force:true});
   }
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){

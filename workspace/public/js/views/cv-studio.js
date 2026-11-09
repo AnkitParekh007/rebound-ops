@@ -481,7 +481,7 @@ Router.register('cv-studio', async () => {
       pending.remove();
       if (!res || res.available === false) {
         vfOut.appendChild(c('p', { style: { color: 'var(--foggy)' } },
-          t('cvs.vfUnavailable', 'Fact-check needs the parent rebound-ops project (verify-cv-facts.mjs) next to this app.')));
+          ({ 'script-not-found': 'The fact-check script is missing. Repair the engine installation.', 'source-missing': 'Save your CV in the Resume editor first.', timeout: 'The fact check timed out. Try a shorter draft.', 'script-error': 'The fact checker could not run. Check the engine installation and source files.' }[res?.reason] || 'Fact checking is unavailable.') + (res?.detail ? ' ' + res.detail : '')));
         return;
       }
       vfLive = res;
@@ -575,8 +575,10 @@ Router.register('cv-studio', async () => {
     ]));
   }
   function paintVfResult(res) {
+vfOut.appendChild(c('p', {}, 'Checks available local sources for unsupported metrics and configured phrases; this is not independent verification.' + (res.missingOptional?.length ? ' Optional sources not configured: ' + res.missingOptional.join(', ') : '')));
+
     const VERDICT = {
-      pass: [t('cvs.vfPass', 'Grounded — every claim traces to your CV, profile, or two-pager.'), 'badge badge-ok'],
+      pass: ['No configured checks flagged this draft. Review its claims yourself.', 'badge badge-ok'],
       warn: [t('cvs.vfWarn', 'Advisory — soft phrases worth a second look.'), 'badge badge-warn'],
       block: [t('cvs.vfBlock', 'Unsupported claims — fix these before you send it.'), 'badge badge-bad'],
     };

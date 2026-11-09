@@ -162,6 +162,17 @@ export function registerReboundOpsRoutes(app) {
   });
   app.get('/api/rebound/health', (req, res) => forward(res, 'GET', '/api/health'));
 
+  app.get('/api/rebound/runtime', (_req, res) => res.json({ recoveryUrl: reboundUpstream() }));
+  app.get('/api/rebound/persistence/status', (_req, res) => forward(res, 'GET', '/api/persistence/status'));
+  app.get('/api/rebound/sessions/saved', (_req, res) => forward(res, 'GET', '/api/sessions/saved'));
+  app.post('/api/rebound/sessions/restore', writeRateLimit(), sizeGuard, (req, res) =>
+    forward(res, 'POST', '/api/sessions/restore', { session: req.body?.session }));
+  app.put('/api/rebound/sessions/:id/persistence', writeRateLimit(), sessionId, sizeGuard, (req, res) => {
+    const { expectedRevision, mode } = req.body || {};
+    if (!isRevision(expectedRevision) || !['disk', 'memory'].includes(mode)) return bad(res, 'Invalid persistence choice');
+    return forward(res, 'PUT', `/api/sessions/${req.params.id}/persistence`, { expectedRevision, mode });
+  });
+
   app.post('/api/rebound/sessions', writeRateLimit(), sizeGuard, (req, res) => {
     const { intake, error } = pickIntake(req.body && req.body.intake);
     if (error) return bad(res, error);

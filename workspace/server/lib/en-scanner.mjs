@@ -147,7 +147,7 @@ function statedYearsMin(j) {
 // detectApi just resolved.
 const fetcherFor = (id) => ALL_ADAPTERS.find((a) => a.id === id)?.fetch;
 
-function loadPortals() {
+export function loadPortals() {
   if (!existsSync(PATHS.portals)) return {};
   const parsed = yaml.load(readFileSync(PATHS.portals, 'utf8')) || {};
   // Parent #6107 — a key one or two edits from a real setting
@@ -363,7 +363,7 @@ export async function runEnScan(opts = {}) {
   // jobs each company/board contributes, so one huge board can't dominate.
   const maxPerSource = Math.max(0, Number(opts.maxPerSource) || 0);
   const portals = loadPortals();
-  const tf = portals.title_filter || {};
+  const tf = opts.queryText ? { positive: [String(opts.queryText).trim()], negative: [] } : (portals.title_filter || {});
   // v1.76.0 — word-boundary acronym matching + malformed-config guard (parent
   // rebound-ops v1.13.0 #1102/#1187). A job passes when a positive matches (or
   // there are none) AND no negative matches.

@@ -18,7 +18,7 @@
  * unrelated to these in-process routes.
  */
 import { runRuScan, loadConfig as loadRuConfig } from '../ru-scanner.mjs';
-import { runEnScan, loadLastScan } from '../en-scanner.mjs';
+import { runEnScan, loadLastScan, loadPortals, expandTelegramChannels } from '../en-scanner.mjs';
 import { getLastWorkdayFallback } from '../sources/workday.mjs';
 import { SOURCES } from '../sources/registry.mjs';
 import { PATHS } from '../paths.mjs';
@@ -61,6 +61,7 @@ async function driveOne({ send, runner, label, query, signal, final = true }) {
   const isAborted = () => signal.aborted;
   try {
     const result = await runner({
+      queryText: typeof query.queryText === 'string' ? query.queryText.trim().slice(0,140) : undefined,
       writeFiles: query.dryRun !== '1',
       companyName: query.company ? String(query.company) : undefined,
       // v1.80.0 — optional per-source cap (EN scanner; ru-scanner ignores it).
@@ -102,6 +103,15 @@ export const __scanSlot = {
 };
 
 export function registerScanRoutes(app) {
+  app.get('/api/scan/plan', (_req, res) => {
+    try {
+      const portals = loadPortals();
+      const configured = portals.tracked_companies || portals.companies || [];
+      const companies = (Array.isArray(configured) ? configured : []).concat(expandTelegramChannels(portals.telegram_channels)).filter(c => c && typeof c === 'object' && c.enabled !== false);
+      const regional = loadRuConfig();
+      res.set('Cache-Control', 'no-store').json({ regional: { sources: regional.sources, area: regional.area, onlyRemote: regional.onlyRemote, negative: regional.negative }, contentFilter: portals.content_filter || {}, companies: companies.map(c => c.name || c.company || 'Unnamed source'), titleFilter: portals.title_filter || {}, locationFilter: portals.location_filter || {}, regionalQueries: regional.queries || [] });
+    } catch (error) { res.status(422).json({ error: error.message }); }
+  });
   // ─── F-018 LITE — consolidated entrypoint ───
   // GET /api/stream/scan?source=ats|regional|both[&dryRun=1][&company=Acme]
   // Default source=both runs ATS first, then regional, in one SSE

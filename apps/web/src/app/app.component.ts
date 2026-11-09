@@ -35,6 +35,13 @@ export class AppComponent implements OnInit {
 
   /** Small screens collapse the step list behind a "Step N of M" toggle. */
   protected readonly menuOpen = signal(false);
+  protected readonly darkTheme = signal(false);
+
+  protected toggleTheme(): void {
+    this.darkTheme.update(value => !value);
+    this.document.documentElement.dataset['theme'] = this.darkTheme() ? 'dark' : 'light';
+    try { this.document.defaultView?.localStorage.setItem('reboundops-theme', this.darkTheme() ? 'dark' : 'light'); } catch { /* optional preference */ }
+  }
 
   private readonly statusText: Record<StepStatus, string> = {
     current: 'current step', done: 'done', todo: 'not started', optional: 'optional', locked: 'not available yet'
@@ -81,9 +88,16 @@ export class AppComponent implements OnInit {
     });
   }
 
-  ngOnInit(): Promise<void> {
+  async ngOnInit(): Promise<void> {
+    let preference: string | null = null;
+    try { preference = this.document.defaultView?.localStorage.getItem('reboundops-theme') || null; } catch { /* optional preference */ }
+    this.darkTheme.set(preference ? preference === 'dark' : Boolean(this.document.defaultView?.matchMedia?.('(prefers-color-scheme: dark)').matches));
+    this.document.documentElement.dataset['theme'] = this.darkTheme() ? 'dark' : 'light';
+    await this.store.init();
+    const params = new URLSearchParams(this.document.defaultView?.location.search || '');
+    const id = params.get('session');
+    if (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) await this.store.resumeSaved(id);
     this.wizard.init();
-    return this.store.init();
   }
 
   protected describe(status: StepStatus): string {

@@ -59,7 +59,7 @@ The launcher verifies locked dependencies for the root app, workspace and engine
 | **Angular recovery app** | `npm run dev` | `http://127.0.0.1:4200` | The fuller evidence workflow, exact citations, requirement review, backups and opt-in persistence. |
 | **Production-local recovery app** | `npm run build`, then `npm run start -w @reboundops/api` | `http://127.0.0.1:4174` | Serve the compiled Angular app and recovery API from one local process. |
 
-The integrated workspace and Angular frontend are separate interfaces. Their recovery API is shared, but the integrated bridge exposes a narrower set of operations. Job-search files and recovery-session records are **not automatically synchronized**.
+The integrated workspace and Angular frontend are separate interfaces. Their recovery API is shared, but the integrated bridge exposes a narrower set of operations. The launcher serves the full recovery interface on port 4174 as well: choose **Open full recovery** to continue the same session without restarting. Start and My next step offer explicit local saving, JSON backup/restore and resume. Job-search files and recovery-session records are **not automatically synchronized**; CV, Profile and Two-pager offer editable, consent-based prefills before their own Save actions.
 
 [Integrated demo guide](workspace/docs/INTEGRATION-DEMO.md) · [Demo walkthrough](workspace/docs/DEMO-WALKTHROUGH.md) · [Guided recovery onboarding](docs/onboarding.md)
 
@@ -147,12 +147,12 @@ The engine also provides command-line scripts and assistant modes. Follow its se
 
 Choose **Set up AI assistance** in the app header, or on the integrated workspace start screen / Settings. Recovery supports Anthropic. The screen explains private terminal key entry and can test model access without sending career records.
 
-With `ANTHROPIC_API_KEY` exported in the server terminal, run `bash scripts/start-demo.sh --ai` (or set `REBOUNDOPS_AI_ENABLED=true`). No flag keeps AI off; `--no-ai` overrides enablement. For full recovery requirement review, stop the launcher and run `REBOUNDOPS_AI_ENABLED=true npm run dev`, then open port 4200. The integrated workspace supports connection setup and status; requirement review lives in Angular.
+With `ANTHROPIC_API_KEY` exported in the server terminal, run `bash scripts/start-demo.sh --ai` (or set `REBOUNDOPS_AI_ENABLED=true`). No flag keeps AI off; `--no-ai` overrides enablement. For full recovery requirement review, choose **Open full recovery** from Start or My next step. The launcher already serves the full interface on port 4174 using the same session. The integrated workspace supports connection setup and status; requirement review lives in Angular.
 
 
 The recovery API's Anthropic adapter requires both `REBOUNDOPS_AI_ENABLED=true` and `ANTHROPIC_API_KEY` in the API process environment. The root `.env.example` documents settings; it is not automatically loaded to enable AI.
 
-For each request, the app previews the exact payload before a separate consent action sends it. The payload includes the selected job requirements and confirmed achievement claims. Suggestions do not automatically change your session. There is a ten-attempt limit per API process; it is not a persistent spending limit.
+For each request, the app previews the exact payload before a separate consent action sends it. The payload includes the selected job requirements and confirmed achievement claims. Suggestions do not automatically change your session. The default review-attempt allowance is ten. Counters persist when the API has a configured data folder, as with the integrated launcher. This is not a currency spending limit; set a provider-side limit.
 
 ### Job-search workspace
 

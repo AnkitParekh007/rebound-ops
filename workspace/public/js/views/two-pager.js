@@ -98,6 +98,15 @@ Router.register('two-pager', async () => {
     grid.appendChild(editor.node);
   }
 
+  if (window.ReboundState?.hasSession()) root.appendChild(c('button', { type: 'button', className: 'btn', onClick: async () => {
+    const result = await window.ReboundState.load();
+    if (!result.ok) { UI.toast('Open your recovery session first.', 'warn'); return; }
+    const intake = result.data.intake;
+    const proposed = [intake.location, intake.shiftTarget, intake.priorities].filter(Boolean).join(' · ');
+    const preview = c('textarea', { className: 'input', rows: 5, 'aria-label': 'Recovery preferences to reuse' }, proposed);
+    UI.modal('Review recovery preferences', c('div', {}, [c('p', {}, 'Append selected preferences to Target environment. Edit the text before applying. This does not save or overwrite your existing preferences.'), preview,
+      c('button', { type: 'button', className: 'btn btn-primary', onClick: () => { envField.set([envField.get(), preview.value].filter(Boolean).join('\n')); envField.wrap.querySelector('textarea').dispatchEvent(new Event('input', { bubbles: true })); UI.closeModal(); } }, 'Append to preferences form')]));
+  } }, 'Reuse recovery preferences'));
   root.appendChild(whoField.wrap);
   root.appendChild(grid);
   root.appendChild(envField.wrap);

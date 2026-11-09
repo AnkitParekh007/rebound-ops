@@ -24,6 +24,8 @@ Effort target unchanged: 120–160 hours, before unavoidable participant schedul
 
 **9 Nov engineering update:** launch-review blockers B1–B3 repaired: locked root/workspace/engine startup verification with Chromium preflight; ignored user-layer career files plus release-audit enforcement; truthful CV PDF completion/error feedback. This does not close participant-validation or live AI-quality gates.
 
+**9 Nov high-priority journey repairs:** H1 save/backup/resume controls on the integrated path; H2 reviewed source/query inputs and regional opt-in; H3 manual application entry; H4 optional fact-check sources and targeted errors; H5 self-contained web-chat prompts; H6 same-session full recovery and reviewed CV/profile/preferences prefills. Full recovery uses ReboundOps orange branding and light/dark themes. Engineering checks do not close human validation or live AI gates.
+
 ## 2. Gap analysis
 
 **8 Nov engineering update:** guided Recovery AI setup is available before intake and from workspace Settings, with explicit metadata-only connection testing and launcher `--ai` / `--no-ai` opt-in. This does not close G2: live model-quality evaluation remains outstanding.
@@ -149,7 +151,7 @@ Still deferred: automated job scraping, auto-applying, recruiter contact harvest
 | Hosted service / accounts / sync | G3 shows that local-only setup is a top adoption blocker | ADR-0002; authN/authZ, encryption at rest, tenancy isolation, privacy compliance review (e.g. India DPDP Act, GDPR), incident response |
 | AI claim extraction from documents (A6) | G2 passed and pilot shows manual claim entry is a key friction point | Span-citation contracts (exist); golden set extension |
 | Additional AI providers | A concrete user or cost need | Existing `AiProvider` interface; same golden-set gate |
-| Recovery ↔ job-search data handoff (`workspace/`, `engine/`) | Pilot users want their chosen direction reflected in job-search targets | Schema map from session route to engine profile/targets; explicit consent UI before any write into `engine/`; no automatic sync |
+| Automatic recovery ↔ job-search synchronization | Pilot evidence justifies automation beyond the shipped reviewed prefills | CV/Profile/Two-pager already offer explicit draft handoffs; broader synchronization needs a consent model and no silent overwrite |
 | Two-way sync of CV, evidence, job targets and applications | The handoff above is in use and users ask for shared records | Conflict rules, provenance carried across, per-record consent |
 | Recovery screens inside the Workspace for evidence review, job targets and corrections | Users split between the Angular app and the Workspace | Bridge allowlist extension with the same validation discipline |
 | Durable recovery sessions through the bridge (`REBOUNDOPS_DATA_DIR`) | Demo users lose sessions on API restart | Existing opt-in disk persistence; bridge allowlist for the persistence route |

@@ -2,7 +2,7 @@
 
 ## How to enable
 
-ReboundOps remains memory-only by default. Saving requires **two separate opt-in actions**: configuring a private folder on the localhost API process, and choosing **Enable local disk saving for this session** in the browser. Setting the folder alone does not save any sessions.
+ReboundOps remains memory-only by default. The integrated launcher configures a private folder outside Git (`${XDG_DATA_HOME:-$HOME/.local/share}/reboundops/sessions`, overridable with `REBOUNDOPS_DATA_DIR`). Saving still requires explicit consent: check **Save on this computer** during intake or choose it in **Save and resume**. For separately started API processes, configure a folder as shown below and opt in through the browser. Setting the folder alone does not save any sessions.
 
 Start the API using a private, non-synced directory outside your Git checkout:
 

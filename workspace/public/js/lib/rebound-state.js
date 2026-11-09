@@ -24,7 +24,7 @@ window.ReboundState = (function () {
 
   function read() {
     try {
-      const raw = window.sessionStorage.getItem(KEY);
+      const raw = window.sessionStorage.getItem(KEY) || window.localStorage.getItem(KEY);
       const v = raw ? JSON.parse(raw) : null;
       const out = {};
       if (v && typeof v === 'object') for (const k of ALLOWED) if (typeof v[k] === 'string') out[k] = v[k];
@@ -57,9 +57,14 @@ window.ReboundState = (function () {
     if (!session || !session.id) return;
     cache = session;
     ref = { ...ref, sessionId: session.id };
-    write(); emit();
+    write();
+    try {
+      if (session.persistence === 'disk') window.localStorage.setItem(KEY, JSON.stringify({ sessionId: session.id }));
+      else window.localStorage.removeItem(KEY);
+    } catch { /* Saving on the server still works without browser storage. */ }
+    emit();
   }
-  function forgetSession() { cache = null; ref = { ...ref, sessionId: undefined }; write(); emit(); }
+  function forgetSession() { try { window.localStorage.removeItem(KEY); } catch {} cache = null; ref = { ...ref, sessionId: undefined }; write(); emit(); }
   function setGoal(goal) {
     if (!GOALS[goal]) return;
     ref = { ...ref, goal, suggestedRoute: GOALS[goal].route || undefined };
@@ -127,8 +132,53 @@ window.ReboundState = (function () {
     return r;
   }
 
+  async function dataControls() {
+    const h = window.Journey.h;
+    const box = h('section', { className: 'rj-snapshot', 'aria-label': 'Save and resume recovery' });
+    const say = h('p', { role: 'status', 'aria-live': 'polite' });
+    const current = session();
+    box.append(h('h2', { text: 'Save and resume' }), h('p', { text: current?.persistence === 'disk' ? 'Saved on this computer after every change.' : 'Memory only: recovery work ends when the app stops. Download a restorable backup or choose local saving.' }));
+    if (current) {
+      box.append(h('button', { type: 'button', className: 'rj-btn', text: current.persistence === 'disk' ? 'Turn off local saving' : 'Save on this computer', onclick: async () => {
+        const mode = session().persistence === 'disk' ? 'memory' : 'disk';
+        if (!await window.Journey.confirm({ title: mode === 'disk' ? 'Save recovery on this computer?' : 'Remove the saved local copy?', body: [mode === 'disk' ? 'Your career answers will be stored as plaintext in your private local data folder. Anyone with access to your account can read them.' : 'The session remains in memory until the app stops. Download a backup first if you want to keep it.'], confirmLabel: 'Confirm', cancelLabel: 'Cancel' })) return;
+        const s = session();
+        const r = await call('PUT', `/sessions/${s.id}/persistence`, { expectedRevision: s.revision, mode });
+        if (r.ok) { setSession(r.data); window.Router.render(); } else say.textContent = window.Journey.errorText(r);
+      } }));
+      box.append(h('button', { type: 'button', className: 'rj-btn', text: 'Download backup (JSON)', onclick: () => {
+        const url = URL.createObjectURL(new Blob([JSON.stringify(session(), null, 2)], { type: 'application/json' }));
+        const a = h('a', { href: url, download: 'reboundops-backup.json' }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        say.textContent = 'Backup downloaded. It contains personal career data; store it privately.';
+      } }));
+    }
+    const file = h('input', { type: 'file', accept: '.json,application/json', onchange: async () => {
+      const f = file.files?.[0]; if (!f) return;
+      if (f.size > 60 * 1024) { say.textContent = 'This backup is too large for the workspace bridge. Restore it using the full recovery interface.'; return; }
+      try {
+        const r = await call('POST', '/sessions/restore', { session: JSON.parse(await f.text()) });
+        if (!r.ok) { say.textContent = window.Journey.errorText(r); return; }
+        setSession(r.data); window.Router.go('/recovery'); window.Router.render();
+      } catch { say.textContent = 'Choose a valid ReboundOps JSON backup.'; }
+    } });
+    box.append(h('label', {}, ['Restore a JSON backup (creates a memory-only session)', file]));
+    const saved = await call('GET', '/sessions/saved');
+    if (saved.ok) for (const item of saved.data) box.append(h('button', { type: 'button', className: 'rj-btn', text: `Resume ${item.role} · ${new Date(item.updatedAt).toLocaleDateString()}`, onclick: async () => {
+      const r = await call('GET', `/sessions/${item.id}`); if (r.ok) { setSession(r.data); window.Router.go('/recovery'); window.Router.render(); } else say.textContent = window.Journey.errorText(r);
+    } }));
+    const runtime = await call('GET', '/runtime');
+    if (runtime.ok) {
+      const target = new URL(runtime.data.recoveryUrl);
+      if (target.protocol === 'http:' && target.hostname === '127.0.0.1') {
+        if (current) { target.searchParams.set('session', current.id); target.hash = current.plan ? 'plan' : 'evidence'; }
+        box.append(h('a', { className: 'rj-btn', href: target.href, target: '_blank', rel: 'noopener noreferrer', text: 'Open full recovery: evidence, check-in and data controls' }));
+      }
+    }
+    box.append(say); return box;
+  }
+
   return {
-    get, session, hasSession, setSession, forgetSession, setGoal, summary, load, call,
+    dataControls, get, session, hasSession, setSession, forgetSession, setGoal, summary, load, call,
     subscribe, markVisited, hasVisited, setPrefersTools, prefersTools,
     GOALS, ROUTE_TITLES, PLACEHOLDER_TARGETS,
   };

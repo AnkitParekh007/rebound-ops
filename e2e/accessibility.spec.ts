@@ -19,3 +19,21 @@ test('core flow has no serious/critical axe findings and no new residual ones', 
   await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
   await expectAxeClean(page, 'in-session');
 });
+
+test('ReboundOps branding and theme preference remain readable in dark mode', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.brand-logo')).toBeVisible();
+  expect(await page.locator('.brand-logo').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBeTruthy();
+  await page.getByRole('button', { name: 'Toggle dark theme' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.waitForTimeout(200); // Allow the short color transition to settle before contrast checks.
+  await expectAxeClean(page, 'dark-welcome');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.getByRole('button', { name: "Let's start" }).click();
+  await page.getByRole('button', { name: 'Switch to the full form' }).click();
+  await page.getByRole('button', { name: 'Use fictional example' }).click();
+  await page.getByRole('button', { name: /Create recovery session/i }).click();
+  await expect(page.getByRole('heading', { name: 'Evidence you control' })).toBeVisible();
+  await expectAxeClean(page, 'dark-session');
+});
