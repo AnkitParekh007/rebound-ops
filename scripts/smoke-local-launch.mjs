@@ -14,8 +14,8 @@ async function freePort() {
   const server=net.createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const port=server.address().port;await new Promise(r=>server.close(r));return port;
 }
-async function waitForHealth(origin, child, log) {
-  const deadline = Date.now() + 240000;
+async function waitForHealth(origin, child, log, budgetMs) {
+  const deadline = Date.now() + budgetMs;
   while (true) {
     if (child.exitCode !== null || child.signalCode !== null) throw Error('Launcher exited before readiness: ' + log());
     try { if ((await fetch(origin + '/api/rebound/health')).ok) return; } catch {}
@@ -57,7 +57,10 @@ export async function runLaunchSmoke(checkout) {
   const origin=`http://127.0.0.1:${port}`;
   try {
     start();
-    await waitForHealth(origin, child, () => log);
+    // Windows cold npm ci can take three minutes before Chromium/build even
+    // starts. This budget covers provisioning, not service readiness: the
+    // launcher still checks each running service with its own short timeout.
+    await waitForHealth(origin, child, () => log, process.platform === 'win32' ? 480000 : 240000);
     const {chromium}=createRequire(join(checkout,'engine','package.json'))('playwright');
     browser=await chromium.launch({headless:true,...(env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{})});
     const context=await browser.newContext({acceptDownloads:true});const page=await context.newPage();page.setDefaultTimeout(20000);
@@ -125,7 +128,8 @@ export async function runLaunchSmoke(checkout) {
     await stopLauncher(child, 'SIGTERM');
     await Promise.all([assertPortReleased(port), assertPortReleased(apiPort)]);
     start();
-    await waitForHealth(origin, child, () => log);
+    // A warm restart must not consume another cold-install allowance.
+    await waitForHealth(origin, child, () => log, 120000);
     await page.goto(origin+'/#/recovery');
     await page.getByText(/1 of .* steps done/).first().waitFor();
     await page.goto(origin+'/#/tracker');await page.getByRole('button',{name:'Add application',exact:true}).click();

@@ -144,7 +144,7 @@ jobs:
   platform-package-smoke:
     name: Platform package smoke (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -165,7 +165,7 @@ jobs:
       - name: Production Angular build
         run: npm run build:web
       - name: Verify local workspace start, stop and restart
-        timeout-minutes: 8
+        timeout-minutes: 12
         run: node scripts/smoke-local-launch.mjs
       - name: Local preview package (not uploaded or released)
         run: npm run package:preview

@@ -4,7 +4,7 @@ The local draft was reconciled onto current main rather than replacing newer sta
 
 ## Integrated changes
 
-- Retain main's Node launcher and opt-in key isolation. Resolve npm-cli.js directly for forked Windows startup, propagate it to preparation/build, and stop owned Windows process trees. Bash compatibility entry point remains intact. Native Windows is experimental pending manual acceptance, and its CI gate remains mandatory.
+- Retain main's Node launcher and opt-in key isolation. Resolve npm-cli.js directly for forked Windows startup, propagate it to preparation/build, and stop owned Windows process trees. Bash compatibility entry point remains intact. Windows smoke allows eight minutes for cold dependency/browser provisioning and build, but only two minutes for a warm restart; the launcher's short service-health checks remain unchanged. Native Windows is experimental pending manual acceptance, and its CI gate remains mandatory.
 - Retain main's optional browser draft recovery and safe intake edits. Unchanged evidence IDs, confirmations, citations, correction records, requirement links, check-in and plan survive ordinary edits. Changed/removed evidence invalidates affected links. Reduced availability preserves the existing week with a warning; a new plan uses the new budget.
 - Preserve concrete first deliverables while adding the selected role and observable outputs to new plans. No hiring-readiness inference. Existing plans are not silently rewritten. Experiment editors use the selected time box; the integrated composer defaults to the next unfinished action.
 - Integrate the workspace guide, saved-record status, same-session full-evidence link, reviewed context handoffs and combined-backup guidance. Keep main's three direct plan links as well.
