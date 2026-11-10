@@ -16,3 +16,6 @@ test-results/
 
 # Local AI evaluation reports (live provider output; never commit)
 evals/ai-review/results/
+
+# graphify knowledge graph (local, regenerated)
+graphify-out/
