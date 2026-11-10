@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   test-and-build:
-    runs-on: ubuntu-latest
+    # Pin the browser-test OS rather than inheriting a new ubuntu-latest image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -34,14 +35,19 @@ jobs:
         run: npm test
       - name: Compile Angular production application
         run: npm run build:web
-      - name: Install Chromium, Firefox and WebKit for browser tests
+      - name: Install browser system dependencies
+        # Do not wrap apt in the browser-download retry timeout: killing the
+        # unprivileged wrapper can leave sudo apt holding dpkg's lock.
+        timeout-minutes: 8
+        run: npx playwright install-deps chromium firefox webkit
+      - name: Download Chromium, Firefox and WebKit for browser tests
         # Browser downloads occasionally stall (seen in 2 of ~10 runs; a healthy
         # install takes under a minute). Bound each attempt and retry instead of
         # failing or hanging the whole build.
         timeout-minutes: 11
         run: |
           for attempt in 1 2 3; do
-            if timeout 180 npx playwright install --with-deps chromium firefox webkit; then
+            if timeout 180 npx playwright install chromium firefox webkit; then
               exit 0
             fi
             echo "::warning::Playwright browser install attempt $attempt failed or stalled; retrying"
