@@ -5,8 +5,16 @@ import AxeBuilder from '@axe-core/playwright';
 export async function smokeWorkspaceUsability(page, origin, { capture = async () => {} } = {}) {
   const goto = async route => { await page.goto(origin + '/#/' + route, { waitUntil: 'networkidle' }); };
   const axe = async label => {
+    // Contrast must be measured on the settled page, not a route fade or
+    // theme transition. Font loading can also change wrapping on macOS.
+    await page.locator('#content').evaluate(async element => {
+      await document.fonts.ready;
+      await Promise.all(element.getAnimations({ subtree: true })
+        .filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity)
+        .map(animation => animation.finished.catch(() => {})));
+    });
     const results = await new AxeBuilder({ page }).include('#content').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
-    assert.deepEqual(results.violations.map(v => ({ rule: v.id, impact: v.impact, nodes: v.nodes.map(n => n.target) })), [], label + ': axe findings in the changed main content');
+    assert.deepEqual(results.violations.map(v => ({ rule: v.id, impact: v.impact, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), [], label + ': axe findings in the changed main content');
   };
   await goto('guide');
   await page.getByRole('heading', { name: 'From uncertainty to one useful action', exact: true }).waitFor();
