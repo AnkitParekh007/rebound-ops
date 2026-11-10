@@ -36,6 +36,14 @@ Use Node 24.15+ and start the API with AI disabled and **without** \`REBOUNDOPS_
 
 ## Session script
 
+### Public website and first-run check
+
+Show the homepage for five seconds, then ask what the product does, who it is for, and whether they expect to use it in the browser or install it. Record their own words before showing the page again.
+
+Ask the participant to see a real plan, find the privacy guidance, and install the workspace from a clean checkout using the public quick start. Use the fictional example. Record their first hesitation, any prompt needed, whether they reached a plan, and whether they could find and resume their saved work. Include keyboard and assistive-technology users on supported platforms where possible. At the seven-day follow-up, record whether they took an action. Compare the results with the proposed thresholds in the [roadmap](roadmap.md#decision-gates).
+
+### Facilitated recovery session
+
 1. **Ask for consent verbally** using the wording in [the facilitator guide](pilot-evaluation-pack.md). Record it privately, separately from the product.
 2. **Discovery first (20–30 minutes):** Ask about actual struggles and recent actions, without leading with ReboundOps benefits or showing the tool first. Record one independently stated problem and one contradiction per participant.
 3. **Facilitated product journey (30–45 minutes, optional):** Allow participants to set a fictional intake, review/correct evidence, manually compare a job requirement, choose one of the three options (similar work, a new kind of work, a stepping-stone role), and inspect a seven-day action plan. Note where they get stuck **before** explaining.

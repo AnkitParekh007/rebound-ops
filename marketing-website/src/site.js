@@ -1,18 +1,18 @@
 "use strict";
 const routes = {
   return: {
-    label: "RETURN",
+    label: "Similar work",
     title: "Build on your strengths.",
     description:
       "Start with what you can demonstrate. Use it to make your next conversation more specific.",
     tasks: [
       ["Verify three achievements with their sources", 30],
       ["Compare two roles against your evidence", 45],
-      ["Revise one application asset", 50],
+      ["Revise one résumé bullet", 50],
     ],
   },
   shift: {
-    label: "SHIFT",
+    label: "A different kind of work",
     title: "Make space for something new.",
     description:
       "Explore an adjacent role. Identify what transfers, then choose one gap you can test with a small piece of work.",
@@ -23,7 +23,7 @@ const routes = {
     ],
   },
   bridge: {
-    label: "BRIDGE",
+    label: "A stepping-stone role",
     title: "Build a bridge to what’s next.",
     description:
       "Explore a narrow deliverable you can already offer. Test the scope and interest before making assumptions about income.",
@@ -43,7 +43,7 @@ for (const button of document.querySelectorAll("[data-route]"))
       item.setAttribute("aria-pressed", String(selected));
     }
     document.getElementById("route-label").textContent =
-      "DIRECTION / " + route.label;
+      route.label;
     document.getElementById("route-title").textContent = route.title;
     document.getElementById("route-description").textContent =
       route.description;
@@ -183,6 +183,7 @@ menu.addEventListener("click", () => {
     open ? "Close navigation" : "Open navigation",
   );
   nav.classList.toggle("open", open);
+  if (open) document.getElementById("menu-install").focus();
 });
 nav.addEventListener("click", (event) => {
   if (event.target.closest("a")) closeMenu();
@@ -193,6 +194,17 @@ document.addEventListener("keydown", (event) => {
     menu.focus();
   }
 });
+document.addEventListener("focusin", (event) => {
+  if (menu.getAttribute("aria-expanded") === "true" &&
+      event.target !== menu && !nav.contains(event.target)) closeMenu();
+});
+const docsNavigation = document.getElementById("docs-navigation");
+if (docsNavigation) {
+  const narrowGuide = window.matchMedia("(max-width: 740px)");
+  const syncGuideNavigation = () => { docsNavigation.open = !narrowGuide.matches; };
+  syncGuideNavigation();
+  narrowGuide.addEventListener?.("change", syncGuideNavigation);
+}
 const commands = {
   clone: "git clone https://github.com/AnkitParekh007/rebound-ops.git",
   start: "cd rebound-ops\nnpm start",
@@ -229,7 +241,7 @@ const siteBase =
 const shots = {
   start: {"title": "Begin with your own experience.", "description": "Set a goal and describe your experience and constraints. This capture uses a fictional example.", "alt": "ReboundOps intake with goal choices and an option to use a fictional example"},
   directions: {"title": "Choose a direction to test.", "description": "Compare possible routes with their assumptions and unknowns. These are hypotheses, not hiring predictions.", "alt": "ReboundOps directions showing return, shift and stepping-stone routes"},
-  plan: {"title": "Make the next week manageable.", "description": "A bounded seven-day plan turns the selected direction into actions. This is synthetic example data.", "alt": "ReboundOps recovery plan showing a next action and a seven-day plan"},
+  plan: {"title": "Make the next week manageable.", "description": "Find your next action at the top of the plan. The weekly list shows what to try and how long to spend on it.", "alt": "ReboundOps recovery plan showing a next action and a seven-day plan"},
   evidence: {"title": "Know what supports your story.", "description": "Review achievement claims yourself. Confirmation records your review, not external verification.", "alt": "ReboundOps evidence ledger with fictional achievements and review controls"},
   dashboard: {"title": "A search with a direction.", "description": "The ReboundOps workbench connects your next recovery action with application decisions. Records shown are fictional.", "alt": "ReboundOps search workbench showing evidence, decisions and example application records"},
 
@@ -256,15 +268,23 @@ for (const button of document.querySelectorAll("[data-shot]"))
     const image = document.getElementById("shot-image");
     image.src = `${siteBase}/assets/${button.dataset.shotFile || `${key}.png`}`;
     image.alt = shot.alt;
+    document.getElementById("shot-media").classList.toggle("plan-crop", key === "plan");
     const link = document.getElementById("shot-link");
     link.href = image.src;
     link.setAttribute(
       "aria-label",
-      `Open full-size ${key} screenshot in a new tab`,
+      `Open full-size ${button.textContent.trim() || key} screenshot in a new tab`,
     );
     document.getElementById("shot-title").textContent = shot.title;
     document.getElementById("shot-description").textContent = shot.description;
   });
+function openLinkedScreenshot() {
+  if (window.location?.hash === "#shot-dashboard") {
+    document.getElementById("shot-dashboard")?.click();
+  }
+}
+openLinkedScreenshot();
+window.addEventListener?.("hashchange", openLinkedScreenshot);
 
 const sourceSearch = document.getElementById("source-search");
 if (sourceSearch) {
@@ -292,6 +312,11 @@ if (sourceSearch) {
         item.setAttribute("aria-pressed", String(item === button));
       filterSources();
     });
+  document.getElementById("source-reset")?.addEventListener("click", () => {
+    sourceSearch.value = "";
+    sourceSearch.focus();
+    document.querySelector('[data-source-filter="all"]').click();
+  });
 }
 
 // Motion is progressive enhancement; all content stays visible if unsupported.
