@@ -2200,8 +2200,6 @@ body {
 .nav-group { display: contents; }
 .nav-group-label,
 .nav nav .menu-install { display: none; }
-.hero-description { max-width: 54ch; }
-.hero-requirements { margin: 16px 0 0; font-size: 14px; color: var(--muted); }
 .install-body .install-ai-link { margin: 12px 0 0; }
 .install-ai-link .text-link { display: inline; white-space: normal; }
 .install-ai-link .link-end { white-space: nowrap; }
@@ -2263,9 +2261,6 @@ body {
   .nav nav.open { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: calc(100dvh - 74px); }
   .nav .theme-toggle,
   .nav .menu-toggle { width: 44px; height: 44px; }
-  .hero h1 { font-size: clamp(36px, 7vw, 46px); }
-  .hero-description { margin-block: 14px 20px; }
-  .hero .eyebrow { margin-bottom: 12px; }
   .product-proof-grid { grid-template-columns: minmax(0, 1fr); }
   .footer-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .scroll-hint { display: block; }
