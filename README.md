@@ -241,6 +241,10 @@ npm run smoke:preview
 
 [Preview installation and verification](docs/preview-quickstart.md) · [Contributing](CONTRIBUTING.md) · [Release checklist](docs/release-checklist.md)
 
+Pull requests receive advisory automated review through CodeRabbit. See the
+[review guide](docs/coderabbit-review.md) for configuration and review commands;
+required CI checks and maintainer review still govern merging.
+
 ## Website and automatic updates
 
 [rebound-ops.org](https://rebound-ops.org) hosts the static marketing site, not your career records or the local application API.
