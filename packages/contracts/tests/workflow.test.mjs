@@ -37,6 +37,20 @@ test('every route is bounded by declared time budget', () => {
   }
 });
 
+test('plans retain concrete first deliverables, target context and short-week task meaning', () => {
+  const words = { return: /résumé bullet/, shift: /requirement.*achievement/, bridge: /three-line outline/ };
+  for (const route of ['return', 'shift', 'bridge']) {
+    const s = selectRoute(createSession(input, uuid, now), route);
+    assert.match(s.plan.actions[0].title, words[route]);
+    assert(s.plan.actions[0].title.includes(s.routes.find(item => item.id === route).target));
+    assert.equal(s.plan.plannedMinutes, buildPlan(route, input.weeklyHours).plannedMinutes);
+    assert(s.plan.actions.every(action => action.title.length <= 500));
+  }
+  const short = selectRoute(createSession({ ...input, weeklyHours: 1 }, uuid, now), 'shift');
+  assert(short.plan.actions[1].title.includes('Record the test result'));
+  assert(short.plan.plannedMinutes <= 60);
+});
+
 test('intake edits preserve plan progress, check-ins, citations and unrelated reviews', () => {
   const documentId = '9c368ce5-75bf-4ae5-9fc5-26fbe56452b8';
   const targetId = '2c102a2b-2dce-4e14-b4ac-bce70dbdbd60';

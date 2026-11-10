@@ -362,7 +362,17 @@ window.ScanResults = (function () {
     }
 
     if (!allRows.length) {
-      ctx.resultsEl.appendChild(c('div', { className: 'empty' }, t('scan.noResults')));
+      const scanned = Boolean(enWhen || ruWhen);
+      ctx.resultsEl.appendChild(c('div', { className: 'empty', role: 'status' }, [
+        c('strong', {}, scanned ? 'No matches in the saved scan for this source scope' : 'No saved search results yet'),
+        c('p', {}, scanned
+          ? 'Check the scan summary for completed, partial or failed sources. Try a broader role term, review location limits, or add another employer board. This does not mean there are no opportunities in the wider market.'
+          : 'Add an employer board and review the query and location before scanning. If an attempt failed, check its error above; a failed source is not an empty job market.'),
+        c('div', { className: 'flex gap-3' }, [
+          ctx.reviewScan ? c('button', { type: 'button', className: 'btn btn-primary', onClick: ctx.reviewScan }, 'Review query and locations') : null,
+          c('a', { href: '#/portals', className: 'btn btn-ghost' }, 'Add or review employer boards')
+        ])
+      ]));
       return;
     }
 

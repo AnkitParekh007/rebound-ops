@@ -49,6 +49,10 @@ This is a **pre-release checklist**, not a declaration that ReboundOps is produc
 - [ ] Appoint a human issue-response owner and confirm a triage cadence before publication
 - [ ] Obtain explicit consent for testimonials and case studies
 
+## Current validation decision
+
+See [launch decision and evidence tracker](launch-validation-status.md): broad beta is on hold; recruitment, real journeys, seven-day follow-ups and manual assistive-technology acceptance remain pending. Automated results must not be counted as participant evidence. Hosted production requires a separate architecture scope.
+
 ## Suggested launch stages
 
 1. **Private pilot:** invite interested software professionals without expecting public testimonials.

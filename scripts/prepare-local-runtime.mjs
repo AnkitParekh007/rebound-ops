@@ -4,13 +4,12 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { npmCommand } from './npm-command.mjs';
 
 function command(program, args, cwd, quiet = false) {
-  const npmPath = program === 'npm' && process.env.npm_execpath;
-  const windowsNpm = program === 'npm' && process.platform === 'win32' && !npmPath;
-  const result = spawnSync(npmPath ? process.execPath : windowsNpm ? 'npm.cmd' : program,
-    npmPath ? [npmPath, ...args] : args,
-    { cwd, stdio: quiet ? 'pipe' : 'inherit', timeout: 300_000, shell: windowsNpm });
+  const npm = program === 'npm' ? npmCommand() : null;
+  const result = spawnSync(npm ? npm.program : program, npm ? [...npm.prefix, ...args] : args,
+    { cwd, ...(npm ? { env: npm.env } : {}), stdio: quiet ? 'pipe' : 'inherit', timeout: 300_000 });
   return result.status === 0 && !result.error;
 }
 

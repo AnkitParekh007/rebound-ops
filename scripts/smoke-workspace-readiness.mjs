@@ -9,15 +9,15 @@ export async function smokeWorkspaceReadiness(page, origin, name = 'Fictional st
   await page.getByLabel('Known ATS board URL',{exact:true}).fill('https://job-boards.greenhouse.io/fictional-readiness-board');
   await page.getByRole('button',{name:'Add known board URL',exact:true}).click();
   await page.getByText('Source added. Run a scan or health check to verify availability.',{exact:true}).waitFor();
-  let result='failed';let requested;
+  let result='failed';let requested;let empty=false;
   const jobs=[
     {title:'Backend Engineer',company:'Fictional Board',location:'India',source:'greenhouse',url:'https://example.org/jobs/remote',workplaceType:'Remote',isRemote:true,workplaceEvidence:'Employer description: All of our roles are remote'},
     {title:'Platform Engineer',company:'Fictional Board',location:'India',source:'greenhouse',url:'https://example.org/jobs/unknown',workplaceType:'Unknown',isRemote:false,workplaceEvidence:'Work model not specified by the source.'}
   ];
-  await page.route('**/api/scan-results**',route=>route.fulfill({json:{en:{when:new Date().toISOString(),fresh:jobs,filtered:jobs,errors:[]},ru:null}}));
+  await page.route('**/api/scan-results**',route=>route.fulfill({json:{en:{when:new Date().toISOString(),fresh:empty?[]:jobs,filtered:empty?[]:jobs,errors:[]},ru:null}}));
   await page.route('**/api/stream/scan?**',route=>{
     requested=new URL(route.request().url());
-    const data={status:result,code:result==='failed'?1:0,errors:result==='success'?0:1,retainedPrevious:result==='failed',counts:{raw:result==='failed'?0:48,matching:2,fresh:result==='failed'?0:2},final:true};
+    const data={status:result,code:result==='failed'?1:0,errors:result==='success'?0:1,retainedPrevious:result==='failed',counts:{raw:result==='failed'?0:48,matching:empty?0:2,fresh:result==='failed'||empty?0:2},final:true};
     return route.fulfill({contentType:'text/event-stream',body:'event: start\ndata: {"script":"en-scanner"}\n\nevent: done\ndata: '+JSON.stringify(data)+'\n\n'});
   });
   await goto('scan?q=Platform%20Engineer');
@@ -35,6 +35,12 @@ export async function smokeWorkspaceReadiness(page, origin, name = 'Fictional st
   await page.getByRole('button',{name:/Work type/}).click();await page.locator('#scan-filter-remote').selectOption('onsite');await page.keyboard.press('Escape');
   await page.getByText('No matches',{exact:true}).waitFor();
   await page.getByRole('button',{name:'Show this scan’s results',exact:true}).click();await page.getByRole('link',{name:'Backend Engineer',exact:true}).waitFor();
+  empty=true;await scan();await page.getByText(/Scan complete · 48 fetched · 0 matched/).first().waitFor();
+  await page.getByText('No matches in the saved scan for this source scope',{exact:true}).waitFor();
+  assert.equal(await page.getByText(/This does not mean there are no opportunities/).count(),1);
+  await page.getByRole('button',{name:'Review query and locations',exact:true}).click();
+  await page.getByRole('heading',{name:'Review scan inputs',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Close dialog',exact:true}).click();
   await page.unroute('**/api/stream/scan?**');await page.unroute('**/api/scan-results**');
   await goto('config?tab=profile');await page.locator('#pf-candidate-full_name').fill(name);
   const profile=page.waitForResponse(r=>r.url().endsWith('/api/profile')&&r.request().method()==='PUT');await page.getByRole('button',{name:'💾 Save',exact:true}).click();assert.equal((await profile).status(),200);
@@ -46,7 +52,7 @@ export async function smokeWorkspaceReadiness(page, origin, name = 'Fictional st
   assert.equal(await page.getByRole('button',{name:'Copy masked CV',exact:true}).isEnabled(),true);
   assert(!((await page.getByLabel('Generated result — read only',{exact:true}).inputValue()).includes(name)));
   await goto('evaluate');await page.locator('#eval-jd').fill('Fictional platform engineering opening requiring Node.js, deployment pipelines and Terraform. No real employer or application.');
-  await page.locator('#content button.btn-primary').first().click();await page.locator('#eval-out pre').waitFor();
+  await page.locator('#content button.btn-primary').first().click();await page.getByRole('textbox',{name:'Prompt to review before sharing',exact:true}).waitFor();
   await page.getByText('Bring a web-chat answer back',{exact:true}).click();
   await page.getByRole('textbox',{name:'Review name',exact:true}).fill('Fictional reviewed vacancy');
   await page.getByRole('textbox',{name:'Reviewed web-chat answer',exact:true}).fill('A fictional manually reviewed answer. Terraform production ownership remains unproven.');
@@ -63,5 +69,5 @@ export async function smokeWorkspaceReadiness(page, origin, name = 'Fictional st
   const cv=page.getByRole('checkbox',{name:/^cv\.md — replace existing file$/});assert.equal(await cv.isChecked(),false);await cv.check();
   await page.getByRole('button',{name:'Restore selected records',exact:true}).click();
   await page.getByText(/Memory only: recovery work ends/).first().waitFor();
-  console.log('PASS: scan failures/partial/success, query alignment, source setup, guarded masking, reviewed answers, experiments and combined backup restore.');
+  console.log('PASS: scan failures/partial/success/zero matches, query alignment, source setup, guarded masking, reviewed answers, experiments and combined backup restore.');
 }

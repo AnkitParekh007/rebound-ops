@@ -152,6 +152,8 @@ jobs:
           node-version: '24'
       - name: Clean locked workspace install
         run: npm ci --no-audit --no-fund
+      - name: Check cross-platform integrated launcher prerequisites
+        run: npm run doctor
       - name: Unit and API tests
         run: npm test
       - name: Production Angular build
@@ -178,6 +180,8 @@ jobs:
           node-version: '22'
       - name: Clean locked workspace install
         run: npm ci --no-audit --no-fund
+      - name: Check cross-platform integrated launcher prerequisites
+        run: npm run doctor
       - name: Unit and API tests
         run: npm test
       - name: Production Angular build

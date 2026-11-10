@@ -22,7 +22,8 @@ export class PlanComponent implements OnInit {
   });
 
   suggestExperiment(text: string): void {
-    this.experiment.controls.title.setValue(`Test “${text.slice(0,200)}” with one small sandbox example. Record the result and what remains unproven; do not present this as production experience.`);
+    const minutes = this.session().plan?.actions.find(action => action.id === this.experiment.controls.actionId.value)?.minutes;
+    this.experiment.controls.title.setValue(`Within ${minutes ?? 'the allocated'} minutes, test “${text.slice(0,150)}”: choose one small, permission-safe example, record the steps and observable result, then list what remains unproven. Stop at the time limit; do not claim production experience.`);
   }
 
   async saveExperiment(): Promise<void> {

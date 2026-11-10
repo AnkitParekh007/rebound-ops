@@ -37,6 +37,10 @@ git clone https://github.com/AnkitParekh007/rebound-ops.git
 cd rebound-ops
 ```
 
+Prefer not to clone? [Download the source ZIP](https://github.com/AnkitParekh007/rebound-ops/archive/refs/heads/main.zip), extract it and run `npm start` inside `rebound-ops-main`.
+
+Launch scope: **Linux/macOS local developer preview**. Native Windows remains **experimental pending manual acceptance**; its fresh-start, stop and restart CI check is a required release gate. Hosted multi-user production and broad beta are not this release.
+
 This monorepo already contains the recovery app, job-search workspace and engine. No second repository or remote installer is needed.
 
 ### 2. Start the integrated recovery and job-search workspace
@@ -45,7 +49,7 @@ This monorepo already contains the recovery app, job-search workspace and engine
 npm start
 ```
 
-Open **http://127.0.0.1:4317/#/start**.
+Open **http://127.0.0.1:4317/#/guide**. The task guide connects your next action, evidence, CV, sources, applications and backups.
 
 Run `npm run doctor` to check Node, npm, lockfiles and local ports before installing dependencies.
 
@@ -258,3 +262,7 @@ Engineering checks and fictional demonstrations are not participant validation o
 ## License
 
 MIT. See the [root license](LICENSE), [workspace license](workspace/LICENSE), [engine license](engine/LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Launch validation
+
+The [release decision and evidence tracker](docs/launch-validation-status.md) separates engineering checks from participant evidence. The [facilitator protocol](docs/participant-validation-session.md) is ready, but recruitment and seven-day follow-ups are pending. Automated tests and testimonials do not replace scored participant journeys or manual assistive-technology acceptance.

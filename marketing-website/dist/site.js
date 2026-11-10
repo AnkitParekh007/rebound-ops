@@ -195,7 +195,7 @@ document.addEventListener("keydown", (event) => {
 });
 const commands = {
   clone: "git clone https://github.com/AnkitParekh007/rebound-ops.git",
-  start: "cd rebound-ops\nscripts/start-demo.sh",
+  start: "cd rebound-ops\nnpm start",
 };
 for (const button of document.querySelectorAll("[data-copy]"))
   button.addEventListener("click", async () => {

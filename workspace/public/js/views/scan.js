@@ -519,6 +519,7 @@ Router.register('scan', async () => {
   // late-bound `view` services (filter API / quick view / URL sync); the
   // on* callbacks delegate so creation order never matters.
   const SR = window.ScanResults.create({
+    reviewScan: () => scanBtn.click(),
     resultsEl, t,
     filterScope, filterText, filterExclude, filterRemote, filterSource,
     filterCountry, filterSeniority, filterAge, favOnly, filterSalaryMin, filterSalaryMax,

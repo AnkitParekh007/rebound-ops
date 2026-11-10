@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+import { npmCommand } from './npm-command.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const workspace = join(root, 'workspace');
@@ -63,7 +64,7 @@ let signalCode;
 
 function startChild(program, args, cwd, env, group = false) {
   const detached = group && process.platform !== 'win32';
-  const child = spawn(program, args, { cwd, env, stdio: 'inherit', detached, shell: program === 'npm.cmd' });
+  const child = spawn(program, args, { cwd, env, stdio: 'inherit', detached });
   const entry = { child, detached };
   const done = new Promise(resolveExit => {
     child.once('error', error => resolveExit({ error }));
@@ -75,7 +76,15 @@ function startChild(program, args, cwd, env, group = false) {
 }
 
 function stopChild({ child, detached }, signal) {
-  if (!child.pid) return;
+  if (!child.pid || child.exitCode !== null || child.signalCode !== null) return;
+  if (process.platform === 'win32') {
+    // Kill only this owned child's tree. Killing npm alone can leave an
+    // installer/compiler holding files open and prevent stop/restart.
+    const taskkill = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe');
+    const result = spawnSync(taskkill, ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', timeout: 3000 });
+    if (result.error || result.status !== 0) child.kill(signal);
+    return;
+  }
   if (!detached) { child.kill(signal); return; }
   try { process.kill(-child.pid, signal); }
   catch (error) { if (error.code !== 'ESRCH') throw error; }
@@ -125,10 +134,9 @@ async function main() {
   if (!(major >= 26 || (major === 24 && minor >= 15) || (major === 22 && (minor > 22 || (minor === 22 && patch >= 3))))) {
     throw new Error('Install Node.js 24.15+ (24.x), 22.22.3+ (22.x), or 26+.');
   }
-  const npmPath = clean.npm_execpath;
-  const npm = npmPath ? process.execPath : process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  const npmArgs = npmPath ? [npmPath] : [];
-  if (spawnSync(npm, [...npmArgs, '--version'], { env: clean, stdio: 'ignore', shell: !npmPath && process.platform === 'win32' }).status !== 0) {
+  const invocation = npmCommand(clean);
+  const npm = invocation.program, npmArgs = invocation.prefix;
+  if (spawnSync(npm, [...npmArgs, '--version'], { env: invocation.env, stdio: 'ignore' }).status !== 0) {
     throw new Error('npm is unavailable. Install a supported Node.js distribution with npm, then retry.');
   }
 
@@ -145,7 +153,7 @@ async function main() {
   if (doctor) return;
 
   const env = {
-    ...clean, REBOUND_OPS_ROOT: engine, REBOUNDOPS_API_PORT: String(apiPort),
+    ...invocation.env, REBOUND_OPS_ROOT: engine, REBOUNDOPS_API_PORT: String(apiPort),
     REBOUNDOPS_DATA_DIR: clean.REBOUNDOPS_DATA_DIR || join(clean.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'reboundops', 'sessions')
   };
   await runStep('Runtime setup', process.execPath, ['scripts/prepare-local-runtime.mjs'], env);
@@ -157,7 +165,7 @@ async function main() {
   const ui = startChild(process.execPath, ['server/index.mjs'], workspace, { ...env, HOST: host, PORT: String(uiPort) });
   const address = `http://${host}:${uiPort}`;
   await waitForService(ui, address + '/api/rebound/health', 'Workspace');
-  console.log(`ReboundOps is running — open ${address}/#/start. Press Ctrl+C to stop.`);
+  console.log(`ReboundOps is running — open ${address}/#/guide. Press Ctrl+C to stop.`);
   const service = await Promise.race([apiService.done.then(() => 'Recovery API'), ui.done.then(() => 'Workspace')]);
   if (!stopping.signal.aborted) throw new Error(service + ' stopped unexpectedly.');
 }

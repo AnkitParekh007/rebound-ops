@@ -1,4 +1,4 @@
-/* global Router, API, UI, I18n, HelpHint */
+/* global Router, API, UI, I18n, HelpHint, Journey */
 // v1.268.1 review — navigating away mid-evaluation used to leave the SSE
 // drain (and the server-side provider spend — FULL-M5 threads the client
 // disconnect into the provider call) running against a detached view. The
@@ -25,16 +25,20 @@ Router.register('evaluate', async () => {
     placeholder: t('eval.placeholder'),
   });
   const saveJd = c('input', { type: 'checkbox', id: 'save-jd' });
+  let running = false;
   // WS2 #19 — the long LLM call was silent for screen readers; make
   // the result container a polite status region so "Evaluating…", the
   // verdict, and errors are all announced.
-  const out = c('div', { id: 'eval-out', role: 'status', 'aria-live': 'polite' });
+  // Do not announce the entire private prompt/form as a live status message.
+  const out = c('div', { id: 'eval-out', role: 'region', 'aria-label': 'Job review result' });
+  const resultStatus = c('p', { role: 'status', 'aria-live': 'polite' });
 
   if (prefillUrl) {
     jdInput.value = `URL: ${prefillUrl}\n\n[paste JD text here]`;
   }
 
-  async function run() {
+  async function run(mode) {
+    if (running) { UI.toast('A review is already running. Wait for it to finish before starting another.', 'warn'); return; }
     const jd = jdInput.value.trim();
     // UX-D-F (v1.58.43) — empty submit used to fall through the
     // `<50` check with no specific message; the user got the "JD too
@@ -64,7 +68,10 @@ Router.register('evaluate', async () => {
     // of any static minute-range copy.
     // CAR-244.1 — the p50/p90 come from the view-mount fetch (`latency`
     // above); no second /api/usage call per run.
+    running = true;
     out.innerHTML = `<div class="loading">${t('eval.evaluating')}</div>`;
+    out.setAttribute('aria-busy', 'true');
+    resultStatus.textContent = mode === 'manual' ? 'Preparing a local prompt. No provider call.' : 'Preparing the review.';
     let etaLine = null;
     if (latency) {
       etaLine = c('div', { className: 'field-hint', role: 'status' },
@@ -96,7 +103,7 @@ Router.register('evaluate', async () => {
       const r = await new Promise(async (resolve, reject) => {
         let settled = false;
         try {
-          await API.postStream('/api/evaluate', { jd, save: saveJd.checked }, (ev, data) => {
+          await API.postStream('/api/evaluate', { jd, save: saveJd.checked, ...(mode === 'manual' ? { mode } : {}) }, (ev, data) => {
             if (settled) return;
             if (ev === 'done') { settled = true; resolve(data); }
             else if (ev === 'stage') setStage(data.name, data.detail);
@@ -119,22 +126,54 @@ Router.register('evaluate', async () => {
         throw new Error(t('err.evaluate.failed', 'Evaluation failed — check a provider key on #/config, or run again.'));
       }
       renderResult(r);
+      resultStatus.textContent = r.mode === 'manual' ? 'Editable prompt ready. Review the sources and sharing controls below.' : 'Review ready. Inspect the result before using it.';
     } catch (e) {
       out.innerHTML = '';
       // CAR-137 — the bare 'failed' fallback became a specific, actionable message.
       out.appendChild(c('div', { className: 'empty' }, t('common.error') + ': ' + ((e && e.message) || t('err.evaluate.failed', 'Evaluation failed — check a provider key on #/config, or run again.'))));
+      resultStatus.textContent = 'Review did not complete. Read the error and retry.';
     } finally {
+      running = false;
       // The run settled: disarm the slot unless a newer run re-armed it.
       if (abortRun === stop) abortRun = null;
+      out.setAttribute('aria-busy', 'false');
     }
   }
 
   function renderResult(r) {
     out.innerHTML = '';
     if (r.mode === 'manual') {
+      const draft = c('textarea', { className: 'textarea', rows: 16, 'aria-label': 'Prompt to review before sharing', 'aria-describedby': 'sharing-hint', spellcheck: false });
+      draft.value = r.prompt;
+      const approved = c('input', { type: 'checkbox' });
+      const copy = c('button', { type: 'button', className: 'btn btn-primary', disabled: true, onClick: async () => {
+        if (!approved.checked || !draft.value.trim()) return;
+        try { await navigator.clipboard.writeText(draft.value); UI.toast(t('eval.copied'), 'success'); }
+        catch { UI.toast(t('auto.copyFail', 'Copy failed — select the text and copy manually.'), 'error'); }
+      } }, t('eval.copy'));
+      const refreshApproval = () => { copy.disabled = !approved.checked || !draft.value.trim(); };
+      approved.addEventListener('change', refreshApproval);
+      draft.addEventListener('input', () => { const wasApproved = approved.checked; approved.checked = false; refreshApproval(); if (wasApproved) resultStatus.textContent = 'Sharing approval cleared after editing. Review the current draft before copying.'; });
+      const download = c('button', { type: 'button', className: 'btn btn-ghost', onClick: () => {
+        const url = URL.createObjectURL(new Blob([draft.value], { type: 'text/plain' }));
+        const a = c('a', { href: url, download: 'reboundops-reviewed-prompt.txt' }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } }, 'Download prompt privately');
       const answer = c('textarea', { className: 'textarea', rows: 10, maxLength: 500000, 'aria-label': 'Reviewed web-chat answer' });
+      const importStatus = c('p', { role: 'status' });
+      const importAnswer = c('input', { type: 'file', accept: '.txt,.md,text/plain,text/markdown', 'aria-label': 'Import an answer from a text file' });
+      importAnswer.addEventListener('change', async () => {
+        const file = importAnswer.files?.[0]; if (!file) return;
+        if (file.size > 500000) { importStatus.textContent = 'Choose a UTF-8 text or Markdown answer smaller than 500 KB.'; return; }
+        let value;
+        try { value = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer()); }
+        catch { importStatus.textContent = 'Could not read this answer as UTF-8 text. Export a plain text or Markdown file and retry.'; return; }
+        if (value.length > 500000 || value.includes('\u0000')) { importStatus.textContent = 'Choose a plain UTF-8 text or Markdown answer.'; return; }
+        if (answer.value.trim() && !await Journey.confirm({ title: 'Replace the answer draft?', body: ['This replaces the unsaved answer in this form only.'], confirmLabel: 'Replace draft', cancelLabel: 'Cancel' })) return;
+        answer.value = value; consent.checked = false; importStatus.textContent = 'Imported into this form only. Review the answer and confirm before saving.';
+      });
       const title = c('input', { className: 'input', maxLength: 100, 'aria-label': 'Review name', placeholder: 'Company and role, for example Northstar Platform Engineer' });
       const consent = c('input', { type: 'checkbox' });
+      answer.addEventListener('input', () => { consent.checked = false; });
       const message = c('p', { role: 'status' });
       const save = c('button', { type: 'button', className: 'btn btn-primary', onClick: async () => {
         if (!consent.checked || !answer.value.trim() || !title.value.trim()) { message.textContent='Name the review, paste the answer and confirm you reviewed it.';return; }
@@ -145,25 +184,21 @@ Router.register('evaluate', async () => {
           message.replaceChildren(c('a',{href:'#/reports/'+slug},'Open saved review'),c('span',{},' · '),c('a',{href:'#/tracker'},'Track an application'));
         } catch(error) { message.textContent=error.message || 'Could not save review.'; } finally { save.disabled=false; }
       } }, 'Save reviewed answer locally');
-      out.append(c('details', {}, [c('summary',{},'Bring a web-chat answer back'),c('p',{},'Review the answer against your actual experience. Saving creates a local report; it does not update your CV, evidence, fit score or tracker.'),c('label',{},['Review name',title]),c('label',{},['Reviewed web-chat answer',answer]),c('label',{},[consent,' I reviewed this answer and want to keep it locally']),save,message]));
+      out.append(c('details', {}, [c('summary',{},'Bring a web-chat answer back'),c('p',{},'Review the answer against your actual experience. Saving creates a local report; it does not update your CV, evidence, fit score or tracker.'),c('label',{},['Review name',title]),c('label',{},['Import an answer from a text file',importAnswer]),importStatus,c('label',{},['Reviewed web-chat answer',answer]),c('label',{},[consent,' I reviewed this answer and want to keep it locally']),save,message]));
       out.appendChild(c('div', { className: 'card' }, [
         c('div', { className: 'badge badge-warn mb-3' }, t('eval.manualMode')),
         c('p', null, r.message),
         c('p', { className: 'field-hint' }, t('eval.copyHint')),
-        c('pre', { className: 'console' }, r.prompt),
+        c('p', { id: 'sharing-hint' }, 'Nothing is sent to a chat provider by preparing this prompt. Remove names, contact details, employer secrets or entire source sections here before sharing. Keep the remaining evidence truthful. Editing clears your sharing approval.'),
+        c('label', {}, ['Review and edit the prompt', draft]),
+        c('label', {}, [approved, ' I reviewed this edited prompt and choose to share it with my external chat provider']),
         c('div', { className: 'flex gap-3 mt-3' }, [
-          c('button', { className: 'btn btn-primary', onClick: async () => {
-            // FULL-M6 (deep.js CAR-20 pattern) — writeText is async and can
-            // reject (permission denied, non-secure context); the
-            // fire-and-forget call still toasted "Copied" on failure.
-            try { await navigator.clipboard.writeText(r.prompt); UI.toast(t('eval.copied'), 'success'); }
-            catch { UI.toast(t('auto.copyFail', 'Copy failed — select the text and copy manually.'), 'error'); }
-          }}, t('eval.copy')),
+          copy, download,
           c('button', {
             className: 'btn btn-ghost',
             onClick: (e) => window.PdfGenerate.run({
               kind: 'inline',
-              markdown: r.prompt,
+              markdown: draft.value,
               title: 'JD evaluation prompt',
               slug: 'evaluate',
               button: e.currentTarget,
@@ -273,14 +308,15 @@ Router.register('evaluate', async () => {
         saveJd, c('span', null, t('eval.saveJd')),
       ]),
       c('div', { className: 'flex gap-3 mt-3' }, [
+        c('button', { type: 'button', className: 'btn btn-ghost', onClick: (e) => UI.withSpinner(e.currentTarget, () => run('manual')) }, 'Prepare an editable prompt — no provider call'),
         // WS2 #20 — spinner-wrap so the button disables + shows a busy
         // state during the long LLM call (was plain `onClick: run`,
         // allowing duplicate submissions).
         c('button', { className: 'btn btn-primary', onClick: (e) => UI.withSpinner(e.currentTarget, run) }, t('eval.btnEval')),
-        c('button', { className: 'btn btn-ghost', onClick: () => { jdInput.value = ''; out.innerHTML = ''; } }, t('eval.btnClear')),
+        c('button', { className: 'btn btn-ghost', onClick: () => { jdInput.value = ''; out.innerHTML = ''; resultStatus.textContent = ''; } }, t('eval.btnClear')),
       ]),
     ]),
 
-    c('div', { className: 'mt-5' }, out),
+    resultStatus, c('div', { className: 'mt-5' }, out),
   ]);
 });

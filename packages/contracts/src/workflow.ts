@@ -312,7 +312,38 @@ export function validateRestoredSession(session: Session): Session {
 }
 
 export function selectRoute(session: Session, routeId: RouteId): Session {
-  return { ...session, plan: buildPlan(routeId, session.intake.weeklyHours), reviewNotes: '' };
+  const plan = buildPlan(routeId, session.intake.weeklyHours);
+  const target = session.routes.find(route => route.id === routeId)?.target || session.intake.role;
+  const firstClaim = session.intake.evidence.find(item => item.status === 'confirmed')?.claim;
+  // Explicit tasks and deliverables, grounded in supplied text. No AI or claim
+  // of suitability; preserve task IDs, allocated minutes and existing schema.
+  const titles: Record<RouteId, string[]> = {
+    return: [
+      `Write one résumé bullet for ${target}${firstClaim ? ` from “${firstClaim.slice(0, 100)}”` : ' using a supplied achievement'}. Attach its source and mark unsupported details as unknown.`,
+      `Compare two current ${target} descriptions. Save their links and list one requirement with evidence and one still unknown.`,
+      `Draft one ${target} application paragraph using only reviewed achievements; highlight anything needing confirmation.`,
+      `Choose one ${target} opportunity. Check location and work model, then decide whether to apply; record the actual decision in Applications.`,
+      'Record what changed, one unanswered question and the next action. A saved draft is not a submitted application.'
+    ],
+    shift: [
+      `Compare one ${target} requirement with one supplied achievement. Write down one supported detail and one evidence gap; keep the source links.`,
+      `Read two ${target} descriptions. Save their links, then mark one supported requirement and one evidence gap.`,
+      `For one ${target} evidence gap, outline a small test: one task, one observable result and a stopping point within this step’s minutes.`,
+      `Draft a question for a ${target} practitioner about your example. Remove confidential details before deciding whether to share it.`,
+      'Record the test result and remaining uncertainty. Decide whether to keep, adjust or pause this direction; a sandbox does not prove production experience.'
+    ],
+    bridge: [
+      `Write a three-line outline for one ${target} deliverable: the output, its acceptance check and what is excluded. Use only work you can demonstrate.`,
+      `Draft one ${target} offer: deliverable, acceptance check, time limit and exclusions. Treat demand and income as unknown.`,
+      'Prepare one permission-safe example. Remove employer secrets and say exactly what you personally did.',
+      `Review one ${target} opportunity or draft a feedback request. Record actual interest separately from assumed demand.`,
+      'Record what you learned about scope, timing and interest. Decide what to test next without assuming paid work will follow.'
+    ]
+  };
+  // A low budget skips tasks. Map by original title instead of array position
+  // so a short week retains the meaning of the task that actually fits.
+  plan.actions = plan.actions.map(action => ({ ...action, title: (titles[routeId][TASKS[routeId].findIndex(([title]) => title === action.title)] || action.title).slice(0, 500) }));
+  return { ...session, plan, reviewNotes: '' };
 }
 
 export function completeAction(session: Session, actionId: string, completed: boolean): Session {

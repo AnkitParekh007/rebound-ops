@@ -14,7 +14,7 @@
  */
 window.Journey = (function () {
   const RS = window.ReboundState;
-  const JOURNEY_ROUTES = ['start', 'recovery', 'directions', 'opportunities', 'evidence', 'dashboard'];
+  const JOURNEY_ROUTES = ['start', 'recovery', 'directions', 'opportunities', 'evidence', 'dashboard', 'guide'];
   const NS = 'http://www.w3.org/2000/svg';
 
   function h(tag, props, children) {
@@ -118,6 +118,7 @@ window.Journey = (function () {
           h('span', { className: 'rj-brand__word' }, ['Rebound', h('span', { text: 'Ops' })]),
         ]),
         h('div', { className: 'rj-header__tools' }, [
+          h('a', { className: 'rj-chip', href: '#/guide', text: 'Workspace guide' }),
           h('button', { type: 'button', className: 'rj-chip', onclick: () => document.getElementById('theme-toggle')?.click() }, [icon('theme', 16), 'Theme']),
           h('a', { className: 'rj-chip', href: '#/dashboard' }, [icon('tools', 16), 'Job-search tools']),
         ]),
