@@ -175,6 +175,7 @@ for (const button of viewButtons) {
 }
 menu.listeners.click();
 assert.equal(menu.attrs["aria-expanded"], "true");
+assert.equal(elements.get("menu-install").focused, true);
 menu.listeners.click();
 assert.equal(menu.attrs["aria-expanded"], "false");
 await copyButtons[0].listeners.click();
