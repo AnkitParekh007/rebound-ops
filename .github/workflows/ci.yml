@@ -35,6 +35,15 @@ jobs:
         run: npm test
       - name: Compile Angular production application
         run: npm run build:web
+      - name: Use the official Ubuntu archive for browser dependencies
+        # The runner's Azure mirror stalled for minutes per media package.
+        # Keep Ubuntu signatures/trust; change only the mirror transport.
+        run: |
+          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+            if [ -f "$source" ]; then
+              sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
+            fi
+          done
       - name: Install browser system dependencies
         # Do not wrap apt in the browser-download retry timeout: killing the
         # unprivileged wrapper can leave sudo apt holding dpkg's lock.
