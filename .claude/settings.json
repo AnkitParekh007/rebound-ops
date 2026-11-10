@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v graphify >/dev/null 2>&1 && graphify hook-guard search || true",
+            "command": "if command -v graphify >/dev/null 2>&1; then graphify hook-guard search; fi",
             "timeout": 10
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v graphify >/dev/null 2>&1 && graphify hook-guard read || true",
+            "command": "if command -v graphify >/dev/null 2>&1; then graphify hook-guard read; fi",
             "timeout": 10
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v graphify >/dev/null 2>&1 && graphify hook-guard compact || true",
+            "command": "if command -v graphify >/dev/null 2>&1; then graphify hook-guard compact; fi",
             "timeout": 10
           }
         ]
