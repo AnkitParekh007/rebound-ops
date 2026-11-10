@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+tone_instructions: >-
+  Be concise and specific. Cite the affected file and line, explain the user
+  impact, and prioritize reproducible bugs, security and data loss over style.
+  Distinguish evidence from uncertainty; do not claim a test or user study ran.
+
+reviews:
+  profile: chill
+  high_level_summary: true
+  poem: false
+  collapse_walkthrough: true
+  auto_apply_labels: false
+  auto_assign_reviewers: false
+  auto_approvals:
+    enabled: false
+    allow_author_approval: false
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    base_branches:
+      - "^main$"
+  # Review source, not regenerated output or binary marketing assets.
+  # Dependency manifests and lockfiles remain eligible for review.
+  path_filters:
+    - "!**/node_modules/**"
+    - "!dist/**"
+    - "!marketing-website/dist/**"
+    - "!**/.generated/**"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.jpeg"
+    - "!**/*.webp"
+    - "!**/*.pdf"
+    - "!**/*.mp4"
+  path_instructions:
+    - path: "apps/api/**"
+      instructions: >-
+        Prioritize loopback Host/Origin protection, explicit AI opt-in and
+        payload consent, secret handling, bounded requests, revision conflicts
+        and atomic local saving. Do not suggest exposing this unauthenticated
+        single-user API as a hosted multi-tenant service.
+    - path: "packages/contracts/**"
+      instructions: >-
+        Preserve saved-session compatibility and time budgets. Ordinary intake
+        edits must retain unchanged evidence IDs, confirmations, citations,
+        requirement links, plan progress and check-ins. Changed or removed
+        evidence must invalidate its affected support links.
+    - path: "workspace/**"
+      instructions: >-
+        Check data-loss risks, safe file import/export, honest scan outcomes and
+        location/work-model evidence. Review asynchronous UI races, keyboard
+        focus, sharing approval resets and explicit confirmation before writes.
+        Provider keys must remain server-side and excluded from backups.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Check least-privilege permissions, pinned third-party actions and
+        untrusted PR input. Preserve actual platform, browser, accessibility,
+        screenshot provenance and release checks; do not turn failures into
+        successes or expose secrets to untrusted code.
+    - path: "marketing-website/src/**"
+      instructions: >-
+        Preserve the original hero and accessible light/dark presentation.
+        Check commands against the actual launcher and distinguish local
+        developer preview, experimental Windows, broad beta and hosted scope.
+        Do not invent participant evidence, AI quality or hiring outcomes.
+    - path: "docs/**"
+      instructions: >-
+        Flag broken instructions and unsupported readiness claims. Automated
+        tests are not participant journeys, assistive-technology acceptance,
+        live model evaluation or seven-day follow-ups. Keep assisted, failed
+        and not-run outcomes separate from unaided success.
+  # This integration reviews changes; maintainers decide and apply fixes.
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+    autofix:
+      enabled: false
+  post_merge_actions: []
+
+chat:
+  auto_reply: true
+  art: false
