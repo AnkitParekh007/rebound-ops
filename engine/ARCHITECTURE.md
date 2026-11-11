@@ -60,7 +60,7 @@ Every evaluated offer is registered. `data/applications.md` is the canonical tra
 Safely pulls new system files from upstream without touching user data. It backs up, fetches, re-execs the target updater (resolving its import closure so a new import can't break the upgrade), then checks out only `SYSTEM_PATHS` (`lib/update-manifest.mjs`, which the updater reads rather than imports so it stays self-loading). `BOOTSTRAP_PATHS` covers very old installs.
 
 ### Multi-CLI entry files
-`CLAUDE.md`, `OPENCODE.md` and `CODEX.md` are thin `@AGENTS.md` wrappers around the canonical `AGENTS.md`. `GEMINI.md` is a legacy no-op guard, so Antigravity does not load the project instructions twice. The `.agents/skills/` entrypoints follow the [open agent skill standard](https://agentskills.io) and route into the same modes.
+`CLAUDE.md`, `OPENCODE.md` and `CODEX.md` are thin `@AGENTS.md` wrappers around the canonical `AGENTS.md`. `GEMINI.md` is a legacy no-op guard, so Antigravity does not load the project instructions twice. `AGENTS.md` is loaded into every agent session, so it holds only the rules every task needs; task-specific reference (the Main Files table, the onboarding steps, the tracker-addition TSV format, headless/batch commands, JD captures and multi-market rules) lives in `docs/agents/*.md`, which `AGENTS.md` links with "MUST read before" triggers rather than `@` imports. `test-all.mjs` caps `AGENTS.md` at 52,000 characters. The `.agents/skills/` entrypoints follow the [open agent skill standard](https://agentskills.io) and route into the same modes.
 
 ### Dashboard (optional)
 A standalone Go TUI under `dashboard/` for browsing the pipeline. Isolated from the core — never required.

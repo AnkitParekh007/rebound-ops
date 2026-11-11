@@ -291,8 +291,9 @@ try {
     : fail('doctor --target warned about a .env override in the target checkout');
 
   // The onboarding steps act only on `missing`, so the warning changes nothing
-  // unless AGENTS.md tells the agent to read it before copying the example profile.
-  const agentsOnboarding = readFileSync(join(ROOT, 'AGENTS.md'), 'utf-8').split('#### Step 2: Profile')[1]?.split('#### Step 3')[0] ?? '';
+  // unless the onboarding steps (docs/agents/onboarding.md, linked from AGENTS.md)
+  // tell the agent to read it before copying the example profile.
+  const agentsOnboarding = readFileSync(join(ROOT, 'docs', 'agents', 'onboarding.md'), 'utf-8').split('#### Step 2: Profile')[1]?.split('#### Step 3')[0] ?? '';
   /warnings/.test(agentsOnboarding) && /REBOUND_OPS_PROFILE/.test(agentsOnboarding) && /export/.test(agentsOnboarding) && /restart/.test(agentsOnboarding) && /that starts the agent/.test(agentsOnboarding)
     ? pass('AGENTS.md onboarding Step 2 sends an agent to the doctor warning, and says an export needs a restarted session, before copying the example profile')
     : fail('AGENTS.md onboarding Step 2 does not mention the doctor --json warning for a .env-set REBOUND_OPS_PROFILE, or that a shell export needs a restarted agent session started from that shell');
