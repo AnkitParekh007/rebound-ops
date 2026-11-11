@@ -2,7 +2,8 @@
 
 <!-- Moved verbatim from AGENTS.md to keep the always-loaded context small. AGENTS.md links here with a "MUST read before" trigger. Same authority as AGENTS.md. -->
 
-Paths in this file are relative to the engine root (the directory that holds `AGENTS.md`), as they were in `AGENTS.md`.
+Paths keep their `AGENTS.md` meaning. System files (scripts, `modes/`, `templates/`, `docs/`, `batch/` scripts) are relative to the engine root, the directory that holds `AGENTS.md`. User-layer paths (`cv.md`, `config/`, `data/`, `reports/`, `jds/`, `output/`, `batch/tracker-additions/`, …) resolve under the data root, and the tracker under its own path, exactly as `AGENTS.md` → **Data Contract** defines them: `REBOUND_OPS_ROOT` / `REBOUND_OPS_DATA_DIR` or the `.rebound-ops-data` marker for the root, and `REBOUND_OPS_TRACKER` or `{DATA_ROOT}/data/applications.md` for the tracker, falling back to `{DATA_ROOT}/applications.md` when reading an existing one. In scripts use `path-resolver.mjs` (`getReboundOpsRoot()`, `resolveTrackerPath(root)`, `resolveTrackerPathForWrite(root)`).
+
 ## TSV Format for Tracker Additions
 
 
