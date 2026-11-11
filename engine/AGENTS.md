@@ -222,8 +222,10 @@ Two separate axes:
 
 **When NOT to switch market modes:** If the user applies to English-language roles, even at companies from those markets, use the default English market modes — *unless* the user has explicitly requested another market mode in this conversation, or `language.modes_dir` is set in `config/profile.yml` (the explicit user preference always wins over JD-language detection). This does not override `language.output`; prose still follows `language.output`.
 
-**Multiple simultaneous target markets (#3793).** `language.modes_dir` may also be a **list** of declared markets. **If it is a list, MUST read [docs/agents/language-modes.md](docs/agents/language-modes.md) (Multiple simultaneous target markets) before evaluating**: it defines the primary market and which `_shared.md` files load. A single-string `modes_dir` behaves as described above.
+**Multiple simultaneous target markets (#3793).** `language.modes_dir` may also be a **list** of declared markets. **If it is a list, MUST read [docs/agents/language-modes.md](docs/agents/language-modes.md) (Multiple simultaneous target markets) before evaluating**: it holds the full multi-market rules. A single-string `modes_dir` behaves as described above. These always apply to a list:
 
+- The FIRST entry is the **primary** market and supplies the evaluation-mode file (`oferta.md`/`angebot.md`/...) — one JD can only be evaluated against one set of A-F rules at a time.
+- EVERY declared market's `_shared.md` is loaded into context, not just the primary one.
 - When the market signal is genuinely ambiguous between two declared candidates, branch on whether anyone can answer: in an **interactive session**, ask the candidate and stop before writing or merging a report/tracker entry until they choose; in an **unattended run** (`<cli> -p`, `codex exec`, or a batch worker), continue with the first/primary market and state the ambiguity plus the primary-market fallback explicitly in the report header or Block G.
 
 ### Skill Modes
@@ -392,7 +394,11 @@ If they say yes: run `node hired-share.mjs --report N --anonymity <their choice>
 
 ### TSV Format for Tracker Additions
 
-One TSV file per evaluation at `{DATA_ROOT}/batch/tracker-additions/{num}-{company-slug}.tsv`, with a header row (`num\tdate\tcompany\trole\tstatus\tscore\tpdf\treport\tnotes\turl`), merged by `merge-tracker.mjs`. **MUST read [docs/agents/tracker-tsv.md](docs/agents/tracker-tsv.md) before** writing, editing or reviewing a tracker-addition TSV: it holds the header rules, score sentinels, `via`/`url` fields, link normalization, row order and same-title disambiguation that `merge-tracker.mjs` enforces.
+One TSV file per evaluation at `{DATA_ROOT}/batch/tracker-additions/{num}-{company-slug}.tsv`, with a header row (`num\tdate\tcompany\trole\tstatus\tscore\tpdf\treport\tnotes\turl`), merged by `merge-tracker.mjs`. **MUST read [docs/agents/tracker-tsv.md](docs/agents/tracker-tsv.md) before** writing, editing or reviewing a tracker-addition TSV: it holds the header rules, score sentinels, `via`/`url` fields, link normalization, row order and same-title disambiguation that `merge-tracker.mjs` enforces. These always apply:
+
+- Always write the header row; required labels are `num`, `date`, `company`, `role`, `score`, `status`, `pdf`, `report`. Exactly one data row per file, and no label twice.
+- The value under `score` must read as a score (`X.X/5`) or a sentinel (`N/A`, `—`, `-`); a backfilled row without an evaluation always carries a sentinel, never a blank.
+- When a company has two genuinely different requisitions whose titles fuzzy-match, put the req/job/posting ID in the **notes** column on both rows (#1524, #2009) as a label plus an ID with a digit, e.g. `req JR-10423`, even when neither row has a usable `url`, so `merge-tracker.mjs` does not merge them.
 
 ### Pipeline Integrity
 
