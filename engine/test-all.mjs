@@ -7079,6 +7079,26 @@ for (const section of requiredSections) {
   }
 }
 
+// AGENTS.md is loaded into every agent session (CLAUDE.md, CODEX.md, ... import it), so
+// task-specific reference lives in docs/agents/*.md behind "MUST read before" links.
+// Keep it small, and keep every on-demand link resolvable.
+const AGENTS_MD_MAX_CHARS = 52_000;
+if (agents.length <= AGENTS_MD_MAX_CHARS) {
+  pass(`AGENTS.md stays within ${AGENTS_MD_MAX_CHARS} chars (${agents.length}); move task-specific reference to docs/agents/`);
+} else {
+  fail(`AGENTS.md is ${agents.length} chars (limit ${AGENTS_MD_MAX_CHARS}); move task-specific reference to docs/agents/ behind a "MUST read before" link`);
+}
+const onDemandLinks = [...new Set([...agents.matchAll(/\]\((docs\/agents\/[^)#\s]+\.md)/g)].map((m) => m[1]))];
+const expectedOnDemand = ['main-files.md', 'onboarding.md', 'language-modes.md', 'batch-and-captures.md', 'tracker-tsv.md'];
+for (const name of expectedOnDemand) {
+  if (onDemandLinks.includes(`docs/agents/${name}`)) pass(`AGENTS.md links on-demand reference docs/agents/${name}`);
+  else fail(`AGENTS.md no longer links docs/agents/${name}`);
+}
+for (const link of onDemandLinks) {
+  if (existsSync(join(ROOT, link))) pass(`on-demand reference exists: ${link}`);
+  else fail(`AGENTS.md links missing on-demand reference: ${link}`);
+}
+
 // ── 11. CLI WRAPPER FILE INTEGRITY ──────────────────────────
 
 console.log('\n11. CLI wrapper file integrity');
@@ -19448,11 +19468,12 @@ try {
     fail('docs/SCRIPTS.md missing the exit-code semantics for check-table-freshness');
   }
 
-  const agentsDoc = readFile('AGENTS.md');
-  if (agentsDoc.includes('`check-table-freshness.mjs`')) {
-    pass('AGENTS.md Main Files table lists check-table-freshness.mjs');
+  // The Main Files table moved to docs/agents/main-files.md (AGENTS.md links it on demand).
+  const mainFilesDoc = readFile('docs/agents/main-files.md');
+  if (/^\| `check-table-freshness\.mjs` \|/m.test(mainFilesDoc)) {
+    pass('Main Files table (docs/agents/main-files.md) lists check-table-freshness.mjs');
   } else {
-    fail('AGENTS.md Main Files table missing check-table-freshness.mjs');
+    fail('Main Files table (docs/agents/main-files.md) missing check-table-freshness.mjs');
   }
 
   // Read-only import boundary: the ONLY fs capabilities the script may hold

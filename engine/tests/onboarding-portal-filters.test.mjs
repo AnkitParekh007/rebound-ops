@@ -7,7 +7,8 @@ import { load } from 'js-yaml';
 import { buildLocationFilter, buildPostingAgeFilter } from '../scan.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const agents = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8');
+// The onboarding steps live in docs/agents/onboarding.md; AGENTS.md links them on demand.
+const agents = readFileSync(join(ROOT, 'docs', 'agents', 'onboarding.md'), 'utf8');
 const step3 = agents.split('#### Step 3: Portals')[1]?.split('#### Step 4')[0] ?? '';
 const block = step3.match(/```yaml\n([\s\S]*?)```/)?.[1];
 const example = block ? load(block) : null;

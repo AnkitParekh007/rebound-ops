@@ -185,8 +185,11 @@ test('an accented negative rejects the same title without accents', () => {
   } finally { cleanup(dir); }
 });
 
-test('AGENTS.md states remote-only location labels will not match a country allow-list', () => {
-  const agents = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8');
+// The onboarding steps moved from AGENTS.md to docs/agents/onboarding.md (linked on demand).
+const ONBOARDING_DOC = join(ROOT, 'docs', 'agents', 'onboarding.md');
+
+test('onboarding steps state remote-only location labels will not match a country allow-list', () => {
+  const agents = readFileSync(ONBOARDING_DOC, 'utf8');
   assert.match(agents, /posting labeled only ["']Remote["']/i);
   assert.match(agents, /do not add ["']Remote["'] as an unconditional country match/i);
 });
@@ -341,9 +344,12 @@ test('Remote or Hybrid as a location exits 1, since an allow-list entry admits e
   }
 });
 
-test('AGENTS.md onboarding calls the writer and builds the finish from doctor', () => {
-  const agents = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8');
-  const first = agents.split('### First Run')[1].split('### Personalization')[0];
+test('onboarding steps call the writer and build the finish from doctor', () => {
+  // The whole file is the step-by-step flow (Step 0 through Step 6).
+  const first = readFileSync(ONBOARDING_DOC, 'utf8');
+  // AGENTS.md must still send the agent there from its First Run gate.
+  const gate = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8').split('### First Run')[1].split('### Personalization')[0];
+  assert.match(gate, /MUST read \[docs\/agents\/onboarding\.md\]/);
   const steps23 = first.split('#### Step 2')[1].split('#### Step 4')[0];
   assert.match(steps23, /node onboard-write\.mjs --answers/);
   assert.match(steps23, /do not edit `portals\.yml`[^.]*afterward/i);
@@ -356,7 +362,7 @@ test('AGENTS.md onboarding calls the writer and builds the finish from doctor', 
 });
 
 test('the Step 3 yaml example is what the writer writes for a US-only answer', () => {
-  const agents = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8');
+  const agents = readFileSync(ONBOARDING_DOC, 'utf8');
   const step3 = agents.split('#### Step 3: Portals')[1].split('#### Step 4')[0];
   const example = yaml.load(step3.match(/```yaml\n([\s\S]*?)```/)[1]);
   const answers = { ...ANSWERS, portals: { ...ANSWERS.portals, countries: ['United States', 'USA'] } };
