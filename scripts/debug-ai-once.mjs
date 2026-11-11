@@ -55,6 +55,22 @@ if (values.direct) {
     console.error('--direct needs REBOUNDOPS_AI_ENABLED=true and ANTHROPIC_API_KEY set in this shell (optionally REBOUNDOPS_ANTHROPIC_MODEL). No call was made.');
     process.exit(2);
   }
+  // Both paid calls must use the same prompt, or the comparison misleads. The
+  // running API may serve newer source than dist/ (npm run dev), so check the
+  // version it reports and that dist/ was built from the current prompt.ts.
+  const stale = (why) => {
+    console.error(`--direct would compare different prompts: ${why}. Run \`npm run build:api\` (and restart the API if needed). No call was made.`);
+    process.exit(2);
+  };
+  const status = await fetch(`${API}/api/ai/status`).then(r => r.json());
+  if (status.promptVersion !== provider.promptVersion) {
+    stale(`API serves ${status.promptVersion ?? 'no prompt'}, dist/ has ${provider.promptVersion}`);
+  }
+  const built = await import('../dist/api/prompt.js');
+  const source = await import('../apps/api/src/prompt.ts');
+  if (built.PROMPT_FINGERPRINT !== source.PROMPT_FINGERPRINT) {
+    stale(`dist/ prompt fingerprint ${built.PROMPT_FINGERPRINT.slice(0, 12)} does not match apps/api/src/prompt.ts (${source.PROMPT_FINGERPRINT.slice(0, 12)})`);
+  }
 }
 
 const OUT = path.resolve('tmp/debug-ai');
