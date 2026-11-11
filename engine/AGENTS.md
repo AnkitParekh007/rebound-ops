@@ -222,7 +222,9 @@ Two separate axes:
 
 **When NOT to switch market modes:** If the user applies to English-language roles, even at companies from those markets, use the default English market modes — *unless* the user has explicitly requested another market mode in this conversation, or `language.modes_dir` is set in `config/profile.yml` (the explicit user preference always wins over JD-language detection). This does not override `language.output`; prose still follows `language.output`.
 
-**Multiple simultaneous target markets (#3793).** `language.modes_dir` may also be a **list** of declared markets. **If it is a list, MUST read [docs/agents/language-modes.md](docs/agents/language-modes.md) (Multiple simultaneous target markets) before evaluating**: it defines the primary market, which `_shared.md` files load, and how to resolve an ambiguous market. A single-string `modes_dir` behaves as described above.
+**Multiple simultaneous target markets (#3793).** `language.modes_dir` may also be a **list** of declared markets. **If it is a list, MUST read [docs/agents/language-modes.md](docs/agents/language-modes.md) (Multiple simultaneous target markets) before evaluating**: it defines the primary market and which `_shared.md` files load. A single-string `modes_dir` behaves as described above.
+
+- When the market signal is genuinely ambiguous between two declared candidates, branch on whether anyone can answer: in an **interactive session**, ask the candidate and stop before writing or merging a report/tracker entry until they choose; in an **unattended run** (`<cli> -p`, `codex exec`, or a batch worker), continue with the first/primary market and state the ambiguity plus the primary-market fallback explicitly in the report header or Block G.
 
 ### Skill Modes
 
