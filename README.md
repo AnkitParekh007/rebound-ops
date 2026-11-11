@@ -1,10 +1,22 @@
 # ReboundOps
 
+[![Node.js](https://img.shields.io/badge/Node.js-24.15%2B_recommended-339933?logo=nodedotjs)](package.json) [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE) [![Product Hunt](https://img.shields.io/badge/Product_Hunt-See_the_launch-DA552F?logo=producthunt)](https://www.producthunt.com/products/reboundops?launch=reboundops)
+
 **Your experience. Your next chapter.**
 
 A local-first toolkit for experienced software professionals navigating a layoff, a career change or their next job search. Review what your experience supports, choose a direction to explore, and manage the practical work of finding and applying for roles.
 
 [Website](https://rebound-ops.org) · [Product screenshots](https://rebound-ops.org/screenshots/) · [Documentation](https://rebound-ops.org/docs/) · [Setup help](https://rebound-ops.org/help/) · [CI](https://github.com/AnkitParekh007/rebound-ops/actions/workflows/ci.yml) · [Roadmap](docs/roadmap.md)
+
+## Three directions. One manageable week.
+
+| Direction | What to explore |
+| --- | --- |
+| **Similar** | Roles that build on your existing strengths. |
+| **New** | A different direction your experience could support. |
+| **Stepping Stone** | An intermediate role that helps you build toward a longer-term goal. |
+
+Choose a direction and build a seven-day action plan around the time you have. [Start locally](#quick-start) with a fictional example. AI is optional.
 
 ## What you can do
 
