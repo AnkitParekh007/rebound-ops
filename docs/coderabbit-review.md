@@ -32,6 +32,11 @@ and post-merge actions are disabled. Do not count a bot review as independent
 human approval or make CodeRabbit a required branch check before confirming its
 availability and behaviour. Existing CI and CodeQL requirements stay in place.
 
+Bot-authored PRs can be skipped when the bot has no assigned CodeRabbit review
+seat. Check the review response before assuming dependency updates were reviewed;
+do not purchase or assign paid seats as part of this setup. Required CI still
+applies to those PRs.
+
 ## Verify after installation
 
 Open a non-draft PR, or comment `@coderabbitai review` on an existing one. Confirm
