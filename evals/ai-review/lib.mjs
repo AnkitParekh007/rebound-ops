@@ -7,6 +7,7 @@
  */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { APIConnectionError, APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
 import { validateAiAnalysis } from '../../packages/contracts/dist/index.js';
 
 const here = new URL('.', import.meta.url);
@@ -79,6 +80,24 @@ function classifyInvalid(message) {
   if (/requirement/i.test(message)) return 'requirement_mismatch';
   if (/possible support|cannot claim/i.test(message)) return 'status_evidence_inconsistent';
   return 'schema';
+}
+
+function classifyProviderError(error) {
+  if (error instanceof APIConnectionTimeoutError) return { category: 'timeout' };
+  if (error instanceof APIConnectionError) return { category: 'connection' };
+  if (!(error instanceof APIError) || !Number.isInteger(error.status)) return { category: 'unknown' };
+
+  const { status } = error;
+  const categories = {
+    400: 'bad_request',
+    401: 'authentication',
+    402: 'payment_required',
+    403: 'permission',
+    404: 'not_found',
+    429: 'rate_limit',
+    529: 'overloaded'
+  };
+  return { category: categories[status] ?? (status >= 500 ? 'server_error' : 'http_error'), status };
 }
 
 /** Scores one validated (or rejected) response against the case labels. */
@@ -189,8 +208,12 @@ export async function runEvaluation(set, respond, { maxCases = Infinity, onCase 
       const latencyMs = Math.round(performance.now() - started);
       const detailed = response && 'analysis' in response ? response : { analysis: response, usage: null };
       scored = { ...scoreCase(c, payload, detailed.analysis), latencyMs, usage: detailed.usage ?? null };
-    } catch {
-      scored = { id: c.id, category: c.category, pair: c.pair ?? null, valid: false, invalidReason: 'provider_error', findings: [], latencyMs: null, usage: null };
+    } catch (error) {
+      scored = {
+        id: c.id, category: c.category, pair: c.pair ?? null,
+        valid: false, invalidReason: 'provider_error', providerError: classifyProviderError(error),
+        findings: [], latencyMs: null, usage: null
+      };
     }
     results.push(scored);
     onCase?.(scored);

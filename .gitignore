@@ -14,6 +14,9 @@ data/
 playwright-report/
 test-results/
 
+# Local probe output (screenshots, AI snippets from manual UX probes; never commit)
+/tmp/
+
 # Local AI evaluation reports (live provider output; never commit)
 evals/ai-review/results/
 

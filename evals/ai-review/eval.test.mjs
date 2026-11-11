@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { APIConnectionError, APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
 import { AiPayloadSchema } from '../../packages/contracts/dist/index.js';
 import {
   buildPayload, gate, keyUuid, loadGoldenSet, loadThresholds, responders, runEvaluation, validateGoldenSet
@@ -74,9 +75,29 @@ test('a model that treats career breaks, phrasing or age signals differently fai
   assert.equal(metrics.overclaims, 0, 'bias here is under-claiming, not over-claiming');
 });
 
-test('provider errors count as invalid output and never crash the run', async () => {
-  const { metrics, results } = await runEvaluation(set, () => { throw new Error('timeout'); }, { maxCases: 3 });
-  assert.equal(metrics.invalidOutputs, 3);
+test('provider errors count as invalid and expose only sanitized diagnostics', async () => {
+  const sensitive = 'private provider detail';
+  const headers = new Headers({ 'request-id': sensitive });
+  const errors = [
+    new APIError(429, { detail: sensitive }, sensitive, headers),
+    new APIError(402, { detail: sensitive }, sensitive, headers),
+    new APIError(529, { detail: sensitive }, sensitive, headers),
+    new APIConnectionTimeoutError({ message: sensitive }),
+    new APIConnectionError({ message: sensitive }),
+    new Error(sensitive)
+  ];
+  let next = 0;
+  const { metrics, results } = await runEvaluation(set, () => { throw errors[next++]; }, { maxCases: errors.length });
+  assert.equal(metrics.invalidOutputs, errors.length);
   assert.ok(results.every(r => r.invalidReason === 'provider_error'));
+  assert.deepEqual(results.map(r => r.providerError), [
+    { category: 'rate_limit', status: 429 },
+    { category: 'payment_required', status: 402 },
+    { category: 'overloaded', status: 529 },
+    { category: 'timeout' },
+    { category: 'connection' },
+    { category: 'unknown' }
+  ]);
+  assert.ok(!JSON.stringify({ metrics, results }).includes(sensitive));
   assert.ok(failed(gate(metrics, thresholds)).includes('minCases'));
 });

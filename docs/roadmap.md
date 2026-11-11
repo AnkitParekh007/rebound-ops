@@ -16,7 +16,7 @@ Engineering has delivered the scope originally planned for weeks 3–6, about fo
 | 3 (Nov 16–22) | App skeleton | Angular shell, Fastify API, state machine, schema, intake, correction | **Done early** |
 | 4 (Nov 23–29) | Complete MVP flow | Evidence inventory, Return/Shift/Bridge, plan, progress, export | **Done early** |
 | 5 (Nov 30–Dec 6) | Private pilot | 5–10 guided users, evaluation report, quality fixes | **Kit ready**; no participants (#9) |
-| 6 (Dec 7–13) | Reliability | Provider errors, resume, packaging, cost controls, tests | **Mostly done**; live provider (#8) and persisted spend controls open |
+| 6 (Dec 7–13) | Reliability | Provider errors, resume, packaging, cost controls, tests | **Mostly done**; first live provider run (#8) failed G2; re-run with prompt `evidence-review@1.1.0` and persisted spend controls open |
 | 7 (Dec 14–20) | Public preview | Demo, docs, issue templates, contribution guide, consent-based stories | **Partial**: docs/templates/script done; stories need pilot evidence |
 | 8 (Dec 21–27) | Public beta | GitHub release, staged launch, triage, first patch | **Blocked** on gates G1–G4 below |
 
@@ -116,7 +116,7 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 | B2 | ✅ Angular decomposition: feature components, `SessionApiService`, `SessionStore` (no behaviour change) | F1, F2 | Done 4 Nov 2026; see [frontend architecture](frontend-architecture.md) |
 | B3 | ✅ CI supply-chain hardening: SHA-pinned actions, Dependabot, CodeQL, Node 22 job | S1, S4 | Done 4 Nov 2026; owner must enable secret scanning/push protection in settings |
 | B4 | ✅ AI golden set + offline eval runner (mock + live mode), prompt/model versioning | A1, A2, A5 | Done 4 Nov 2026; thresholds proposed, owner to agree; see [AI evaluation](ai-evaluation.md) |
-| B5 | Live provider evaluation on fictional data with provider-side spend limit (owner approval) | A3, #8 | **G2** |
+| B5 | Live provider evaluation on fictional data with provider-side spend limit (owner approval) | A3, #8 | **G2**. First live run 9 Nov 2026 (Claude Sonnet 5.5, prompt `evidence-review@1.0.0`) **failed G2**: 9 of 20 responses invalid, 40% fairness parity. Prompt `evidence-review@1.1.0` tightens the output rules the validator enforces and needs a new live run plus human review before G2 can pass; see [AI evaluation](ai-evaluation.md) |
 | B6 | ✅ Component tests, typed forms on contracts | F3, F4 | Done 5 Nov 2026; Vitest unit tests in `npm test`, reactive forms validated by shared Zod contracts |
 | B7 | ✅ Provenance attestation + SBOM for the preview artifact | S2 | Done 5 Nov 2026; CycloneDX SBOM in every archive, SLSA provenance + SBOM attestations on `main` builds |
 | B9 | ✅ Guided first visit (default first screen) + intake sample-data fix | — | Done 6 Nov 2026. **Owner decision to ship before G1**, an explicit exception to the Track B feature freeze. Wording is a draft; test it in the discovery interviews and pilot (see [guided first visit](onboarding.md)) |
@@ -221,7 +221,8 @@ The solo maintainer feature-tested the original prototype, and the Angular/Fasti
 - [x] Live npm advisory and dependency license inventory checks; upgraded vulnerable @fastify/static
 - [ ] Independent human usability evaluation with at least three real journeys (#2, #9)
 - [ ] Cross-platform manual testing and live provider compatibility with fictional data (#8, #9)
-- [ ] Approve a small live-provider evaluation budget/key before paid calls (B5)
+- [x] Approve a small live-provider evaluation budget/key before paid calls (B5); used for the first live run on 9 Nov 2026
+- [ ] Re-run the live golden-set evaluation for prompt `evidence-review@1.1.0` and complete the human review (B5, G2)
 - [ ] Recruit actual volunteers; conduct five interviews, three journeys and follow-ups (#1, #2)
 - [ ] Collect and summarize actual pilot outcomes before claiming success metrics (G3)
 - [ ] Independently review flagged licenses and future dependency/registry advisory changes (#19, B3)

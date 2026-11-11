@@ -33,6 +33,35 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const envKey = (k) => effectiveEnv(k, PATHS.envFile);
 
 /**
+ * Claude 4.7+ / 5.x (and Mythos) reject `temperature` / `top_p` / `top_k` on
+ * the Messages API even at defaults for non-legacy models. Older IDs still
+ * accept sampling pins (used by the scoring step's temperature 0).
+ * This is a best-effort first guess: runAnthropic also retries once without
+ * `temperature` when the API rejects it, so an ID this check does not know
+ * yet costs one extra request instead of failing.
+ * @param {string} model
+ * @returns {boolean}
+ */
+export function anthropicSupportsTemperature(model) {
+  const m = String(model || '').toLowerCase();
+  if (!m) return true;
+  if (/mythos/.test(m)) return false;
+  // Every Claude 5.x family: claude-sonnet-5-5, claude-opus-5-5,
+  // claude-haiku-5-5, claude-fable-5-1, … (not claude-3-5-sonnet: the family
+  // name must come before the 5).
+  if (/claude-[a-z]+-5(?:\D|$)/.test(m)) return false;
+  // Opus 4.7+: a one- or two-digit minor after "claude-opus-4-". An 8-digit
+  // date suffix is not a minor version (claude-opus-4-20250514 is Opus 4.0).
+  const opus4 = m.match(/claude-opus-4-(\d+)(?!\d)/);
+  if (opus4 && opus4[1].length <= 2 && Number(opus4[1]) >= 7) return false;
+  return true;
+}
+
+/** True when a 400 response says the model rejects a sampling parameter. */
+const rejectsSamplingParam = (status, detail) =>
+  status === 400 && /\b(temperature|top_p|top_k|sampling)\b/i.test(String(detail || ''));
+
+/**
  * @returns {{ markdown: string, usage: object|null, error: string|null }}
  */
 export async function runAnthropic(prompt, opts = {}) {
@@ -77,27 +106,39 @@ export async function runAnthropic(prompt, opts = {}) {
           ]
         : [{ type: 'text', text: prompt, cache_control: { type: 'ephemeral' } }];
     }
-    const res = await fetchImpl(ANTHROPIC_URL, {
-      method: 'POST',
-      signal: ctrl.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        // CAR-229 — scoring-step temperature pinning (Anthropic supports it).
-        ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
-        messages: [{ role: 'user', content }],
-      }),
-    });
-    const text = await res.text();
-    let json;
-    try { json = JSON.parse(text); } catch { json = { raw: text }; }
+    // CAR-229 — scoring-step temperature pinning when the model still accepts
+    // sampling params. Claude 5.x and Opus 4.7+ return 400 ("temperature is
+    // deprecated for this model") if it is set.
+    const sendTemperature = opts.temperature !== undefined && anthropicSupportsTemperature(model);
+    const post = async (withTemperature) => {
+      const res = await fetchImpl(ANTHROPIC_URL, {
+        method: 'POST',
+        signal: ctrl.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: maxTokens,
+          ...(withTemperature ? { temperature: opts.temperature } : {}),
+          messages: [{ role: 'user', content }],
+        }),
+      });
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { json = { raw: text }; }
+      const detail = res.ok ? null : (json?.error?.message || json?.error?.type || `HTTP ${res.status}`);
+      return { res, json, detail };
+    };
+    let { res, json, detail } = await post(sendTemperature);
+    // A model ID anthropicSupportsTemperature() does not know yet: drop the
+    // pin and retry once rather than failing the whole run.
+    if (!res.ok && sendTemperature && rejectsSamplingParam(res.status, detail)) {
+      ({ res, json, detail } = await post(false));
+    }
     if (!res.ok) {
-      const detail = json?.error?.message || json?.error?.type || `HTTP ${res.status}`;
       return { markdown: '', usage: null, error: `Anthropic API: ${detail}` };
     }
     // Concatenate all `text` blocks. Anthropic returns content[] of typed

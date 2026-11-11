@@ -5,17 +5,17 @@ import { loadAiProvider } from '../../../dist/api/provider.js';
 import { buildApp } from '../../../dist/api/app.js';
 
 /**
- * One entry per released prompt version. Editing the prompt text without
- * bumping EVIDENCE_REVIEW_PROMPT.version (and adding a line here after a
- * golden-set evaluation) fails this test.
+ * One fingerprint per prompt version. Pin a new version here, then run the
+ * live golden-set evaluation before enabling it for participants.
  */
 const PINNED = {
-  '1.0.0': 'c55002ee04c4d83e'
+  '1.0.0': 'c55002ee04c4d83e',
+  '1.1.0': 'e1e698e9cd2549c5'
 };
 
 test('prompt text is pinned to its version (no silent prompt edits)', () => {
   const expected = PINNED[EVIDENCE_REVIEW_PROMPT.version];
-  assert.ok(expected, 'new prompt version ' + EVIDENCE_REVIEW_PROMPT.version + ': run the golden-set eval, then pin its fingerprint here');
+  assert.ok(expected, 'new prompt version ' + EVIDENCE_REVIEW_PROMPT.version + ': pin its fingerprint here');
   assert.equal(PROMPT_FINGERPRINT, expected,
     'prompt text changed without a version bump; bump EVIDENCE_REVIEW_PROMPT.version and re-run the evaluation');
   assert.equal(PROMPT_VERSION, 'evidence-review@' + EVIDENCE_REVIEW_PROMPT.version);
