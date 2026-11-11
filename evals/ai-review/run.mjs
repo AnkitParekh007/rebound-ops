@@ -66,8 +66,13 @@ const log = values.quiet ? () => {} : (...a) => console.log(...a);
 log(`Golden set ${set.version}: ${Math.min(maxCases, set.cases.length)} case(s) · ${provider} · model ${model} · prompt ${PROMPT_VERSION} (${PROMPT_FINGERPRINT})`);
 const { results, metrics } = await runEvaluation(set, respond, {
   maxCases,
-  onCase: r => log(`  ${r.valid ? (r.findings.every(f => f.correct) ? 'ok  ' : 'MISS') : 'INV '} ${r.id}` +
-    (r.valid ? '' : ` (${r.invalidReason})`) + (r.findings.some(f => f.overclaim) ? ' [over-claim]' : ''))
+  onCase: r => {
+    const providerDetail = r.providerError
+      ? ` / ${r.providerError.category}${r.providerError.status ? ` HTTP ${r.providerError.status}` : ''}`
+      : '';
+    log(`  ${r.valid ? (r.findings.every(f => f.correct) ? 'ok  ' : 'MISS') : 'INV '} ${r.id}` +
+      (r.valid ? '' : ` (${r.invalidReason}${providerDetail})`) + (r.findings.some(f => f.overclaim) ? ' [over-claim]' : ''));
+  }
 });
 const verdict = gate(metrics, thresholds);
 

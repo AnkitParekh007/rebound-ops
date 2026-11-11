@@ -2,7 +2,7 @@
 
 ## Scope
 
-The ReboundOps Anthropic adapter is **disabled by default**. We can validate its request construction, schema validation, consent and error handling using a local mock without a paid API key. A real provider compatibility test has **not** been completed and requires an API key, a budget, and explicit permission.
+The ReboundOps Anthropic adapter is **disabled by default**. We can validate its request construction, schema validation, consent and error handling using a local mock without a paid API key. The first live golden-set run on 9 November 2026 used Claude Sonnet 5.5 and prompt `evidence-review@1.0.0`. It failed the proposed G2 gate with 9 invalid responses out of 20 and 40% fairness parity. Prompt `evidence-review@1.1.0` requires a new live run.
 
 ## Evaluated cases using synthetic text
 
@@ -60,7 +60,7 @@ Latency (p50/p95) and token counts are reported, not gated. Over-claiming is wei
 
 The system prompt lives in `apps/api/src/prompt.ts` as `evidence-review@<semver>` with a SHA-256 fingerprint. `prompt-version.test.mjs` pins the fingerprint per version, so **editing the prompt without bumping the version fails CI**. `GET /api/ai/status` and every analysis response report `model` and `promptVersion`. Any change to the prompt or model requires a new live golden-set run before participant use.
 
-## Live evaluation protocol (owner-approved, not yet executed)
+## Live evaluation protocol
 
 1. Owner sets a **provider-side spend limit** and creates a dedicated key. The runner's case cap and the API's ten-attempt counter are **not** monetary ceilings.
 2. In a private terminal only:
@@ -70,7 +70,7 @@ The system prompt lives in `apps/api/src/prompt.ts` as `evidence-review@<semver>
      npm run eval:ai:live -- --i-accept-paid-calls --max-cases 20
    ```
    Without `--i-accept-paid-calls` the runner refuses (exit 2). Inputs are fictional golden-set cases only.
-3. The report goes to `evals/ai-review/results/` (git-ignored). It holds metrics, the gate verdict, model, prompt version and fingerprint, and per-case outputs for human review. **Do not commit it.**
+3. The report goes to `evals/ai-review/results/` (git-ignored). It holds metrics, the gate verdict, model, prompt version and fingerprint, and per-case outputs for human review. Provider failures include a fixed category and HTTP status when available. Provider messages, bodies and headers are omitted. **Do not commit the report.**
 4. **Human review:** read every explanation for tone, false certainty, and differences within fairness pairs that the assessment-level metric would miss. Record reviewer and notes in the report's `humanReview` block.
 5. Publish only **aggregate** metrics and the gate verdict (e.g. in issue #8), then unset the key.
 6. G2 passes only when the automated gate passes **and** the human review signs off **and** provider terms/retention are reviewed.

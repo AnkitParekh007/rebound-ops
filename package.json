@@ -28,6 +28,7 @@
     "eval:ai:live": "node evals/ai-review/run.mjs --mode live"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@axe-core/playwright": "^4.11.0",
     "@playwright/test": "^1.58.0",
     "@types/node": "^24.0.0",

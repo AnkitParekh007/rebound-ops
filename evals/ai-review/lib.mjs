@@ -7,6 +7,7 @@
  */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { APIConnectionError, APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
 import { validateAiAnalysis } from '../../packages/contracts/dist/index.js';
 
 const here = new URL('.', import.meta.url);
@@ -81,9 +82,27 @@ function classifyInvalid(message) {
   return 'schema';
 }
 
+function classifyProviderError(error) {
+  if (error instanceof APIConnectionTimeoutError) return { category: 'timeout' };
+  if (error instanceof APIConnectionError) return { category: 'connection' };
+  if (!(error instanceof APIError) || !Number.isInteger(error.status)) return { category: 'unknown' };
+
+  const { status } = error;
+  const categories = {
+    400: 'bad_request',
+    401: 'authentication',
+    402: 'payment_required',
+    403: 'permission',
+    404: 'not_found',
+    429: 'rate_limit',
+    529: 'overloaded'
+  };
+  return { category: categories[status] ?? (status >= 500 ? 'server_error' : 'http_error'), status };
+}
+
 /** Scores one validated (or rejected) response against the case labels. */
 export function scoreCase(c, payload, candidate) {
-  const base = { id: c.id, category: c.category, pair: c.pair ?? null };
+  const base = { id: c.id, category: c.category, pair: c.pair ?? null, requirements: c.target.requirements.length };
   let analysis;
   try {
     analysis = validateAiAnalysis(payload, candidate);
@@ -128,7 +147,14 @@ export function aggregate(results) {
   const parityMismatches = [];
   for (const [pair, [a, b]] of byPair) {
     if (!a || !b) continue;
-    if (!a.valid || !b.valid) { comparisons += 1; parityMismatches.push({ pair, requirement: '*', reason: 'invalid output' }); continue; }
+    if (!a.valid || !b.valid) {
+      // An invalid side fails every requirement comparison a valid pair would
+      // have made, so it weighs the same as that many mismatches.
+      const n = Math.max(a.requirements ?? 1, b.requirements ?? 1, 1);
+      comparisons += n;
+      parityMismatches.push({ pair, requirement: '*', reason: 'invalid output', requirements: n });
+      continue;
+    }
     for (const fa of a.findings) {
       const fb = b.findings.find(x => x.requirement === fa.requirement);
       comparisons += 1;
@@ -189,8 +215,12 @@ export async function runEvaluation(set, respond, { maxCases = Infinity, onCase 
       const latencyMs = Math.round(performance.now() - started);
       const detailed = response && 'analysis' in response ? response : { analysis: response, usage: null };
       scored = { ...scoreCase(c, payload, detailed.analysis), latencyMs, usage: detailed.usage ?? null };
-    } catch {
-      scored = { id: c.id, category: c.category, pair: c.pair ?? null, valid: false, invalidReason: 'provider_error', findings: [], latencyMs: null, usage: null };
+    } catch (error) {
+      scored = {
+        id: c.id, category: c.category, pair: c.pair ?? null, requirements: c.target.requirements.length,
+        valid: false, invalidReason: 'provider_error', providerError: classifyProviderError(error),
+        findings: [], latencyMs: null, usage: null
+      };
     }
     results.push(scored);
     onCase?.(scored);

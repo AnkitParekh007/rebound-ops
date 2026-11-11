@@ -17,7 +17,7 @@ import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-let runAnthropic, hasAnthropicKey, hasGeminiKey;
+let runAnthropic, hasAnthropicKey, hasGeminiKey, anthropicSupportsTemperature;
 let ROOT, ENV_FILE;
 const savedRoot = process.env.REBOUND_OPS_ROOT;
 
@@ -28,7 +28,7 @@ before(async () => {
   writeFileSync(resolve(ROOT, 'cv.md'), '# CV\n');
   writeFileSync(resolve(ROOT, 'portals.yml'), 'tracked_companies: []\n');
   process.env.REBOUND_OPS_ROOT = ROOT;
-  ({ runAnthropic, hasAnthropicKey, hasGeminiKey } =
+  ({ runAnthropic, hasAnthropicKey, hasGeminiKey, anthropicSupportsTemperature } =
     await import('../server/lib/anthropic.mjs'));
 });
 
@@ -102,6 +102,85 @@ test('runAnthropic: clamps maxTokens into [256, 32768] (CAR-174 ceiling)', async
   assert.equal(body.max_tokens, 256, 'lower clamp');
   await runAnthropic('hi', { apiKey: 'sk', fetchImpl: fakeFetch, maxTokens: 99999 });
   assert.equal(body.max_tokens, 32768, 'upper clamp');
+});
+
+test('runAnthropic: omits temperature on Claude 5.x; keeps it on legacy Sonnet 4.6', async () => {
+  let body;
+  const fakeFetch = async (_url, opts) => {
+    body = JSON.parse(opts.body);
+    return jsonResponse(200, { content: [{ type: 'text', text: 'ok' }] });
+  };
+  await runAnthropic('hi', {
+    apiKey: 'sk', fetchImpl: fakeFetch, model: 'claude-sonnet-5-5', temperature: 0,
+  });
+  assert.equal('temperature' in body, false, 'Sonnet 5.5 rejects temperature');
+  await runAnthropic('hi', {
+    apiKey: 'sk', fetchImpl: fakeFetch, model: 'claude-sonnet-4-6', temperature: 0,
+  });
+  assert.equal(body.temperature, 0, 'legacy Sonnet still accepts temperature 0');
+});
+
+test('anthropicSupportsTemperature: classifies dated, aliased and 5.x IDs', () => {
+  const cases = {
+    'claude-opus-4-20250514': true, // Opus 4.0: the date is not a minor version
+    'anthropic.claude-opus-4-20250514-v1:0': true,
+    'claude-opus-4-0': true,
+    'claude-opus-4-1-20250805': true,
+    'claude-sonnet-4-6': true,
+    'claude-3-5-sonnet-20241022': true,
+    '': true,
+    'claude-opus-4-7': false,
+    'claude-opus-4-10': false,
+    'claude-sonnet-5-5': false,
+    'claude-haiku-5-5': false,
+    'claude-opus-5-5': false,
+    'claude-fable-5-1': false,
+    'claude-mythos-preview': false,
+  };
+  for (const [model, expected] of Object.entries(cases)) {
+    assert.equal(anthropicSupportsTemperature(model), expected, model || '(empty)');
+  }
+});
+
+test('runAnthropic: retries once without temperature when the API rejects it', async () => {
+  const bodies = [];
+  const fakeFetch = async (_url, opts) => {
+    const body = JSON.parse(opts.body);
+    bodies.push(body);
+    return 'temperature' in body
+      ? jsonResponse(400, { error: { type: 'invalid_request_error', message: 'temperature is deprecated for this model' } })
+      : jsonResponse(200, { content: [{ type: 'text', text: 'ok' }] });
+  };
+  const r = await runAnthropic('hi', {
+    apiKey: 'sk', fetchImpl: fakeFetch, model: 'claude-future-6-0', temperature: 0,
+  });
+  assert.equal(r.error, null);
+  assert.equal(r.markdown, 'ok');
+  assert.equal(bodies.length, 2, 'one retry');
+  assert.equal(bodies[0].temperature, 0);
+  assert.equal('temperature' in bodies[1], false);
+});
+
+test('runAnthropic: a temperature range error is reported, not retried', async () => {
+  let calls = 0;
+  const fakeFetch = async () => {
+    calls++;
+    return jsonResponse(400, { error: { type: 'invalid_request_error', message: 'temperature: must be between 0 and 1' } });
+  };
+  const r = await runAnthropic('hi', { apiKey: 'sk', fetchImpl: fakeFetch, model: 'claude-sonnet-4-6', temperature: 2 });
+  assert.equal(calls, 1, 'no retry that would hide the bad configured value');
+  assert.match(r.error, /must be between 0 and 1/);
+});
+
+test('runAnthropic: other 400s are not retried', async () => {
+  let calls = 0;
+  const fakeFetch = async () => {
+    calls++;
+    return jsonResponse(400, { error: { type: 'invalid_request_error', message: 'max_tokens: too large' } });
+  };
+  const r = await runAnthropic('hi', { apiKey: 'sk', fetchImpl: fakeFetch, model: 'claude-sonnet-4-6', temperature: 0 });
+  assert.equal(calls, 1);
+  assert.match(r.error, /max_tokens: too large/);
 });
 
 test('runAnthropic: timeout returns "timeout" error', async () => {
