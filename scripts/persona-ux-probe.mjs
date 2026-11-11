@@ -20,6 +20,13 @@ const notes = {
   positives: [],
 };
 
+/** Name of the first locator to become visible, or 'timeout'. */
+async function firstOf(locators, timeout) {
+  const waits = Object.entries(locators).map(([name, locator]) =>
+    locator.first().waitFor({ state: 'visible', timeout }).then(() => name));
+  return Promise.any(waits).catch(() => 'timeout');
+}
+
 async function shot(page, name) {
   await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: true });
 }
@@ -30,8 +37,11 @@ async function pickRadio(page, label) {
   await page.getByRole('button', { name: 'Continue' }).click();
 }
 
-async function fillAndContinue(page, label, value) {
-  await page.getByLabel(label).fill(value);
+// Every onboarding text and multi-line question renders as #ob-input, so the
+// current question is filled regardless of how its prompt is worded (the role
+// prompt differs per situation, e.g. "What do you do now, or …" for a switch).
+async function fillCurrentAndContinue(page, value) {
+  await page.locator('#ob-input').fill(value);
   await page.getByRole('button', { name: 'Continue' }).click();
 }
 
@@ -60,7 +70,7 @@ async function runPersona(browser, persona) {
   log.path.push(`situation:${persona.situation}`);
 
   // Role
-  await fillAndContinue(page, /most recent role|current role|role/i, persona.role);
+  await fillCurrentAndContinue(page, persona.role);
   log.path.push(`role:${persona.role}`);
 
   // Branch-specific follow-ups until hours
@@ -106,17 +116,9 @@ async function runPersona(browser, persona) {
   const thingsHeading = page.getByRole('heading', { level: 2 }).first();
   await thingsHeading.waitFor({ timeout: 10000 }).catch(() => {});
   const headingNow = await thingsHeading.innerText().catch(() => '');
-  if (/glad you did|things you|achievement|evidence/i.test(headingNow) || await page.getByRole('textbox').count()) {
-    const boxes = page.getByRole('textbox');
-    const n = await boxes.count();
-    for (let i = 0; i < Math.min(n, persona.evidence.length); i++) {
-      await boxes.nth(i).fill(persona.evidence[i]);
-    }
-    // Some UIs have a single box + add buttons
-    if (n === 1 && persona.evidence.length > 1) {
-      await boxes.first().fill(persona.evidence[0]);
-    }
-    await page.getByRole('button', { name: 'Continue' }).click();
+  if (/glad you did|things you|achievement|evidence/i.test(headingNow) || await page.locator('#ob-input').count()) {
+    // The evidence question is one textarea with one claim per line.
+    await fillCurrentAndContinue(page, persona.evidence.join('\n'));
   }
 
   await shot(page, `${persona.id}-02-summary`);
@@ -164,70 +166,54 @@ async function runPersona(browser, persona) {
   await page.waitForTimeout(500);
   await shot(page, `${persona.id}-04-targets`);
 
-  // Add AI engineer job target
-  const title = page.getByLabel(/title|role|job title/i).first();
-  if (await title.isVisible().catch(() => false)) {
-    await title.fill(persona.jobTitle);
-  }
-  // requirements fields
-  const req = page.getByLabel(/requirement/i).first()
-    .or(page.getByPlaceholder(/requirement|must have/i).first());
-  if (await req.isVisible().catch(() => false)) {
-    await req.fill(persona.requirements[0]);
-  }
-  // Some UIs use textarea for pasted JD
-  const jd = page.getByLabel(/description|paste|job text/i).first();
-  if (await jd.isVisible().catch(() => false)) {
-    await jd.fill(persona.jobDescription);
-  }
-
-  const addTarget = page.getByRole('button', { name: /Add target|Save target|Add job|Create target/i });
-  if (await addTarget.first().isVisible().catch(() => false)) {
-    await addTarget.first().click();
-  }
-
-  // Try to add requirements via dedicated controls if present
-  for (const text of persona.requirements) {
-    const reqInput = page.getByLabel(/new requirement|requirement text/i).first()
-      .or(page.getByPlaceholder(/Add a requirement/i).first());
-    if (await reqInput.isVisible().catch(() => false)) {
-      await reqInput.fill(text);
-      const addReq = page.getByRole('button', { name: /Add requirement|Add/i }).first();
-      if (await addReq.isVisible()) await addReq.click();
-    }
-  }
+  // Add the job target through the job-target form itself (job-targets.component.html):
+  // scoping to that form keeps the hidden intake form's "Recent role" field out of it.
+  const targetForm = page.locator('form.target-form');
+  await targetForm.waitFor({ timeout: 15000 });
+  await targetForm.getByLabel('Job title / opportunity').fill(persona.jobTitle);
+  // One requirement per line, all of them.
+  await targetForm.getByLabel(/Requirements from this opportunity/).fill(persona.requirements.join('\n'));
+  await targetForm.getByRole('button', { name: 'Add requirements for review' }).click();
+  await page.locator('article.job-target h3', { hasText: persona.jobTitle }).first().waitFor({ timeout: 15000 });
+  log.path.push(`target:${persona.jobTitle} (${persona.requirements.length} requirements)`);
 
   await shot(page, `${persona.id}-05-target-added`);
 
-  // Preview AI
-  const previewBtn = page.getByRole('button', { name: /Preview optional AI review payload|Preview.*AI/i });
-  await previewBtn.first().waitFor({ timeout: 15000 });
-  await previewBtn.first().click();
-  await page.getByText(/consent|exact payload|preview/i).first().waitFor({ timeout: 20000 });
+  // Preview AI for this target, then wait for the payload itself or an error:
+  // the panel's static "explicit consent" text is visible before any preview.
+  const errorAlert = page.locator('.message.error[role="alert"]');
+  const targetCard = page.locator('article.job-target', { hasText: persona.jobTitle }).first();
+  await targetCard.getByRole('button', { name: 'Preview optional AI review payload' }).click();
+  const previewOutcome = await firstOf({ preview: page.locator('.preview-json'), error: errorAlert }, 20000);
   await shot(page, `${persona.id}-06-ai-preview`);
-
-  const previewText = await page.locator('pre, code, .preview-json, .ai-preview').first().innerText().catch(() => '');
-  const consent = page.getByRole('button', { name: /I consent: send this exact payload/i });
-  const enabled = await consent.isEnabled();
-  if (!enabled) {
-    log.ai = { error: 'Consent button disabled — AI may not be enabled in UI' };
-    notes.complaints.push(`${persona.id}: consent disabled`);
+  if (previewOutcome !== 'preview') {
+    const message = previewOutcome === 'error' ? await errorAlert.innerText() : 'timed out waiting for the preview';
+    log.ai = { error: `preview failed: ${message}` };
+    notes.complaints.push(`${persona.id}: preview failed (${message})`);
   } else {
-    const aiStart = Date.now();
-    await consent.click();
-    // Wait for suggestions or error
-    await Promise.race([
-      page.getByText(/possible_support|suggestion|AI review result|Review suggestion/i).first().waitFor({ timeout: 90000 }),
-      page.getByText(/unable|failed|error|limit/i).first().waitFor({ timeout: 90000 }),
-    ]).catch(() => {});
-    log.timings.aiMs = Date.now() - aiStart;
-    await shot(page, `${persona.id}-07-ai-result`);
-    const body = await page.locator('main, .shell, body').first().innerText();
-    log.ai = {
-      latencyMs: log.timings.aiMs,
-      snippet: body.slice(0, 2500),
-      previewSnippet: previewText.slice(0, 800),
-    };
+    const previewText = await page.locator('.preview-json').innerText();
+    const consent = page.getByRole('button', { name: 'I consent: send this exact payload' });
+    if (!(await consent.isEnabled())) {
+      log.ai = { error: 'Consent button disabled — AI may not be enabled in UI', previewSnippet: previewText.slice(0, 800) };
+      notes.complaints.push(`${persona.id}: consent disabled`);
+    } else {
+      const aiStart = Date.now();
+      await consent.click();
+      // The findings panel or the app's error alert; record a timeout as such.
+      const outcome = await firstOf({ result: page.locator('.ai-findings'), error: errorAlert }, 90000);
+      log.timings.aiMs = Date.now() - aiStart;
+      await shot(page, `${persona.id}-07-ai-result`);
+      const snippet = outcome === 'result'
+        ? await page.locator('.ai-findings').innerText()
+        : outcome === 'error' ? await errorAlert.innerText() : '';
+      log.ai = {
+        outcome,
+        latencyMs: outcome === 'timeout' ? null : log.timings.aiMs,
+        snippet: snippet.slice(0, 2500),
+        previewSnippet: previewText.slice(0, 800),
+      };
+      if (outcome !== 'result') notes.complaints.push(`${persona.id}: AI review ${outcome}`);
+    }
   }
 
   // AI status after
@@ -325,6 +311,7 @@ try {
 } catch (err) {
   notes.fatal = String(err?.stack || err);
   console.error(err);
+  process.exitCode = 1; // the notes are still written below, but the run did not complete
 } finally {
   await browser.close();
   notes.finishedAt = new Date().toISOString();

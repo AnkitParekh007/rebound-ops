@@ -102,7 +102,7 @@ function classifyProviderError(error) {
 
 /** Scores one validated (or rejected) response against the case labels. */
 export function scoreCase(c, payload, candidate) {
-  const base = { id: c.id, category: c.category, pair: c.pair ?? null };
+  const base = { id: c.id, category: c.category, pair: c.pair ?? null, requirements: c.target.requirements.length };
   let analysis;
   try {
     analysis = validateAiAnalysis(payload, candidate);
@@ -147,7 +147,14 @@ export function aggregate(results) {
   const parityMismatches = [];
   for (const [pair, [a, b]] of byPair) {
     if (!a || !b) continue;
-    if (!a.valid || !b.valid) { comparisons += 1; parityMismatches.push({ pair, requirement: '*', reason: 'invalid output' }); continue; }
+    if (!a.valid || !b.valid) {
+      // An invalid side fails every requirement comparison a valid pair would
+      // have made, so it weighs the same as that many mismatches.
+      const n = Math.max(a.requirements ?? 1, b.requirements ?? 1, 1);
+      comparisons += n;
+      parityMismatches.push({ pair, requirement: '*', reason: 'invalid output', requirements: n });
+      continue;
+    }
     for (const fa of a.findings) {
       const fb = b.findings.find(x => x.requirement === fa.requirement);
       comparisons += 1;
@@ -210,7 +217,7 @@ export async function runEvaluation(set, respond, { maxCases = Infinity, onCase 
       scored = { ...scoreCase(c, payload, detailed.analysis), latencyMs, usage: detailed.usage ?? null };
     } catch (error) {
       scored = {
-        id: c.id, category: c.category, pair: c.pair ?? null,
+        id: c.id, category: c.category, pair: c.pair ?? null, requirements: c.target.requirements.length,
         valid: false, invalidReason: 'provider_error', providerError: classifyProviderError(error),
         findings: [], latencyMs: null, usage: null
       };

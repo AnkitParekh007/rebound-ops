@@ -57,9 +57,18 @@ export function anthropicSupportsTemperature(model) {
   return true;
 }
 
-/** True when a 400 response says the model rejects a sampling parameter. */
-const rejectsSamplingParam = (status, detail) =>
-  status === 400 && /\b(temperature|top_p|top_k|sampling)\b/i.test(String(detail || ''));
+/**
+ * True when a 400 says the model does not accept a sampling parameter at all
+ * ("temperature is deprecated for this model", "... not supported"). A range
+ * or type error ("temperature: must be between 0 and 1") is a configuration
+ * bug and must surface, so it does not match.
+ */
+const rejectsSamplingParam = (status, detail) => {
+  const text = String(detail || '');
+  return status === 400
+    && /\b(temperature|top_p|top_k)\b/i.test(text)
+    && /\b(deprecated|not supported|unsupported|not allowed|not permitted)\b/i.test(text);
+};
 
 /**
  * @returns {{ markdown: string, usage: object|null, error: string|null }}

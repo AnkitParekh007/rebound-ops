@@ -161,6 +161,17 @@ test('runAnthropic: retries once without temperature when the API rejects it', a
   assert.equal('temperature' in bodies[1], false);
 });
 
+test('runAnthropic: a temperature range error is reported, not retried', async () => {
+  let calls = 0;
+  const fakeFetch = async () => {
+    calls++;
+    return jsonResponse(400, { error: { type: 'invalid_request_error', message: 'temperature: must be between 0 and 1' } });
+  };
+  const r = await runAnthropic('hi', { apiKey: 'sk', fetchImpl: fakeFetch, model: 'claude-sonnet-4-6', temperature: 2 });
+  assert.equal(calls, 1, 'no retry that would hide the bad configured value');
+  assert.match(r.error, /must be between 0 and 1/);
+});
+
 test('runAnthropic: other 400s are not retried', async () => {
   let calls = 0;
   const fakeFetch = async () => {

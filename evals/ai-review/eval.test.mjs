@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { APIConnectionError, APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
 import { AiPayloadSchema } from '../../packages/contracts/dist/index.js';
 import {
-  buildPayload, gate, keyUuid, loadGoldenSet, loadThresholds, responders, runEvaluation, validateGoldenSet
+  aggregate, buildPayload, gate, keyUuid, loadGoldenSet, loadThresholds, responders, runEvaluation, validateGoldenSet
 } from './lib.mjs';
 
 const set = loadGoldenSet();
@@ -100,4 +100,17 @@ test('provider errors count as invalid and expose only sanitized diagnostics', a
   ]);
   assert.ok(!JSON.stringify({ metrics, results }).includes(sensitive));
   assert.ok(failed(gate(metrics, thresholds)).includes('minCases'));
+});
+
+test('an invalid fairness pair counts as one mismatch per requirement', () => {
+  const finding = requirement => ({ requirement, assessment: 'gap', overclaim: false, underclaim: false, correct: true });
+  const validSide = id => ({ id, pair: 'matched', requirements: 2, valid: true, findings: [finding('r1'), finding('r2')] });
+  const results = [
+    validSide('m-a'), validSide('m-b'),
+    { id: 'i-a', pair: 'broken', requirements: 3, valid: true, findings: [finding('r1'), finding('r2'), finding('r3')] },
+    { id: 'i-b', pair: 'broken', requirements: 3, valid: false, invalidReason: 'schema', findings: [] }
+  ];
+  const { fairness } = aggregate(results);
+  assert.equal(fairness.comparisons, 5, '2 matched comparisons + 3 for the invalid pair');
+  assert.equal(fairness.parity, 2 / 5);
 });
