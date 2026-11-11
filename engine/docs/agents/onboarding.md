@@ -91,7 +91,7 @@ max_posting_age_days: 45
 ```
 
 #### Step 4: Tracker
-First look for an existing tracker at the active read path: `REBOUND_OPS_TRACKER` when set, otherwise `{DATA_ROOT}/data/applications.md`, falling back to the legacy `{DATA_ROOT}/applications.md` (`resolveTrackerPath(root)` in `path-resolver.mjs`). If any of these exists, keep using it and never create a second, empty tracker. Only when none exists, create it at the write path (`REBOUND_OPS_TRACKER`, else `{DATA_ROOT}/data/applications.md`; `resolveTrackerPathForWrite(root)`):
+First resolve the single active read path (`resolveTrackerPath(root)` in `path-resolver.mjs`): `REBOUND_OPS_TRACKER` when it is set, even if that file does not exist yet; otherwise `{DATA_ROOT}/data/applications.md` when it exists; otherwise the legacy `{DATA_ROOT}/applications.md`. If the file at that active read path exists, keep using it and never create a second, empty tracker. Otherwise create it at the write path (`REBOUND_OPS_TRACKER`, else `{DATA_ROOT}/data/applications.md`; `resolveTrackerPathForWrite(root)`):
 ```markdown
 # Applications Tracker
 
