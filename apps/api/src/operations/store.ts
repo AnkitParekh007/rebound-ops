@@ -373,6 +373,12 @@ export class OperationsStore {
     }
   }
 
+  /** Ids of every record of `entityType`, in id order. */
+  listEntityIds(entityType: string): string[] {
+    const rows = this.db.prepare('SELECT entity_id FROM operation_entities WHERE entity_type = ? ORDER BY entity_id').all(entityType) as { entity_id: string }[];
+    return rows.map((r) => r.entity_id);
+  }
+
   listEvents(entityType: string, entityId: string): OperationEvent[] {
     const rows = this.db.prepare('SELECT * FROM operation_events WHERE entity_type = ? AND entity_id = ? ORDER BY revision').all(entityType, entityId) as EventRow[];
     return rows.map(toEvent);

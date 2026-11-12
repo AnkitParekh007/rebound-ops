@@ -73,3 +73,69 @@ export interface LegacyTrackerImportReport {
   readonly unchanged: number;
   readonly quarantined: readonly LegacyQuarantinedRow[];
 }
+
+/**
+ * Projections of imported tracker records (FND-03). They read the store and,
+ * for the combined view, the tracker text the caller sends; they never write.
+ */
+
+/** The current state of one imported `legacy-<#>` record. */
+export interface LegacyTrackerRecord {
+  readonly num: number;
+  readonly entityId: string;
+  readonly revision: number;
+  /** Cells from the latest import or update, by field name (`date`, `company`, …). */
+  readonly cells: Readonly<Record<string, string>>;
+  /** When the store recorded that latest import or update. */
+  readonly importedAt: string;
+}
+
+/** `GET /api/operations/exports/legacy-tracker`: the store as an engine-format `applications.md`. */
+export interface LegacyTrackerExport {
+  readonly markdown: string;
+  /** Records in the table. */
+  readonly records: number;
+  /** Redacted records, left out because their cells are gone. */
+  readonly redactedOmitted: number;
+}
+
+/** The combined view takes the same text as an import, without `dryRun`: it never writes. */
+export const LegacyTrackerViewRequestSchema = LegacyTrackerImportRequestSchema.omit({ dryRun: true });
+export type LegacyTrackerViewRequest = z.infer<typeof LegacyTrackerViewRequestSchema>;
+
+export const LEGACY_VIEW_STATES = [
+  /** In the store; the tracker row (if any) matches what was imported. */
+  'imported',
+  /** In the store; the tracker row has changed since (an import would update it). */
+  'changed_since_import',
+  /** Only in the tracker text; an import would add it. */
+  'not_imported',
+  /** In the store but redacted; its cells are gone. */
+  'redacted'
+] as const;
+export type LegacyViewState = (typeof LEGACY_VIEW_STATES)[number];
+
+export interface LegacyTrackerViewEntry {
+  readonly num: number;
+  readonly entityId: string;
+  readonly state: LegacyViewState;
+  /** The store's cells, or the tracker row's for `not_imported`; null when redacted. */
+  readonly cells: Readonly<Record<string, string>> | null;
+  /** The tracker row's newer cells, only for `changed_since_import`. */
+  readonly trackerCells?: Readonly<Record<string, string>>;
+}
+
+/**
+ * Store records and not-yet-imported tracker rows, each application once.
+ * A quarantined row is listed under `quarantined` and counted only through
+ * its store record, if it has one.
+ */
+export interface LegacyTrackerView {
+  readonly sourceLabel: string;
+  readonly sourceSha256: string;
+  readonly columns: 'header' | 'legacy_fixed';
+  /** By # ascending. */
+  readonly applications: readonly LegacyTrackerViewEntry[];
+  readonly counts: Readonly<Record<LegacyViewState, number>> & { readonly total: number };
+  readonly quarantined: readonly LegacyQuarantinedRow[];
+}
