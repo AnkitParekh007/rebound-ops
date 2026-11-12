@@ -19,8 +19,11 @@ reviews:
     enabled: true
     drafts: false
     auto_incremental_review: true
+    # main, plus the operations feature branches that stacked PRs target
+    # (feature/00-foundation, feature/02-autofill, …).
     base_branches:
       - "^main$"
+      - "^feature/.*$"
   # Review source, not regenerated output or binary marketing assets.
   # Dependency manifests and lockfiles remain eligible for review.
   path_filters:
