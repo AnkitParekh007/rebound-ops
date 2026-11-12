@@ -1,0 +1,14 @@
+# CodeQL analyses the code that ships and runs. Tests, fixtures, built output
+# and translation dictionaries are excluded: together they are more than half
+# of the repository's JavaScript/TypeScript files, and they made the analysis
+# take about three minutes. None of them is part of a running app or package.
+paths-ignore:
+  - '**/tests/**'
+  - '**/test-fixtures/**'
+  - '**/*.test.mjs'
+  - '**/*.test.js'
+  - '**/*.test.ts'
+  - '**/*.spec.ts'
+  - 'engine/test-all.mjs'
+  - '**/dist/**'
+  - 'workspace/public/js/lib/locales/i18n-dict.*.js'

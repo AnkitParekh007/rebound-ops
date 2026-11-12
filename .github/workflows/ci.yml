@@ -8,6 +8,13 @@ on:
 permissions:
   contents: read
 
+# A new commit on a pull request supersedes the run for the previous one, so
+# that run is cancelled and frees its runners (macOS concurrency is limited).
+# Pushes to main always run to completion: they upload and attest the candidate.
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test-and-build:
     # Pin the browser-test OS rather than inheriting a new ubuntu-latest image.
@@ -165,6 +172,16 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
+      - name: Keep temporary files on the runner's work drive (Windows)
+        # The smoke tests install the app into a fresh clone and an extracted
+        # archive under the OS temp folder. On windows-latest %TEMP% is on C:,
+        # where that clone's dependency install took about 3 minutes and the
+        # archive's about 75 s; this job's own install on D: takes about 27 s.
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "TEMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
+          "TMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
       - name: Clean locked workspace install
         run: npm ci --no-audit --no-fund
       - name: Check cross-platform integrated launcher prerequisites
