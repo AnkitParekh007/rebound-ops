@@ -29,6 +29,8 @@ export const LEGACY_QUARANTINE_REASONS = [
   'duplicate_number',
   /** This # was imported before with a different Company or Role. */
   'conflicts_with_imported_record',
+  /** This # was imported before and its record was later redacted; it is not filled in again. */
+  'record_redacted',
   /** The row's cells (usually Notes) exceed the 64 KiB event payload limit. */
   'row_too_large'
 ] as const;

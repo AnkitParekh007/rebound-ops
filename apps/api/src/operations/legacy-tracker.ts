@@ -203,6 +203,8 @@ export function planLegacyImport(
       const last = ledger.listEvents('application', entityId)
         .filter((e) => e.type === LEGACY_IMPORTED || e.type === LEGACY_UPDATED).at(-1);
       const previous = (last?.payload as { legacy?: Record<string, string>; rowSha256?: string } | undefined);
+      // A redacted record is not filled in again from the same file.
+      if (last?.redactedAt) { hold('record_redacted'); continue; }
       // A record this import did not create, or a # that now names a different
       // job, is never overwritten.
       if (!previous?.legacy || !same(previous.legacy.company, company) || !same(previous.legacy.role, role)) {

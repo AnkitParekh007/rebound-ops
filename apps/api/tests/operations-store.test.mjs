@@ -30,7 +30,7 @@ function withDir(fn) {
 }
 const clock = () => new Date('2026-11-12T10:00:00.000Z');
 
-test('a new store is created at schema 1 with owner-only files', () => withDir((dir) => {
+test('a new store is created at the latest schema with owner-only files', () => withDir((dir) => {
   const store = OperationsStore.open(dir);
   try {
     assert.equal(store.schemaVersion, OPERATIONS_MIGRATIONS.at(-1).version);
@@ -131,7 +131,9 @@ test('events survive a restart', () => withDir((dir) => {
   } finally { store.close(); }
 }));
 
-const V2 = [...OPERATIONS_MIGRATIONS, { version: 2, sql: 'ALTER TABLE operation_events ADD COLUMN note TEXT;' }];
+const LATEST = OPERATIONS_MIGRATIONS.at(-1).version;
+const NEXT = LATEST + 1;
+const V2 = [...OPERATIONS_MIGRATIONS, { version: NEXT, sql: 'ALTER TABLE operation_events ADD COLUMN note TEXT;' }];
 
 test('a migration backs up the existing store first, and the backup restores', () => withDir((dir) => {
   let store = OperationsStore.open(dir);
@@ -139,32 +141,32 @@ test('a migration backs up the existing store first, and the backup restores', (
   store.close();
 
   store = OperationsStore.open(dir, { migrations: V2 });
-  try { assert.equal(store.schemaVersion, 2); } finally { store.close(); }
+  try { assert.equal(store.schemaVersion, NEXT); } finally { store.close(); }
 
   const opsDir = join(dir, 'operations');
-  const backups = readdirSync(opsDir).filter((f) => /^operations\.sqlite\.pre-v2-\d+\.bak$/.test(f));
+  const backups = readdirSync(opsDir).filter((f) => new RegExp(`^operations\\.sqlite\\.pre-v${NEXT}-\\d+\\.bak$`).test(f));
   assert.equal(backups.length, 1);
   if (process.platform !== 'win32') assert.equal(statSync(join(opsDir, backups[0])).mode & 0o777, 0o600);
   const backup = new DatabaseSync(join(opsDir, backups[0]), { readOnly: true });
   try {
-    assert.equal(backup.prepare('PRAGMA user_version').get().user_version, 1);
+    assert.equal(backup.prepare('PRAGMA user_version').get().user_version, LATEST);
     assert.equal(backup.prepare('SELECT count(*) AS n FROM operation_events').get().n, 1);
   } finally { backup.close(); }
 }));
 
 test('a failed migration rolls back and leaves the schema version unchanged', () => withDir((dir) => {
   OperationsStore.open(dir).close();
-  const broken = [...OPERATIONS_MIGRATIONS, { version: 2, sql: 'CREATE TABLE half_done (x INTEGER); THIS IS NOT SQL;' }];
+  const broken = [...OPERATIONS_MIGRATIONS, { version: NEXT, sql: 'CREATE TABLE half_done (x INTEGER); THIS IS NOT SQL;' }];
   assert.throws(() => OperationsStore.open(dir, { migrations: broken }));
   const store = OperationsStore.open(dir);
-  try { assert.equal(store.schemaVersion, 1); } finally { store.close(); }
+  try { assert.equal(store.schemaVersion, LATEST); } finally { store.close(); }
 }));
 
 test('a store from a newer ReboundOps is refused, not downgraded', () => withDir((dir) => {
   OperationsStore.open(dir, { migrations: V2 }).close();
-  assert.throws(() => OperationsStore.open(dir), (e) => e instanceof OperationsStoreVersionError && e.found === 2 && e.supported === 1);
+  assert.throws(() => OperationsStore.open(dir), (e) => e instanceof OperationsStoreVersionError && e.found === NEXT && e.supported === LATEST);
   const store = OperationsStore.open(dir, { migrations: V2 });
-  try { assert.equal(store.schemaVersion, 2); } finally { store.close(); }
+  try { assert.equal(store.schemaVersion, NEXT); } finally { store.close(); }
 }));
 
 test('a newer store is refused before its journal mode changes', () => withDir((dir) => {

@@ -40,7 +40,7 @@ test('a backup is an owner-only copy with a hashed manifest that holds no record
     assert.equal(r.statusCode, 201);
     const m = r.json().backup;
     assert.match(m.name, /^operations-\d{8}T\d{9}Z\.sqlite$/);
-    assert.deepEqual([m.reason, m.schemaVersion, m.entities, m.events], ['manual', 1, 1, 1]);
+    assert.deepEqual([m.reason, m.schemaVersion, m.entities, m.events], ['manual', 2, 1, 1]);
     const file = join(backupsDir(dir), m.name);
     assert.equal(sha(file), m.sha256);
     assert.equal(statSync(file).size, m.bytes);

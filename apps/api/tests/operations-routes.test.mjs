@@ -49,7 +49,7 @@ test('the store opens on first use, not at start-up', () => withApp({ features: 
   assert.equal((await post(app, [event()])).statusCode, 201);
   const status = (await app.inject({ method: 'GET', url: '/api/operations/status' })).json();
   assert.equal(status.storeOpen, true);
-  assert.equal(status.schemaVersion, 1);
+  assert.equal(status.schemaVersion, 2);
 }));
 
 test('append, read back, a stale revision is 409 and a retry is idempotent', () => withApp({ features: on }, async (app) => {
