@@ -3,7 +3,8 @@
 import { Loader2, Wand2, Asterisk, Paperclip, Sparkles, ArrowUpRight, ShieldCheck, RotateCcw, FileCheck2, AlertTriangle, Terminal, Check, ScanLine, PenLine, CheckCircle2, Info, ExternalLink, MousePointerClick, ArrowLeft, ClipboardCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ApplyIssue, DriveStep } from "@/lib/apply/issue";
-import { useApply, type ManualDraft } from "@/components/apply/apply-provider";
+import { useApply, type ManualDraft, type SavedAnswer } from "@/components/apply/apply-provider";
+import { cannotSave } from "@/lib/apply/approved-answer-match.mjs";
 import { needsLeaveConfirmation, resolveReturnPath } from "@/lib/apply/exit.mjs";
 import { isResumeLabel } from "@/lib/apply/resume-label.mjs";
 import { answerNote, type AnswerNote } from "@/lib/apply/answer-note.mjs";
@@ -169,6 +170,10 @@ export function ApplyView() {
 
           {a.manualDraft && <ManualDraftPanel draft={a.manualDraft} />}
 
+          {a.savedAnswers && <SavedAnswersPanel answers={a.savedAnswers} onDelete={(id) => void a.deleteSavedAnswer(id)} />}
+          {/* Always rendered while saving is available, so each save or delete is announced. */}
+          {a.savedAnswers && <p role="status" className={a.savedNotice ? "-mt-2 mb-4 text-xs text-muted" : "sr-only"}>{a.savedNotice}</p>}
+
           {(prefilling || a.prefillLog.length > 0) && (
             <details className="mb-4 rounded-lg border border-border bg-surface/60 backdrop-blur-sm" open={false}>
               <summary className="flex cursor-pointer select-none items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted">
@@ -202,6 +207,7 @@ export function ApplyView() {
                   index={i}
                   drafting={prefilling}
                   onChange={(v) => a.setAnswer(f.id, v)}
+                  save={a.savedAnswers ? { company: a.company, onSave: (scope) => a.saveAnswer(f.id, scope) } : null}
                 />
               </div>
             ))}
@@ -563,6 +569,7 @@ function FieldRow({
   index,
   drafting,
   onChange,
+  save,
 }: {
   field: ApplyField;
   value: string;
@@ -571,7 +578,10 @@ function FieldRow({
   index: number;
   drafting: boolean;
   onChange: (v: string) => void;
+  /** Saved-answer reuse (behind the autofill flag); null hides the action. */
+  save?: { company: string; onSave: (scope: "all" | "company") => void } | null;
 }) {
+  const [saveOpen, setSaveOpen] = useState(false);
   const controlId = useId();
   const confirmationId = `${controlId}-confirmation`;
   const noteId = `${controlId}-note`;
@@ -652,7 +662,57 @@ function FieldRow({
           {note.text}
         </p>
       )}
+      {save && value.trim() && !writing && !cannotSave(f) && (
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+          <button type="button" className="text-muted underline-offset-2 hover:text-foreground hover:underline" aria-expanded={saveOpen} onClick={() => setSaveOpen(!saveOpen)}>
+            Save this answer for later forms…
+          </button>
+          {saveOpen && (
+            <>
+              <button type="button" className="rounded-full border border-border px-2.5 py-0.5 hover:bg-surface" onClick={() => { save.onSave("all"); setSaveOpen(false); }}>
+                For every application
+              </button>
+              {save.company && (
+                <button type="button" className="rounded-full border border-border px-2.5 py-0.5 hover:bg-surface" onClick={() => { save.onSave("company"); setSaveOpen(false); }}>
+                  Only for {save.company}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+/** Answers saved for reuse: what each says, where it applies, and a way to delete it. */
+function SavedAnswersPanel({ answers, onDelete }: { answers: SavedAnswer[]; onDelete: (id: string) => void }) {
+  return (
+    <details className="mb-4 rounded-lg border border-border bg-surface/60 text-xs backdrop-blur-sm">
+      <summary className="flex cursor-pointer select-none items-center gap-1.5 px-3 py-1.5 font-medium text-muted">
+        <ClipboardCheck className="size-3.5" /> Saved answers ({answers.length})
+      </summary>
+      <div className="border-t border-border px-3 py-2">
+        <p className="mb-2 text-muted">Saved answers fill matching questions on later forms, and sensitive ones still ask you to confirm. They stay in data/approved-answers.json on this computer.</p>
+        {answers.length === 0 ? (
+          <p className="text-faint">None yet. Use “Save this answer for later forms…” under an answer.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {answers.map((s) => (
+              <li key={s.id} className="flex items-start justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="font-medium text-foreground">{s.question}</span> <span className="text-faint">· {s.company ? `only ${s.company}` : "every application"}</span>
+                  <span className="block truncate text-muted">{s.value}</span>
+                </span>
+                <button type="button" className="shrink-0 text-muted hover:text-foreground hover:underline" onClick={() => onDelete(s.id)} aria-label={`Delete saved answer: ${s.question}`}>
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </details>
   );
 }
 

@@ -141,5 +141,5 @@ test("without facts the policy behaves exactly as before", () => {
 test("the prefill route loads facts from the resolved profile path and passes them to the policy", () => {
   const route = readFileSync(join(root, "src/app/api/apply/prefill/route.ts"), "utf8");
   assert.match(route, /profileFacts\(yaml\.load\(fs\.readFileSync\(getProfilePath\(reboundOpsRoot\(\)\), "utf8"\)\)\)/);
-  assert.match(route, /enforceAnswerPolicy\(s\.fields, obj, \{ facts \}\)/);
+  assert.match(route, /enforceAnswerPolicy\(s\.fields, obj, \{ facts, approved \}\)/);
 });

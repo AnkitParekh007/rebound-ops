@@ -50,6 +50,7 @@ These files contain your personal data, customizations, and work product. Update
 | `data/cache/provider-ids/<provider>.json` | Values a provider resolved on one scan and reuses on the next, one JSON object per provider (written by `scan.mjs` and `scan-ats-full.mjs` through `provider-id-cache.mjs`; join.com keeps company ids here) — safe to delete, the next scan looks them up again |
 | `data/cache/http/` | Board responses saved for a few minutes so a repeat `scan` can reuse them (written by `scan.mjs` through `providers/_http-cache.mjs`). Each file name is a hash. The URL is not stored, because a query string can carry a token. Safe to delete. The next scan downloads the boards again. |
 | `data/follow-ups.md` | Your follow-up history |
+| `data/approved-answers.json` | Answers you chose to save for reuse on later application forms (Autofill, behind `REBOUNDOPS_FEATURES=autofill`); owner-only, delete entries on the apply page |
 | `data/active-interviews.md` | Your active interview processes, incl. inline `[process-friction]` notes (read by `process-quality.mjs`) |
 | `data/agent-inbox.md` | Your append-only request queue drained at session start (written by `agent-inbox.mjs`) |
 | `data/reply-candidates.json` | Your normalized employer-reply candidates (subject, body, sender, signal, plus optional `received_at`/`date` — read by `reply-watch.mjs`; a reliable received date is required for date-guarded company-wide rejection suggestions) |
