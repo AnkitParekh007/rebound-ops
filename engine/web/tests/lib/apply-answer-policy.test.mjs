@@ -101,7 +101,14 @@ test("an option the form does not offer is left for the person", () => {
   const { answers } = enforceAnswerPolicy(fields, { country: { value: "US" }, loc: { value: "berlin" } });
   assert.equal(answers.country.hold_reason, "not_an_option", "no substring match: US must not become Australia");
   assert.equal(answers.country.value, "");
-  assert.equal(answers.loc.value, "berlin", "case-insensitive exact option is accepted");
+  assert.equal(answers.loc.value, "Berlin", "case-insensitive exact option is accepted, stored as the form spells it");
+});
+
+test("a matched option is stored with the form's own spelling", () => {
+  const fields = [{ id: "country", type: "select", label: "Country", required: true, options: ["Australia", "Austria"] }];
+  const { answers } = enforceAnswerPolicy(fields, { country: { value: "austria" } });
+  assert.equal(answers.country.value, "Austria");
+  assert.equal(answers.country.source, "model_draft");
 });
 
 test("an over-long answer is flagged, never truncated", () => {
