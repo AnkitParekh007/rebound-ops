@@ -12,6 +12,11 @@ export type FillStep = { fieldId: string; label: string; ok: boolean; thumb?: st
 type Meta = { needsConfirmation?: boolean; source?: string; holdReason?: string | null; sensitiveCategory?: string | null; edited?: boolean; assisted?: boolean };
 type PlannerAnswer = { value?: string; needs_confirmation?: boolean; source?: string; hold_reason?: string | null; sensitive_category?: string | null };
 type Status = "idle" | "opening" | "driving" | "prefilling" | "ready" | "filling" | "done" | "error";
+/** GET /api/apply/local-model: whether pre-fill may offer the local model (Autofill AF-05). */
+export type LocalModelStatus = { enabled: boolean; state?: string; model?: string | null; endpoint?: string | null; detail?: string };
+export type Drafter = "cli" | "local_model";
+/** No local model draft: why, and the prompt to use elsewhere (null when there was nothing to draft from). */
+export type ManualDraft = { reason: string; detail: string; prompt: string | null };
 
 type ApplyCtx = {
   status: Status;
@@ -31,6 +36,12 @@ type ApplyCtx = {
   issues: ApplyIssue[];
   driveSteps: DriveStep[];
   error: string;
+  /** Null until loaded; `enabled` is false while the autofill flag is off. */
+  localModel: LocalModelStatus | null;
+  /** What drafts on pre-fill. Always "cli" unless the local model is enabled. */
+  drafter: Drafter;
+  setDrafter: (d: Drafter) => void;
+  manualDraft: ManualDraft | null;
   open: (url: string, opts?: { prefill?: boolean; company?: string; n?: string; from?: string }) => Promise<void>;
   prefill: () => Promise<void>;
   /** `by` is "you" for a direct edit in the review control, "assistant" when the chat assistant wrote it. */
@@ -54,6 +65,14 @@ function closeSession(id: string) {
 }
 
 const CONFIG_KEY = "rebound-ops:config";
+const DRAFTER_KEY = "rebound-ops:autofill-drafter";
+function storedDrafter(): Drafter {
+  try {
+    return localStorage.getItem(DRAFTER_KEY) === "local_model" ? "local_model" : "cli";
+  } catch {
+    return "cli";
+  }
+}
 function cliId(): string | null {
   try {
     return JSON.parse(localStorage.getItem(CONFIG_KEY) || "{}").cliId || null;
@@ -78,6 +97,28 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
   const [issues, setIssues] = useState<ApplyIssue[]>([]);
   const [driveSteps, setDriveSteps] = useState<DriveStep[]>([]);
   const [error, setError] = useState("");
+  const [localModel, setLocalModel] = useState<LocalModelStatus | null>(null);
+  const [chosenDrafter, setChosenDrafter] = useState<Drafter>("cli");
+  const [manualDraft, setManualDraft] = useState<ManualDraft | null>(null);
+  const drafter: Drafter = localModel?.enabled ? chosenDrafter : "cli";
+  const drafterRef = useRef<Drafter>("cli");
+  drafterRef.current = drafter;
+  useEffect(() => {
+    setChosenDrafter(storedDrafter());
+    // Reads configuration only; the model itself is contacted only by a pre-fill.
+    fetch("/api/apply/local-model")
+      .then((r) => (r.ok ? r.json() : { enabled: false }))
+      .then((s: LocalModelStatus) => setLocalModel(s))
+      .catch(() => setLocalModel({ enabled: false }));
+  }, []);
+  const setDrafter = useCallback((d: Drafter) => {
+    setChosenDrafter(d);
+    try {
+      localStorage.setItem(DRAFTER_KEY, d);
+    } catch {
+      /* optional preference */
+    }
+  }, []);
   const sessionId = useRef<string | null>(null);
   const companyRef = useRef<string>("");
   // Mirrors `n` for the async fetch below, same reason as companyRef: the
@@ -227,13 +268,15 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
   const prefill = useCallback(async () => {
     if (!sessionId.current) return;
     const gen = generation.current;
-    if (!cliId()) {
+    const useLocal = drafterRef.current === "local_model";
+    if (!useLocal && !cliId()) {
       setError("Configure a CLI in Config first, then pre-fill from your CV.");
       return;
     }
     setStatus("prefilling");
     setError("");
     setPrefillLog([]);
+    setManualDraft(null);
     const applyAnswers = (raw: Record<string, PlannerAnswer>) => {
       const a: Record<string, string> = {};
       const m: Record<string, Meta> = {};
@@ -247,8 +290,14 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     try {
       // company + application travel with the pre-fill for the same reason they
       // travel with the fill: both halves resolve the one tailored CV from them.
-      const r = await fetch("/api/apply/prefill", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: sessionId.current, cliId: cliId(), company: companyRef.current, application: nRef.current }) });
+      const r = await fetch("/api/apply/prefill", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: sessionId.current, cliId: cliId(), company: companyRef.current, application: nRef.current, drafter: useLocal ? "local_model" : "cli" }) });
       if (generation.current !== gen) return; // left mid-prefill
+      if (!r.ok && r.headers.get("content-type")?.includes("application/json")) {
+        const j = (await r.json().catch(() => ({}))) as { error?: string };
+        setError(`Couldn't pre-fill: ${j.error ?? `HTTP ${r.status}`}`);
+        setStatus("ready");
+        return;
+      }
       if (!r.body) {
         setError("Couldn't pre-fill — no response stream.");
         setStatus("ready");
@@ -259,6 +308,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
       let buf = "";
       let got = false;
       let sawError = false;
+      let sawManual = false;
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -269,7 +319,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
           const line = buf.slice(0, nl).trim();
           buf = buf.slice(nl + 1);
           if (!line) continue;
-          let ev: { t?: string; m?: string; el?: number; raw?: string; answers?: Record<string, PlannerAnswer>; count?: number; truncated?: boolean };
+          let ev: { t?: string; m?: string; el?: number; raw?: string; answers?: Record<string, PlannerAnswer>; count?: number; truncated?: boolean; reason?: string; detail?: string; prompt?: string | null };
           try {
             ev = JSON.parse(line);
           } catch {
@@ -277,10 +327,13 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
           }
           if (ev.t === "log") {
             setPrefillLog((p) => [...p, `+${((ev.el ?? 0) / 1000).toFixed(1)}s  ${ev.m}`]);
+          } else if (ev.t === "manual") {
+            sawManual = true;
+            setManualDraft({ reason: ev.reason ?? "unknown", detail: ev.detail ?? "", prompt: typeof ev.prompt === "string" ? ev.prompt : null });
           } else if (ev.t === "done") {
             got = true;
             applyAnswers(ev.answers ?? {});
-            if ((ev.count ?? 0) === 0) setError("The planner returned 0 answers — see the diagnostics log below.");
+            if ((ev.count ?? 0) === 0 && !useLocal && !sawManual) setError("The planner returned 0 answers — see the diagnostics log below.");
             else if (ev.truncated) setError("The planner was cut off — some fields were recovered, others may be blank. See diagnostics.");
           } else if (ev.t === "error") {
             sawError = true;
@@ -417,6 +470,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     companyRef.current = "";
     nRef.current = "";
     pendingPrefill.current = false;
+    setManualDraft(null);
     setStatus("idle");
     setUrl("");
     setTitle("");
@@ -435,8 +489,8 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, open, prefill, setAnswer, fill, agentFill, reset }),
-    [status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, open, prefill, setAnswer, fill, agentFill, reset],
+    () => ({ status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, open, prefill, setAnswer, fill, agentFill, reset }),
+    [status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, open, prefill, setAnswer, fill, agentFill, reset],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

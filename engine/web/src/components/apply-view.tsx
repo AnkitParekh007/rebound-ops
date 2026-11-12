@@ -3,7 +3,7 @@
 import { Loader2, Wand2, Asterisk, Paperclip, Sparkles, ArrowUpRight, ShieldCheck, RotateCcw, FileCheck2, AlertTriangle, Terminal, Check, ScanLine, PenLine, CheckCircle2, Info, ExternalLink, MousePointerClick, ArrowLeft, ClipboardCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ApplyIssue, DriveStep } from "@/lib/apply/issue";
-import { useApply } from "@/components/apply/apply-provider";
+import { useApply, type ManualDraft } from "@/components/apply/apply-provider";
 import { needsLeaveConfirmation, resolveReturnPath } from "@/lib/apply/exit.mjs";
 import { isResumeLabel } from "@/lib/apply/resume-label.mjs";
 import { answerNote, type AnswerNote } from "@/lib/apply/answer-note.mjs";
@@ -145,6 +145,29 @@ export function ApplyView() {
             </button>
             <span className="text-xs text-muted">…or ask the corner assistant to write/revise any answer.</span>
           </div>
+
+          {/* Autofill AF-05: the optional local model drafts only free-text answers. */}
+          {a.localModel?.enabled && (
+            <div className="mb-4 rounded-lg border border-border bg-surface/60 px-3 py-2 text-xs backdrop-blur-sm">
+              <label className="flex items-start gap-2 text-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={a.drafter === "local_model"}
+                  disabled={prefilling || filling}
+                  onChange={(e) => a.setDrafter(e.target.checked ? "local_model" : "cli")}
+                  aria-describedby="local-model-hint"
+                />
+                <span>Draft free-text answers with the local model on this computer, instead of the CLI</span>
+              </label>
+              <p id="local-model-hint" className="mt-1 pl-5 text-muted">
+                {a.localModel.state === "configured" ? `Model ${a.localModel.model} at ${a.localModel.endpoint}. ` : `${a.localModel.detail} `}
+                It sees your CV text and the questions only, never your profile file. Other fields come from your profile or are left for you.
+              </p>
+            </div>
+          )}
+
+          {a.manualDraft && <ManualDraftPanel draft={a.manualDraft} />}
 
           {(prefilling || a.prefillLog.length > 0) && (
             <details className="mb-4 rounded-lg border border-border bg-surface/60 backdrop-blur-sm" open={false}>
@@ -628,6 +651,30 @@ function FieldRow({
         <p id={noteId} className={cn("mt-1 text-xs", note.tone === "held" ? "text-amber-800 dark:text-amber-400" : "text-muted")}>
           {note.text}
         </p>
+      )}
+    </div>
+  );
+}
+
+/** No local model draft (Autofill AF-05): say why, and offer the prompt for another tool. */
+function ManualDraftPanel({ draft }: { draft: ManualDraft }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div role="status" className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+      <p className="flex items-start gap-1.5">
+        <Info className="mt-0.5 size-4 shrink-0" />
+        <span>No local model draft: {draft.detail} The free-text answers are left for you; nothing was guessed.</span>
+      </p>
+      {draft.prompt && (
+        <button
+          type="button"
+          className="mt-2 inline-flex items-center gap-1 rounded-full border border-amber-500/40 px-3 py-1 text-xs font-medium hover:bg-amber-500/15"
+          onClick={() => {
+            void navigator.clipboard?.writeText(draft.prompt ?? "").then(() => setCopied(true), () => setCopied(false));
+          }}
+        >
+          <ClipboardCheck className="size-3.5" /> {copied ? "Prompt copied" : "Copy the prompt to use another tool"}
+        </button>
       )}
     </div>
   );
