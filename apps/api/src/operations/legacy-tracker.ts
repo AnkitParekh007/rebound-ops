@@ -125,10 +125,21 @@ export interface LedgerView {
   listEvents(entityType: string, entityId: string): OperationEvent[];
 }
 
+/** What the plan does with one readable, unquarantined row. */
+export interface LegacyRowOutcome {
+  readonly line: number;
+  readonly num: number;
+  readonly entityId: string;
+  readonly outcome: 'imported' | 'updated' | 'unchanged';
+  readonly cells: Readonly<Record<string, string>>;
+}
+
 export interface LegacyImportPlan {
   readonly report: LegacyTrackerImportReport;
   /** Events to append atomically, in order. Empty when nothing changed. */
   readonly events: readonly OperationEventInput[];
+  /** Per-row outcomes, in file order (quarantined rows are in the report instead). */
+  readonly outcomes: readonly LegacyRowOutcome[];
 }
 
 export const LEGACY_APPLICATION_PREFIX = 'legacy-';
@@ -174,6 +185,7 @@ export function planLegacyImport(
   const sourceSha256 = sha256(request.markdown);
   const quarantined: LegacyQuarantinedRow[] = read.malformed.map(({ line, num, reason }) => ({ line, num, reason }));
   const events: OperationEventInput[] = [];
+  const outcomes: LegacyRowOutcome[] = [];
   let imported = 0;
   let updated = 0;
   let unchanged = 0;
@@ -211,7 +223,11 @@ export function planLegacyImport(
         hold('conflicts_with_imported_record');
         continue;
       }
-      if (previous.rowSha256 === rowSha256) { unchanged++; continue; }
+      if (previous.rowSha256 === rowSha256) {
+        unchanged++;
+        outcomes.push({ line: row.line, num: row.num, entityId, outcome: 'unchanged', cells: row.cells });
+        continue;
+      }
       type = LEGACY_UPDATED;
       occurredAt = now().toISOString();
     }
@@ -221,6 +237,7 @@ export function planLegacyImport(
     // oversized row would fail the whole import (and a dry run would not know).
     if (Buffer.byteLength(JSON.stringify(payload), 'utf8') > MAX_EVENT_PAYLOAD_BYTES) { hold('row_too_large'); continue; }
     if (type === LEGACY_UPDATED) updated++; else imported++;
+    outcomes.push({ line: row.line, num: row.num, entityId, outcome: type === LEGACY_UPDATED ? 'updated' : 'imported', cells: row.cells });
 
     events.push({
       id: deterministicUuid(`legacy-tracker|${entityId}|${current}|${rowSha256}`),
@@ -268,5 +285,5 @@ export function planLegacyImport(
       }
     });
   }
-  return { report, events };
+  return { report, events, outcomes };
 }

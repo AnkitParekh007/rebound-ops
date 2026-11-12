@@ -19,9 +19,10 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { OPERATIONS_STORE_RELATIVE_PATH } from './paths.js';
 import { LocalModel } from './local-model.js';
 import { BackupHashMismatchError, BackupNotFoundError, createBackup, listBackups, retentionNotice, verifiedBackupFile } from './backups.js';
-import { planLegacyImport, type LedgerView } from './legacy-tracker.js';
+import { planLegacyImport } from './legacy-tracker.js';
+import { projectLegacyRecords, renderLegacyTracker, viewLegacyTracker, type ProjectionLedger } from './legacy-projection.js';
 import {
-  FEATURE_FLAGS, OperationEventInputSchema, LegacyTrackerImportRequestSchema, MAX_LEGACY_TRACKER_BYTES, RecordRedactionRequestSchema,
+  FEATURE_FLAGS, OperationEventInputSchema, LegacyTrackerImportRequestSchema, LegacyTrackerViewRequestSchema, MAX_LEGACY_TRACKER_BYTES, RecordRedactionRequestSchema,
   type FeatureFlag, type ResolvedFeatureFlags
 } from '@reboundops/contracts';
 import type { OperationsStore } from './store.js';
@@ -31,7 +32,7 @@ export const MAX_EVENTS_PER_BATCH = 100;
 
 type StoreModule = typeof import('./store.js');
 
-const EMPTY_LEDGER: LedgerView = { revisionOf: () => 0, listEvents: () => [] };
+const EMPTY_LEDGER: ProjectionLedger = { revisionOf: () => 0, listEvents: () => [], listEntityIds: () => [] };
 type Unavailable = { status: 404 | 503; error: string; message: string };
 
 export interface OperationsRouteOptions {
@@ -177,7 +178,33 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
   // JSON escaping can grow text up to six times (a control character becomes
   // \u00XX), so the body limit covers the full permitted text in the worst
   // case; the 2 MiB check on the decoded text then applies.
-  app.post('/api/operations/imports/legacy-tracker', { bodyLimit: 6 * MAX_LEGACY_TRACKER_BYTES + 64 * 1024 }, async (request, reply) => {
+  const trackerBodyLimit = 6 * MAX_LEGACY_TRACKER_BYTES + 64 * 1024;
+
+  /** The store for a read-only route, or the empty ledger when no store exists yet (nothing is created). */
+  async function readLedger(): Promise<ProjectionLedger | Unavailable> {
+    const refused = unavailable();
+    if (refused) return refused;
+    if (storeFileMissing()) return EMPTY_LEDGER;
+    return getStore();
+  }
+
+  // Projections (FND-03). Read-only; before the first import they read an
+  // empty ledger rather than create the store.
+  app.get('/api/operations/exports/legacy-tracker', async (_request, reply) => {
+    const ledger = await readLedger();
+    if (!('listEntityIds' in ledger)) return reply.code(ledger.status).send({ error: ledger.error, message: ledger.message });
+    return renderLegacyTracker(projectLegacyRecords(ledger));
+  });
+
+  app.post('/api/operations/projections/legacy-tracker', { bodyLimit: trackerBodyLimit }, async (request, reply) => {
+    const parsed = LegacyTrackerViewRequestSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    const ledger = await readLedger();
+    if (!('listEntityIds' in ledger)) return reply.code(ledger.status).send({ error: ledger.error, message: ledger.message });
+    return viewLegacyTracker(parsed.data, ledger);
+  });
+
+  app.post('/api/operations/imports/legacy-tracker', { bodyLimit: trackerBodyLimit }, async (request, reply) => {
     const parsed = LegacyTrackerImportRequestSchema.safeParse(request.body);
     if (!parsed.success) return invalid(reply, parsed.error);
     const refused = unavailable();
