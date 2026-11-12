@@ -27,7 +27,12 @@ Evidence, checked on 12 November 2026:
    - Row `#` maps to the application `legacy-<#>`. Event ids derive from the row's content and the record's revision, so importing the same file again writes nothing. A changed row adds an `application.legacy_updated` event; the earlier event stays. An imported row's event time is its Date cell; an update's is the import time.
    - Two checks are stricter than the engine, so a row is held rather than imported wrong: row width counts every header column, recognised or not, and `#` must be a safe whole number (the engine reads `12a` as 12).
    - Quarantined, with line and reason, and never written: rows with too few cells, a `#` that is not a safe whole number, an invalid date, no company or role, a `#` used twice, a `#` that was imported before with a different company or role, or a row too large for one event (over 64 KiB, usually long notes), so one row never fails the whole atomic import. Each import that writes anything also writes a `legacy_import.recorded` audit event, holding up to 500 quarantined rows and their total.
-8. **Files** are owner-only (`0600`, directory `0700`) where the OS supports it. There is no encryption at rest, consistent with roadmap gap S3.
+8. **Backups and restore** (FND-06, `apps/api/src/operations/backups.ts`):
+   - `POST /api/operations/backups` writes a consistent copy (`VACUUM INTO`, created owner-only before SQLite writes it) to `operations/backups/operations-<UTC timestamp>.sqlite`, with a `.json` manifest: SHA-256, bytes, schema version, entity and event counts, reason. The manifest holds no record content. `GET /api/operations/backups` lists them without opening the store.
+   - `POST /api/operations/backups/:name/restore` with exactly `{ "confirm": true }`. Only a bare name matching the backup pattern is accepted (`404 BACKUP_NOT_FOUND` otherwise, so no path or `..`). The file must match its manifest's SHA-256 (`409 BACKUP_HASH_MISMATCH`), pass SQLite's `integrity_check`, and have this store's schema version, tables and columns (`422 BACKUP_INVALID` with the reason). Only then is the current state backed up (reason `pre_restore`), and every record is replaced from the backup in one transaction on the locked connection, so a restore is all-or-nothing and can itself be undone.
+   - Restore on a clean profile: copy a backup and its manifest into `<new data dir>/operations/backups/`, then restore it there.
+   - A backup from an older schema version is refused for now, not migrated. Backups are not encrypted, and the API never deletes them; a person removes old ones by hand.
+9. **Files** are owner-only (`0600`, directory `0700`) where the OS supports it. There is no encryption at rest, consistent with roadmap gap S3.
 
 ## Consequences
 
