@@ -23,9 +23,14 @@ install or activate the GitHub App.
 
 Non-draft PRs targeting `main`, or one of the `feature/*` branches that
 stacked operations-feature PRs target, are reviewed automatically, with
-incremental review on subsequent pushes. Generated builds, dependency
-directories and binary marketing assets are excluded; source, CI, contracts, docs, manifests and
-lockfiles remain eligible. Findings should emphasize real defects, data loss,
+incremental review on subsequent pushes. CodeRabbit pauses automatic review
+after five reviewed commits on a PR (its default
+`auto_pause_after_reviewed_commits`, not overridden here); later pushes stay
+unreviewed until someone comments `@coderabbitai resume` or
+`@coderabbitai review`. Stacked PRs with many fix-up commits reach this limit
+quickly. Generated builds, dependency directories and binary marketing assets
+are excluded; source, CI, contracts, docs, manifests and lockfiles remain
+eligible. Findings should emphasize real defects, data loss,
 privacy and accessible interactions.
 
 Automatic approvals, label/reviewer assignment, generated fixes/tests/docstrings
