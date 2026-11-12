@@ -16,17 +16,30 @@ import http from 'node:http';
 
 export function httpGet(url, { timeoutMs = 5_000 } = {}) {
   return new Promise((resolveGet, reject) => {
+    let settled = false;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      fn(value);
+    };
     const request = http.get(url, { agent: false }, (response) => {
       let body = '';
       response.setEncoding('utf8');
       response.on('data', (chunk) => { body += chunk; });
-      response.on('error', reject);
+      response.on('error', (error) => finish(reject, error));
       response.on('end', () => {
         const status = response.statusCode ?? 0;
-        resolveGet({ status, ok: status >= 200 && status < 300, body, json: () => JSON.parse(body) });
+        finish(resolveGet, { status, ok: status >= 200 && status < 300, body, json: () => JSON.parse(body) });
       });
     });
-    request.setTimeout(timeoutMs, () => request.destroy(new Error(`GET ${url} timed out after ${timeoutMs} ms`)));
-    request.on('error', reject);
+    // An absolute deadline, not an idle timeout: a response that keeps sending
+    // chunks but never ends must still settle, so the polling loops stay bounded.
+    const deadline = setTimeout(() => {
+      const error = new Error(`GET ${url} did not complete within ${timeoutMs} ms`);
+      request.destroy(error);
+      finish(reject, error);
+    }, timeoutMs);
+    request.on('error', (error) => finish(reject, error));
   });
 }
