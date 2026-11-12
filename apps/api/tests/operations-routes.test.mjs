@@ -44,6 +44,8 @@ test('without a data directory nothing is persisted', async () => {
 
 test('the store opens on first use, not at start-up', () => withApp({ features: on }, async (app, dir) => {
   assert.ok(!existsSync(join(dir, 'operations')));
+  assert.equal((await app.inject({ method: 'GET', url: '/api/operations/status' })).json().storeOpen, false, 'status does not open it');
+  assert.ok(!existsSync(join(dir, 'operations')));
   assert.equal((await post(app, [event()])).statusCode, 201);
   const status = (await app.inject({ method: 'GET', url: '/api/operations/status' })).json();
   assert.equal(status.storeOpen, true);
@@ -83,6 +85,10 @@ test('invalid requests are 400 with the failing path, oversized payloads 413', (
   assert.equal(r.statusCode, 400);
   r = await post(app, [event({ payload: { blob: 'x'.repeat(70 * 1024) } })]);
   assert.equal(r.statusCode, 413);
+  assert.equal(r.json().error, 'EVENT_PAYLOAD_TOO_LARGE');
+  r = await post(app, [event({ payload: { blob: 'x'.repeat(130 * 1024) } })]);
+  assert.equal(r.statusCode, 413, 'a body over the API limit is refused by Fastify first');
+  assert.equal(r.json().code, 'FST_ERR_CTP_BODY_TOO_LARGE');
 }));
 
 test('a second API on the same data directory gets 503 LOCKED, not a second writer', async () => {
