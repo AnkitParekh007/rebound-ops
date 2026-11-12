@@ -186,6 +186,7 @@ export async function driveSession(
       : `Your goal: FILL this job application with the candidate's answers below, matching each answer to its field by label, across all pages (click 'Next'/'Continue' between pages). Skip any field already correctly filled, and skip file-uploads (handled separately). NEVER submit — when everything is filled and you're on the final page, reply {"action":"done"}.
 ANSWERS (match by the field's label):
 ${answersBlock || "(no answers provided — just reach/observe)"}`;
+  const writePolicy = { approved: goal === "full" ? (answers ?? []).filter((a) => a.value?.trim()) : null };
   let resumeId: string | null = null;
 
   const stopVerb = goal === "reach" ? '{"action":"reached_form"}            STOP — the fillable application form is now visible' : '{"action":"done"}                    STOP — every answer is filled (you NEVER submit; the human does)';
@@ -238,7 +239,10 @@ Reply ONE action JSON.`;
     // execute the action on OUR session — NEVER submit. The executor, and the
     // guard it applies to every action naming a ref, live in drive-action.mjs so
     // a test can drive them: nothing here acts on an element directly.
-    const { detail, note, refusal } = await executeAction(page, frame, act, snap.actionable);
+    // What the loop may write: in full mode only the answers the person reviewed
+    // (and sensitive fields only their reviewed answer); in reach mode no
+    // sensitive field at all. drive-write-guard.mjs, roadmap gap C3.
+    const { detail, note, refusal } = await executeAction(page, frame, act, snap.actionable, writePolicy);
     await page.waitForTimeout(700);
     const s: DriveStep = { turn, action: act.action, detail, thumb: await shot(), note: note || undefined, refusal };
     steps.push(s);
