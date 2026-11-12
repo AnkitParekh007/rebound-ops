@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { loadAiProvider, type AiProvider } from './provider.js';
 import { SessionStore, SessionStorageError } from './storage.js';
+import { registerOperationsRoutes } from './operations/routes.js';
 import {
   PersonalizeActionSchema, personalizeAction, ActionDecisionSchema, AddJobTargetSchema, AiPreviewRequestSchema, AiAnalyzeRequestSchema, CreateSessionSchema, DeleteTargetSchema,
   EvidenceDecisionSchema, CorrectEvidenceSchema, AddSourceDocumentSchema, PersistenceChoiceSchema,
@@ -14,7 +15,7 @@ import {
   addSourceDocument, removeSourceDocument, correctEvidence,
   validateRestoredSession, createAiPayload, validateAiAnalysis, type Session,
   CURRENT_SESSION_SCHEMA_VERSION, MIN_SUPPORTED_SESSION_SCHEMA_VERSION, migrateSession,
-  SessionMigrationError, type MigrationOptions
+  SessionMigrationError, type MigrationOptions, resolveFeatureFlags, type ResolvedFeatureFlags
 } from '@reboundops/contracts';
 
 const allowedOrigins = new Set([
@@ -76,6 +77,8 @@ export function buildApp(options: {
   aiCounterFile?: string | null;
   /** Test seam: override max AI attempts (defaults to env or 10). */
   maxAiAttempts?: number;
+  /** Test seam: operations feature flags. Production reads REBOUNDOPS_FEATURES. */
+  features?: ResolvedFeatureFlags;
 } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 128 * 1024 });
   const sessions = new SessionStore(options.dataDir, { migration: options.sessionMigration });
@@ -194,6 +197,8 @@ export function buildApp(options: {
     countersDurable: Boolean(aiCounterFile),
     spendCeiling: 'Set a provider-side workspace spend limit before live calls. Local attempt counters are not a currency ceiling.'
   }));
+
+  registerOperationsRoutes(app, { dataDir: options.dataDir, features: options.features ?? resolveFeatureFlags(process.env) });
 
   app.get('/api/health', async () => ({
     status: 'ok', mode: 'local-only', persistence: sessions.available ? 'opt-in-disk' : 'memory',
