@@ -28,7 +28,14 @@ after five reviewed commits on a PR (its default
 `auto_pause_after_reviewed_commits`, not overridden here); later pushes stay
 unreviewed until someone comments `@coderabbitai resume` or
 `@coderabbitai review`. Stacked PRs with many fix-up commits reach this limit
-quickly. Generated builds, dependency directories and binary marketing assets
+quickly.
+
+CodeRabbit reads `.coderabbit.yaml` from the branch under review, so the
+`feature/*` rule only applies to a PR whose head branch already contains it.
+A stacked PR opened from an older branch keeps the old `main`-only rule: merge
+`main` into that branch, or request a review with `@coderabbitai review`.
+
+Generated builds, dependency directories and binary marketing assets
 are excluded; source, CI, contracts, docs, manifests and lockfiles remain
 eligible. Findings should emphasize real defects, data loss,
 privacy and accessible interactions.
