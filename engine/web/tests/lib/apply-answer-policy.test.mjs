@@ -63,7 +63,7 @@ test("a model answer to a sensitive question never reaches the person as a value
   assert.equal(answers.pay.value, "");
   assert.equal(answers.pay.sensitive_category, "salary");
   assert.equal(answers.consent.hold_reason, "consent_never_auto");
-  assert.deepEqual(summary, { proposed: 0, held: 0, unresolved: 3, dropped: 0, fromProfile: 0 });
+  assert.deepEqual(summary, { proposed: 0, held: 0, unresolved: 3, dropped: 0, fromProfile: 0, fromApproved: 0 });
 });
 
 test("work-permission and age-of-majority answers are never returned as model drafts", () => {
@@ -152,6 +152,6 @@ test("non-object planner output yields no proposals", () => {
 test("the prefill route emits the policy's answers, not the raw planner object", () => {
   const route = readFileSync(join(root, "src/app/api/apply/prefill/route.ts"), "utf8");
   assert.match(route, /import \{ enforceAnswerPolicy \} from "@\/lib\/apply\/answer-policy\.mjs"/);
-  assert.match(route, /enforceAnswerPolicy\(s\.fields, obj, \{ facts \}\)/);
+  assert.match(route, /enforceAnswerPolicy\(s\.fields, obj, \{ facts, approved \}\)/);
   assert.doesNotMatch(route, /answers:\s*obj\b/, "raw planner output must not be emitted");
 });

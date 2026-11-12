@@ -13,6 +13,7 @@ import { profileFacts } from "@/lib/apply/profile-facts.mjs";
 import { runPlanner } from "@/lib/apply/planner";
 import { autofillEnabled, readLocalModelConfig } from "@/lib/apply/local-model.mjs";
 import { draftNarrative, readCvText } from "@/lib/apply/narrative-draft.mjs";
+import { findApproved, readApproved } from "@/lib/apply/approved-answers.mjs";
 import { extractJsonObject } from "@/lib/extract-json-object.mjs";
 import { readJsonObject } from "@/lib/json-body";
 
@@ -109,8 +110,19 @@ export async function POST(req: Request) {
         } catch {
           log("Profile facts: config/profile.yml not readable — every answer stays a draft or yours");
         }
-        const { answers, summary } = enforceAnswerPolicy(s.fields, obj, { facts });
-        log(`Answer policy: ${summary.fromProfile} from your profile · ${summary.proposed} AI drafts · ${summary.held} held for review · ${summary.unresolved} left for you · ${summary.dropped} dropped (not on this form)`);
+        // Answers the person saved for reuse (behind the autofill flag). A damaged
+        // file is reported and left alone; pre-fill carries on without it.
+        let approved = null;
+        if (autofillEnabled(process.env)) {
+          try {
+            const saved = readApproved(reboundOpsRoot()).answers;
+            approved = (field: { type: string; label?: string; combobox?: boolean }) => findApproved(saved, field, company);
+          } catch (e) {
+            log(`Saved answers not used: ${e instanceof Error ? e.message : "unreadable"}`);
+          }
+        }
+        const { answers, summary } = enforceAnswerPolicy(s.fields, obj, { facts, approved });
+        log(`Answer policy: ${summary.fromProfile} from your profile · ${summary.fromApproved} saved answers · ${summary.proposed} AI drafts · ${summary.held} held for review · ${summary.unresolved} left for you · ${summary.dropped} dropped (not on this form)`);
         emit({ t: "done", answers, truncated: extra.truncated, count: extra.count, policy: summary });
         controller.close();
       };

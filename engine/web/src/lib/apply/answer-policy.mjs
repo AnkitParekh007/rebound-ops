@@ -22,7 +22,11 @@
  * so everything it writes is a `model_draft`. Fields settled by the person's
  * reviewed config/profile.yml facts (profile-facts.mjs) come back as
  * `profile_fact` (or `derived` for a first/last name split from a two-word full
- * name); `approved_answer` arrives with saved-answer reuse.
+ * name). An answer the person saved for this question (approved-answers.mjs)
+ * comes back as `approved_answer`, after a profile fact and before a derived
+ * value or a draft. A saved answer may settle a sensitive question, since the
+ * person reviewed it, but it is still marked for them to confirm. Attestation
+ * questions and checkboxes in any sensitive category are never filled from one.
  *
  * ANSWER_SOURCES, SENSITIVE_CATEGORIES and ANSWER_HOLD_REASONS mirror
  * packages/contracts/src/operations/autofill.ts. tests/operations-parity.test.mjs
@@ -87,24 +91,27 @@ export function sensitiveCategory(label) {
 /**
  * @typedef {{ id: string, type: string, label?: string, required?: boolean, options?: string[], maxLength?: number, combobox?: boolean }} PolicyField
  * @typedef {{ value: string, needs_confirmation: boolean, source: string, sensitive_category: string | null, hold_reason: string | null }} PolicyAnswer
- * @typedef {{ proposed: number, held: number, unresolved: number, dropped: number, fromProfile: number }} PolicySummary
+ * @typedef {{ proposed: number, held: number, unresolved: number, dropped: number, fromProfile: number, fromApproved: number }} PolicySummary
+ * @typedef {{ value: string }} SavedAnswer
  */
 
 /**
  * @param {PolicyField[]} fields the form as extracted for this session
  * @param {Record<string, unknown>} raw the parsed planner object: id → {value, needs_confirmation} or a bare string
- * @param {{ facts?: import("./profile-facts.mjs").ProfileFacts | null }} [opts] reviewed facts
- *   from config/profile.yml (profile-facts.mjs). A field they settle takes the
- *   profile's value whatever the planner wrote; this is the only way a
- *   sensitive field gets a value.
+ * @param {{ facts?: import("./profile-facts.mjs").ProfileFacts | null, approved?: ((field: PolicyField) => SavedAnswer | null) | null }} [opts]
+ *   `facts`: reviewed facts from config/profile.yml (profile-facts.mjs). A
+ *   field they settle takes the profile's value whatever the planner wrote.
+ *   `approved`: the person's saved answer for a field (approved-answers.mjs
+ *   findApproved). These two are the only ways a sensitive field gets a value.
  * @returns {{ answers: Record<string, PolicyAnswer>, summary: PolicySummary }}
  */
 export function enforceAnswerPolicy(fields, raw, opts = {}) {
   const planner = raw && typeof raw === "object" ? raw : {};
   /** @type {Record<string, PolicyAnswer>} */
   const answers = {};
-  const summary = { proposed: 0, held: 0, unresolved: 0, dropped: 0, fromProfile: 0 };
+  const summary = { proposed: 0, held: 0, unresolved: 0, dropped: 0, fromProfile: 0, fromApproved: 0 };
   const facts = opts.facts ?? null;
+  const approved = typeof opts.approved === "function" ? opts.approved : null;
   const known = new Set();
 
   for (const field of fields ?? []) {
@@ -123,8 +130,36 @@ export function enforceAnswerPolicy(fields, raw, opts = {}) {
       return { value: "", needs_confirmation: hold !== null, source: "unresolved", sensitive_category: category, hold_reason: hold };
     };
 
+    const fits = (/** @type {string} */ v) => !(typeof field.maxLength === "number" && field.maxLength > 0 && v.length > field.maxLength);
+    const options = Array.isArray(field.options) ? field.options : [];
+    const choosesOption = field.type === "select" || field.type === "radio" || !!field.combobox;
     const fromProfile = facts ? resolveProfileAnswer(field, facts, category) : null;
-    if (fromProfile && !(typeof field.maxLength === "number" && field.maxLength > 0 && fromProfile.value.length > field.maxLength)) {
+    // Source order (contracts ANSWER_SOURCES): profile_fact, approved_answer, derived, model_draft.
+    if (fromProfile && fromProfile.source === "profile_fact" && fits(fromProfile.value)) {
+      summary.fromProfile++;
+      answers[field.id] = { value: fromProfile.value, needs_confirmation: false, source: fromProfile.source, sensitive_category: category, hold_reason: null };
+      continue;
+    }
+    // A sensitive checkbox is a consent or declaration (attestation, background
+    // check, …): the person ticks it on each form, never a saved answer.
+    const saved = approved && category !== "attestation" && !(field.type === "checkbox" && category) ? approved(field) : null;
+    if (saved && typeof saved.value === "string" && saved.value.trim() !== "") {
+      // A saved choice must still be one of this form's options, spelled its way;
+      // otherwise it does not apply here and the field resolves as if unsaved.
+      let savedValue = saved.value;
+      let usable = fits(savedValue);
+      if (usable && choosesOption && options.length > 0) {
+        const picked = pickComboboxOption(options, savedValue);
+        usable = picked >= 0;
+        if (usable) savedValue = String(options[picked]);
+      }
+      if (usable) {
+        summary.fromApproved++;
+        answers[field.id] = { value: savedValue, needs_confirmation: category !== null, source: "approved_answer", sensitive_category: category, hold_reason: null };
+        continue;
+      }
+    }
+    if (fromProfile && fits(fromProfile.value)) {
       summary.fromProfile++;
       answers[field.id] = { value: fromProfile.value, needs_confirmation: false, source: fromProfile.source, sensitive_category: category, hold_reason: null };
       continue;
@@ -137,8 +172,6 @@ export function enforceAnswerPolicy(fields, raw, opts = {}) {
       answers[field.id] = unresolved(field.required || modelAsked ? "no_answer" : null);
       continue;
     }
-    const options = Array.isArray(field.options) ? field.options : [];
-    const choosesOption = field.type === "select" || field.type === "radio" || !!field.combobox;
     if (choosesOption && options.length > 0) {
       const picked = pickComboboxOption(options, value);
       if (picked < 0) {

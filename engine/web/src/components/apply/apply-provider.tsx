@@ -17,6 +17,9 @@ export type LocalModelStatus = { enabled: boolean; state?: string; model?: strin
 export type Drafter = "cli" | "local_model";
 /** No local model draft: why, and the prompt to use elsewhere (null when there was nothing to draft from). */
 export type ManualDraft = { reason: string; detail: string; prompt: string | null };
+/** One answer the person saved for reuse (approved-answers.mjs). */
+export type SavedAnswer = { id: string; question: string; kind: string; value: string; company: string | null; savedAt: string };
+type SavedAnswers = { revision: number; answers: SavedAnswer[] };
 
 type ApplyCtx = {
   status: Status;
@@ -42,6 +45,13 @@ type ApplyCtx = {
   drafter: Drafter;
   setDrafter: (d: Drafter) => void;
   manualDraft: ManualDraft | null;
+  /** Null while the autofill flag is off or before they load. */
+  savedAnswers: SavedAnswer[] | null;
+  /** The last save or delete outcome, for a status line. */
+  savedNotice: string;
+  /** Save the field's current answer for every application ("all") or this company only. */
+  saveAnswer: (fieldId: string, scope: "all" | "company") => Promise<void>;
+  deleteSavedAnswer: (id: string) => Promise<void>;
   open: (url: string, opts?: { prefill?: boolean; company?: string; n?: string; from?: string }) => Promise<void>;
   prefill: () => Promise<void>;
   /** `by` is "you" for a direct edit in the review control, "assistant" when the chat assistant wrote it. */
@@ -111,6 +121,42 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
       .then((s: LocalModelStatus) => setLocalModel(s))
       .catch(() => setLocalModel({ enabled: false }));
   }, []);
+  const [saved, setSaved] = useState<SavedAnswers | null>(null);
+  const savedRef = useRef<SavedAnswers | null>(null);
+  savedRef.current = saved;
+  const [savedNotice, setSavedNotice] = useState("");
+  const loadSaved = useCallback(async () => {
+    try {
+      const r = await fetch("/api/apply/approved-answers");
+      const j = await r.json();
+      if (r.ok) setSaved({ revision: j.revision, answers: j.answers });
+      else setSavedNotice(j.error ?? "Saved answers could not be loaded.");
+    } catch {
+      setSavedNotice("Saved answers could not be loaded.");
+    }
+  }, []);
+  // The status route reports the autofill flag as `enabled`; saved answers share it.
+  useEffect(() => {
+    if (localModel?.enabled) void loadSaved();
+  }, [localModel?.enabled, loadSaved]);
+  const changeSaved = useCallback(async (method: "POST" | "DELETE", body: Record<string, unknown>, success: string) => {
+    const current = savedRef.current;
+    if (!current) return;
+    try {
+      const r = await fetch("/api/apply/approved-answers", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: current.revision, ...body }) });
+      const j = await r.json();
+      if (!r.ok) {
+        setSavedNotice(j.error ?? "Saved answers could not be changed.");
+        if (r.status === 409) await loadSaved();
+        return;
+      }
+      const all = method === "POST" ? j.all : j;
+      setSaved({ revision: all.revision, answers: all.answers });
+      setSavedNotice(success);
+    } catch {
+      setSavedNotice("Saved answers could not be changed.");
+    }
+  }, [loadSaved]);
   const setDrafter = useCallback((d: Drafter) => {
     setChosenDrafter(d);
     try {
@@ -460,6 +506,18 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
   const agentFillRef = useRef(agentFill);
   agentFillRef.current = agentFill;
 
+  const saveAnswer = useCallback(async (fieldId: string, scope: "all" | "company") => {
+    const field = fieldsRef.current.find((f) => f.id === fieldId);
+    const value = answersRef.current[fieldId] ?? "";
+    if (!field) return;
+    const company = scope === "company" ? companyRef.current : null;
+    await changeSaved("POST", { field: { label: field.label, type: field.type, combobox: !!field.combobox }, value, company },
+      company ? `Saved for ${company}. Later forms from them asking this will use it.` : "Saved. Later forms asking this will use it.");
+  }, [changeSaved]);
+  const deleteSavedAnswer = useCallback(async (id: string) => {
+    await changeSaved("DELETE", { id }, "Saved answer deleted.");
+  }, [changeSaved]);
+
   const reset = useCallback(() => {
     // Invalidate anything still in flight before clearing state, so a response
     // that lands after this can't repopulate the page the user just left.
@@ -489,8 +547,8 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, open, prefill, setAnswer, fill, agentFill, reset }),
-    [status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, open, prefill, setAnswer, fill, agentFill, reset],
+    () => ({ status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, savedAnswers: saved?.answers ?? null, savedNotice, saveAnswer, deleteSavedAnswer, open, prefill, setAnswer, fill, agentFill, reset }),
+    [status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, saved, savedNotice, saveAnswer, deleteSavedAnswer, open, prefill, setAnswer, fill, agentFill, reset],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
