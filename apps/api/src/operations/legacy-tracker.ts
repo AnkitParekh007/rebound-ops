@@ -7,6 +7,11 @@
  * name through the same alias table (falling back to the fixed legacy order),
  * a header must label #, Company, Role, Score and Status, and a row narrower
  * than the header is malformed rather than read with shifted cells.
+ *
+ * Two deliberate differences from the engine, both stricter, so a row is
+ * held rather than imported wrong: the width check counts every header
+ * column, recognised or not (the engine counts up to the last recognised
+ * one), and a # cell must be a whole number (the engine reads `12a` as 12).
  * apps/api/tests/legacy-tracker-parity.test.mjs holds the two readers to the
  * same aliases and the same rows. The API cannot import the engine module
  * because the preview package ships only dist/api.
@@ -48,11 +53,17 @@ export interface LegacyRow {
   readonly cells: Readonly<Record<string, string>>;
 }
 
+export interface LegacyHeldRow {
+  readonly line: number;
+  readonly num: number | null;
+  readonly reason: 'malformed_row' | 'invalid_number';
+}
+
 export interface LegacyTrackerRead {
   readonly columns: 'header' | 'legacy_fixed';
   readonly rows: readonly LegacyRow[];
-  /** Rows with a # but too few cells. */
-  readonly malformed: readonly { line: number; num: number }[];
+  /** Rows that look like data but cannot be read safely. */
+  readonly malformed: readonly LegacyHeldRow[];
 }
 
 function headerMap(cells: readonly string[]): Record<string, number> | null {
@@ -67,26 +78,38 @@ function headerMap(cells: readonly string[]): Record<string, number> | null {
 export function readLegacyTracker(text: string): LegacyTrackerRead {
   const lines = text.split(/\r?\n/);
   let header: Record<string, number> | null = null;
+  let headerColumns = 0;
   for (const line of lines) {
-    if (line.startsWith('|') && (header = headerMap(line.split('|')))) break;
+    if (line.startsWith('|') && (header = headerMap(line.split('|')))) {
+      // Every header column counts, recognised or not: an unknown trailing
+      // column must not let a row with a missing interior cell pass as complete.
+      headerColumns = line.split('|').length - (line.trimEnd().endsWith('|') ? 2 : 1);
+      break;
+    }
   }
   const columns = header ?? LEGACY_FIXED_COLUMNS;
-  const highest = Math.max(...Object.values(columns));
+  const highest = Math.max(headerColumns, ...Object.values(columns));
   const rows: LegacyRow[] = [];
-  const malformed: { line: number; num: number }[] = [];
+  const malformed: LegacyHeldRow[] = [];
 
   lines.forEach((line, index) => {
     if (!line.startsWith('|') || SEPARATOR_ROW_RE.test(line) || headerMap(line.split('|'))) return;
     const parts = line.split('|').map((s) => s.trim());
-    // A bare integer only: "12abc" is not row 12.
     const numCell = parts[columns.num ?? 1] ?? '';
-    if (!/^\d{1,9}$/.test(numCell)) return;
-    const num = Number(numCell);
+    // Not a data row at all, as in the engine (whose parseInt gives NaN).
+    if (Number.isNaN(Number.parseInt(numCell, 10))) return;
+    // The engine would read it, so it must be reported, not silently dropped;
+    // but "12a", "-3" or a number past 2^53 is not a safe key.
+    const num = /^\d+$/.test(numCell) ? Number(numCell) : Number.NaN;
+    if (!Number.isSafeInteger(num)) {
+      malformed.push({ line: index + 1, num: null, reason: 'invalid_number' });
+      return;
+    }
     // A complete row is a leading '' + one part per column (+ a trailing '' when
     // the row ends with a pipe); a missing interior cell would shift the rest.
     const width = highest + (line.trimEnd().endsWith('|') ? 2 : 1);
     if (parts.length < width) {
-      malformed.push({ line: index + 1, num });
+      malformed.push({ line: index + 1, num, reason: 'malformed_row' });
       return;
     }
     const cells: Record<string, string> = {};
@@ -149,7 +172,7 @@ export function planLegacyImport(
 ): LegacyImportPlan {
   const read = readLegacyTracker(request.markdown);
   const sourceSha256 = sha256(request.markdown);
-  const quarantined: LegacyQuarantinedRow[] = read.malformed.map(({ line, num }) => ({ line, num, reason: 'malformed_row' }));
+  const quarantined: LegacyQuarantinedRow[] = read.malformed.map(({ line, num, reason }) => ({ line, num, reason }));
   const events: OperationEventInput[] = [];
   let imported = 0;
   let updated = 0;
@@ -157,7 +180,7 @@ export function planLegacyImport(
 
   const seen = new Map<number, number>();
   for (const row of read.rows) seen.set(row.num, (seen.get(row.num) ?? 0) + 1);
-  for (const m of read.malformed) seen.set(m.num, (seen.get(m.num) ?? 0) + 1);
+  for (const m of read.malformed) if (m.num !== null) seen.set(m.num, (seen.get(m.num) ?? 0) + 1);
 
   for (const row of read.rows) {
     const hold = (reason: LegacyQuarantinedRow['reason']) => quarantined.push({ line: row.line, num: row.num, reason });

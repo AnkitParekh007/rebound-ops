@@ -19,6 +19,8 @@ export const MAX_LEGACY_TRACKER_BYTES = 2 * 1024 * 1024;
 export const LEGACY_QUARANTINE_REASONS = [
   /** Fewer cells than the header has columns, so later cells would shift. */
   'malformed_row',
+  /** The # cell starts with a number but is not a whole number this importer can key on (e.g. `12a`, `-3`, or beyond 2^53). */
+  'invalid_number',
   /** The Date cell is not a real YYYY-MM-DD date. */
   'invalid_date',
   /** Company or Role is empty. */

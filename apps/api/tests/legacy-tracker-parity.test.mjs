@@ -46,5 +46,24 @@ test('a narrower row is malformed in both readers, not read shifted', () => {
   ].join('\n');
   const lines = text.split('\n');
   assert.equal(parseTrackerRow(lines[2], resolveColumns(lines)), null);
-  assert.deepEqual(readLegacyTracker(text).malformed, [{ line: 3, num: 1 }]);
+  assert.deepEqual(readLegacyTracker(text).malformed, [{ line: 3, num: 1, reason: 'malformed_row' }]);
+});
+
+test('stricter than the engine: an unknown extra column still counts toward row width', () => {
+  const text = [
+    '| # | Date | Company | Role | Score | Status | Extra |',
+    '|---|---|---|---|---|---|---|',
+    '| 1 | 2026-06-20 | Fictional Co | 4.0/5 | Applied | extra |'
+  ].join('\n');
+  assert.deepEqual(readLegacyTracker(text).malformed, [{ line: 3, num: 1, reason: 'malformed_row' }]);
+  assert.equal(readLegacyTracker(text).rows.length, 0, 'never read with Score as Role');
+});
+
+test('stricter than the engine: a # the engine would read but that is not a safe whole number is held, never dropped', () => {
+  const row = (n) => `| ${n} | 2026-06-20 | Fictional Co | Engineer | 4.0/5 | Applied | ✅ | — | note |`;
+  const text = ['12a', '-3', '9007199254740993', '1000000000'].map(row).join('\n');
+  const read = readLegacyTracker(text);
+  assert.deepEqual(read.malformed.map((m) => [m.line, m.reason]), [[1, 'invalid_number'], [2, 'invalid_number'], [3, 'invalid_number']]);
+  assert.deepEqual(read.rows.map((r) => r.num), [1000000000]);
+  for (const n of ['12a', '-3', '1000000000']) assert.ok(parseTrackerRow(row(n)), `the engine reads ${n}`);
 });
