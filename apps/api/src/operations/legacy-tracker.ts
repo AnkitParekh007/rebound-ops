@@ -12,6 +12,7 @@
  * because the preview package ships only dist/api.
  */
 import { createHash } from 'node:crypto';
+import { MAX_EVENT_PAYLOAD_BYTES } from '@reboundops/contracts';
 import type {
   LegacyQuarantinedRow, LegacyTrackerImportReport, LegacyTrackerImportRequest,
   OperationEvent, OperationEventInput
@@ -188,10 +189,13 @@ export function planLegacyImport(
       if (previous.rowSha256 === rowSha256) { unchanged++; continue; }
       type = LEGACY_UPDATED;
       occurredAt = now().toISOString();
-      updated++;
-    } else {
-      imported++;
     }
+
+    const payload = { legacy, rowSha256, source: { label: request.sourceLabel, sha256: sourceSha256, line: row.line } };
+    // The store refuses a payload over the cap and the batch is atomic, so one
+    // oversized row would fail the whole import (and a dry run would not know).
+    if (Buffer.byteLength(JSON.stringify(payload), 'utf8') > MAX_EVENT_PAYLOAD_BYTES) { hold('row_too_large'); continue; }
+    if (type === LEGACY_UPDATED) updated++; else imported++;
 
     events.push({
       id: deterministicUuid(`legacy-tracker|${entityId}|${current}|${rowSha256}`),
@@ -201,7 +205,7 @@ export function planLegacyImport(
       type,
       occurredAt,
       source: 'import',
-      payload: { legacy, rowSha256, source: { label: request.sourceLabel, sha256: sourceSha256, line: row.line } }
+      payload
     });
   }
 

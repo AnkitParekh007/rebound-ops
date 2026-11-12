@@ -122,7 +122,10 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
 
   // Legacy tracker import (FND-03). The caller sends the file's text; the API
   // never opens or changes the original. A dry run reports without writing.
-  app.post('/api/operations/imports/legacy-tracker', { bodyLimit: MAX_LEGACY_TRACKER_BYTES + 64 * 1024 }, async (request, reply) => {
+  // JSON escaping can grow text up to six times (a control character becomes
+  // \u00XX), so the body limit covers the full permitted text in the worst
+  // case; the 2 MiB check on the decoded text then applies.
+  app.post('/api/operations/imports/legacy-tracker', { bodyLimit: 6 * MAX_LEGACY_TRACKER_BYTES + 64 * 1024 }, async (request, reply) => {
     const parsed = LegacyTrackerImportRequestSchema.safeParse(request.body);
     if (!parsed.success) return invalid(reply, parsed.error);
     const opened = await getStore();

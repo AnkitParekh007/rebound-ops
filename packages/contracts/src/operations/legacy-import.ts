@@ -26,7 +26,9 @@ export const LEGACY_QUARANTINE_REASONS = [
   /** Another row in the same file uses this #. Both are held. */
   'duplicate_number',
   /** This # was imported before with a different Company or Role. */
-  'conflicts_with_imported_record'
+  'conflicts_with_imported_record',
+  /** The row's cells (usually Notes) exceed the 64 KiB event payload limit. */
+  'row_too_large'
 ] as const;
 export const LegacyQuarantineReasonSchema = z.enum(LEGACY_QUARANTINE_REASONS);
 export type LegacyQuarantineReason = z.infer<typeof LegacyQuarantineReasonSchema>;

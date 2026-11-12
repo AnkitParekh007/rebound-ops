@@ -137,3 +137,31 @@ test('event ids are deterministic RFC 9562 v8 UUIDs', () => {
   assert.notEqual(id, deterministicUuid('other'));
   assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 });
+
+test('a row too large for one event is quarantined; the rest still import, and a dry run says so', async () => {
+  const dir = await withApp(async (app) => {
+    const huge = `| 9 | 2026-06-22 | Long Notes Co | — | Engineer | 4.0/5 | Applied | ✅ | — | ${'n'.repeat(70 * 1024)} |`;
+    const text = tracker(row(1, 'Fictional Startup Studio', 'Backend Engineer'), huge);
+    const dry = (await importText(app, text, true)).json().report;
+    assert.equal(dry.imported, 1);
+    assert.deepEqual(dry.quarantined.map((q) => [q.num, q.reason]), [[9, 'row_too_large']]);
+    const r = await importText(app, text);
+    assert.equal(r.statusCode, 200);
+    assert.equal(r.json().report.imported, 1);
+    assert.equal((await events(app, 'legacy-1')).revision, 1);
+    assert.equal((await events(app, 'legacy-9')).revision, 0);
+  });
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('text near the 2 MiB limit is accepted even when JSON escaping doubles it', async () => {
+  const dir = await withApp(async (app) => {
+    const text = tracker(row(1, 'Fictional Co', 'Engineer'));
+    const padded = text + '\n'.repeat(2 * 1024 * 1024 - Buffer.byteLength(text));
+    assert.equal(Buffer.byteLength(padded), 2 * 1024 * 1024);
+    const r = await importText(app, padded, true);
+    assert.equal(r.statusCode, 200, 'not refused by the body limit before the size check');
+    assert.equal(r.json().report.imported, 1);
+  });
+  rmSync(dir, { recursive: true, force: true });
+});
