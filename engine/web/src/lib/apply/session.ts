@@ -6,6 +6,7 @@ import { parseGreenhouse, fetchGreenhouseSchema } from "./greenhouse";
 import { statusBlock, dismissConsent, tryApplyTrigger, dropNewTabs, classifyEmpty, captchaWarning, multiStepInfo, verifyFill, type ApplyIssue } from "./diagnose";
 import { interpretFormWithAgent } from "./agent-interpret";
 import { pickComboboxOption } from "./option-match.mjs";
+import type { FillResult } from "./fill-readback.mjs";
 import { isResumeLabel } from "./resume-label.mjs";
 import { resolveCli } from "../clis";
 import { fencingReport } from "../cli-fencing.mjs";
@@ -425,11 +426,16 @@ export async function fillSession(
   answers: Record<string, string>,
   fieldsMeta: ApplyField[],
   cvPath?: string,
-): Promise<{ steps: FillStep[]; navigated: boolean; issues: ApplyIssue[] }> {
+  opts: { differences?: boolean } = {},
+): Promise<{ steps: FillStep[]; navigated: boolean; issues: ApplyIssue[]; results: FillResult[] }> {
   const s = SESSIONS.get(id);
   if (!s) throw new Error("apply session not found (it may have expired)");
   const byId = new Map(fieldsMeta.map((f) => [f.id, f]));
   const steps: FillStep[] = [];
+  // For the readback: consent boxes left for the person on purpose, and the
+  // file fields the CV was attached to.
+  const held = new Set<string>();
+  const attached = new Set<string>();
   // Belt-and-suspenders: if filling ever navigates the page (i.e. something got
   // submitted), the URL path changes. We never submit by construction, but we
   // report it so the caller can flag it instead of silently "succeeding".
@@ -461,6 +467,7 @@ export async function fillSession(
       try {
         await s.frame.locator(`[data-co-field="${cssAttr(meta.id)}"]`).first().setInputFiles(cvPath);
         ok = true;
+        attached.add(meta.id);
       } catch {
         // A replaced/missing resume control does not identify another upload.
         // The first file input may be a cover letter or portfolio: leave it for
@@ -480,6 +487,7 @@ export async function fillSession(
     // human must affirmatively accept. (The planner already flags these
     // needs_confirmation; this guarantees it even if it slips.)
     if (meta.type === "checkbox" && /\b(i (have )?read|i agree|i consent|i accept|consent to|privacy notice|terms|gdpr|data protection)\b/i.test(meta.label || "")) {
+      held.add(fid);
       steps.push({ fieldId: fid, label: `${meta.label} — you confirm`, ok: false, thumb: undefined });
       continue;
     }
@@ -567,10 +575,25 @@ export async function fillSession(
       return s.frame.url();
     }
   })();
-  // Read the real form back: did every answer actually land? any validation
-  // error? — so we warn the user about silent divergence before the handoff.
-  const issues = await verifyFill(s.frame, fieldsMeta, answers).catch(() => [] as ApplyIssue[]);
-  return { steps, navigated: endPath !== startPath, issues };
+  // Read the real form back, field by field: is each reviewed answer what the
+  // form shows? any validation error? — so we warn the user about silent
+  // divergence before the handoff.
+  const { results, issues } = await verifyFill(s.frame, fieldsMeta, answers, { held, attached, differences: opts.differences })
+    .catch(() => ({ results: [] as FillResult[], issues: [] as ApplyIssue[] }));
+  return { steps, navigated: endPath !== startPath, issues, results };
+}
+
+/** Read the real form back without filling anything: the per-field results
+ *  after the agent filled it turn by turn (drive route, goal "full"). Only
+ *  reads the page. */
+export async function readbackSession(
+  id: string,
+  answers: Record<string, string>,
+  fieldsMeta: ApplyField[],
+): Promise<{ results: FillResult[]; issues: ApplyIssue[] }> {
+  const s = SESSIONS.get(id);
+  if (!s) throw new Error("apply session not found (it may have expired)");
+  return verifyFill(s.frame, fieldsMeta, answers, { differences: true });
 }
 
 /** Hand the real (now pre-filled) form to the HUMAN to review + submit. The

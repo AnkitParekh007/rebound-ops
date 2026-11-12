@@ -14,7 +14,7 @@ The pack proposed building Autofill as a new Chrome Manifest V3 extension with l
 | Greenhouse public question schema used to enrich labels, types and options | `greenhouse.ts` |
 | SSRF/egress guard on every navigation and redirect | `url-guard.mjs` |
 | Never-submit guard shared by the snapshot and the action path | `submit-guard.mjs`, `drive-action.mjs` |
-| Post-fill verification of values, required fields and validation errors | `diagnose.ts` (`verifyFill`) |
+| Post-fill verification of values, required fields and validation errors | `diagnose.ts` (`verifyFill`), per field in `fill-readback.mjs` |
 | Exact or single whole-word option matching (no "US" → "Australia") | `option-match.mjs` |
 
 ## Decision

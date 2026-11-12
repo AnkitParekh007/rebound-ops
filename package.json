@@ -17,7 +17,7 @@
     "build:api": "npm run build -w @reboundops/api",
     "build:web": "npm run build -w @reboundops/web",
     "build": "npm run build:contracts && npm run build:api && npm run build:web",
-    "test": "npm run build:contracts && npm run build:api && node --test tests/*.test.mjs packages/contracts/tests/*.test.mjs apps/api/tests/*.test.mjs evals/ai-review/*.test.mjs scripts/*.test.mjs engine/web/tests/lib/apply-answer-policy.test.mjs engine/web/tests/lib/apply-answer-note.test.mjs engine/web/tests/lib/apply-profile-facts.test.mjs engine/web/tests/lib/apply-drive-write-guard.test.mjs engine/web/tests/lib/apply-narrative-draft.test.mjs engine/web/tests/lib/apply-approved-answers.test.mjs && npm run test:web",
+    "test": "npm run build:contracts && npm run build:api && node --test tests/*.test.mjs packages/contracts/tests/*.test.mjs apps/api/tests/*.test.mjs evals/ai-review/*.test.mjs scripts/*.test.mjs engine/web/tests/lib/apply-answer-policy.test.mjs engine/web/tests/lib/apply-answer-note.test.mjs engine/web/tests/lib/apply-profile-facts.test.mjs engine/web/tests/lib/apply-drive-write-guard.test.mjs engine/web/tests/lib/apply-narrative-draft.test.mjs engine/web/tests/lib/apply-approved-answers.test.mjs engine/web/tests/lib/apply-fill-readback.test.mjs && npm run test:web",
     "test:web": "npm run test -w @reboundops/web",
     "test:pilot": "node --test tests/*.test.mjs",
     "audit:release": "node scripts/release-audit.mjs",

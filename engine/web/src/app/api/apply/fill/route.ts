@@ -1,6 +1,7 @@
 import { fillSession, handoffSession, getSession } from "@/lib/apply/session";
 import { resolveSessionCv } from "@/lib/apply/cv";
 import type { ApplyField } from "@/lib/apply/extract";
+import { autofillEnabled } from "@/lib/apply/local-model.mjs";
 import { readJsonObject } from "@/lib/json-body";
 
 export const runtime = "nodejs";
@@ -28,9 +29,12 @@ export async function POST(req: Request) {
   const cvPath = (await resolveSessionCv({ company, application, title: session?.title })) ?? undefined;
 
   try {
-    const result = await fillSession(sessionId, answers, fields, cvPath);
+    // Per-field readback results reach the review screen only with the
+    // `autofill` flag; without it the fill reports what it always did.
+    const readback = autofillEnabled(process.env);
+    const { results, ...result } = await fillSession(sessionId, answers, fields, cvPath, { differences: readback });
     if (handoff) await handoffSession(sessionId).catch(() => {});
-    return Response.json({ ...result, handedOff: !!handoff, cvAttached: !!cvPath });
+    return Response.json({ ...result, ...(readback ? { results } : {}), handedOff: !!handoff, cvAttached: !!cvPath });
   } catch (e) {
     return Response.json({ error: e instanceof Error ? e.message.slice(0, 200) : "fill failed" }, { status: 500 });
   }

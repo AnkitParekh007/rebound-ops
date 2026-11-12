@@ -1,6 +1,7 @@
 import type { Page, Frame } from "playwright-core";
 import type { ApplyField } from "./extract";
 import type { ApplyIssue } from "./issue";
+import { compareAll, readControls, readbackIssues, type FillResult, type Observed } from "./fill-readback.mjs";
 
 export type { ApplyIssue };
 
@@ -207,69 +208,36 @@ export async function multiStepInfo(page: Page): Promise<ApplyIssue | null> {
   return ms ? { level: "info", code: "multi-step", message: "This form has more than one step — after this page, you'll continue on the real form." } : null;
 }
 
-/** READ THE REAL FORM BACK after filling: did every answer land? required fields
- *  still empty? any validation error visible? — the self-verification a blind
- *  selector script can't do. Returns warnings to show BEFORE the human submits. */
-export async function verifyFill(frame: Frame, fields: ApplyField[], answers: Record<string, string>): Promise<ApplyIssue[]> {
-  const meta = fields.map((f) => ({ id: f.id, label: f.label || "this field", type: f.type, required: !!f.required, combobox: !!f.combobox }));
-  type R = { mismatches: string[]; requiredEmpty: string[]; valErrors: string[] };
-  const res = await frame
-    .evaluate(
-      ({ meta, answers }): R => {
-        const norm = (s: string | null | undefined) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
-        const mismatches: string[] = [];
-        const requiredEmpty: string[] = [];
-        for (const f of meta) {
-          const intended = answers[f.id];
-          const el = document.querySelector(`[data-co-field="${f.id}"]`) as HTMLElement | null;
-          if (!el) continue;
-          if (f.type === "file") {
-            // confirm a file actually landed on the input (the CV attach can fail
-            // silently on a custom dropzone). Only warn if the field is required.
-            const filesEl = el as HTMLInputElement;
-            const has = !!(filesEl.files && filesEl.files.length > 0);
-            if (f.required && !has) requiredEmpty.push(f.label);
-            continue;
-          }
-          let actual = "";
-          if (f.type === "checkbox") {
-            actual = (el as HTMLInputElement).checked ? "true" : "";
-          } else if (f.type === "radio") {
-            const grp = Array.from(document.querySelectorAll(`[data-co-field="${f.id}"]`)) as HTMLInputElement[];
-            actual = grp.some((r) => r.checked) ? "checked" : "";
-          } else if (f.combobox) {
-            // react-select keeps the chosen value in a sibling .select__single-value
-            // (the tagged input stays empty). Read leniently: only conclude "empty"
-            // when a placeholder is visibly shown — otherwise assume OK (never a
-            // false "didn't land" warning).
-            const shell = el.closest('[class*="select-shell" i], [class*="select__container" i], [class*="select__control" i], [class*="value-container" i]') || el.parentElement?.parentElement || el.parentElement;
-            const sv = shell?.querySelector('.select__single-value, [class*="single-value" i], [class*="singleValue" i], [class*="multi-value" i]');
-            const ph = shell?.querySelector('.select__placeholder, [class*="placeholder" i]');
-            const svText = (sv?.textContent || "").trim();
-            if (svText) actual = svText; // a value is shown
-            else if (ph && (ph as HTMLElement).offsetParent !== null) actual = ""; // placeholder visible → empty
-            else actual = intended || "ok"; // can't read reliably → don't flag
-          } else {
-            actual = (el as HTMLInputElement).value || "";
-          }
-          if (intended && intended.trim() && !norm(actual)) mismatches.push(f.label);
-          else if (f.required && !norm(actual) && !(intended && intended.trim())) requiredEmpty.push(f.label);
-        }
-        const errSel = '[aria-invalid="true"], [role="alert"], [class*="error" i]:not([class*="clear" i]):not([class*="error-free" i])';
-        const valErrors: string[] = [];
-        for (const e of Array.from(document.querySelectorAll(errSel)) as HTMLElement[]) {
-          const txt = (e.textContent || "").replace(/\s+/g, " ").trim();
-          if (txt && txt.length > 2 && txt.length < 160 && e.offsetParent !== null) valErrors.push(txt);
-        }
-        return { mismatches, requiredEmpty, valErrors: Array.from(new Set(valErrors)).slice(0, 5) };
-      },
-      { meta, answers },
-    )
-    .catch(() => ({ mismatches: [], requiredEmpty: [], valErrors: [] }) as R);
+/** READ THE REAL FORM BACK after filling: per field, is the reviewed answer
+ *  what the form now shows (fill-readback.mjs)? Required fields still empty?
+ *  Any validation error visible? The self-verification a blind selector script
+ *  can't do, shown BEFORE the human submits. Only reads the page.
+ *
+ *  `differences` adds the warning for answers that landed as something else
+ *  (behind the `autofill` flag); without it the warnings are the ones the fill
+ *  always gave. */
+export async function verifyFill(
+  frame: Frame,
+  fields: ApplyField[],
+  answers: Record<string, string>,
+  opts: { held?: Iterable<string>; attached?: Iterable<string>; differences?: boolean } = {},
+): Promise<{ results: FillResult[]; issues: ApplyIssue[] }> {
+  const controls = fields.map((f) => ({ id: f.id, type: f.type, combobox: !!f.combobox }));
+  const observed = (await frame.evaluate(readControls, controls).catch(() => null)) as Record<string, Observed> | null;
+  const results = observed ? compareAll(fields, answers, observed, opts) : [];
+  const valErrors = await frame
+    .evaluate(() => {
+      const errSel = '[aria-invalid="true"], [role="alert"], [class*="error" i]:not([class*="clear" i]):not([class*="error-free" i])';
+      const found: string[] = [];
+      for (const e of Array.from(document.querySelectorAll(errSel)) as HTMLElement[]) {
+        const txt = (e.textContent || "").replace(/\s+/g, " ").trim();
+        if (txt && txt.length > 2 && txt.length < 160 && e.offsetParent !== null) found.push(txt);
+      }
+      return Array.from(new Set(found)).slice(0, 5);
+    })
+    .catch(() => [] as string[]);
 
-  const out: ApplyIssue[] = [];
-  if (res.mismatches.length) out.push({ level: "warn", code: "fill-mismatch", message: `These answers didn't seem to land on the real form — check them: ${res.mismatches.slice(0, 4).join(", ")}${res.mismatches.length > 4 ? "…" : ""}.` });
-  if (res.requiredEmpty.length) out.push({ level: "warn", code: "required-empty", message: `Required and still empty — you'll need to fill ${res.requiredEmpty.length > 1 ? "these" : "this"}: ${res.requiredEmpty.slice(0, 4).join(", ")}${res.requiredEmpty.length > 4 ? "…" : ""}.` });
-  for (const v of res.valErrors) out.push({ level: "warn", code: "validation", message: `The form flagged: “${v}”.` });
-  return out;
+  const issues: ApplyIssue[] = readbackIssues(results, { differences: opts.differences });
+  for (const v of valErrors) issues.push({ level: "warn", code: "validation", message: `The form flagged: “${v}”.` });
+  return { results, issues };
 }

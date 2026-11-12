@@ -6,6 +6,7 @@ import type { ApplyIssue, DriveStep } from "@/lib/apply/issue";
 import { resolveLateSession } from "@/lib/apply/exit.mjs";
 import { readFillResult, screenForFill } from "@/lib/apply/fill-stream.mjs";
 import { sensitiveCategory } from "@/lib/apply/answer-policy.mjs";
+import type { FillResult } from "@/lib/apply/fill-readback.mjs";
 
 export type FillStep = { fieldId: string; label: string; ok: boolean; thumb?: string };
 /** Per-field labels from the prefill answer policy (answer-policy.mjs). */
@@ -34,6 +35,8 @@ type ApplyCtx = {
   answers: Record<string, string>;
   meta: Record<string, Meta>;
   steps: FillStep[];
+  /** Per-field readback of the real form after a fill (`autofill` flag only; empty otherwise). */
+  readback: FillResult[];
   shots: string[];
   prefillLog: string[];
   issues: ApplyIssue[];
@@ -102,6 +105,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [meta, setMeta] = useState<Record<string, Meta>>({});
   const [steps, setSteps] = useState<FillStep[]>([]);
+  const [readback, setReadback] = useState<FillResult[]>([]);
   const [shots, setShots] = useState<string[]>([]);
   const [prefillLog, setPrefillLog] = useState<string[]>([]);
   const [issues, setIssues] = useState<ApplyIssue[]>([]);
@@ -265,6 +269,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     setAnswers({});
     setMeta({});
     setSteps([]);
+    setReadback([]);
     setShots([]);
     setIssues([]);
     setDriveSteps([]);
@@ -434,6 +439,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     const gen = generation.current;
     setStatus("filling");
     setSteps([]);
+    setReadback([]);
     try {
       const r = await fetch("/api/apply/fill", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: sessionId.current, answers, fields, handoff: true, company: companyRef.current, application: nRef.current }) });
       const d = await r.json();
@@ -446,6 +452,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       setSteps(d.steps ?? []);
+      setReadback(Array.isArray(d.results) ? d.results : []);
       // merge the verify-after-fill warnings (required-empty / mismatch / validation)
       if (Array.isArray(d.issues) && d.issues.length) {
         setIssues((prev) => {
@@ -480,6 +487,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     const a = answersRef.current;
     const ans = fs.filter((f) => f.type !== "file" && (a[f.id] || "").trim()).map((f) => ({ label: f.label || f.id, value: a[f.id] }));
     setDriveSteps([]);
+    setReadback([]);
     setError("");
     setStatus("filling");
     fillAbort.current?.abort();
@@ -497,6 +505,20 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
         setError(outcome.error);
       }
       setStatus(outcome.status);
+      // Read the real form back after the agent's turns. Behind the `autofill`
+      // flag (404 without it); a failed readback leaves the screen as it is.
+      if (result.status === "done") {
+        const rb = await fetch("/api/apply/readback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: sessionId.current, answers: a, fields: fs }) })
+          .then((x) => (x.ok ? x.json() : null)).catch(() => null);
+        if (!rb || generation.current !== gen) return;
+        if (Array.isArray(rb.results)) setReadback(rb.results);
+        if (Array.isArray(rb.issues) && rb.issues.length) {
+          setIssues((prev) => {
+            const seen = new Set(prev.map((i: ApplyIssue) => i.message));
+            return [...prev, ...(rb.issues as ApplyIssue[]).filter((i) => !seen.has(i.message))];
+          });
+        }
+      }
     } catch (e) {
       if (controller.signal.aborted || generation.current !== gen) return; // left mid-fill
       setError(`The agent couldn't fill the form: ${e instanceof Error ? e.message : "stream error"}. Check the real form before trying again.`);
@@ -539,6 +561,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     setAnswers({});
     setMeta({});
     setSteps([]);
+    setReadback([]);
     setShots([]);
     setPrefillLog([]);
     setIssues([]);
@@ -547,8 +570,8 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, savedAnswers: saved?.answers ?? null, savedNotice, saveAnswer, deleteSavedAnswer, open, prefill, setAnswer, fill, agentFill, reset }),
-    [status, url, title, company, n, from, fields, answers, meta, steps, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, saved, savedNotice, saveAnswer, deleteSavedAnswer, open, prefill, setAnswer, fill, agentFill, reset],
+    () => ({ status, url, title, company, n, from, fields, answers, meta, steps, readback, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, savedAnswers: saved?.answers ?? null, savedNotice, saveAnswer, deleteSavedAnswer, open, prefill, setAnswer, fill, agentFill, reset }),
+    [status, url, title, company, n, from, fields, answers, meta, steps, readback, shots, prefillLog, issues, driveSteps, error, localModel, drafter, setDrafter, manualDraft, saved, savedNotice, saveAnswer, deleteSavedAnswer, open, prefill, setAnswer, fill, agentFill, reset],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
