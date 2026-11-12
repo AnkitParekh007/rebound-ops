@@ -27,7 +27,8 @@ export const OperationEventInputSchema = z.strictObject({
   type: z.string().regex(/^[a-z][a-z0-9_.]{0,79}$/, 'dotted lower-case event type'),
   occurredAt: z.iso.datetime({ offset: true }),
   source: OperationEventSourceSchema,
-  payload: z.record(z.string(), z.unknown())
+  /** JSON values only: NaN, Infinity, undefined, dates or functions would not survive storage unchanged. */
+  payload: z.record(z.string(), z.json())
 });
 export type OperationEventInput = z.infer<typeof OperationEventInputSchema>;
 

@@ -3,7 +3,7 @@
 // forward-only migrations. Fictional data only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -105,6 +105,8 @@ test('invalid and oversized events are refused before any write', () => withDir(
     assert.throws(() => store.appendEvent(event({ entityType: 'Application' })));
     assert.throws(() => store.appendEvent(event({ occurredAt: 'yesterday' })));
     assert.throws(() => store.appendEvent(event({ payload: { blob: 'x'.repeat(70 * 1024) } })), EventPayloadTooLargeError);
+    assert.throws(() => store.appendEvent(event({ payload: { score: Number.NaN } })), 'NaN would be stored as null');
+    assert.throws(() => store.appendEvent(event({ payload: { at: new Date() } })), 'a Date is not a JSON value');
     assert.equal(store.revisionOf('application', 'app-fictional-1'), 0);
   } finally { store.close(); }
 }));
@@ -163,4 +165,29 @@ test('a store from a newer ReboundOps is refused, not downgraded', () => withDir
   assert.throws(() => OperationsStore.open(dir), (e) => e instanceof OperationsStoreVersionError && e.found === 2 && e.supported === 1);
   const store = OperationsStore.open(dir, { migrations: V2 });
   try { assert.equal(store.schemaVersion, 2); } finally { store.close(); }
+}));
+
+test('a newer store is refused before its journal mode changes', () => withDir((dir) => {
+  mkdirSync(join(dir, 'operations'), { recursive: true });
+  const file = join(dir, OperationsStore.RELATIVE_PATH);
+  const raw = new DatabaseSync(file);
+  raw.exec('PRAGMA journal_mode = DELETE; CREATE TABLE t (x INTEGER); PRAGMA user_version = 99;');
+  raw.close();
+  assert.throws(() => OperationsStore.open(dir), (e) => e instanceof OperationsStoreVersionError && e.found === 99);
+  const after = new DatabaseSync(file, { readOnly: true });
+  try { assert.equal(after.prepare('PRAGMA journal_mode').get().journal_mode, 'delete'); } finally { after.close(); }
+  assert.ok(!existsSync(`${file}-wal`));
+}));
+
+test('an existing open directory is tightened, and a migration backup is never world-readable', { skip: process.platform === 'win32' }, () => withDir((dir) => {
+  const opsDir = join(dir, 'operations');
+  mkdirSync(opsDir, { mode: 0o755 });
+  const previous = process.umask(0o022);
+  try {
+    OperationsStore.open(dir).close();
+    assert.equal(statSync(opsDir).mode & 0o777, 0o700);
+    OperationsStore.open(dir, { migrations: V2 }).close();
+    const backup = readdirSync(opsDir).find((f) => f.endsWith('.bak'));
+    assert.equal(statSync(join(opsDir, backup)).mode & 0o777, 0o600);
+  } finally { process.umask(previous); }
 }));

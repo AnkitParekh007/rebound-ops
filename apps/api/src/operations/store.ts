@@ -22,7 +22,7 @@
  * `node:sqlite` is still marked experimental in Node 22/24; everything that
  * touches it is in this file so a different binding is a local change.
  */
-import { chmodSync, existsSync, mkdirSync } from 'node:fs';
+import { chmodSync, closeSync, existsSync, mkdirSync, openSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import {
@@ -152,6 +152,15 @@ function toEvent(row: EventRow): OperationEvent {
   };
 }
 
+function lockedOrThrow<T>(fn: () => T): T {
+  try {
+    return fn();
+  } catch (error) {
+    if (isBusy(error)) throw new OperationsStoreLockedError();
+    throw error;
+  }
+}
+
 function isBusy(error: unknown): boolean {
   const e = error as { code?: string; errcode?: number; message?: string };
   return e?.errcode === 5 || e?.errcode === 6 || /database is locked|SQLITE_BUSY|SQLITE_LOCKED/i.test(String(e?.message ?? ''));
@@ -167,6 +176,8 @@ export class OperationsStore {
     const migrations = options.migrations ?? OPERATIONS_MIGRATIONS;
     const dir = join(dataDir, 'operations');
     mkdirSync(dir, { recursive: true, mode: 0o700 });
+    // mkdirSync leaves an existing directory's mode alone; tighten it.
+    if (process.platform !== 'win32') chmodSync(dir, 0o700);
     const file = join(dir, 'operations.sqlite');
     const isNew = !existsSync(file);
 
@@ -175,12 +186,12 @@ export class OperationsStore {
       // EXCLUSIVE before WAL: the lock taken by the first write is then kept for
       // the life of the connection, which is the single-owner lease.
       db.exec('PRAGMA busy_timeout = 2000; PRAGMA locking_mode = EXCLUSIVE; PRAGMA foreign_keys = ON;');
-      try {
-        db.exec('PRAGMA journal_mode = WAL; BEGIN IMMEDIATE; COMMIT;');
-      } catch (error) {
-        if (isBusy(error)) throw new OperationsStoreLockedError();
-        throw error;
-      }
+      // Refuse a newer store before anything persistent changes: WAL mode is
+      // itself a persistent change to the file.
+      const supported = migrations.reduce((max, m) => Math.max(max, m.version), 0);
+      const found = lockedOrThrow(() => (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version);
+      if (found > supported) throw new OperationsStoreVersionError(found, supported);
+      lockedOrThrow(() => db.exec('PRAGMA journal_mode = WAL; BEGIN IMMEDIATE; COMMIT;'));
       if (process.platform !== 'win32') {
         for (const f of [file, `${file}-wal`]) if (existsSync(f)) chmodSync(f, 0o600);
       }
@@ -284,6 +295,9 @@ function migrate(db: DatabaseSync, file: string, migrations: readonly Migration[
   // regretted upgrade can be restored by hand (docs/adr-0004-operations-store.md).
   if (!isNew && current > 0) {
     const backup = `${file}.pre-v${latest}-${Date.now()}.bak`;
+    // Create the target owner-only and empty first (VACUUM INTO accepts an
+    // empty file), so the copy is never readable by others, even briefly.
+    closeSync(openSync(backup, 'wx', 0o600));
     db.prepare('VACUUM INTO ?').run(backup);
     if (process.platform !== 'win32') chmodSync(backup, 0o600);
   }
