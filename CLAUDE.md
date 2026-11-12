@@ -22,13 +22,14 @@ Work on the seven operations features (owner decision, 12 Nov 2026; see [ADR 000
 - Feature branches start from `feature/00-foundation`. Bring a branch up to date by merging its base into it, not by rebasing; never force-push a branch someone else may have pulled without asking the owner.
 - Each coherent work package is its own pull request, with its feature flags off by default. A work package can be stacked on another (its PR targets that branch instead of `main`).
 - A squash merge into `main` rewrites the merged branch's commits, so the next PR in a stack then conflicts with `main`. Fix it by merging `main` into that next branch, and keep the branch side only after confirming `main`'s tree equals the squashed branch.
+- Head branches are kept after merging, so GitHub does not retarget the next PR in a stack. Once its base is squash-merged into `main`, change that PR's base to `main` before merging it, then confirm `origin/main` contains the change. The simpler order is to merge a stack top-down into its feature bases with merge commits, then squash the bottom PR into `main` once.
 
 ### Everything else
 
-1. Branch from `origin/main`, using the session's designated `claude/*` branch.
+1. Run `git fetch origin`, then branch from `origin/main`, using the session's designated `claude/*` branch.
 2. Run the relevant local checks below, push the branch and open a pull request that is ready for review (CodeRabbit skips drafts).
-3. If `origin/main` moves, merge it into the branch and rerun the checks. If that conflicts, stop and ask the owner instead of resolving anything that could discard work.
-4. After the PR is squash-merged, confirm that `origin/main` contains the change.
+3. Run `git fetch origin`. If `origin/main` has moved, merge it into the branch and rerun the checks. If that conflicts, stop and ask the owner instead of resolving anything that could discard work.
+4. After the PR is squash-merged, run `git fetch origin` and confirm that `origin/main` contains the change.
 
 Run the relevant local checks before every push:
 
