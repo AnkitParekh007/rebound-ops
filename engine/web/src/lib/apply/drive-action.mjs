@@ -16,6 +16,7 @@
  */
 
 import { isSubmitControl, snapshotLabel } from "./submit-guard.mjs";
+import { guardDriveWrite } from "./drive-write-guard.mjs";
 
 /**
  * What the guard decides on, read from the live DOM. See submit-guard.mjs.
@@ -63,8 +64,35 @@ export const factsOf = (el, ref) => {
     const ids = flat(el.getAttribute("aria-labelledby")).split(" ").filter(Boolean);
     aria = flat(ids.map((id) => document.getElementById(id)?.textContent || "").join(" ")).slice(0, 200);
   }
+  // The question this control answers, for drive-write-guard.mjs. A radio's
+  // own name is only its option ("Yes"), so the question comes from the group
+  // around it: a fieldset legend, a named radiogroup/group, or the label of the
+  // field wrapper. Other controls use their <label>s. Best effort and never
+  // fatal: a control whose question cannot be read gets "", and the guard
+  // treats an unidentified radio as the person's to answer.
+  let question = "";
+  try {
+    const choice = tag === "input" && (field.type === "radio" || field.type === "checkbox");
+    const own = choice ? "" : flat(Array.from(field.labels || []).map((l) => l.textContent || "").join(" "));
+    const wrap = typeof el.closest === "function" ? el.closest('fieldset, [role="radiogroup"], [role="group"], [class*="question" i], [class*="field" i]') : null;
+    let group = "";
+    if (wrap && typeof wrap.querySelector === "function") {
+      const named = flat(wrap.getAttribute("aria-label"));
+      const by = flat(wrap.getAttribute("aria-labelledby"))
+        .split(" ")
+        .filter(Boolean)
+        .map((id) => document.getElementById(id)?.textContent || "")
+        .join(" ");
+      const heading = wrap.querySelector('legend, [class*="label" i]:not(label:has(input)), label:not(:has(input))');
+      group = named || flat(by) || flat(heading?.textContent);
+    }
+    question = (own || group).slice(0, 200);
+  } catch {
+    question = "";
+  }
   return {
     ref: ref || el.getAttribute("data-co-ref") || "",
+    question,
     tag,
     type: flat(el.getAttribute("type")).toLowerCase(),
     role: flat(el.getAttribute("role")).toLowerCase() || (tag === "a" ? "link" : tag),
@@ -100,13 +128,18 @@ export const factsOf = (el, ref) => {
  * @param {import("playwright-core").Frame} frame
  * @param {DriveAction} act
  * @param {Set<string>} actionable
+ * @param {import("./drive-write-guard.mjs").WritePolicy} [policy] what the loop may write
+ *   (drive-write-guard.mjs). driveSession always passes one; omitting it leaves
+ *   only the submit guard, which is what the executor's own tests exercise.
  * @returns {Promise<ActionOutcome>}
  */
-export async function executeAction(page, frame, act, actionable) {
+export async function executeAction(page, frame, act, actionable, policy) {
   let detail = "";
   let note = "";
   /** @type {ActionOutcome["refusal"]} */
   let refusal;
+  /** @type {ReturnType<typeof guardDriveWrite>} */
+  let held = null;
   /** @type {import("playwright-core").ElementHandle<SVGElement | HTMLElement> | null} */
   let handle = null;
   try {
@@ -141,6 +174,10 @@ export async function executeAction(page, frame, act, actionable) {
         note = "refused to click a submit control (the human submits)";
         detail = `blocked submit "${label.slice(0, 40)}"`;
       }
+    } else if (target && policy && (held = guardDriveWrite(act, now, policy))) {
+      refusal = held.refusal;
+      note = held.note;
+      detail = `held ${act.action} on "${label.slice(0, 40) || ref}" (${held.refusal})`;
     } else if (act.action === "click" && target) {
       detail = `click "${label.slice(0, 40)}"`;
       await target.scrollIntoViewIfNeeded().catch(() => {});

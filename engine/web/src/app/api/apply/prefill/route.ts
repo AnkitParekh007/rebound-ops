@@ -1,12 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
+import * as yaml from "js-yaml";
 import { cliSubstitutionNotice, cliUnavailableError, resolveCliOrFallback } from "@/lib/clis";
 import { reboundOpsRoot, readMemory } from "@/lib/rebound-ops";
-import { profileRef } from "@/lib/core/profile-path.mjs";
+import { getProfilePath, profileRef } from "@/lib/core/profile-path.mjs";
 import { getSession } from "@/lib/apply/session";
 import { resolveSessionCv } from "@/lib/apply/cv";
 import { applyCvSource } from "@/lib/apply/cv-source.mjs";
 import { buildAnswerPrompt } from "@/lib/apply/answer-prompt.mjs";
+import { enforceAnswerPolicy } from "@/lib/apply/answer-policy.mjs";
+import { profileFacts } from "@/lib/apply/profile-facts.mjs";
 import { runPlanner } from "@/lib/apply/planner";
 import { extractJsonObject } from "@/lib/extract-json-object.mjs";
 import { readJsonObject } from "@/lib/json-body";
@@ -134,7 +137,21 @@ export async function POST(req: Request) {
       }
       const count = Object.keys(obj).length;
       log(`Parsed ${count} answers${truncated ? " (RECOVERED from truncated output — some fields may be missing)" : ""}`);
-      emit({ t: "done", answers: obj, truncated, count });
+      // The planner's output is a model draft. The policy, not the prompt, decides
+      // what reaches the person as a proposed value: sensitive questions come back
+      // empty and flagged, off-list options and unknown field ids are dropped.
+      // Reviewed facts from the person's own profile.yml (allowlisted keys only,
+      // never compensation) settle identity and stated work authorization
+      // without the model. A missing or unreadable profile just means no facts.
+      let facts = null;
+      try {
+        facts = profileFacts(yaml.load(fs.readFileSync(getProfilePath(reboundOpsRoot()), "utf8")));
+      } catch {
+        log("Profile facts: config/profile.yml not readable — every answer stays a draft or yours");
+      }
+      const { answers, summary } = enforceAnswerPolicy(s.fields, obj, { facts });
+      log(`Answer policy: ${summary.fromProfile} from your profile · ${summary.proposed} AI drafts · ${summary.held} held for review · ${summary.unresolved} left for you · ${summary.dropped} dropped (not on this form)`);
+      emit({ t: "done", answers, truncated, count, policy: summary });
       controller.close();
     },
   });
