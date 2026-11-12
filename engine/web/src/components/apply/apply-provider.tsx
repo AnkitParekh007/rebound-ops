@@ -8,7 +8,7 @@ import { readFillResult, screenForFill } from "@/lib/apply/fill-stream.mjs";
 
 export type FillStep = { fieldId: string; label: string; ok: boolean; thumb?: string };
 /** Per-field labels from the prefill answer policy (answer-policy.mjs). */
-type Meta = { needsConfirmation?: boolean; source?: string; holdReason?: string | null; sensitiveCategory?: string | null; edited?: boolean };
+type Meta = { needsConfirmation?: boolean; source?: string; holdReason?: string | null; sensitiveCategory?: string | null; edited?: boolean; assisted?: boolean };
 type PlannerAnswer = { value?: string; needs_confirmation?: boolean; source?: string; hold_reason?: string | null; sensitive_category?: string | null };
 type Status = "idle" | "opening" | "driving" | "prefilling" | "ready" | "filling" | "done" | "error";
 
@@ -32,7 +32,8 @@ type ApplyCtx = {
   error: string;
   open: (url: string, opts?: { prefill?: boolean; company?: string; n?: string; from?: string }) => Promise<void>;
   prefill: () => Promise<void>;
-  setAnswer: (idOrLabel: string, value: string) => void;
+  /** `by` is "you" for a direct edit in the review control, "assistant" when the chat assistant wrote it. */
+  setAnswer: (idOrLabel: string, value: string, by?: "you" | "assistant") => void;
   fill: () => Promise<void>;
   agentFill: () => Promise<void>;
   reset: () => void;
@@ -305,7 +306,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     }
   }, [status, prefill]);
 
-  const setAnswer = useCallback((idOrLabel: string, value: string) => {
+  const setAnswer = useCallback((idOrLabel: string, value: string, by: "you" | "assistant" = "you") => {
     const fs = fieldsRef.current;
     const key = idOrLabel.toLowerCase();
     const f =
@@ -315,8 +316,12 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     if (!f) return;
     setAnswers((prev) => ({ ...prev, [f.id]: value }));
     // Once the person changes a value it is theirs, not an AI draft; the review
-    // note must stop calling it one.
-    setMeta((prev) => ({ ...prev, [f.id]: { ...prev[f.id], edited: true } }));
+    // note must stop calling it one. A value the chat assistant writes is still
+    // unreviewed AI output, so it must never read as "Edited by you".
+    setMeta((prev) => ({
+      ...prev,
+      [f.id]: by === "you" ? { ...prev[f.id], edited: true, assisted: false } : { ...prev[f.id], edited: false, assisted: true, needsConfirmation: true },
+    }));
   }, []);
 
   const fill = useCallback(async () => {

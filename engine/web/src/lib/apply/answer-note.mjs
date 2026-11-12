@@ -18,7 +18,7 @@ const CATEGORY_LABEL = Object.freeze({
 });
 
 /**
- * @typedef {{ source?: string, holdReason?: string | null, sensitiveCategory?: string | null, edited?: boolean }} NoteMeta
+ * @typedef {{ source?: string, holdReason?: string | null, sensitiveCategory?: string | null, edited?: boolean, assisted?: boolean }} NoteMeta
  * @typedef {{ tone: "draft" | "held" | "yours", text: string }} AnswerNote
  */
 
@@ -31,6 +31,11 @@ export function answerNote(meta, field = {}) {
   if (!meta) return null;
   if (meta.edited) return { tone: "yours", text: "Edited by you." };
   const category = meta.sensitiveCategory ? CATEGORY_LABEL[meta.sensitiveCategory] ?? "sensitive" : null;
+  if (meta.assisted) {
+    return category
+      ? { tone: "held", text: `Written by the assistant on a sensitive (${category}) question. Only you should answer this, so check or replace it.` }
+      : { tone: "draft", text: "Written by the assistant. Check it before filling." };
+  }
   switch (meta.holdReason) {
     case "sensitive_requires_reviewed_fact":
       return { tone: "held", text: `Sensitive (${category ?? "sensitive"}) question. The AI is never allowed to answer this, so answer it yourself.` };
