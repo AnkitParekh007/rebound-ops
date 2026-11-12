@@ -21,9 +21,10 @@ install or activate the GitHub App.
 
 ## Review behaviour
 
-Non-draft PRs targeting main are reviewed automatically, with incremental review
-on subsequent pushes. Generated builds, dependency directories and binary
-marketing assets are excluded; source, CI, contracts, docs, manifests and
+Non-draft PRs targeting `main`, or one of the `feature/*` branches that
+stacked operations-feature PRs target, are reviewed automatically, with
+incremental review on subsequent pushes. Generated builds, dependency
+directories and binary marketing assets are excluded; source, CI, contracts, docs, manifests and
 lockfiles remain eligible. Findings should emphasize real defects, data loss,
 privacy and accessible interactions.
 
