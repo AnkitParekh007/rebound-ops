@@ -144,7 +144,7 @@ Track C gaps:
 |---|---|---|
 | C1 | `engine/web/tests` is not run by root CI, so the prefill pipeline Autofill extends has no required check | New engine modules add their tests to root `npm test`; owner to decide whether CI runs the whole engine web suite |
 | C2 | The engine cannot import `@reboundops/contracts` (separate package, no build step) | Mirror enums in `.mjs`, pinned by `tests/operations-parity.test.mjs`; revisit if the engine gains a build |
-| C3 | The agentic `drive` path in `full` mode lets the model fill fields directly, outside the prefill answer policy | Gate `full` drive behind the same policy before Autofill release |
+| C3 | ~~The agentic `drive` path in `full` mode lets the model fill fields directly, outside the prefill answer policy~~ **Done (engineering)** | `drive-write-guard.mjs` runs inside `executeAction` before every type, select and radio/checkbox click. In `full` mode only reviewed values are entered, and sensitive fields take only the reviewed answer to that same question. Consent checkboxes are never ticked, and a radio with an unidentified question is left for the person. In `reach` mode, sensitive fields are refused. Not yet run against live ATS forms with the Claude planner |
 
 ### Decision gates
 
