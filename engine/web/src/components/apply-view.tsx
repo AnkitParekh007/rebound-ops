@@ -393,12 +393,12 @@ function DrivePanel({ steps, filling }: { steps: DriveStep[]; filling?: boolean 
               <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand-soft text-[10px] font-semibold text-brand-text">{s.turn}</span>
               <span className="shrink-0 font-medium">{DRIVE_VERB[s.action] ?? s.action}</span>
               <span className="truncate text-faint">{s.detail}</span>
-              {/* `submit-control` is the guard doing its job (good news, distinct
-                  color); `not-offered`/`gone` are the page moving under us
-                  (a caution, not a protection) — same amber as before this
-                  field had a consumer at all. */}
+              {/* `submit-control` and `sensitive-field` are a guard doing its
+                  job (good news, distinct color); `not-offered`/`gone` are the
+                  page moving under us, and `unreviewed-value`/`unknown-question`
+                  are writes left for the person (a caution, not a protection). */}
               {s.note &&
-                (s.refusal === "submit-control" ? (
+                (s.refusal === "submit-control" || s.refusal === "sensitive-field" ? (
                   <span className="inline-flex shrink-0 items-center gap-1 text-emerald-800 dark:text-emerald-400">
                     <ShieldCheck className="size-3" /> {s.note}
                   </span>

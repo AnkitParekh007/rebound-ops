@@ -19,14 +19,17 @@
  * - File fields are excluded: the CV upload is handled by the fill step.
  *
  * Every answer gets a `source`. The planner reads profile and CV files itself,
- * so everything it writes is a `model_draft`; `profile_fact` and
- * `approved_answer` become possible once reviewed facts are stored (AF-02).
+ * so everything it writes is a `model_draft`. Fields settled by the person's
+ * reviewed config/profile.yml facts (profile-facts.mjs) come back as
+ * `profile_fact` (or `derived` for a first/last name split from a two-word full
+ * name); `approved_answer` arrives with saved-answer reuse.
  *
  * ANSWER_SOURCES, SENSITIVE_CATEGORIES and ANSWER_HOLD_REASONS mirror
  * packages/contracts/src/operations/autofill.ts. tests/operations-parity.test.mjs
  * fails if they drift. Plain .mjs so `node --test` loads it with no build step.
  */
 import { pickComboboxOption } from "./option-match.mjs";
+import { resolveProfileAnswer } from "./profile-facts.mjs";
 
 export const ANSWER_SOURCES = Object.freeze(["profile_fact", "approved_answer", "derived", "model_draft", "unresolved"]);
 export const SENSITIVE_CATEGORIES = Object.freeze([
@@ -84,19 +87,24 @@ export function sensitiveCategory(label) {
 /**
  * @typedef {{ id: string, type: string, label?: string, required?: boolean, options?: string[], maxLength?: number, combobox?: boolean }} PolicyField
  * @typedef {{ value: string, needs_confirmation: boolean, source: string, sensitive_category: string | null, hold_reason: string | null }} PolicyAnswer
- * @typedef {{ proposed: number, held: number, unresolved: number, dropped: number }} PolicySummary
+ * @typedef {{ proposed: number, held: number, unresolved: number, dropped: number, fromProfile: number }} PolicySummary
  */
 
 /**
  * @param {PolicyField[]} fields the form as extracted for this session
  * @param {Record<string, unknown>} raw the parsed planner object: id → {value, needs_confirmation} or a bare string
+ * @param {{ facts?: import("./profile-facts.mjs").ProfileFacts | null }} [opts] reviewed facts
+ *   from config/profile.yml (profile-facts.mjs). A field they settle takes the
+ *   profile's value whatever the planner wrote; this is the only way a
+ *   sensitive field gets a value.
  * @returns {{ answers: Record<string, PolicyAnswer>, summary: PolicySummary }}
  */
-export function enforceAnswerPolicy(fields, raw) {
+export function enforceAnswerPolicy(fields, raw, opts = {}) {
   const planner = raw && typeof raw === "object" ? raw : {};
   /** @type {Record<string, PolicyAnswer>} */
   const answers = {};
-  const summary = { proposed: 0, held: 0, unresolved: 0, dropped: 0 };
+  const summary = { proposed: 0, held: 0, unresolved: 0, dropped: 0, fromProfile: 0 };
+  const facts = opts.facts ?? null;
   const known = new Set();
 
   for (const field of fields ?? []) {
@@ -115,6 +123,12 @@ export function enforceAnswerPolicy(fields, raw) {
       return { value: "", needs_confirmation: hold !== null, source: "unresolved", sensitive_category: category, hold_reason: hold };
     };
 
+    const fromProfile = facts ? resolveProfileAnswer(field, facts, category) : null;
+    if (fromProfile && !(typeof field.maxLength === "number" && field.maxLength > 0 && fromProfile.value.length > field.maxLength)) {
+      summary.fromProfile++;
+      answers[field.id] = { value: fromProfile.value, needs_confirmation: false, source: fromProfile.source, sensitive_category: category, hold_reason: null };
+      continue;
+    }
     if (category) {
       answers[field.id] = unresolved(field.type === "checkbox" && category === "attestation" ? "consent_never_auto" : "sensitive_requires_reviewed_fact");
       continue;
