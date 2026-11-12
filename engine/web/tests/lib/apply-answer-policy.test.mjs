@@ -22,6 +22,8 @@ const SENSITIVE_LABELS = [
   ["Are you legally authorized to work in the United States?", "work_authorization"],
   ["Do you have the right to work in the UK?", "work_authorization"],
   ["Are you eligible to work in Germany?", "work_authorization"],
+  ["Are you legally permitted to work in the United States?", "work_authorization"],
+  ["Are you allowed to work in Canada without restriction?", "work_authorization"],
   ["Country of citizenship", "citizenship"],
   ["What are your salary expectations?", "salary"],
   ["Expected CTC (INR)", "salary"],
@@ -29,6 +31,9 @@ const SENSITIVE_LABELS = [
   ["Gender", "demographic"],
   ["Are you a protected veteran?", "demographic"],
   ["Disability status", "demographic"],
+  ["Are you at least 18 years old?", "demographic"],
+  ["Are you 18+ years of age?", "demographic"],
+  ["Are you over the age of 21?", "demographic"],
   ["Race / Ethnicity", "demographic"],
   ["Have you ever been convicted of a felony?", "background_check"],
   ["I have read and agree to the privacy notice", "attestation"],
@@ -40,7 +45,7 @@ test("sensitive questions are recognised by category", () => {
 });
 
 test("ordinary questions are not sensitive", () => {
-  for (const label of ["First name", "Email", "LinkedIn profile", "Why do you want to work at Acme?", "Notice period", "Years of experience with TypeScript", "Preferred language", "Current company", "Agency name"]) {
+  for (const label of ["First name", "Email", "LinkedIn profile", "Why do you want to work at Acme?", "Notice period", "Years of experience with TypeScript", "How many years of React experience do you have?", "Preferred language", "Current company", "Agency name"]) {
     assert.equal(sensitiveCategory(label), null, label);
   }
 });
@@ -59,6 +64,20 @@ test("a model answer to a sensitive question never reaches the person as a value
   assert.equal(answers.pay.sensitive_category, "salary");
   assert.equal(answers.consent.hold_reason, "consent_never_auto");
   assert.deepEqual(summary, { proposed: 0, held: 0, unresolved: 3, dropped: 0 });
+});
+
+test("work-permission and age-of-majority answers are never returned as model drafts", () => {
+  const fields = [
+    { id: "permit", type: "radio", label: "Are you legally permitted to work in the United States?", required: true, options: ["Yes", "No"] },
+    { id: "adult", type: "radio", label: "Are you at least 18 years old?", required: true, options: ["Yes", "No"] },
+  ];
+  const { answers } = enforceAnswerPolicy(fields, { permit: { value: "Yes", needs_confirmation: false }, adult: { value: "Yes", needs_confirmation: false } });
+  assert.equal(answers.permit.source, "unresolved");
+  assert.equal(answers.permit.sensitive_category, "work_authorization");
+  assert.equal(answers.permit.value, "");
+  assert.equal(answers.adult.source, "unresolved");
+  assert.equal(answers.adult.sensitive_category, "demographic");
+  assert.equal(answers.adult.value, "");
 });
 
 test("ordinary answers pass through labelled as model drafts", () => {

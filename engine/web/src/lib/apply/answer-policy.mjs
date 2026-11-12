@@ -53,7 +53,7 @@ const CATEGORY_PATTERNS = [
   ["sponsorship", /\b(sponsor(ship|ed|ing)?|visas?|h-?1b|tn status|green card)\b/i],
   [
     "work_authorization",
-    /\b(authori[sz](ed|ation)\s+to\s+work|legally\s+(authori[sz]ed|eligible|able|entitled)|eligib(le|ility)\s+to\s+work|right\s+to\s+work|work\s+(permit|authori[sz]ation|eligibility)|employment\s+eligibility|immigration)\b/i,
+    /\b(authori[sz](ed|ation)\s+to\s+work|legally\s+(authori[sz]ed|eligible|able|entitled|permitted|allowed)|(permitted|allowed|entitled|cleared)\s+to\s+work|eligib(le|ility)\s+to\s+work|right\s+to\s+work|work\s+(permit|authori[sz]ation|eligibility)|employment\s+eligibility|immigration)\b/i,
   ],
   ["citizenship", /\b(citizen(ship)?|nationality|national\s+of|passport)\b/i],
   [
@@ -62,7 +62,7 @@ const CATEGORY_PATTERNS = [
   ],
   [
     "demographic",
-    /\b(gender|sex|race|racial|ethnic(ity)?|hispanic|latin[oax]|veteran|disab(led|ility|ilities)|sexual\s+orientation|transgender|pronouns?|date\s+of\s+birth|birth\s*date|age|religio(n|us)|marital|caste)\b/i,
+    /\b(gender|sex|race|racial|ethnic(ity)?|hispanic|latin[oax]|veteran|disab(led|ility|ilities)|sexual\s+orientation|transgender|pronouns?|date\s+of\s+birth|birth\s*date|age|ages|\d{1,2}\s*\+?\s*(years?|yrs?)\s+(old|of\s+age)|years\s+of\s+age|religio(n|us)|marital|caste)\b/i,
   ],
   ["background_check", /\b(convicted|convictions?|criminal|felon(y|ies)|misdemeanou?rs?|background\s+checks?)\b/i],
   [
