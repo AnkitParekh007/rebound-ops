@@ -17,6 +17,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { OPERATIONS_STORE_RELATIVE_PATH } from './paths.js';
+import { BackupHashMismatchError, BackupNotFoundError, createBackup, listBackups, verifiedBackupFile } from './backups.js';
 import { planLegacyImport, type LedgerView } from './legacy-tracker.js';
 import {
   FEATURE_FLAGS, OperationEventInputSchema, LegacyTrackerImportRequestSchema, MAX_LEGACY_TRACKER_BYTES,
@@ -167,6 +168,44 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
       }
     }
     return reply.send({ report: plan.report });
+  });
+
+  // Backups (FND-06). Listing never opens the store.
+  app.get('/api/operations/backups', async (_request, reply) => {
+    const refused = unavailable();
+    if (refused) return reply.code(refused.status).send({ error: refused.error, message: refused.message });
+    return { backups: listBackups(options.dataDir!) };
+  });
+
+  app.post('/api/operations/backups', async (_request, reply) => {
+    const opened = await getStore();
+    if (!('appendEvents' in opened)) return reply.code(opened.status).send({ error: opened.error, message: opened.message });
+    return reply.code(201).send({ backup: createBackup(opened, options.dataDir!, 'manual') });
+  });
+
+  // Replaces every operations record with the backup's. The body must be
+  // exactly { confirm: true }. The current state is backed up first, so a
+  // restore can itself be undone by restoring that backup.
+  app.post('/api/operations/backups/:name/restore', async (request, reply) => {
+    const body = request.body as Record<string, unknown> | null;
+    if (!body || typeof body !== 'object' || Array.isArray(body) || body.confirm !== true || Object.keys(body).length !== 1) {
+      return reply.code(400).send({ error: 'RESTORE_CONFIRMATION_REQUIRED', message: 'Send { "confirm": true } to replace every operations record with this backup.' });
+    }
+    const opened = await getStore();
+    if (!('appendEvents' in opened)) return reply.code(opened.status).send({ error: opened.error, message: opened.message });
+    const { name } = request.params as { name: string };
+    try {
+      const { file, manifest } = verifiedBackupFile(options.dataDir!, name);
+      opened.checkBackup(file);
+      const preRestoreBackup = createBackup(opened, options.dataDir!, 'pre_restore');
+      const restored = opened.restoreFrom(file);
+      return { restoredFrom: manifest.name, restored, preRestoreBackup };
+    } catch (error) {
+      if (error instanceof BackupNotFoundError) return reply.code(404).send({ error: 'BACKUP_NOT_FOUND', message: error.message });
+      if (error instanceof BackupHashMismatchError) return reply.code(409).send({ error: 'BACKUP_HASH_MISMATCH', message: error.message });
+      if (mod && error instanceof mod.BackupInvalidError) return reply.code(422).send({ error: 'BACKUP_INVALID', reason: error.reason, message: error.message });
+      throw error;
+    }
   });
 
   app.get('/api/operations/entities/:entityType/:entityId/events', async (request, reply) => {

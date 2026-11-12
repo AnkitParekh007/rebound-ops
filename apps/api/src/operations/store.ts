@@ -22,7 +22,7 @@
  * `node:sqlite` is still marked experimental in Node 22/24; everything that
  * touches it is in this file so a different binding is a local change.
  */
-import { chmodSync, closeSync, existsSync, mkdirSync, openSync } from 'node:fs';
+import { chmodSync, closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { OPERATIONS_STORE_RELATIVE_PATH } from './paths.js';
@@ -62,6 +62,14 @@ export class IdempotencyConflictError extends Error {
   }
 }
 
+/** A backup that cannot be restored into this store; nothing was changed. */
+export class BackupInvalidError extends Error {
+  constructor(readonly reason: 'integrity' | 'schema_version' | 'tables', detail: string) {
+    super(`This backup cannot be restored: ${detail}. Nothing was changed.`);
+    this.name = 'BackupInvalidError';
+  }
+}
+
 export class EventPayloadTooLargeError extends Error {
   constructor() {
     super(`Event payload exceeds ${MAX_EVENT_PAYLOAD_BYTES} bytes.`);
@@ -73,6 +81,9 @@ export interface Migration {
   readonly version: number;
   readonly sql: string;
 }
+
+/** Tables a restore replaces, parents first. A new table must be added here. */
+const RESTORE_ORDER = ['operation_entities', 'operation_events'] as const;
 
 /** Forward-only. Append; never edit a released migration. */
 export const OPERATIONS_MIGRATIONS: readonly Migration[] = [
@@ -265,6 +276,97 @@ export class OperationsStore {
   listEvents(entityType: string, entityId: string): OperationEvent[] {
     const rows = this.db.prepare('SELECT * FROM operation_events WHERE entity_type = ? AND entity_id = ? ORDER BY revision').all(entityType, entityId) as EventRow[];
     return rows.map(toEvent);
+  }
+
+  /** Entity and event counts, for backup manifests. */
+  counts(): { entities: number; events: number } {
+    const n = (table: string) => (this.db.prepare(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n;
+    return { entities: n('operation_entities'), events: n('operation_events') };
+  }
+
+  /**
+   * Write a consistent copy of the whole store to `target`, which must not
+   * exist. The file is created owner-only before SQLite writes to it.
+   */
+  backupTo(target: string): void {
+    closeSync(openSync(target, 'wx', 0o600));
+    try {
+      this.db.prepare('VACUUM INTO ?').run(target);
+    } catch (error) {
+      try { rmSync(target, { force: true }); } catch { /* best effort */ }
+      throw error;
+    }
+    if (process.platform !== 'win32') chmodSync(target, 0o600);
+  }
+
+  /**
+   * Replace every record with the contents of the backup at `source`, in one
+   * transaction on this (locked) connection: all records, or none. The backup
+   * must pass SQLite's integrity check and have this store's schema version,
+   * tables and columns. The caller verifies the file's hash and path first.
+   */
+  restoreFrom(source: string): { entities: number; events: number } {
+    const expected = this.checkBackup(source);
+
+    this.db.prepare('ATTACH DATABASE ? AS restore_source').run(source);
+    try {
+      return this.transaction(() => {
+        // Children before parents on delete, parents before children on insert.
+        for (const table of [...RESTORE_ORDER].reverse()) this.db.exec(`DELETE FROM main.${table}`);
+        for (const table of RESTORE_ORDER) {
+          const columns = expected[table]!.join(', ');
+          this.db.exec(`INSERT INTO main.${table} (${columns}) SELECT ${columns} FROM restore_source.${table}`);
+        }
+        return this.counts();
+      });
+    } finally {
+      this.db.exec('DETACH DATABASE restore_source');
+    }
+  }
+
+  /**
+   * Check, without changing anything, that the backup at `source` can be
+   * restored here: SQLite integrity, this store's schema version, and the same
+   * tables and columns. Returns this store's layout. Throws BackupInvalidError.
+   */
+  checkBackup(source: string): Record<string, string[]> {
+    const expected = this.layout(this.db, 'main');
+    // A table outside RESTORE_ORDER would be silently left as it was.
+    if (Object.keys(expected).sort().join() !== [...RESTORE_ORDER].sort().join()) {
+      throw new Error(`RESTORE_ORDER does not list every store table: ${Object.keys(expected).join(', ')}`);
+    }
+    let backup: DatabaseSync;
+    try {
+      backup = new DatabaseSync(source, { readOnly: true });
+    } catch {
+      throw new BackupInvalidError('integrity', 'it is not a readable SQLite database');
+    }
+    try {
+      const check = (backup.prepare('PRAGMA integrity_check').get() as { integrity_check: string }).integrity_check;
+      if (check !== 'ok') throw new BackupInvalidError('integrity', 'it fails SQLite\'s integrity check');
+      const version = (backup.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+      if (version !== this.schemaVersion) {
+        throw new BackupInvalidError('schema_version', `it has schema ${version}, and this store has schema ${this.schemaVersion}`);
+      }
+      if (JSON.stringify(this.layout(backup, 'main')) !== JSON.stringify(expected)) {
+        throw new BackupInvalidError('tables', 'its tables or columns differ from this store');
+      }
+    } catch (error) {
+      if (error instanceof BackupInvalidError) throw error;
+      throw new BackupInvalidError('integrity', 'it is not a readable SQLite database');
+    } finally {
+      backup.close();
+    }
+    return expected;
+  }
+
+  /** Table name → column names, for every user table in `schema`. */
+  private layout(db: DatabaseSync, schema: string): Record<string, string[]> {
+    const tables = db.prepare(`SELECT name FROM ${schema}.sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all() as { name: string }[];
+    return Object.fromEntries(tables.map(({ name }) => [
+      name,
+      (db.prepare(`SELECT name FROM ${schema}.pragma_table_info(?) ORDER BY cid`).all(name) as { name: string }[]).map((c) => c.name)
+    ]));
   }
 
   close(): void {
