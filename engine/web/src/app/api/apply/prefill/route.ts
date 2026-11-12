@@ -7,6 +7,7 @@ import { getSession } from "@/lib/apply/session";
 import { resolveSessionCv } from "@/lib/apply/cv";
 import { applyCvSource } from "@/lib/apply/cv-source.mjs";
 import { buildAnswerPrompt } from "@/lib/apply/answer-prompt.mjs";
+import { enforceAnswerPolicy } from "@/lib/apply/answer-policy.mjs";
 import { runPlanner } from "@/lib/apply/planner";
 import { extractJsonObject } from "@/lib/extract-json-object.mjs";
 import { readJsonObject } from "@/lib/json-body";
@@ -134,7 +135,12 @@ export async function POST(req: Request) {
       }
       const count = Object.keys(obj).length;
       log(`Parsed ${count} answers${truncated ? " (RECOVERED from truncated output — some fields may be missing)" : ""}`);
-      emit({ t: "done", answers: obj, truncated, count });
+      // The planner's output is a model draft. The policy, not the prompt, decides
+      // what reaches the person as a proposed value: sensitive questions come back
+      // empty and flagged, off-list options and unknown field ids are dropped.
+      const { answers, summary } = enforceAnswerPolicy(s.fields, obj);
+      log(`Answer policy: ${summary.proposed} proposed · ${summary.held} held for review · ${summary.unresolved} left for you · ${summary.dropped} dropped (not on this form)`);
+      emit({ t: "done", answers, truncated, count, policy: summary });
       controller.close();
     },
   });
