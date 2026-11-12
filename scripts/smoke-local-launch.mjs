@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import net from 'node:net';
+import { httpGet } from './smoke-http.mjs';
 
 async function freePort() {
   const server=net.createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -18,7 +19,7 @@ async function waitForHealth(origin, child, log, budgetMs) {
   const deadline = Date.now() + budgetMs;
   while (true) {
     if (child.exitCode !== null || child.signalCode !== null) throw Error('Launcher exited before readiness: ' + log());
-    try { if ((await fetch(origin + '/api/rebound/health')).ok) return; } catch {}
+    try { if ((await httpGet(origin + '/api/rebound/health', { timeoutMs: 2_000 })).ok) return; } catch {}
     assert(Date.now() < deadline, 'Launcher readiness timeout: ' + log());
     await new Promise(r => setTimeout(r, 250));
   }
@@ -157,7 +158,7 @@ export async function runLaunchSmoke(checkout) {
     await page.getByRole('button',{name:'Append reviewed text to editor',exact:true}).click();
     assert((await page.locator('#cv-editor').inputValue()).startsWith(previousCv));
     assert((await page.locator('#cv-editor').inputValue()).includes(session.intake.evidence[0].claim));
-    assert.equal((await (await fetch(origin+'/api/cv')).json()).markdown,previousCv,'handoff never auto-saves CV');
+    assert.equal((await httpGet(origin+'/api/cv')).json().markdown,previousCv,'handoff never auto-saves CV');
     const saveDraft=page.waitForResponse(r=>r.url().endsWith('/api/cv')&&r.request().method()==='PUT');await page.locator('#content button').filter({hasText:/^Save$/}).click();await saveDraft;
     await smokeWorkspaceUsability(page, origin);
     await smokeWorkspaceReadiness(page, origin);
