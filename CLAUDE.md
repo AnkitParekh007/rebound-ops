@@ -4,26 +4,34 @@ Guidance for Claude Code sessions working in this repository.
 
 ## Git workflow (owner preference)
 
+### How `main` is protected
+
+`main` has an active GitHub ruleset ("Protect main — PRs and required checks") with no bypass actors. Direct pushes to `main` are rejected, so **every change reaches `main` through a pull request**. The ruleset requires:
+
+- squash merges only, linear history and signed commits;
+- every review thread resolved, and the branch up to date with `main`;
+- these checks passing: `test-and-build`, `Node 22 compatibility`, `Platform package smoke (macos-latest)`, `Platform package smoke (windows-latest)`, `Capture current app and build marketing site`, `Analyze (javascript-typescript)` and `Analyze (actions)`, plus CodeQL code-scanning and code-quality gates.
+
+Never force-push `main` or rewrite its history.
+
 ### Operations features (Track C in the roadmap)
 
-Work on the seven operations features does not go straight to `main` (owner decision, 12 Nov 2026; see [ADR 0003](docs/adr-0003-operations-features.md)).
+Work on the seven operations features (owner decision, 12 Nov 2026; see [ADR 0003](docs/adr-0003-operations-features.md)):
 
 - Shared work goes on `feature/00-foundation`. Feature work goes on its own branch: `feature/01-auto-apply`, `feature/02-autofill`, `feature/03-eligibility-quality`, `feature/04-recruiter-inbox`, `feature/05-referrals`, `feature/06-interview-coach` or `feature/07-strategy-advisor`.
-- Feature branches start from `feature/00-foundation`. Rebase them onto it, or onto `main` once the foundation is merged. Never force-push a branch someone else may have pulled without asking the owner.
-- Each coherent work package reaches `main` through a pull request, with its feature flags off by default.
-- Run the same local checks listed below before every push.
+- Feature branches start from `feature/00-foundation`. Bring a branch up to date by merging its base into it, not by rebasing; never force-push a branch someone else may have pulled without asking the owner.
+- Each coherent work package is its own pull request, with its feature flags off by default. A work package can be stacked on another (its PR targets that branch instead of `main`).
+- A squash merge into `main` rewrites the merged branch's commits, so the next PR in a stack then conflicts with `main`. Fix it by merging `main` into that next branch, and keep the branch side only after confirming `main`'s tree equals the squashed branch.
+- Head branches are kept after merging, so GitHub does not retarget the next PR in a stack. Once its base is squash-merged into `main`, change that PR's base to `main` before merging it, then confirm `origin/main` contains the change. The simpler order is to merge a stack top-down into its feature bases with merge commits, then squash the bottom PR into `main` once.
 
 ### Everything else
 
-The repository owner wants every other commit made in a Claude session to land on `main`.
+1. Run `git fetch origin`, then branch from `origin/main`, using the session's designated `claude/*` branch.
+2. Run the relevant local checks below, push the branch and open a pull request that is ready for review (CodeRabbit skips drafts).
+3. Run `git fetch origin`. If `origin/main` has moved, merge it into the branch and rerun the checks. If that conflicts, stop and ask the owner instead of resolving anything that could discard work.
+4. After the PR is squash-merged, run `git fetch origin` and confirm that `origin/main` contains the change.
 
-1. Before pushing, run `git fetch origin main`.
-2. Push to `main` only as a **fast-forward** (`git push origin HEAD:main`). **Never force-push** `main` or rewrite its history.
-3. If `origin/main` has moved, rebase the session's commits onto it and rerun the checks. If the rebase conflicts, stop and ask the owner instead of resolving anything that could discard work.
-4. Also push the same commits to the session's designated `claude/*` branch as a backup.
-5. After pushing, confirm that `origin/main` contains the new commit.
-
-Pushing straight to `main` skips pull-request review, so run the relevant local checks before every push:
+Run the relevant local checks before every push:
 
 - `npm test` (contracts, API, legacy pilot, AI-eval harness and web unit tests) for any code or contract change
 - `npm run build:web` for frontend changes
