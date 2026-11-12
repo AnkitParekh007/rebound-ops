@@ -121,6 +121,30 @@ Two parallel tracks. **Track A is the critical path.** Track B may only reduce r
 | B7 | ✅ Provenance attestation + SBOM for the preview artifact | S2 | Done 5 Nov 2026; CycloneDX SBOM in every archive, SLSA provenance + SBOM attestations on `main` builds |
 | B9 | ✅ Guided first visit (default first screen) + intake sample-data fix | — | Done 6 Nov 2026. **Owner decision to ship before G1**, an explicit exception to the Track B feature freeze. Wording is a draft; test it in the discovery interviews and pilot (see [guided first visit](onboarding.md)) |
 | B8 | AI suggestion apply/dismiss with local-only counts in pilot feedback export | A4 | Only if G2 passes and AI is enabled in the pilot |
+| B10 | Seven operations features (Track C below), behind default-off flags | — | **Owner decision 12 Nov 2026 to build before G1**, a second explicit exception to the feature freeze. G1–G4 still gate every public release and claim |
+
+### Track C — Operations features (owner exception B10)
+
+Source: the owner's seven-feature implementation pack (11 Nov 2026, held privately). Decisions are recorded in [ADR 0003](adr-0003-operations-features.md). Release order follows dependencies. Each feature is marketed separately, only after its own gate passes. Every flag is off unless named in `REBOUNDOPS_FEATURES`.
+
+| Release | Feature | Branch | Flags | Status |
+|---|---|---|---|---|
+| R0 | Shared foundation | `feature/00-foundation` | — | **Started:** flag registry (FND-07) and Autofill answer vocabulary in `@reboundops/contracts`. Open: operations store ADR and migration (FND-01; `node:sqlite` is still experimental in Node 22/24), events and idempotency (FND-02), legacy import (FND-03), backups/deletion (FND-06) |
+| R1 | #2 Page-aware Autofill | `feature/02-autofill` | `autofill` | Not started. Extends the engine prefill pipeline (ADR 0003). Open: AF-04 code-enforced sensitive-answer policy, approved-answer reuse with context scope, per-field `FillResult` readback, Lever adapter, labelled 200-field corpus |
+| R2 | #3 Eligibility & Quality | `feature/03-eligibility-quality` | `eligibilityScreening` | Not started |
+| R3 | #1 Controlled Auto Apply | `feature/01-auto-apply` | `autoApply` + per-adapter submit | Not started. Needs R0–R2. LinkedIn/Indeed direct automation stays disabled while their terms prohibit it |
+| R4 | #4 Recruiter Inbox | `feature/04-recruiter-inbox` | `inboxImport`, `gmailRead`, `followupDrafts` | Not started. Stage A (import) does not need Gmail verification |
+| R5 | #5 Referrals | `feature/05-referrals` | `contactImport`, `referralMatching`, `referralDrafts` | Not started |
+| R6 | #6 Interview Coach | `feature/06-interview-coach` | `applicationInterviewContext`, `interviewCoaching` | Not started |
+| R7 | #7 Strategy Advisor | `feature/07-strategy-advisor` | `strategyMetrics`, `strategyRecommendations`, `strategyExperiments` | Not started |
+
+Track C gaps:
+
+| # | Gap | Response |
+|---|---|---|
+| C1 | `engine/web/tests` is not run by root CI, so the prefill pipeline Autofill extends has no required check | New engine modules add their tests to root `npm test`; owner to decide whether CI runs the whole engine web suite |
+| C2 | The engine cannot import `@reboundops/contracts` (separate package, no build step) | Mirror enums in `.mjs`, pinned by `tests/operations-parity.test.mjs`; revisit if the engine gains a build |
+| C3 | The agentic `drive` path in `full` mode lets the model fill fields directly, outside the prefill answer policy | Gate `full` drive behind the same policy before Autofill release |
 
 ### Decision gates
 
@@ -146,7 +170,7 @@ Public beta (original week 8) moves to **after G4**; the date follows the eviden
 
 ## 5. Deferred scope and re-entry triggers
 
-Still deferred: automated job scraping, auto-applying, recruiter contact harvesting, salary estimates, mobile apps, complex agent teams.
+Still deferred: automated job scraping, recruiter contact harvesting, salary estimates, mobile apps, complex agent teams. Auto-applying moved to Track C (R3) behind default-off flags; unattended submission stays out of scope until its own gate passes.
 
 | Deferred capability | Re-entry trigger | Prerequisites |
 |---|---|---|
