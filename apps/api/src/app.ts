@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { loadAiProvider, type AiProvider } from './provider.js';
 import { SessionStore, SessionStorageError } from './storage.js';
 import { registerOperationsRoutes } from './operations/routes.js';
+import type { LocalModel } from './operations/local-model.js';
 import {
   PersonalizeActionSchema, personalizeAction, ActionDecisionSchema, AddJobTargetSchema, AiPreviewRequestSchema, AiAnalyzeRequestSchema, CreateSessionSchema, DeleteTargetSchema,
   EvidenceDecisionSchema, CorrectEvidenceSchema, AddSourceDocumentSchema, PersistenceChoiceSchema,
@@ -79,6 +80,8 @@ export function buildApp(options: {
   maxAiAttempts?: number;
   /** Test seam: operations feature flags. Production reads REBOUNDOPS_FEATURES. */
   features?: ResolvedFeatureFlags;
+  /** Test seam: the optional local model (FND-05). Production reads REBOUNDOPS_LOCAL_MODEL_URL / REBOUNDOPS_LOCAL_MODEL. */
+  localModel?: LocalModel;
 } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 128 * 1024 });
   const sessions = new SessionStore(options.dataDir, { migration: options.sessionMigration });
@@ -198,7 +201,7 @@ export function buildApp(options: {
     spendCeiling: 'Set a provider-side workspace spend limit before live calls. Local attempt counters are not a currency ceiling.'
   }));
 
-  registerOperationsRoutes(app, { dataDir: options.dataDir, features: options.features ?? resolveFeatureFlags(process.env) });
+  registerOperationsRoutes(app, { dataDir: options.dataDir, features: options.features ?? resolveFeatureFlags(process.env), localModel: options.localModel });
 
   app.get('/api/health', async () => ({
     status: 'ok', mode: 'local-only', persistence: sessions.available ? 'opt-in-disk' : 'memory',

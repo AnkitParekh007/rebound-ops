@@ -17,6 +17,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { OPERATIONS_STORE_RELATIVE_PATH } from './paths.js';
+import { LocalModel } from './local-model.js';
 import { planLegacyImport, type LedgerView } from './legacy-tracker.js';
 import {
   FEATURE_FLAGS, OperationEventInputSchema, LegacyTrackerImportRequestSchema, MAX_LEGACY_TRACKER_BYTES,
@@ -35,6 +36,8 @@ type Unavailable = { status: 404 | 503; error: string; message: string };
 export interface OperationsRouteOptions {
   readonly dataDir?: string;
   readonly features: ResolvedFeatureFlags;
+  /** Optional local model (FND-05). Defaults to REBOUNDOPS_LOCAL_MODEL_URL / REBOUNDOPS_LOCAL_MODEL. */
+  readonly localModel?: LocalModel;
 }
 
 export function registerOperationsRoutes(app: FastifyInstance, options: OperationsRouteOptions): void {
@@ -136,6 +139,30 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
     } catch (error) {
       return sendStoreError(reply, error);
     }
+  });
+
+  // Local model (FND-05). Reading the status never contacts the model; only
+  // an explicit check does, and only a loopback endpoint is ever contacted.
+  const localModel = options.localModel ?? LocalModel.fromEnv();
+  const modelSummary = () => {
+    const c = localModel.config;
+    return {
+      configured: c.state === 'configured',
+      status: c.state === 'configured' ? 'not_checked' : c.state,
+      model: c.state === 'not_configured' ? null : c.model,
+      endpoint: c.state === 'configured' ? c.origin : null,
+      detail: c.state === 'invalid_config' ? c.detail
+        : c.state === 'not_configured' ? 'No local model is configured. Every feature works without one.'
+        : 'Configured. Run a check to see whether it answers.'
+    };
+  };
+  app.get('/api/operations/local-model', async (_request, reply) => {
+    if (enabledFlags.length === 0) return reply.code(404).send({ error: 'OPERATIONS_DISABLED', message: 'No operations feature is enabled.' });
+    return modelSummary();
+  });
+  app.post('/api/operations/local-model/check', async (_request, reply) => {
+    if (enabledFlags.length === 0) return reply.code(404).send({ error: 'OPERATIONS_DISABLED', message: 'No operations feature is enabled.' });
+    return localModel.health();
   });
 
   // Legacy tracker import (FND-03). The caller sends the file's text; the API
