@@ -189,3 +189,83 @@ describe('SessionStore', () => {
   });
 
 });
+
+describe('SessionStore application records (operations store)', () => {
+  let api: ApiStub;
+  let store: SessionStore;
+  const status = { enabledFeatures: ['autofill'], unknownFeatureNames: [], storeConfigured: true, storeOpen: false, schemaVersion: null };
+  const record = { num: 3, entityId: 'legacy-3', revision: 2, cells: { company: 'Example Labs', role: 'Engineer' }, importedAt: '2026-11-12T00:00:00.000Z' };
+  const request = { markdown: '| # | Date | Company | Role | Score | Status |', sourceLabel: 'applications.md' };
+
+  beforeEach(async () => {
+    api = apiStub();
+    TestBed.configureTestingModule({ providers: [{ provide: SessionApiService, useValue: api }] });
+    store = TestBed.inject(SessionStore);
+    api.operationsStatus.mockResolvedValue(status);
+    api.trackerRecords.mockResolvedValue({ records: [record], redacted: [] });
+    api.operationsBackups.mockResolvedValue([]);
+    await store.refreshOperationsStatus();
+  });
+
+  it('is available only with an operations flag and a data folder', async () => {
+    expect(store.operationsAvailable()).toBe(true);
+    api.operationsStatus.mockResolvedValueOnce({ ...status, storeConfigured: false });
+    await store.refreshOperationsStatus();
+    expect(store.operationsAvailable()).toBe(false);
+    api.operationsStatus.mockResolvedValueOnce({ ...status, enabledFeatures: [] });
+    await store.refreshOperationsStatus();
+    expect(store.operationsAvailable()).toBe(false);
+    api.operationsStatus.mockRejectedValueOnce(new Error('offline'));
+    await store.refreshOperationsStatus();
+    expect(store.operationsAvailable()).toBe(false);
+  });
+
+  it('a check writes nothing and reloads nothing; an import reloads records and backups', async () => {
+    api.checkTracker.mockResolvedValue({ counts: { total: 2 } });
+    await store.checkTracker(request);
+    expect(api.checkTracker).toHaveBeenCalledWith(request);
+    expect(api.importTracker).not.toHaveBeenCalled();
+    expect(api.trackerRecords).not.toHaveBeenCalled();
+    expect(store.notice()).toMatch(/Nothing was imported/);
+
+    api.importTracker.mockResolvedValue({ imported: 1, updated: 0, unchanged: 1, quarantined: [] });
+    const report = await store.importTracker(request);
+    expect(report?.imported).toBe(1);
+    expect(api.trackerRecords).toHaveBeenCalledTimes(1);
+    expect(api.operationsBackups).toHaveBeenCalledTimes(1);
+    expect(store.trackerRecords()?.records).toEqual([record]);
+    expect(store.notice()).toMatch(/1 added.*not changed/);
+  });
+
+  it('shares the one-request lock with session changes', async () => {
+    const pending = deferred<unknown>();
+    api.importTracker.mockReturnValue(pending.promise);
+    const first = store.importTracker(request);
+    expect(await store.createOperationsBackup()).toBeNull();
+    expect(api.createOperationsBackup).not.toHaveBeenCalled();
+    pending.resolve({ imported: 0, updated: 0, unchanged: 0, quarantined: [] });
+    await first;
+  });
+
+  it('redacts with the record\'s revision and a fresh event id, and shows what backups still hold', async () => {
+    api.redactRecord.mockResolvedValue({ status: 'appended', redactedEvents: 1, walTruncated: true, retention: { backups: ['b'], preMigrationCopies: [], message: '1 earlier copy may still hold it' } });
+    await store.redactTrackerRecord(record);
+    const [type, id, body] = api.redactRecord.mock.calls[0]!;
+    expect([type, id, body.expectedRevision]).toEqual(['application', 'legacy-3', 2]);
+    expect(body.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(store.notice()).toBe('1 earlier copy may still hold it');
+  });
+
+  it('a stale redaction explains itself and reloads the latest records', async () => {
+    api.redactRecord.mockRejectedValue(new HttpErrorResponse({ status: 409, error: { error: 'STALE_REVISION', expectedRevision: 2, currentRevision: 3 } }));
+    expect(await store.redactTrackerRecord(record)).toBeNull();
+    expect(store.error()).toMatch(/changed since it was loaded/);
+    expect(api.trackerRecords).toHaveBeenCalledTimes(1);
+  });
+
+  it('a refused restore passes the API\'s reason through', async () => {
+    api.restoreOperationsBackup.mockRejectedValue(new HttpErrorResponse({ status: 409, error: { error: 'BACKUP_HASH_MISMATCH', message: 'The backup file does not match its manifest.' } }));
+    await store.restoreOperationsBackup('operations-20261112T000000000Z.sqlite');
+    expect(store.error()).toBe('The backup file does not match its manifest.');
+  });
+});

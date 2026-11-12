@@ -13,13 +13,14 @@ import { PlanComponent } from './features/plan/plan.component';
 import { PilotFeedbackComponent } from './features/pilot-feedback/pilot-feedback.component';
 import { AiSetupComponent } from './features/ai-setup/ai-setup.component';
 import { DataControlsComponent } from './features/data-controls/data-controls.component';
+import { RecordsComponent } from './features/records/records.component';
 
 /** Application shell: page frame, step navigation, global messages and step composition. */
 @Component({
   selector: 'rb-root',
   imports: [
     NgTemplateOutlet, IntakeComponent, OnboardingComponent, EvidenceComponent, JobTargetsComponent, RoutesComponent,
-    PlanComponent, PilotFeedbackComponent, DataControlsComponent, AiSetupComponent
+    PlanComponent, PilotFeedbackComponent, DataControlsComponent, RecordsComponent, AiSetupComponent
   ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush

@@ -1,0 +1,133 @@
+<section class="panel" aria-labelledby="records-heading">
+  <div class="panel-top">
+    <div><p class="eyebrow">Your applications / Kept on this computer</p><h2 id="records-heading">Application records</h2></div>
+    <span class="note">{{ records().length }} records</span>
+  </div>
+  <p class="muted">These records are kept in a local file on this computer, separate from your recovery session. They are not encrypted, never uploaded, and never sent to an AI provider.</p>
+
+  <h3 id="tracker-import-heading">Bring in your applications tracker</h3>
+  <p class="muted">Choose your <code>applications.md</code> file or paste its text. ReboundOps reads the text you give it; the original file is never opened or changed. Check first to see what an import would do.</p>
+  <form [formGroup]="trackerForm" (ngSubmit)="importTracker()" aria-labelledby="tracker-import-heading">
+    <div class="field">
+      <label>Tracker file <input type="file" accept=".md,text/markdown,text/plain" (change)="loadFile($event)"></label>
+    </div>
+    <div class="field">
+      <label>Name for this import <input formControlName="sourceLabel" maxlength="200" required
+        [attr.aria-invalid]="!!error(trackerForm.controls.sourceLabel)"
+        [attr.aria-describedby]="error(trackerForm.controls.sourceLabel) ? 'tracker-label-error' : null"></label>
+      @if (error(trackerForm.controls.sourceLabel); as message) { <span class="field-error" id="tracker-label-error">{{ message }}</span> }
+    </div>
+    <div class="field">
+      <label>Tracker text <textarea formControlName="markdown" rows="6" required
+        [attr.aria-invalid]="!!error(trackerForm.controls.markdown)"
+        [attr.aria-describedby]="error(trackerForm.controls.markdown) ? 'tracker-text-error' : null"
+        placeholder="| # | Date | Company | Role | Score | Status | PDF | Report | Notes |"></textarea></label>
+      @if (error(trackerForm.controls.markdown); as message) { <span class="field-error" id="tracker-text-error">{{ message }}</span> }
+    </div>
+    <div class="actions">
+      <button class="secondary" type="button" [disabled]="store.busy()" (click)="check()">Check what would change</button>
+      <button class="primary" type="submit" [disabled]="store.busy()">Import</button>
+    </div>
+  </form>
+
+  @if (view(); as v) {
+    <h4>What an import would do</h4>
+    <p>{{ v.counts.total }} applications: {{ v.counts.not_imported }} not imported yet, {{ v.counts.changed_since_import }} changed since import, {{ v.counts.imported }} already imported, {{ v.counts.redacted }} with details removed. Each application is counted once.</p>
+    <div class="records-table-wrap" role="region" aria-label="Applications in the tracker and the store" tabindex="0">
+      <table class="records-table">
+        <thead><tr><th scope="col">#</th><th scope="col">Company</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">What happens</th></tr></thead>
+        <tbody>
+          @for (a of v.applications; track a.num) {
+            @let cells = a.trackerCells ?? a.cells;
+            <tr><td>{{ a.num }}</td><td>{{ cells?.['company'] ?? '—' }}</td><td>{{ cells?.['role'] ?? '—' }}</td><td>{{ cells?.['status'] ?? '—' }}</td><td>{{ stateLabel(a.state) }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (v.quarantined.length) {
+      <h4>Rows that would be held back</h4>
+      <ul>@for (q of v.quarantined; track q.line) { <li>Line {{ q.line }}@if (q.num !== null) { (#{{ q.num }}) }: {{ reasonLabel(q.reason) }}</li> }</ul>
+    }
+  }
+
+  @if (report(); as r) {
+    <h4>Import result</h4>
+    <p>{{ r.imported }} added, {{ r.updated }} updated, {{ r.unchanged }} unchanged, {{ r.quarantined.length }} held back.</p>
+    @if (r.quarantined.length) {
+      <ul>@for (q of r.quarantined; track q.line) { <li>Line {{ q.line }}@if (q.num !== null) { (#{{ q.num }}) }: {{ reasonLabel(q.reason) }}</li> }</ul>
+    }
+  }
+
+  <h3>Take your records with you</h3>
+  <p class="muted">Download every record as an <code>applications.md</code> table in the tracker's own format. Importing it again changes nothing.</p>
+  <div class="actions">
+    <button class="secondary" type="button" [disabled]="store.busy() || !records().length" (click)="exportTracker()">Download as Markdown</button>
+  </div>
+
+  <h3 id="backups-heading">Backups</h3>
+  <p class="muted">A backup is a copy of every record, saved in your data folder. Backups are not encrypted, and ReboundOps never deletes them; remove old ones yourself.</p>
+  <div class="actions">
+    <button class="secondary" type="button" [disabled]="store.busy()" (click)="createBackup()">Back up now</button>
+  </div>
+  @if (store.operationsBackups().length) {
+    <ul class="backup-list" aria-labelledby="backups-heading">
+      @for (b of store.operationsBackups(); track b.name) {
+        <li>
+          <span><strong>{{ b.createdAt | slice: 0 : 16 }}</strong> · {{ b.entities }} records · {{ b.reason === 'pre_restore' ? 'saved before a restore' : 'made by you' }}<br><small>{{ b.name }}</small></span>
+          <button class="minimal" type="button" [disabled]="store.busy()" (click)="askRestore(b.name)" [attr.aria-label]="'Restore backup ' + b.name">Restore…</button>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="muted">No backups yet.</p>
+  }
+  @if (pendingRestore(); as name) {
+    <div class="confirm-box" role="group" aria-labelledby="restore-confirm-heading">
+      <h4 id="restore-confirm-heading">Restore {{ name }}?</h4>
+      <p>Every record will be replaced with the records in this backup. Your current records are backed up first, so you can undo this.</p>
+      <label class="confirm-check"><input type="checkbox" [formControl]="restoreConfirm"
+        [attr.aria-invalid]="!!confirmError(restoreConfirm)" [attr.aria-describedby]="confirmError(restoreConfirm) ? 'restore-confirm-error' : null">
+        I want to replace every record with this backup.</label>
+      @if (confirmError(restoreConfirm); as message) { <span class="field-error" id="restore-confirm-error">{{ message }}</span> }
+      <div class="actions">
+        <button class="primary" type="button" [disabled]="store.busy()" (click)="restore()">Restore this backup</button>
+        <button class="minimal" type="button" (click)="pendingRestore.set(null)">Cancel</button>
+      </div>
+    </div>
+  }
+
+  <h3 id="redact-heading">Remove a record's details</h3>
+  <p class="muted">Removes everything a record says (company, role, notes and the rest) from the records file, and keeps only that it existed. This cannot be undone. Backups made earlier still hold the details until you delete them.</p>
+  @if (records().length) {
+    <form [formGroup]="redactForm" (ngSubmit)="redact()" aria-labelledby="redact-heading">
+      <div class="field">
+        <label for="redact-record">Record</label>
+        <select id="redact-record" formControlName="entityId"
+          [attr.aria-invalid]="!!error(redactForm.controls.entityId)" [attr.aria-describedby]="error(redactForm.controls.entityId) ? 'redact-record-error' : null">
+          <option value="">Choose a record</option>
+          @for (r of records(); track r.entityId) { <option [value]="r.entityId">#{{ r.num }} · {{ r.cells['company'] }} — {{ r.cells['role'] }}</option> }
+        </select>
+        @if (error(redactForm.controls.entityId); as message) { <span class="field-error" id="redact-record-error">{{ message }}</span> }
+      </div>
+      <label class="confirm-check"><input type="checkbox" formControlName="confirm"
+        [attr.aria-invalid]="!!confirmError(redactForm.controls.confirm)" [attr.aria-describedby]="confirmError(redactForm.controls.confirm) ? 'redact-confirm-error' : null">
+        I understand this cannot be undone.</label>
+      @if (confirmError(redactForm.controls.confirm); as message) { <span class="field-error" id="redact-confirm-error">{{ message }}</span> }
+      <div class="actions"><button class="secondary" type="submit" [disabled]="store.busy()">Remove details</button></div>
+    </form>
+  } @else {
+    <p class="muted">There are no records with details to remove.</p>
+  }
+  @if (redactedCount()) { <p class="hint">{{ redactedCount() }} records have had their details removed.</p> }
+  @if (retention(); as kept) {
+    @if (kept.backups.length || kept.preMigrationCopies.length) {
+      <div class="confirm-box">
+        <h4>Copies that may still hold the removed details</h4>
+        <ul>
+          @for (name of kept.backups; track name) { <li>Backup {{ name }}</li> }
+          @for (name of kept.preMigrationCopies; track name) { <li>Upgrade copy {{ name }} (in the operations folder)</li> }
+        </ul>
+      </div>
+    }
+  }
+</section>

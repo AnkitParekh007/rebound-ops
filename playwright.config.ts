@@ -18,10 +18,19 @@ export default defineConfig({
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } }
   ],
-  webServer: {
-    command: 'npm run start -w @reboundops/api',
-    url: 'http://127.0.0.1:4174/api/health',
-    reuseExistingServer: !process.env.CI,
-    timeout: 45_000
-  }
+  webServer: [
+    {
+      command: 'npm run start -w @reboundops/api',
+      url: 'http://127.0.0.1:4174/api/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 45_000
+    },
+    {
+      // Operations flag on with a throwaway data folder (e2e/records.spec.ts only).
+      command: 'node e2e/support/operations-server.mjs',
+      url: 'http://127.0.0.1:4175/api/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 45_000
+    }
+  ]
 });

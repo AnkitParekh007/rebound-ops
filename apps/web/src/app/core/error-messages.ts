@@ -11,6 +11,17 @@ export function describeFailure(failure: unknown): string {
         return 'This backup was created by a newer ReboundOps version. Upgrade ReboundOps to open it; the file was not changed.';
       case 'INVALID_BACKUP':
         return 'This file is not a valid ReboundOps backup, or it failed integrity checks. The file was not changed.';
+      case 'STALE_REVISION':
+        return 'This record changed since it was loaded. The latest records are shown; please try again.';
+      case 'BACKUP_NOT_FOUND':
+      case 'BACKUP_HASH_MISMATCH':
+      case 'BACKUP_INVALID':
+      case 'RECORD_NOT_FOUND':
+      case 'OPERATIONS_DISABLED':
+      case 'OPERATIONS_STORE_NOT_CONFIGURED':
+      case 'OPERATIONS_STORE_LOCKED':
+      case 'OPERATIONS_STORE_NEWER_VERSION':
+        return failure.error?.message || 'The application records could not be changed. Nothing was changed.';
       case 'INVALID_TRANSITION':
         return failure.error?.message || 'This change could not be saved. Review the evidence and try again.';
       default:

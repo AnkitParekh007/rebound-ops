@@ -27,6 +27,7 @@ apps/web/src/
       plan/                    04 seven-day plan, check-in notes, Markdown export
       pilot-feedback/          private questionnaire (component-local state only) + model
       data-controls/           opt-in disk saving, JSON backup, delete
+      records/                 application records (operations store): tracker import, Markdown export, backups, redaction
 ```
 
 Data flow is one-directional:
@@ -39,7 +40,7 @@ feature component ──intent──▶ SessionStore ──▶ SessionApiService
 
 ## Step-by-step wizard
 
-The app shows one step at a time instead of one long page. Main steps: **About you → Things you did → Jobs you are looking at (optional) → Your options → Your 7-day plan**; side steps, open at any time: **Keep or delete my data** and **Tell us how it went**.
+The app shows one step at a time instead of one long page. Main steps: **About you → Things you did → Jobs you are looking at (optional) → Your options → Your 7-day plan**; side steps, open at any time: **Keep or delete my data**, **Application records** (only when an operations feature flag is on and `REBOUNDOPS_DATA_DIR` is set) and **Tell us how it went**.
 
 - `WizardStore` (`core/wizard.ts`) owns navigation. `steps` is one memoized `computed` derived from `SessionStore.session()`, so every status (`current`, `done`, `todo`, `optional`, `locked`) comes from the same snapshot. Status is never derived from form state.
 - Locked steps explain why in plain language (for example "Choose one of your options first") through `aria-disabled` and `aria-describedby`. If the current step becomes locked (session cleared or deleted), the wizard returns to "About you".
@@ -51,6 +52,14 @@ The app shows one step at a time instead of one long page. Main steps: **About y
 - The full form starts blank (the fictional example loads only on request) and reloads from the active session whenever its id changes, so "Update intake" always edits the real answers.
 - The global notice is a `role="status"` element that is always rendered, so new text is announced.
 - Navigation never changes the session. Successful intents may advance the wizard (intake → Things you did; choosing an option → Your 7-day plan; resume/restore → the plan if one exists).
+
+### Application records (operations store)
+
+- The records live in the operations store ([ADR 0004](adr-0004-operations-store.md)), not in the recovery session, so they never enter session backups or AI payloads. Their intents (`checkTracker`, `importTracker`, `exportTracker`, `createOperationsBackup`, `restoreOperationsBackup`, `redactTrackerRecord`) are on `SessionStore` and share its `busy` lock, error and notice; they leave the session and the AI preview alone.
+- `SessionStore.operationsAvailable` comes from `GET /api/operations/status`, which never opens the store. A step with `available()` false is not listed and cannot be opened from the URL; if it disappears while open, the wizard returns to "About you".
+- The screen is rendered outside the per-session loop and loaded with `@defer` on first open, so its code is not in the initial bundle; it moves focus to its own heading on that first render.
+- The tracker text stays in the component's form and is sent only on "Check" (read-only) or "Import". Restoring a backup and removing a record's details each need a ticked confirmation box.
+- E2e: `e2e/records.spec.ts` runs against a second API on port 4175 (`e2e/support/operations-server.mjs`: one flag on, a throwaway data folder). That store is shared by all browser projects, so the journey runs in Chromium only.
 
 ## Rules
 
@@ -70,7 +79,7 @@ All forms are **typed reactive forms** (`ReactiveFormsModule`); there is no temp
 - Zod's issue codes are turned into short, readable messages (`describeIssue`). Custom contract messages (e.g. "Source URL must use HTTPS") are passed through.
 - An invalid form is **not sent**: fields are marked touched, inline messages appear, and the store shows the same summary the API returns for bad input.
 - Inline messages sit **outside** the `<label>` and are linked with `aria-describedby` plus `aria-invalid`, so a control's accessible name stays stable and screen readers announce the error as its description.
-- **Bundle trade-off:** importing the contract schemas brings Zod's validation core into the browser bundle (about 71 kB → about 150 kB gzipped initial; Zod's non-English locales are already removed). This was accepted because it gives one source of truth for validation, and the app is served from loopback. `angular.json` now has budgets (initial: warn 800 kB, error 1 MB) to stop silent growth. A future option is moving the contracts to `zod/mini`.
+- **Bundle trade-off:** importing the contract schemas brings Zod's validation core into the browser bundle (about 71 kB → about 150 kB gzipped initial; Zod's non-English locales are already removed). This was accepted because it gives one source of truth for validation, and the app is served from loopback. `angular.json` has budgets (initial: warn 850 kB, error 1 MB) to stop silent growth. The warning level was raised from 800 kB when the application records screen was added (initial bundle 799 kB → about 813 kB): the screen itself loads lazily with `@defer`, and the rest is its store intents and Angular's defer runtime. A future option is moving the contracts to `zod/mini`.
 
 ## Unit tests (roadmap B6, gap F3)
 

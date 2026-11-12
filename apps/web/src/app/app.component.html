@@ -83,6 +83,16 @@
         <div [hidden]="wizard.current() !== 'data'"><rb-data-controls [session]="current" /></div>
       }
 
+      <!-- Application records are not part of the recovery session, so they sit
+           outside the per-session loop; shown only when an operations flag and
+           a data folder are configured. -->
+      @if (store.operationsAvailable() && store.session()) {
+        <!-- Loaded on first open, so the screen's code is not in the initial bundle. -->
+        <div [hidden]="wizard.current() !== 'records'">
+          @defer (when wizard.current() === 'records') { <rb-records /> } @loading { <p class="muted">Loading application records…</p> }
+        </div>
+      }
+
       @if (store.session() && (wizard.previous() || wizard.next())) {
         <nav class="wizard-pager" aria-label="Step navigation">
           @if (wizard.previous(); as prev) {
