@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { resolveFeatureFlags } from '@reboundops/contracts';
@@ -164,4 +164,31 @@ test('text near the 2 MiB limit is accepted even when JSON escaping doubles it',
     assert.equal(r.json().report.imported, 1);
   });
   rmSync(dir, { recursive: true, force: true });
+});
+
+test('a first-use dry run does not create the store file; a later dry run still writes nothing', async () => {
+  const dir = await withApp(async (app, dataDir) => {
+    const file = join(dataDir, 'operations', 'operations.sqlite');
+    const dry = (await importText(app, base, true)).json().report;
+    assert.equal(dry.imported, 2);
+    assert.ok(!existsSync(join(dataDir, 'operations')), 'no operations folder or file after a dry run');
+    assert.equal((await app.inject({ method: 'GET', url: '/api/operations/status' })).json().storeOpen, false);
+
+    await importText(app, base);
+    assert.ok(existsSync(file));
+    const dryAgain = (await importText(app, tracker(row(1, 'Fictional Startup Studio', 'Backend Engineer', 'Offer')), true)).json().report;
+    assert.equal(dryAgain.updated, 1, 'compares against the real ledger once it exists');
+    assert.equal((await events(app, 'legacy-1')).revision, 1, 'and still writes nothing');
+  });
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('a dry run is still refused while every flag is off', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'reboundops-legacy-'));
+  const app = buildApp({ dataDir: dir, aiCounterFile: null, features: resolveFeatureFlags({}) });
+  try {
+    const r = await importText(app, base, true);
+    assert.equal(r.statusCode, 404);
+    assert.equal(r.json().error, 'OPERATIONS_DISABLED');
+  } finally { await app.close(); rmSync(dir, { recursive: true, force: true }); }
 });
