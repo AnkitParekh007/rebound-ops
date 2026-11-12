@@ -12,6 +12,7 @@
 import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { OPERATIONS_STORE_RELATIVE_PATH } from './paths.js';
 import type { OperationsStore } from './store.js';
 
 export const BACKUP_DIRECTORY = join('operations', 'backups');
@@ -105,4 +106,33 @@ export function verifiedBackupFile(dataDir: string, name: string): { file: strin
   if (!manifest) throw new BackupNotFoundError();
   if (sha256File(file) !== manifest.sha256) throw new BackupHashMismatchError();
   return { file, manifest };
+}
+
+/** A copy made before a schema migration (store.ts): `operations.sqlite.pre-v<N>-<ms>.bak`. */
+const PRE_MIGRATION_COPY_RE = /^operations\.sqlite\.pre-v\d+-\d+\.bak$/;
+
+export interface RetentionNotice {
+  /** Backups (by name) taken before now; each may still hold redacted content. */
+  readonly backups: string[];
+  /** Pre-migration copies beside the store; each may still hold redacted content. */
+  readonly preMigrationCopies: string[];
+  readonly message: string;
+}
+
+/**
+ * What still holds a record after it is redacted in the store (FND-06).
+ * Every existing backup and pre-migration copy was taken before the
+ * redaction, so each may hold the old payloads. The API never deletes them.
+ */
+export function retentionNotice(dataDir: string): RetentionNotice {
+  const opsDir = join(dataDir, OPERATIONS_STORE_RELATIVE_PATH, '..');
+  const backups = listBackups(dataDir).map((b) => b.name);
+  const preMigrationCopies = existsSync(opsDir) ? readdirSync(opsDir).filter((f) => PRE_MIGRATION_COPY_RE.test(f)).sort() : [];
+  const held = backups.length + preMigrationCopies.length;
+  const message = held === 0
+    ? 'The record\'s earlier content is gone from the operations store. No backup or pre-migration copy exists that could still hold it.'
+    : `The record's earlier content is gone from the operations store, but ${held} earlier ${held === 1 ? 'copy' : 'copies'} may still hold it: ` +
+      'the backups and pre-migration copies listed here. ReboundOps does not delete them; delete them yourself if they must not keep it. ' +
+      'Restoring one of them brings the content back.';
+  return { backups, preMigrationCopies, message };
 }

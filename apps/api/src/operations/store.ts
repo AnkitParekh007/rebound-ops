@@ -15,6 +15,10 @@
  * - Migrations: forward-only, numbered by PRAGMA user_version, applied in one
  *   transaction, after a `VACUUM INTO` backup of an existing store. A store
  *   newer than this code is refused, never downgraded.
+ * - Redaction (FND-06): a record's payloads can be replaced with `{}`. Deleted
+ *   content is overwritten (`secure_delete`), and the WAL is checkpointed and
+ *   truncated, so the store file no longer holds it. Backups taken earlier
+ *   still do; the caller says so.
  *
  * Not provided: encryption at rest (files are owner-only where the OS supports
  * it), network or shared-filesystem safety.
@@ -22,13 +26,14 @@
  * `node:sqlite` is still marked experimental in Node 22/24; everything that
  * touches it is in this file so a different binding is a local change.
  */
-import { chmodSync, closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs';
+import { chmodSync, closeSync, copyFileSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { OPERATIONS_STORE_RELATIVE_PATH } from './paths.js';
 import {
   MAX_EVENT_PAYLOAD_BYTES,
   OperationEventInputSchema,
+  REDACTION_EVENT_TYPE,
   type OperationEvent,
   type OperationEventInput,
   type OperationEventSource
@@ -77,6 +82,22 @@ export class EventPayloadTooLargeError extends Error {
   }
 }
 
+/** No such record; there is nothing to redact. */
+export class RecordNotFoundError extends Error {
+  constructor() {
+    super('No such record.');
+    this.name = 'RecordNotFoundError';
+  }
+}
+
+/** An event type only the store itself may write. */
+export class ReservedEventTypeError extends Error {
+  constructor(readonly type: string) {
+    super(`Event type ${type} is written only by the store.`);
+    this.name = 'ReservedEventTypeError';
+  }
+}
+
 export interface Migration {
   readonly version: number;
   readonly sql: string;
@@ -111,6 +132,11 @@ export const OPERATIONS_MIGRATIONS: readonly Migration[] = [
       ) STRICT;
       CREATE INDEX operation_events_by_type ON operation_events (type, occurred_at);
     `
+  },
+  {
+    // FND-06: when an event's payload was redacted. NULL for every other event.
+    version: 2,
+    sql: 'ALTER TABLE operation_events ADD COLUMN redacted_at TEXT;'
   }
 ];
 
@@ -126,9 +152,17 @@ export interface AppendResult {
   readonly event: OperationEvent;
 }
 
+export interface RedactionResult extends AppendResult {
+  /** Events whose payload this call replaced with `{}` (0 for a retry). */
+  readonly redactedEvents: number;
+  /** True when the WAL was checkpointed and truncated after the redaction. */
+  readonly walTruncated: boolean;
+}
+
 type EventRow = {
   id: string; entity_type: string; entity_id: string; revision: number; type: string;
   occurred_at: string; ingested_at: string; source: string; payload: string;
+  redacted_at: string | null;
 };
 
 /** JSON with object keys sorted, so a retried request compares equal however it was built. */
@@ -160,8 +194,14 @@ function toEvent(row: EventRow): OperationEvent {
     occurredAt: row.occurred_at,
     ingestedAt: row.ingested_at,
     source: row.source as OperationEventSource,
-    payload: JSON.parse(row.payload) as Record<string, unknown>
+    payload: JSON.parse(row.payload) as Record<string, unknown>,
+    ...(row.redacted_at ? { redactedAt: row.redacted_at } : {})
   };
+}
+
+function rejectReserved(prepared: readonly Prepared[]): void {
+  const reserved = prepared.find((p) => p.input.type === REDACTION_EVENT_TYPE);
+  if (reserved) throw new ReservedEventTypeError(reserved.input.type);
 }
 
 function lockedOrThrow<T>(fn: () => T): T {
@@ -179,7 +219,11 @@ function isBusy(error: unknown): boolean {
 }
 
 export class OperationsStore {
-  private constructor(private readonly db: DatabaseSync, private readonly now: () => Date) {}
+  private constructor(
+    private readonly db: DatabaseSync,
+    private readonly now: () => Date,
+    private readonly migrations: readonly Migration[]
+  ) {}
 
   /** The file the store lives in, relative to the data directory. */
   static readonly RELATIVE_PATH = OPERATIONS_STORE_RELATIVE_PATH;
@@ -197,7 +241,9 @@ export class OperationsStore {
     try {
       // EXCLUSIVE before WAL: the lock taken by the first write is then kept for
       // the life of the connection, which is the single-owner lease.
-      db.exec('PRAGMA busy_timeout = 2000; PRAGMA locking_mode = EXCLUSIVE; PRAGMA foreign_keys = ON;');
+      // secure_delete overwrites deleted or replaced content with zeros, so a
+      // redacted payload does not linger in free space inside the file.
+      db.exec('PRAGMA busy_timeout = 2000; PRAGMA locking_mode = EXCLUSIVE; PRAGMA foreign_keys = ON; PRAGMA secure_delete = ON;');
       // Refuse a newer store before anything persistent changes: WAL mode is
       // itself a persistent change to the file.
       const supported = migrations.reduce((max, m) => Math.max(max, m.version), 0);
@@ -208,7 +254,7 @@ export class OperationsStore {
         for (const f of [file, `${file}-wal`]) if (existsSync(f)) chmodSync(f, 0o600);
       }
       migrate(db, file, migrations, isNew);
-      return new OperationsStore(db, options.now ?? (() => new Date()));
+      return new OperationsStore(db, options.now ?? (() => new Date()), migrations);
     } catch (error) {
       try { db.close(); } catch { /* already failing */ }
       throw error;
@@ -227,6 +273,7 @@ export class OperationsStore {
   /** Append one event. Idempotent by event id; optimistic by expected revision. */
   appendEvent(raw: OperationEventInput): AppendResult {
     const prepared = prepare(raw);
+    rejectReserved([prepared]);
     return this.transaction(() => this.appendPrepared(prepared));
   }
 
@@ -237,17 +284,70 @@ export class OperationsStore {
    */
   appendEvents(raws: readonly OperationEventInput[]): AppendResult[] {
     const prepared = raws.map(prepare);
+    rejectReserved(prepared);
     return this.transaction(() => prepared.map((p) => this.appendPrepared(p)));
+  }
+
+  /**
+   * Redact a record (FND-06): every earlier event keeps its id, type, times
+   * and revision, but its payload becomes `{}`; then one `record.redacted`
+   * event is appended, holding only the count. Idempotent by `id`; optimistic
+   * by `expectedRevision`. Afterwards the WAL is checkpointed and truncated so
+   * the old pages leave it too. Backups taken earlier still hold the payloads.
+   */
+  redactRecord(entityType: string, entityId: string, request: { id: string; expectedRevision: number }): RedactionResult {
+    const shape = OperationEventInputSchema.shape;
+    shape.entityType.parse(entityType);
+    shape.entityId.parse(entityId);
+    shape.id.parse(request.id);
+    shape.expectedRevision.parse(request.expectedRevision);
+
+    const result = this.transaction(() => {
+      const existing = this.db.prepare('SELECT * FROM operation_events WHERE id = ?').get(request.id) as EventRow | undefined;
+      if (existing) {
+        const same = existing.type === REDACTION_EVENT_TYPE && existing.entity_type === entityType &&
+          existing.entity_id === entityId && existing.revision === request.expectedRevision + 1;
+        if (!same) throw new IdempotencyConflictError(request.id);
+        return { status: 'duplicate' as const, event: toEvent(existing), redactedEvents: 0 };
+      }
+      const current = this.revisionOf(entityType, entityId);
+      if (current === 0) throw new RecordNotFoundError();
+      if (current !== request.expectedRevision) throw new RevisionConflictError(request.expectedRevision, current);
+
+      const at = this.now().toISOString();
+      const redactedEvents = Number(this.db.prepare(
+        "UPDATE operation_events SET payload = '{}', redacted_at = ? WHERE entity_type = ? AND entity_id = ? AND redacted_at IS NULL AND type != ?"
+      ).run(at, entityType, entityId, REDACTION_EVENT_TYPE).changes);
+      const payload = { redactedEvents };
+      const appended = this.appendPrepared({
+        input: { id: request.id, entityType, entityId, expectedRevision: current, type: REDACTION_EVENT_TYPE, occurredAt: at, source: 'user', payload },
+        payload: canonical(payload)
+      });
+      return { ...appended, redactedEvents };
+    });
+    return { ...result, walTruncated: this.truncateWal() };
+  }
+
+  /**
+   * Copy every committed page into the store file and truncate the WAL, so old
+   * page versions (which can hold redacted content) leave it. Truncation frees
+   * the WAL's disk blocks; it does not overwrite them.
+   */
+  private truncateWal(): boolean {
+    const row = this.db.prepare('PRAGMA wal_checkpoint(TRUNCATE)').get() as { busy: number } | undefined;
+    return row?.busy === 0;
   }
 
   private appendPrepared({ input, payload }: Prepared): AppendResult {
     {
       const existing = this.db.prepare('SELECT * FROM operation_events WHERE id = ?').get(input.id) as EventRow | undefined;
       if (existing) {
+        // A redacted event's payload is gone, so a retry of it is matched on
+        // everything else; the stored (redacted) event is returned either way.
         const same =
           existing.entity_type === input.entityType && existing.entity_id === input.entityId &&
           existing.type === input.type && existing.occurred_at === input.occurredAt &&
-          existing.source === input.source && existing.payload === payload &&
+          existing.source === input.source && (existing.redacted_at !== null || existing.payload === payload) &&
           existing.revision === input.expectedRevision + 1;
         if (!same) throw new IdempotencyConflictError(input.id);
         return { status: 'duplicate', event: toEvent(existing) } as const;
@@ -306,30 +406,93 @@ export class OperationsStore {
    * tables and columns. The caller verifies the file's hash and path first.
    */
   restoreFrom(source: string): { entities: number; events: number } {
-    const expected = this.checkBackup(source);
-
-    this.db.prepare('ATTACH DATABASE ? AS restore_source').run(source);
-    try {
-      return this.transaction(() => {
-        // Children before parents on delete, parents before children on insert.
-        for (const table of [...RESTORE_ORDER].reverse()) this.db.exec(`DELETE FROM main.${table}`);
-        for (const table of RESTORE_ORDER) {
-          const columns = expected[table]!.join(', ');
-          this.db.exec(`INSERT INTO main.${table} (${columns}) SELECT ${columns} FROM restore_source.${table}`);
-        }
-        return this.counts();
-      });
-    } finally {
-      this.db.exec('DETACH DATABASE restore_source');
-    }
+    return this.atCurrentSchema(source, (file) => {
+      const expected = this.checkCurrentBackup(file);
+      this.db.prepare('ATTACH DATABASE ? AS restore_source').run(file);
+      try {
+        const restored = this.transaction(() => {
+          // Children before parents on delete, parents before children on insert.
+          for (const table of [...RESTORE_ORDER].reverse()) this.db.exec(`DELETE FROM main.${table}`);
+          for (const table of RESTORE_ORDER) {
+            const columns = expected[table]!.join(', ');
+            this.db.exec(`INSERT INTO main.${table} (${columns}) SELECT ${columns} FROM restore_source.${table}`);
+          }
+          return this.counts();
+        });
+        // The replaced records' old pages leave the WAL too.
+        this.truncateWal();
+        return restored;
+      } finally {
+        this.db.exec('DETACH DATABASE restore_source');
+      }
+    });
   }
 
   /**
    * Check, without changing anything, that the backup at `source` can be
-   * restored here: SQLite integrity, this store's schema version, and the same
-   * tables and columns. Returns this store's layout. Throws BackupInvalidError.
+   * restored here: SQLite integrity, a schema version this store has or can
+   * upgrade from, and (after any upgrade) the same tables and columns.
+   * Returns this store's layout. Throws BackupInvalidError.
    */
   checkBackup(source: string): Record<string, string[]> {
+    return this.atCurrentSchema(source, (file) => this.checkCurrentBackup(file));
+  }
+
+  /**
+   * Run `fn` with a file holding the backup at this store's schema version:
+   * the backup itself, or, for a backup from an older schema, an owner-only
+   * copy upgraded with this store's migrations and deleted afterwards. The
+   * backup file is never changed.
+   */
+  private atCurrentSchema<T>(source: string, fn: (file: string) => T): T {
+    const version = this.readBackupVersion(source);
+    if (version === this.schemaVersion) return fn(source);
+    if (version < 1 || version > this.schemaVersion) {
+      throw new BackupInvalidError('schema_version', `it has schema ${version}, and this store has schema ${this.schemaVersion}`);
+    }
+    const copy = `${source}.upgrade-${process.pid}-${Date.now()}.tmp`;
+    const leftovers = [copy, `${copy}-journal`, `${copy}-wal`, `${copy}-shm`];
+    try {
+      closeSync(openSync(copy, 'wx', 0o600));
+      copyFileSync(source, copy);
+      if (process.platform !== 'win32') chmodSync(copy, 0o600);
+      const db = new DatabaseSync(copy);
+      try {
+        db.exec('PRAGMA journal_mode = DELETE;');
+        applyMigrations(db, this.migrations.filter((m) => m.version > version && m.version <= this.schemaVersion));
+      } catch {
+        throw new BackupInvalidError('schema_version', `it has schema ${version} and could not be upgraded to schema ${this.schemaVersion}`);
+      } finally {
+        db.close();
+      }
+      return fn(copy);
+    } finally {
+      for (const f of leftovers) rmSync(f, { force: true });
+    }
+  }
+
+  /** The backup's schema version, after SQLite's integrity check passes. */
+  private readBackupVersion(source: string): number {
+    let backup: DatabaseSync;
+    try {
+      backup = new DatabaseSync(source, { readOnly: true });
+    } catch {
+      throw new BackupInvalidError('integrity', 'it is not a readable SQLite database');
+    }
+    try {
+      const check = (backup.prepare('PRAGMA integrity_check').get() as { integrity_check: string }).integrity_check;
+      if (check !== 'ok') throw new BackupInvalidError('integrity', 'it fails SQLite\'s integrity check');
+      return (backup.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+    } catch (error) {
+      if (error instanceof BackupInvalidError) throw error;
+      throw new BackupInvalidError('integrity', 'it is not a readable SQLite database');
+    } finally {
+      backup.close();
+    }
+  }
+
+  /** checkBackup for a file already at this store's schema version. */
+  private checkCurrentBackup(source: string): Record<string, string[]> {
     const expected = this.layout(this.db, 'main');
     // A table outside RESTORE_ORDER would be silently left as it was.
     if (Object.keys(expected).sort().join() !== [...RESTORE_ORDER].sort().join()) {
@@ -405,9 +568,14 @@ function migrate(db: DatabaseSync, file: string, migrations: readonly Migration[
     if (process.platform !== 'win32') chmodSync(backup, 0o600);
   }
 
+  applyMigrations(db, pending);
+}
+
+/** Apply `pending` (ascending) in one transaction; any failure rolls back. */
+function applyMigrations(db: DatabaseSync, pending: readonly Migration[]): void {
   db.exec('BEGIN IMMEDIATE');
   try {
-    for (const m of pending) {
+    for (const m of [...pending].sort((a, b) => a.version - b.version)) {
       db.exec(m.sql);
       db.exec(`PRAGMA user_version = ${Number(m.version)}`);
     }

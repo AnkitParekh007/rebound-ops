@@ -18,10 +18,10 @@ import { join } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { OPERATIONS_STORE_RELATIVE_PATH } from './paths.js';
 import { LocalModel } from './local-model.js';
-import { BackupHashMismatchError, BackupNotFoundError, createBackup, listBackups, verifiedBackupFile } from './backups.js';
+import { BackupHashMismatchError, BackupNotFoundError, createBackup, listBackups, retentionNotice, verifiedBackupFile } from './backups.js';
 import { planLegacyImport, type LedgerView } from './legacy-tracker.js';
 import {
-  FEATURE_FLAGS, OperationEventInputSchema, LegacyTrackerImportRequestSchema, MAX_LEGACY_TRACKER_BYTES,
+  FEATURE_FLAGS, OperationEventInputSchema, LegacyTrackerImportRequestSchema, MAX_LEGACY_TRACKER_BYTES, RecordRedactionRequestSchema,
   type FeatureFlag, type ResolvedFeatureFlags
 } from '@reboundops/contracts';
 import type { OperationsStore } from './store.js';
@@ -100,6 +100,12 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
     }
     if (error instanceof mod.EventPayloadTooLargeError) {
       return reply.code(413).send({ error: 'EVENT_PAYLOAD_TOO_LARGE', message: error.message });
+    }
+    if (error instanceof mod.ReservedEventTypeError) {
+      return reply.code(400).send({ error: 'INVALID_REQUEST', issues: [{ path: 'type', message: error.message }] });
+    }
+    if (error instanceof mod.RecordNotFoundError) {
+      return reply.code(404).send({ error: 'RECORD_NOT_FOUND', message: error.message });
     }
     throw error;
   }
@@ -232,6 +238,28 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
       if (error instanceof BackupHashMismatchError) return reply.code(409).send({ error: 'BACKUP_HASH_MISMATCH', message: error.message });
       if (mod && error instanceof mod.BackupInvalidError) return reply.code(422).send({ error: 'BACKUP_INVALID', reason: error.reason, message: error.message });
       throw error;
+    }
+  });
+
+  // Redaction (FND-06). Replaces every earlier payload of one record with {}
+  // and appends a record.redacted event. Backups taken earlier still hold the
+  // content; the response lists them, and the API never deletes them.
+  app.post('/api/operations/entities/:entityType/:entityId/redact', async (request, reply) => {
+    const { entityType, entityId } = request.params as { entityType: string; entityId: string };
+    const shape = OperationEventInputSchema.shape;
+    const type = shape.entityType.safeParse(entityType);
+    if (!type.success) return invalid(reply, type.error, 'entityType');
+    const id = shape.entityId.safeParse(entityId);
+    if (!id.success) return invalid(reply, id.error, 'entityId');
+    const parsed = RecordRedactionRequestSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    const opened = await getStore();
+    if (!('redactRecord' in opened)) return reply.code(opened.status).send({ error: opened.error, message: opened.message });
+    try {
+      const result = opened.redactRecord(entityType, entityId, parsed.data);
+      return { ...result, retention: retentionNotice(options.dataDir!) };
+    } catch (error) {
+      return sendStoreError(reply, error);
     }
   });
 

@@ -43,4 +43,24 @@ export interface OperationEvent {
   readonly ingestedAt: string;
   readonly source: OperationEventSource;
   readonly payload: Record<string, unknown>;
+  /** Set when the payload was redacted (FND-06); the payload is then `{}`. */
+  readonly redactedAt?: string;
 }
+
+/**
+ * Redaction (FND-06). The one exception to append-only: every earlier event
+ * of a record keeps its id, type, times and revision, but its payload becomes
+ * `{}`. The store then appends one `record.redacted` event, which holds only
+ * how many events it redacted. Only the store may write this event type.
+ */
+export const REDACTION_EVENT_TYPE = 'record.redacted';
+
+export const RecordRedactionRequestSchema = z.strictObject({
+  /** Caller-chosen, so a retried redaction is idempotent. */
+  id: z.uuid(),
+  /** The record's revision as the caller last saw it. */
+  expectedRevision: z.number().int().min(1),
+  /** Redaction cannot be undone, except by restoring a backup taken before it. */
+  confirm: z.literal(true)
+});
+export type RecordRedactionRequest = z.infer<typeof RecordRedactionRequestSchema>;
