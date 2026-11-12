@@ -61,6 +61,22 @@ test("once the person edits a field it is no longer called an AI draft", () => {
   assert.equal(answerNote({ source: "unresolved", holdReason: "sensitive_requires_reviewed_fact", sensitiveCategory: "salary", edited: true }).tone, "yours");
 });
 
+test("a value the chat assistant wrote is an AI draft, not the person's edit", () => {
+  assert.deepEqual(answerNote({ source: "model_draft", edited: false, assisted: true }), { tone: "draft", text: "Written by the assistant. Check it before filling." });
+  const sensitive = answerNote({ source: "unresolved", holdReason: "sensitive_requires_reviewed_fact", sensitiveCategory: "sponsorship", assisted: true });
+  assert.equal(sensitive.tone, "held");
+  assert.match(sensitive.text, /visa sponsorship/);
+  assert.equal(answerNote({ source: "model_draft", edited: true, assisted: false }).tone, "yours");
+});
+
+test("only the review control marks an edit as the person's; the assistant path says so", () => {
+  const provider = read("src/components/apply/apply-provider.tsx");
+  assert.match(provider, /by: "you" \| "assistant" = "you"/);
+  assert.match(provider, /by === "you" \? \{ \.\.\.prev\[f\.id\], edited: true, assisted: false \}/);
+  assert.match(read("src/components/assistant-console.tsx"), /setAnswer\(idOrLabel, value, "assistant"\)/);
+  assert.match(read("src/components/apply-view.tsx"), /onChange=\{\(v\) => a\.setAnswer\(f\.id, v\)\}/);
+});
+
 test("the provider keeps the policy labels and marks edits", () => {
   const provider = read("src/components/apply/apply-provider.tsx");
   assert.match(provider, /source: v\?\.source/);

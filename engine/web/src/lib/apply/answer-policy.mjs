@@ -106,7 +106,7 @@ export function enforceAnswerPolicy(fields, raw) {
 
     const entry = planner[field.id];
     const rawValue = entry && typeof entry === "object" ? /** @type {{value?: unknown}} */ (entry).value : entry;
-    const value = typeof rawValue === "string" || typeof rawValue === "number" || typeof rawValue === "boolean" ? String(rawValue) : "";
+    let value = typeof rawValue === "string" || typeof rawValue === "number" || typeof rawValue === "boolean" ? String(rawValue) : "";
     const modelAsked = !!(entry && typeof entry === "object" && /** @type {{needs_confirmation?: unknown}} */ (entry).needs_confirmation);
     const category = sensitiveCategory(field.label);
 
@@ -125,9 +125,15 @@ export function enforceAnswerPolicy(fields, raw) {
     }
     const options = Array.isArray(field.options) ? field.options : [];
     const choosesOption = field.type === "select" || field.type === "radio" || !!field.combobox;
-    if (choosesOption && options.length > 0 && pickComboboxOption(options, value) < 0) {
-      answers[field.id] = unresolved("not_an_option");
-      continue;
+    if (choosesOption && options.length > 0) {
+      const picked = pickComboboxOption(options, value);
+      if (picked < 0) {
+        answers[field.id] = unresolved("not_an_option");
+        continue;
+      }
+      // Store the option exactly as the form spells it ("austria" -> "Austria"):
+      // the review <select> and the fill step's selectOption match on that text.
+      value = String(options[picked]);
     }
     if (typeof field.maxLength === "number" && field.maxLength > 0 && value.length > field.maxLength) {
       summary.held++;
