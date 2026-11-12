@@ -6,6 +6,7 @@ import type { ApplyIssue, DriveStep } from "@/lib/apply/issue";
 import { useApply } from "@/components/apply/apply-provider";
 import { needsLeaveConfirmation, resolveReturnPath } from "@/lib/apply/exit.mjs";
 import { isResumeLabel } from "@/lib/apply/resume-label.mjs";
+import { answerNote, type AnswerNote } from "@/lib/apply/answer-note.mjs";
 import type { ApplyField } from "@/lib/apply/extract";
 import { cn } from "@/lib/cn";
 import { Fragment, useEffect, useId, useRef, useState } from "react";
@@ -174,6 +175,7 @@ export function ApplyView() {
                   field={f}
                   value={a.answers[f.id] ?? ""}
                   needs={!!a.meta[f.id]?.needsConfirmation}
+                  note={answerNote(a.meta[f.id], f)}
                   index={i}
                   drafting={prefilling}
                   onChange={(v) => a.setAnswer(f.id, v)}
@@ -534,6 +536,7 @@ function FieldRow({
   field: f,
   value,
   needs,
+  note,
   index,
   drafting,
   onChange,
@@ -541,18 +544,21 @@ function FieldRow({
   field: ApplyField;
   value: string;
   needs: boolean;
+  note: AnswerNote | null;
   index: number;
   drafting: boolean;
   onChange: (v: string) => void;
 }) {
   const controlId = useId();
   const confirmationId = `${controlId}-confirmation`;
+  const noteId = `${controlId}-note`;
+  const describedBy = [needs ? confirmationId : "", note ? noteId : ""].filter(Boolean).join(" ");
   // Announce the employer's requirement without imposing native validation on
   // this draft editor; the user still reviews/submits the real form separately.
   const controlProps = {
     id: controlId,
     "aria-required": f.required || undefined,
-    "aria-describedby": needs ? confirmationId : undefined,
+    "aria-describedby": describedBy || undefined,
   };
   const labelText = f.label || "Untitled field";
 
@@ -617,6 +623,11 @@ function FieldRow({
         )
       ) : (
         <input {...controlProps} type={["email", "tel", "url", "number", "date"].includes(f.type) ? f.type : "text"} maxLength={f.maxLength} value={value} onChange={(e) => onChange(e.target.value)} placeholder={needs ? "You fill this one." : "…"} className={base} />
+      )}
+      {note && !writing && f.type !== "file" && (
+        <p id={noteId} className={cn("mt-1 text-xs", note.tone === "held" ? "text-amber-800 dark:text-amber-400" : "text-muted")}>
+          {note.text}
+        </p>
       )}
     </div>
   );

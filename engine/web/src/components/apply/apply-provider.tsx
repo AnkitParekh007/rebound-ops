@@ -7,7 +7,9 @@ import { resolveLateSession } from "@/lib/apply/exit.mjs";
 import { readFillResult, screenForFill } from "@/lib/apply/fill-stream.mjs";
 
 export type FillStep = { fieldId: string; label: string; ok: boolean; thumb?: string };
-type Meta = { needsConfirmation?: boolean };
+/** Per-field labels from the prefill answer policy (answer-policy.mjs). */
+type Meta = { needsConfirmation?: boolean; source?: string; holdReason?: string | null; sensitiveCategory?: string | null; edited?: boolean };
+type PlannerAnswer = { value?: string; needs_confirmation?: boolean; source?: string; hold_reason?: string | null; sensitive_category?: string | null };
 type Status = "idle" | "opening" | "driving" | "prefilling" | "ready" | "filling" | "done" | "error";
 
 type ApplyCtx = {
@@ -230,12 +232,12 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     setStatus("prefilling");
     setError("");
     setPrefillLog([]);
-    const applyAnswers = (raw: Record<string, { value?: string; needs_confirmation?: boolean }>) => {
+    const applyAnswers = (raw: Record<string, PlannerAnswer>) => {
       const a: Record<string, string> = {};
       const m: Record<string, Meta> = {};
       for (const [id, v] of Object.entries(raw)) {
         a[id] = v?.value ?? "";
-        m[id] = { needsConfirmation: !!v?.needs_confirmation };
+        m[id] = { needsConfirmation: !!v?.needs_confirmation, source: v?.source, holdReason: v?.hold_reason ?? null, sensitiveCategory: v?.sensitive_category ?? null };
       }
       setAnswers(a);
       setMeta(m);
@@ -265,7 +267,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
           const line = buf.slice(0, nl).trim();
           buf = buf.slice(nl + 1);
           if (!line) continue;
-          let ev: { t?: string; m?: string; el?: number; raw?: string; answers?: Record<string, { value?: string; needs_confirmation?: boolean }>; count?: number; truncated?: boolean };
+          let ev: { t?: string; m?: string; el?: number; raw?: string; answers?: Record<string, PlannerAnswer>; count?: number; truncated?: boolean };
           try {
             ev = JSON.parse(line);
           } catch {
@@ -310,7 +312,11 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
       fs.find((x) => x.id === idOrLabel) ||
       fs.find((x) => x.label.toLowerCase().includes(key)) ||
       fs.find((x) => key.includes(x.label.toLowerCase()) && x.label.length > 2);
-    if (f) setAnswers((prev) => ({ ...prev, [f.id]: value }));
+    if (!f) return;
+    setAnswers((prev) => ({ ...prev, [f.id]: value }));
+    // Once the person changes a value it is theirs, not an AI draft; the review
+    // note must stop calling it one.
+    setMeta((prev) => ({ ...prev, [f.id]: { ...prev[f.id], edited: true } }));
   }, []);
 
   const fill = useCallback(async () => {
