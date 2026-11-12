@@ -25,6 +25,7 @@
 import { chmodSync, closeSync, existsSync, mkdirSync, openSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { OPERATIONS_STORE_RELATIVE_PATH } from './paths.js';
 import {
   MAX_EVENT_PAYLOAD_BYTES,
   OperationEventInputSchema,
@@ -170,7 +171,7 @@ export class OperationsStore {
   private constructor(private readonly db: DatabaseSync, private readonly now: () => Date) {}
 
   /** The file the store lives in, relative to the data directory. */
-  static readonly RELATIVE_PATH = join('operations', 'operations.sqlite');
+  static readonly RELATIVE_PATH = OPERATIONS_STORE_RELATIVE_PATH;
 
   static open(dataDir: string, options: OpenOptions = {}): OperationsStore {
     const migrations = options.migrations ?? OPERATIONS_MIGRATIONS;
@@ -178,7 +179,7 @@ export class OperationsStore {
     mkdirSync(dir, { recursive: true, mode: 0o700 });
     // mkdirSync leaves an existing directory's mode alone; tighten it.
     if (process.platform !== 'win32') chmodSync(dir, 0o700);
-    const file = join(dir, 'operations.sqlite');
+    const file = join(dataDir, OPERATIONS_STORE_RELATIVE_PATH);
     const isNew = !existsSync(file);
 
     const db = new DatabaseSync(file);

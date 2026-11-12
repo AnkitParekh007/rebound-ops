@@ -13,9 +13,13 @@
  * These generic ledger routes are the foundation the feature routes build on;
  * each feature will add its own validated routes on top of them.
  */
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import { OPERATIONS_STORE_RELATIVE_PATH } from './paths.js';
+import { planLegacyImport, type LedgerView } from './legacy-tracker.js';
 import {
-  FEATURE_FLAGS, OperationEventInputSchema,
+  FEATURE_FLAGS, OperationEventInputSchema, LegacyTrackerImportRequestSchema, MAX_LEGACY_TRACKER_BYTES,
   type FeatureFlag, type ResolvedFeatureFlags
 } from '@reboundops/contracts';
 import type { OperationsStore } from './store.js';
@@ -24,6 +28,8 @@ import type { OperationsStore } from './store.js';
 export const MAX_EVENTS_PER_BATCH = 100;
 
 type StoreModule = typeof import('./store.js');
+
+const EMPTY_LEDGER: LedgerView = { revisionOf: () => 0, listEvents: () => [] };
 type Unavailable = { status: 404 | 503; error: string; message: string };
 
 export interface OperationsRouteOptions {
@@ -37,17 +43,30 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
   let store: OperationsStore | null = null;
   let opening: Promise<OperationsStore | Unavailable> | null = null;
 
-  async function open(): Promise<OperationsStore | Unavailable> {
+  /** Why operations routes cannot run at all, or null when they can. */
+  function unavailable(): Unavailable | null {
     if (enabledFlags.length === 0) {
       return { status: 404, error: 'OPERATIONS_DISABLED', message: 'No operations feature is enabled.' };
     }
     if (!options.dataDir) {
       return { status: 503, error: 'OPERATIONS_STORE_NOT_CONFIGURED', message: 'Set REBOUNDOPS_DATA_DIR to keep operations records on this computer.' };
     }
+    return null;
+  }
+
+  /** True when the store has never been created in this data directory. */
+  function storeFileMissing(): boolean {
+    return !store && Boolean(options.dataDir) && !existsSync(join(options.dataDir!, OPERATIONS_STORE_RELATIVE_PATH));
+  }
+
+  async function open(): Promise<OperationsStore | Unavailable> {
+    const refused = unavailable();
+    const dataDir = options.dataDir;
+    if (refused || !dataDir) return refused ?? { status: 503, error: 'OPERATIONS_STORE_NOT_CONFIGURED', message: 'Set REBOUNDOPS_DATA_DIR.' };
     if (store) return store;
     mod ??= await import('./store.js');
     try {
-      store = mod.OperationsStore.open(options.dataDir);
+      store = mod.OperationsStore.open(dataDir);
       return store;
     } catch (error) {
       if (error instanceof mod.OperationsStoreLockedError) {
@@ -117,6 +136,37 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
     } catch (error) {
       return sendStoreError(reply, error);
     }
+  });
+
+  // Legacy tracker import (FND-03). The caller sends the file's text; the API
+  // never opens or changes the original. A dry run reports without writing.
+  // JSON escaping can grow text up to six times (a control character becomes
+  // \u00XX), so the body limit covers the full permitted text in the worst
+  // case; the 2 MiB check on the decoded text then applies.
+  app.post('/api/operations/imports/legacy-tracker', { bodyLimit: 6 * MAX_LEGACY_TRACKER_BYTES + 64 * 1024 }, async (request, reply) => {
+    const parsed = LegacyTrackerImportRequestSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    const refused = unavailable();
+    if (refused) return reply.code(refused.status).send({ error: refused.error, message: refused.message });
+    // A dry run writes nothing, including the store file: before the first
+    // real import there is no ledger to compare with, so plan against an
+    // empty one instead of creating the store.
+    if (parsed.data.dryRun && storeFileMissing()) {
+      return reply.send({ report: planLegacyImport(parsed.data, EMPTY_LEDGER).report });
+    }
+    const opened = await getStore();
+    if (!('appendEvents' in opened)) return reply.code(opened.status).send({ error: opened.error, message: opened.message });
+    // Planning and appending run with no await between them, so no other
+    // request can change the ledger in between.
+    const plan = planLegacyImport(parsed.data, opened);
+    if (!parsed.data.dryRun && plan.events.length > 0) {
+      try {
+        opened.appendEvents(plan.events);
+      } catch (error) {
+        return sendStoreError(reply, error);
+      }
+    }
+    return reply.send({ report: plan.report });
   });
 
   app.get('/api/operations/entities/:entityType/:entityId/events', async (request, reply) => {
