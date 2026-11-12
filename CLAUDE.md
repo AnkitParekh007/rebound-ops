@@ -4,7 +4,18 @@ Guidance for Claude Code sessions working in this repository.
 
 ## Git workflow (owner preference)
 
-The repository owner wants every commit made in a Claude session to land on `main`.
+### Operations features (Track C in the roadmap)
+
+Work on the seven operations features does not go straight to `main` (owner decision, 12 Nov 2026; see [ADR 0003](docs/adr-0003-operations-features.md)).
+
+- Shared work goes on `feature/00-foundation`. Feature work goes on its own branch: `feature/01-auto-apply`, `feature/02-autofill`, `feature/03-eligibility-quality`, `feature/04-recruiter-inbox`, `feature/05-referrals`, `feature/06-interview-coach` or `feature/07-strategy-advisor`.
+- Feature branches start from `feature/00-foundation`. Rebase them onto it, or onto `main` once the foundation is merged. Never force-push a branch someone else may have pulled without asking the owner.
+- Each coherent work package reaches `main` through a pull request, with its feature flags off by default.
+- Run the same local checks listed below before every push.
+
+### Everything else
+
+The repository owner wants every other commit made in a Claude session to land on `main`.
 
 1. Before pushing, run `git fetch origin main`.
 2. Push to `main` only as a **fast-forward** (`git push origin HEAD:main`). **Never force-push** `main` or rewrite its history.
