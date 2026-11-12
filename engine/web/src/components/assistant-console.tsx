@@ -533,7 +533,7 @@ export function AssistantConsole() {
         router.refresh();
         pipelineRef.current.refetch();
       },
-      setApplyField: (idOrLabel, value) => applyRef.current.setAnswer(idOrLabel, value),
+      setApplyField: (idOrLabel, value) => applyRef.current.setAnswer(idOrLabel, value, "assistant"),
       startApply: (u) => {
         router.push("/apply");
         setTimeout(() => applyRef.current.open(u), 60);

@@ -536,7 +536,10 @@ test("driveSession hands every action to executeAction, with this turn's actiona
   assert.match(DRIVE, /import\s*\{[^}]*\bexecuteAction\b[^}]*\}\s*from\s*"\.\/drive-action\.mjs"/);
   const calls = DRIVE_CODE.match(/\bexecuteAction\(/g) ?? [];
   assert.equal(calls.length, 1, "drive.ts must execute planner actions in exactly one place");
-  assert.match(DRIVE_CODE, /await executeAction\(page, frame, act, snap\.actionable\)/);
+  assert.match(DRIVE_CODE, /await executeAction\(page, frame, act, snap\.actionable, writePolicy\)/);
+  // The write guard (drive-write-guard.mjs) is part of every action: full mode
+  // passes the reviewed answers, reach mode passes null (sensitive rule only).
+  assert.match(DRIVE_CODE, /const writePolicy = \{ approved: goal === "full" \? \(answers \?\? \[\]\)\.filter\(\(a\) => a\.value\?\.trim\(\)\) : null \};/);
 });
 
 test("drive.ts does nothing to an element itself", () => {

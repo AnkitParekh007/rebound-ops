@@ -33,7 +33,7 @@ test("application review labels, requirements and confirmation descriptions", { 
   const drafting = new Promise((resolve) => { release = resolve; });
   await page.route("**/api/apply/prefill", async (route) => {
     await drafting;
-    await route.fulfill({ contentType: "application/x-ndjson", body: JSON.stringify({ t: "done", count: fields.length, answers: Object.fromEntries(fields.map((f) => [f.id, { value: f.type === "checkbox" ? "true" : f.type === "select" || f.type === "radio" ? "Yes" : "", needs_confirmation: f.id === "text" || f.id === "checkbox" }])) }) + "\n" });
+    await route.fulfill({ contentType: "application/x-ndjson", body: JSON.stringify({ t: "done", count: fields.length, answers: Object.fromEntries(fields.map((f) => [f.id, { value: f.type === "checkbox" ? "true" : f.type === "select" || f.type === "radio" ? "Yes" : "", needs_confirmation: f.id === "text" || f.id === "checkbox", ...(f.id === "text" ? { source: "unresolved", hold_reason: "no_answer" } : {}) }])) }) + "\n" });
   });
   await page.addInitScript(() => localStorage.setItem("rebound-ops:config", JSON.stringify({ cliId: "fixture-cli" })));
   await page.goto(`${origin.origin}/apply`);
@@ -43,7 +43,7 @@ test("application review labels, requirements and confirmation descriptions", { 
 
   async function inspectFields() {
     const inputs = page.locator("input[id], textarea[id], select[id]");
-    const properties = await inputs.evaluateAll((controls) => controls.map((c) => ({ id: c.id, name: Array.from(c.labels ?? []).map((l) => l.textContent.trim()).join(" "), required: c.getAttribute("aria-required"), nativeRequired: c.required, description: c.getAttribute("aria-describedby") ? document.getElementById(c.getAttribute("aria-describedby"))?.textContent : null })));
+    const properties = await inputs.evaluateAll((controls) => controls.map((c) => ({ id: c.id, name: Array.from(c.labels ?? []).map((l) => l.textContent.trim()).join(" "), required: c.getAttribute("aria-required"), nativeRequired: c.required, description: c.getAttribute("aria-describedby") ? c.getAttribute("aria-describedby").split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? "<missing>").join(" | ") : null })));
     assert.equal(properties.length, fields.length - 1); // file is a handoff notice
     assert.equal(new Set(properties.map((p) => p.id)).size, properties.length);
     for (const [i, p] of properties.entries()) {
@@ -68,7 +68,8 @@ test("application review labels, requirements and confirmation descriptions", { 
   await page.getByRole("button", { name: "Pre-fill from my CV", exact: true }).waitFor();
   const after = await inspectFields();
   assert.deepEqual(after.map((p) => p.id), before.map((p) => p.id));
-  assert.equal(after[0].description, "you confirm");
+  // The answer-policy note joins the confirmation badge in the description.
+  assert.equal(after[0].description, "you confirm | No answer was found in your CV or profile.");
   assert.equal(after.find((p) => p.name === "Fixture checkbox").description, "you confirm");
   assert.equal(after[1].description, null);
   assert.equal(unexpected.length, 0);
