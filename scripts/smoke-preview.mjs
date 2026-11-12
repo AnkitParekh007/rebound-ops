@@ -7,6 +7,7 @@ import { basename, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
+import { httpGet } from './smoke-http.mjs';
 
 const output = resolve('dist/preview');
 const archives = readdirSync(output).filter(s => /^reboundops-v0\.2\.0-rc1-[a-f0-9]{12}\.tar\.gz$/.test(s));
@@ -59,28 +60,27 @@ try {
   let stderr = '';
   child.stderr.on('data', chunk => { stderr += chunk.toString().slice(0, 400); });
   const host = 'http://127.0.0.1:' + port;
-  let alive = false;
+  let health = null;
   for (let attempt = 0; attempt < 60; attempt++) {
     if (child.exitCode !== null) throw new Error('Server quit: ' + stderr.slice(0, 300));
     try {
-      const status = await fetch(host + '/api/health', { signal: AbortSignal.timeout(1_000) });
-      if (status.ok) {
-        const result = await status.json();
-        if (result.status !== 'ok' || result.aiEnabled || result.persistence !== 'memory') {
-          throw new Error('Preview did not start with privacy defaults.');
-        }
-        alive = true; break;
-      }
+      const status = await httpGet(host + '/api/health', { timeoutMs: 1_000 });
+      if (status.ok) { health = status.json(); break; }
     } catch { /* server still starting */ }
     await delay(250);
   }
-  if (!alive) throw new Error('Extracted preview API failed to start.');
-  const page = await fetch(host + '/', { signal: AbortSignal.timeout(3_000) });
-  if (!page.ok || !(await page.text()).includes('ReboundOps')) {
+  if (!health) throw new Error('Extracted preview API failed to start.');
+  // Checked outside the polling try/catch, so a wrong default fails the smoke
+  // test instead of being retried as "still starting".
+  if (health.status !== 'ok' || health.aiEnabled || health.persistence !== 'memory') {
+    throw new Error('Preview did not start with privacy defaults.');
+  }
+  const page = await httpGet(host + '/', { timeoutMs: 3_000 });
+  if (!page.ok || !page.body.includes('ReboundOps')) {
     throw new Error('Compiled Angular site not served from extracted archive.');
   }
-  const ai = await fetch(host + '/api/ai/status');
-  if ((await ai.json()).enabled) throw new Error('Preview unexpectedly enabled paid AI.');
+  const ai = await httpGet(host + '/api/ai/status');
+  if (ai.json().enabled) throw new Error('Preview unexpectedly enabled paid AI.');
   console.log('Extracted candidate smoke test passed: compiled site, localhost API, disabled AI, memory-only storage.');
 } finally {
   if (child && child.exitCode === null) {
