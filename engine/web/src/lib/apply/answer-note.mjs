@@ -49,7 +49,8 @@ export function answerNote(meta, field = {}) {
       break;
   }
   if (meta.source === "model_draft") return { tone: "draft", text: "AI draft from your CV and profile. Check it before filling." };
-  if (meta.source === "profile_fact") return { tone: "draft", text: "From your reviewed profile." };
+  if (meta.source === "profile_fact") return { tone: "draft", text: "From your profile (config/profile.yml)." };
+  if (meta.source === "derived") return { tone: "draft", text: "Split from the full name in your profile. Check it." };
   if (meta.source === "approved_answer") return { tone: "draft", text: "Your saved answer for this question." };
   return null;
 }
