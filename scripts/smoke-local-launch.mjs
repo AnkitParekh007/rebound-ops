@@ -80,9 +80,24 @@ export async function runLaunchSmoke(checkout) {
     await page.getByRole('button',{name:'Generate PDF',exact:true}).click();const download=await downloadPromise;
     const path=await download.path();assert(readFileSync(path).subarray(0,5).equals(Buffer.from('%PDF-')));
     await page.getByRole('button',{name:'Close dialog',exact:true}).click();
-    await page.goto(origin+'/#/tracker');await page.getByRole('button',{name:'More actions',exact:true}).click();
-    const chooserPromise=page.waitForEvent('filechooser');await page.getByRole('menuitem',{name:'Import CSV',exact:true}).click();
-    await (await chooserPromise).setFiles({name:'fictional-startup.csv',mimeType:'text/csv',buffer:Buffer.from('Date,Company,Role,Status,Notes\n2026-11-09,Fictional Startup Studio,Backend Engineer,Applied,Fictional regression record\n')});
+    // Open Import CSV only once the tracker has rendered from its own data: the
+    // overflow menu closes itself on a route change, scroll or outside click, so
+    // a click while the view is still settling can end with no picker (one macOS
+    // CI flake, run 43193155351). Retry the open/click a bounded number of times;
+    // a real regression (no picker at all) still fails every attempt.
+    const trackerLoaded=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/tracker'&&r.request().method()==='GET');
+    await page.goto(origin+'/#/tracker');await trackerLoaded;
+    const moreActions=page.getByRole('button',{name:'More actions',exact:true});await moreActions.waitFor({state:'visible'});
+    let chooser=null;
+    for(let attempt=1;attempt<=3&&!chooser;attempt++){
+      if(await page.getByRole('menu',{name:'More actions'}).count()===0)await moreActions.click();
+      const chooserPromise=page.waitForEvent('filechooser',{timeout:7000}).catch(()=>null);
+      await page.getByRole('menuitem',{name:'Import CSV',exact:true}).click();
+      chooser=await chooserPromise;
+      if(!chooser)console.warn(`Import CSV opened no file chooser (attempt ${attempt}/3); retrying.`);
+    }
+    assert(chooser,'Import CSV never opened a file chooser');
+    await chooser.setFiles({name:'fictional-startup.csv',mimeType:'text/csv',buffer:Buffer.from('Date,Company,Role,Status,Notes\n2026-11-09,Fictional Startup Studio,Backend Engineer,Applied,Fictional regression record\n')});
     await page.getByRole('button',{name:'Import rows (1)',exact:true}).click();
     const status=page.getByRole('combobox',{name:'Change application status',exact:true}).first();
     const statusResponse=page.waitForResponse(r=>r.url().endsWith('/api/tracker/status'));await status.selectOption('Responded');assert.equal((await statusResponse).status(),200);
