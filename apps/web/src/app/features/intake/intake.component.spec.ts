@@ -14,7 +14,7 @@ describe('IntakeComponent (typed form on IntakeSchema)', () => {
   /** Minimal store double: the signals the template reads, plus spied intents. */
   function storeStub() {
     return {
-      busy: signal(false), apiAvailable: signal(true), session: signal(null),
+      busy: signal(false), apiAvailable: signal(true), session: signal(null), operationsAvailable: signal(false),
       persistenceStatus: signal(null), savedSessions: signal([]),
       submitIntake: vi.fn().mockResolvedValue(null), setError: vi.fn(), reset: vi.fn(),
       resumeSaved: vi.fn(), restoreBackup: vi.fn()

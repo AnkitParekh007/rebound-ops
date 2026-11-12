@@ -196,6 +196,12 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
     return renderLegacyTracker(projectLegacyRecords(ledger));
   });
 
+  app.get('/api/operations/projections/legacy-tracker', async (_request, reply) => {
+    const ledger = await readLedger();
+    if (!('listEntityIds' in ledger)) return reply.code(ledger.status).send({ error: ledger.error, message: ledger.message });
+    return projectLegacyRecords(ledger);
+  });
+
   app.post('/api/operations/projections/legacy-tracker', { bodyLimit: trackerBodyLimit }, async (request, reply) => {
     const parsed = LegacyTrackerViewRequestSchema.safeParse(request.body);
     if (!parsed.success) return invalid(reply, parsed.error);

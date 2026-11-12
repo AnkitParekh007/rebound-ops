@@ -34,6 +34,7 @@ const revision = async (app, type, id) => (await app.inject({ method: 'GET', url
 test('before any import, the export is an empty table, every row is not imported, and no store is created', () => withApp(async (app, dir) => {
   const exported = await exportStore(app);
   assert.deepEqual([exported.records, exported.redactedOmitted], [0, 0]);
+  assert.deepEqual((await app.inject({ method: 'GET', url: '/api/operations/projections/legacy-tracker' })).json(), { records: [], redacted: [] });
   assert.equal(readLegacyTracker(exported.markdown).columns, 'header');
   const r = await view(app, base);
   assert.equal(r.statusCode, 200);
@@ -92,6 +93,8 @@ test('a redacted record is left out of the export and shown without cells in the
   assert.equal(redact.statusCode, 200);
   const exported = await exportStore(app);
   assert.deepEqual([exported.records, exported.redactedOmitted], [1, 1]);
+  const listed = (await app.inject({ method: 'GET', url: '/api/operations/projections/legacy-tracker' })).json();
+  assert.deepEqual([listed.records.map((r) => [r.num, r.revision, r.cells.company]), listed.redacted], [[[2, 1, 'Example Labs']], [1]]);
   assert.ok(!exported.markdown.includes('Fictional Startup Studio'));
   const r = (await view(app, base)).json();
   assert.deepEqual(r.applications.map((a) => [a.num, a.state, a.cells === null]), [[1, 'redacted', true], [2, 'imported', false]]);
@@ -110,6 +113,7 @@ test('a cell can never break the table', () => {
 test('projections need a flag and a valid body', () => withApp(async (app) => {
   assert.equal((await app.inject({ method: 'GET', url: '/api/operations/exports/legacy-tracker' })).statusCode, 404);
   assert.equal((await view(app, base)).statusCode, 404);
+  assert.equal((await app.inject({ method: 'GET', url: '/api/operations/projections/legacy-tracker' })).statusCode, 404);
 }, resolveFeatureFlags({})).then(() => withApp(async (app) => {
   for (const payload of [{ markdown: base }, { markdown: base, sourceLabel: 'x', dryRun: false }, { markdown: '', sourceLabel: 'x' }]) {
     const r = await app.inject({ method: 'POST', url: '/api/operations/projections/legacy-tracker', payload });

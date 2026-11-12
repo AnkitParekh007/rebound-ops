@@ -8,6 +8,7 @@ import { fictionalSession } from '../testing/fixtures';
 
 describe('WizardStore', () => {
   let session: ReturnType<typeof signal<Session | null>>;
+  let operationsAvailable: ReturnType<typeof signal<boolean>>;
   let wizard: WizardStore;
 
   const status = (id: string) => wizard.steps().find(s => s.id === id)!.status;
@@ -15,7 +16,8 @@ describe('WizardStore', () => {
   beforeEach(() => {
     history.replaceState(null, '', '/');
     session = signal<Session | null>(null);
-    TestBed.configureTestingModule({ providers: [{ provide: SessionStore, useValue: { session } }] });
+    operationsAvailable = signal(false);
+    TestBed.configureTestingModule({ providers: [{ provide: SessionStore, useValue: { session, operationsAvailable } }] });
     wizard = TestBed.inject(WizardStore);
     wizard.init();
   });
@@ -76,6 +78,26 @@ describe('WizardStore', () => {
     TestBed.tick();
     wizard.go('evidence');
     session.set(null);
+    TestBed.tick();
+    expect(wizard.current()).toBe('start');
+  });
+
+  it('shows "Application records" only while operations are available, and never opens it from the URL otherwise', () => {
+    session.set(fictionalSession());
+    TestBed.tick();
+    expect(wizard.steps().some(s => s.id === 'records')).toBe(false);
+    expect(wizard.go('records')).toBe(false);
+    history.replaceState(null, '', '#records');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(wizard.current()).toBe('start');
+
+    operationsAvailable.set(true);
+    TestBed.tick();
+    expect(wizard.sideSteps().map(s => s.id)).toEqual(['data', 'records', 'feedback']);
+    expect(wizard.go('records')).toBe(true);
+    expect(wizard.currentStep().headingId).toBe('records-heading');
+
+    operationsAvailable.set(false);
     TestBed.tick();
     expect(wizard.current()).toBe('start');
   });

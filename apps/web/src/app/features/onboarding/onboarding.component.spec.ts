@@ -15,7 +15,7 @@ describe('OnboardingComponent (guided first visit)', () => {
 
   function storeStub() {
     return {
-      busy: signal(false), apiAvailable: signal(true), session: signal(null),
+      busy: signal(false), apiAvailable: signal(true), session: signal(null), operationsAvailable: signal(false),
       persistenceStatus: signal(null), savedSessions: signal([]),
       submitIntake: vi.fn().mockResolvedValue(fictionalSession()), setError: vi.fn(),
       resumeSaved: vi.fn(), restoreBackup: vi.fn()

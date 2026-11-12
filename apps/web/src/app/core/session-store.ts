@@ -1,12 +1,15 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import type { AiAnalysis, Intake, Session } from '@reboundops/contracts';
+import type {
+  AiAnalysis, Intake, LegacyTrackerImportReport, LegacyTrackerRecord, LegacyTrackerRecords, LegacyTrackerView,
+  LegacyTrackerViewRequest, Session
+} from '@reboundops/contracts';
 import { SessionApiService } from './session-api.service';
 import { describeFailure, staleSessionFrom } from './error-messages';
 import { downloadText } from './download';
 import type {
-  AiPreview, AiStatus, CorrectionSource, EvidenceStatus, PersistenceMode, PersistenceStatus,
-  RequirementStatus, RouteId, SavedSessionSummary, SourceKind
+  AiPreview, AiStatus, CorrectionSource, EvidenceStatus, OperationsBackup, OperationsStatus, PersistenceMode,
+  PersistenceStatus, RecordRedactionResult, RequirementStatus, RouteId, SavedSessionSummary, SourceKind
 } from './api-types';
 
 /**
@@ -58,6 +61,9 @@ export class SessionStore {
   private readonly _aiStatus = signal<AiStatus | null>(null);
   private readonly _aiPreview = signal<AiPreview | null>(null);
   private readonly _aiAnalysis = signal<AiAnalysis | null>(null);
+  private readonly _operationsStatus = signal<OperationsStatus | null>(null);
+  private readonly _trackerRecords = signal<LegacyTrackerRecords | null>(null);
+  private readonly _operationsBackups = signal<OperationsBackup[]>([]);
 
   readonly session = this._session.asReadonly();
   readonly busy = this._busy.asReadonly();
@@ -69,6 +75,19 @@ export class SessionStore {
   readonly aiStatus = this._aiStatus.asReadonly();
   readonly aiPreview = this._aiPreview.asReadonly();
   readonly aiAnalysis = this._aiAnalysis.asReadonly();
+  readonly operationsStatus = this._operationsStatus.asReadonly();
+  readonly trackerRecords = this._trackerRecords.asReadonly();
+  readonly operationsBackups = this._operationsBackups.asReadonly();
+
+  /**
+   * Application records (R0 operations store) are shown only when an
+   * operations feature flag is on and REBOUNDOPS_DATA_DIR is set. They are not
+   * part of the recovery session and never enter session backups or AI payloads.
+   */
+  readonly operationsAvailable = computed(() => {
+    const status = this._operationsStatus();
+    return !!status && status.enabledFeatures.length > 0 && status.storeConfigured;
+  });
 
   /**
    * The active session as a 0/1-element list. Rendering features with
@@ -92,6 +111,7 @@ export class SessionStore {
       this._apiAvailable.set(status.status === 'ok');
       await this.refreshSavedSessions();
       await this.refreshAiStatus();
+      await this.refreshOperationsStatus();
     } catch {
       this._error.set('Local API is not running. Start it using npm run dev:api in a separate terminal.');
     }
@@ -110,6 +130,12 @@ export class SessionStore {
 
   async refreshAiStatus(): Promise<void> {
     this._aiStatus.set(await this.api.aiStatus());
+  }
+
+  /** Advisory: reading the status never opens or creates the operations store. */
+  async refreshOperationsStatus(): Promise<void> {
+    try { this._operationsStatus.set(await this.api.operationsStatus()); }
+    catch { this._operationsStatus.set(null); }
   }
 
   setNotice(message: string): void {
@@ -309,6 +335,84 @@ export class SessionStore {
   saveReview(notes: string): Promise<Session | null> {
     return this.mutate((id, rev) => this.api.recordReview(id, rev, notes),
       'Review recorded in the current API session.');
+  }
+
+  // ------------------------------------------- application records (R0)
+
+  /** Reloads imported records and the backup list. Does not create the store. */
+  async refreshOperationsData(): Promise<void> {
+    if (!this.operationsAvailable()) return;
+    try {
+      const [records, backups] = await Promise.all([this.api.trackerRecords(), this.api.operationsBackups()]);
+      this._trackerRecords.set(records);
+      this._operationsBackups.set(backups);
+    } catch (failure) {
+      this._error.set(describeFailure(failure));
+    }
+  }
+
+  /**
+   * Runs one operations request under the shared `busy` lock. The recovery
+   * session is not involved, so the AI preview stays valid. Returns null when
+   * it failed or another request was running.
+   */
+  private async runOperation<T>(action: () => Promise<T>, success: (result: T) => string, refresh = true): Promise<T | null> {
+    if (this._busy()) return null;
+    this._busy.set(true);
+    this._error.set('');
+    this._notice.set('');
+    let result: T | null = null;
+    try {
+      result = await action();
+      this._notice.set(success(result));
+    } catch (failure) {
+      this._error.set(describeFailure(failure));
+      // A stale or refused write: show what the store holds now.
+      refresh = true;
+    } finally {
+      this._busy.set(false);
+    }
+    if (refresh) await this.refreshOperationsData();
+    return result;
+  }
+
+  /** Read-only comparison of tracker text with the store. Nothing is written. */
+  checkTracker(request: LegacyTrackerViewRequest): Promise<LegacyTrackerView | null> {
+    return this.runOperation(() => this.api.checkTracker(request), view =>
+      `Checked ${view.counts.total} applications. Nothing was imported yet.`, false);
+  }
+
+  importTracker(request: LegacyTrackerViewRequest): Promise<LegacyTrackerImportReport | null> {
+    return this.runOperation(() => this.api.importTracker(request), report =>
+      `Import finished: ${report.imported} added, ${report.updated} updated, ${report.unchanged} unchanged, ` +
+      `${report.quarantined.length} held back. Your tracker file was not changed.`);
+  }
+
+  async exportTracker(): Promise<void> {
+    await this.runOperation(() => this.api.exportTracker(), exported => {
+      downloadText(exported.markdown, 'applications.md', 'text/markdown;charset=utf-8');
+      return `${exported.records} records exported to your device as applications.md.` +
+        (exported.redactedOmitted ? ` ${exported.redactedOmitted} records with removed details were left out.` : '');
+    }, false);
+  }
+
+  createOperationsBackup(): Promise<OperationsBackup | null> {
+    return this.runOperation(() => this.api.createOperationsBackup(), backup =>
+      `Backup ${backup.name} saved on this computer (${backup.entities} records). It is not encrypted.`);
+  }
+
+  restoreOperationsBackup(name: string): Promise<unknown> {
+    return this.runOperation(() => this.api.restoreOperationsBackup(name), result =>
+      `Restored ${result.restored.entities} records from ${result.restoredFrom}. ` +
+      `The previous state was saved first as ${result.preRestoreBackup.name}, so you can undo this.`);
+  }
+
+  /** Removes one record's details. The caller has already asked for confirmation. */
+  redactTrackerRecord(record: LegacyTrackerRecord): Promise<RecordRedactionResult | null> {
+    return this.runOperation(
+      () => this.api.redactRecord('application', record.entityId, { id: crypto.randomUUID(), expectedRevision: record.revision }),
+      result => result.retention.message
+    );
   }
 
   // ----------------------------------------------------------- optional AI

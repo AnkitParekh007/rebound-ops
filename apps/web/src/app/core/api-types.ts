@@ -60,3 +60,38 @@ export type { RouteId, RequirementStatus };
 export type CorrectionSource =
   | { mode: 'manual'; label: string }
   | { mode: 'document'; documentId: string; excerpt: string };
+
+// ---- operations store (R0): imported tracker records, backups, redaction ----
+
+export interface OperationsStatus {
+  enabledFeatures: string[];
+  unknownFeatureNames: string[];
+  storeConfigured: boolean;
+  storeOpen: boolean;
+  schemaVersion: number | null;
+}
+
+/** A backup manifest (apps/api/src/operations/backups.ts): counts and a hash, never record content. */
+export interface OperationsBackup {
+  name: string;
+  createdAt: string;
+  reason: 'manual' | 'pre_restore';
+  schemaVersion: number;
+  sha256: string;
+  bytes: number;
+  entities: number;
+  events: number;
+}
+
+export interface OperationsRestoreResult {
+  restoredFrom: string;
+  restored: { entities: number; events: number };
+  preRestoreBackup: OperationsBackup;
+}
+
+export interface RecordRedactionResult {
+  status: 'appended' | 'duplicate';
+  redactedEvents: number;
+  walTruncated: boolean;
+  retention: { backups: string[]; preMigrationCopies: string[]; message: string };
+}

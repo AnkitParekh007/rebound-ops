@@ -3,7 +3,7 @@ import { DOCUMENT } from '@angular/common';
 import type { Session } from '@reboundops/contracts';
 import { SessionStore } from './session-store';
 
-export type StepId = 'start' | 'evidence' | 'jobs' | 'options' | 'plan' | 'data' | 'feedback';
+export type StepId = 'start' | 'evidence' | 'jobs' | 'options' | 'plan' | 'data' | 'records' | 'feedback';
 export type StepStatus = 'current' | 'done' | 'todo' | 'optional' | 'locked';
 
 export interface StepView {
@@ -24,6 +24,8 @@ interface StepDef {
   kind: 'main' | 'side';
   headingId: string;
   optional?: boolean;
+  /** When set and false, the step is not shown and cannot be opened (e.g. a feature flag is off). */
+  available?(store: SessionStore): boolean;
   /** Returns a reason when the step cannot open yet. */
   locked(session: Session | null): string;
   done(session: Session | null): boolean;
@@ -45,6 +47,8 @@ const STEP_DEFS: readonly StepDef[] = [
     done: s => !!s?.plan && s.plan.actions.length > 0 && s.plan.actions.every(a => a.completed) },
   { id: 'data', label: 'Keep or delete my data', kind: 'side', headingId: 'privacy-heading', optional: true,
     locked: needsSession, done: () => false },
+  { id: 'records', label: 'Application records', kind: 'side', headingId: 'records-heading', optional: true,
+    available: store => store.operationsAvailable(), locked: needsSession, done: () => false },
   { id: 'feedback', label: 'Tell us how it went', kind: 'side', headingId: 'pilot-feedback-heading', optional: true,
     locked: needsSession, done: () => false }
 ];
@@ -74,7 +78,7 @@ export class WizardStore {
   readonly steps = computed<StepView[]>(() => {
     const session = this.store.session();
     const current = this._current();
-    return STEP_DEFS.map(def => {
+    return STEP_DEFS.filter(def => def.available?.(this.store) ?? true).map(def => {
       const lockedReason = def.locked(session);
       const status: StepStatus = def.id === current ? 'current'
         : lockedReason ? 'locked'
@@ -87,7 +91,8 @@ export class WizardStore {
   readonly mainSteps = computed(() => this.steps().filter(s => s.kind === 'main'));
   readonly sideSteps = computed(() => this.steps().filter(s => s.kind === 'side'));
 
-  readonly currentStep = computed(() => this.steps().find(s => s.id === this._current())!);
+  /** The visible current step; "About you" if the current one has just been hidden. */
+  readonly currentStep = computed(() => this.steps().find(s => s.id === this._current()) ?? this.steps()[0]!);
   /** 1-based position among main steps; 0 for side steps. */
   readonly position = computed(() => this.mainSteps().findIndex(s => s.id === this._current()) + 1);
   readonly previous = computed(() => this.neighbour(-1));
@@ -102,9 +107,9 @@ export class WizardStore {
     this.window?.addEventListener('hashchange', onHash);
     inject(DestroyRef).onDestroy(() => this.window?.removeEventListener('hashchange', onHash));
 
-    // A locked current step (e.g. after "Clear form" or delete) falls back to the start.
+    // A locked or hidden current step (e.g. after "Clear form" or delete) falls back to the start.
     effect(() => {
-      if (this.currentStep().lockedReason) this.go('start', { focus: false });
+      if (this.currentStep().lockedReason || this.currentStep().id !== this._current()) this.go('start', { focus: false });
     });
   }
 
@@ -114,7 +119,8 @@ export class WizardStore {
   }
 
   canOpen(id: StepId): boolean {
-    return !this.steps().find(s => s.id === id)?.lockedReason;
+    const step = this.steps().find(s => s.id === id);
+    return !!step && !step.lockedReason;
   }
 
   /** Opens a step if it is unlocked. Returns whether the step is now current. */

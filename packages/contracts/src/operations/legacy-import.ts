@@ -90,6 +90,13 @@ export interface LegacyTrackerRecord {
   readonly importedAt: string;
 }
 
+/** `GET /api/operations/projections/legacy-tracker`: every imported record, by # ascending. */
+export interface LegacyTrackerRecords {
+  readonly records: readonly LegacyTrackerRecord[];
+  /** #s of redacted records; their cells are gone. */
+  readonly redacted: readonly number[];
+}
+
 /** `GET /api/operations/exports/legacy-tracker`: the store as an engine-format `applications.md`. */
 export interface LegacyTrackerExport {
   readonly markdown: string;

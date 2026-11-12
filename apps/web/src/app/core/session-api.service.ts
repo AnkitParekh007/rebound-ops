@@ -1,10 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import type { Intake, Session } from '@reboundops/contracts';
+import type {
+  Intake, LegacyTrackerExport, LegacyTrackerImportReport, LegacyTrackerRecords, LegacyTrackerView,
+  LegacyTrackerViewRequest, Session
+} from '@reboundops/contracts';
 import type {
   AiAnalyzeResult, AiPreview, AiStatus, CorrectionSource, EvidenceStatus, HealthResponse,
-  PersistenceMode, PersistenceStatus, RequirementStatus, RouteId, SavedSessionSummary, SourceKind
+  OperationsBackup, OperationsRestoreResult, OperationsStatus, PersistenceMode, PersistenceStatus,
+  RecordRedactionResult, RequirementStatus, RouteId, SavedSessionSummary, SourceKind
 } from './api-types';
 
 /**
@@ -113,6 +117,40 @@ export class SessionApiService {
   }
   recordReview(id: string, expectedRevision: number, notes: string): Promise<Session> {
     return firstValueFrom(this.http.put<Session>(this.path(id, 'review'), { expectedRevision, notes }));
+  }
+
+  // ---- operations store (R0). Status never opens the store; listing backups never does either. ----
+  operationsStatus(): Promise<OperationsStatus> {
+    return firstValueFrom(this.http.get<OperationsStatus>('/api/operations/status'));
+  }
+  trackerRecords(): Promise<LegacyTrackerRecords> {
+    return firstValueFrom(this.http.get<LegacyTrackerRecords>('/api/operations/projections/legacy-tracker'));
+  }
+  /** Read-only: compares the tracker text with the store. Writes nothing. */
+  checkTracker(request: LegacyTrackerViewRequest): Promise<LegacyTrackerView> {
+    return firstValueFrom(this.http.post<LegacyTrackerView>('/api/operations/projections/legacy-tracker', request));
+  }
+  importTracker(request: LegacyTrackerViewRequest): Promise<LegacyTrackerImportReport> {
+    return firstValueFrom(this.http.post<{ report: LegacyTrackerImportReport }>(
+      '/api/operations/imports/legacy-tracker', { ...request, dryRun: false })).then(r => r.report);
+  }
+  exportTracker(): Promise<LegacyTrackerExport> {
+    return firstValueFrom(this.http.get<LegacyTrackerExport>('/api/operations/exports/legacy-tracker'));
+  }
+  operationsBackups(): Promise<OperationsBackup[]> {
+    return firstValueFrom(this.http.get<{ backups: OperationsBackup[] }>('/api/operations/backups')).then(r => r.backups);
+  }
+  createOperationsBackup(): Promise<OperationsBackup> {
+    return firstValueFrom(this.http.post<{ backup: OperationsBackup }>('/api/operations/backups', {})).then(r => r.backup);
+  }
+  restoreOperationsBackup(name: string): Promise<OperationsRestoreResult> {
+    return firstValueFrom(this.http.post<OperationsRestoreResult>(
+      '/api/operations/backups/' + encodeURIComponent(name) + '/restore', { confirm: true }));
+  }
+  redactRecord(entityType: string, entityId: string, body: { id: string; expectedRevision: number }): Promise<RecordRedactionResult> {
+    return firstValueFrom(this.http.post<RecordRedactionResult>(
+      '/api/operations/entities/' + encodeURIComponent(entityType) + '/' + encodeURIComponent(entityId) + '/redact',
+      { ...body, confirm: true }));
   }
 
   // ---- optional AI (preview is local; analyze requires explicit consent) ----
