@@ -8,6 +8,7 @@ import { cannotSave } from "@/lib/apply/approved-answer-match.mjs";
 import { needsLeaveConfirmation, resolveReturnPath } from "@/lib/apply/exit.mjs";
 import { isResumeLabel } from "@/lib/apply/resume-label.mjs";
 import { answerNote, type AnswerNote } from "@/lib/apply/answer-note.mjs";
+import { readbackSummary, readbackText, type FillResult } from "@/lib/apply/fill-readback.mjs";
 import type { ApplyField } from "@/lib/apply/extract";
 import { cn } from "@/lib/cn";
 import { Fragment, useEffect, useId, useRef, useState } from "react";
@@ -256,6 +257,7 @@ export function ApplyView() {
               </div>
             </div>
           )}
+          {done && a.readback.length > 0 && <ReadbackPanel results={a.readback} />}
           {done && (
             <div className="co-rise mt-4 flex items-start gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm backdrop-blur-sm">
               <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-500" />
@@ -713,6 +715,37 @@ function SavedAnswersPanel({ answers, onDelete }: { answers: SavedAnswer[]; onDe
         )}
       </div>
     </details>
+  );
+}
+
+/** Per-field readback of the real form after a fill (R1 Autofill, `autofill`
+ *  flag): what needs a look first, then the rest, collapsed. */
+function ReadbackPanel({ results }: { results: FillResult[] }) {
+  const { answered, landed, look } = readbackSummary(results);
+  const rest = results.filter((x) => !look.includes(x));
+  const row = (x: FillResult) => (
+    <li key={x.fieldId} className="flex items-start gap-2">
+      {x.status === "filled" ? <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-500" aria-hidden /> : x.status === "not_filled" ? <span className="mt-0.5 size-3.5 shrink-0" aria-hidden /> : <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-500" aria-hidden />}
+      <span className="min-w-0">
+        <span className="font-medium text-foreground">{x.label}</span>
+        <span className="block break-words text-muted">{readbackText(x)}</span>
+      </span>
+    </li>
+  );
+  return (
+    <section aria-labelledby="readback-heading" className="co-rise mt-4 rounded-xl border border-border bg-surface/60 px-4 py-3 text-sm backdrop-blur-sm">
+      <h3 id="readback-heading" className="font-medium text-foreground">Read back from the real form</h3>
+      <p className="mt-0.5 text-xs text-muted">
+        {landed} of {answered} answers are on the form as you reviewed them.{look.length > 0 ? ` Check ${look.length === 1 ? "this one" : `these ${look.length}`} before you submit:` : ""}
+      </p>
+      {look.length > 0 && <ul className="mt-2 space-y-1.5 text-xs">{look.map(row)}</ul>}
+      {rest.length > 0 && (
+        <details className="mt-2 text-xs">
+          <summary className="cursor-pointer select-none text-muted">Every other field ({rest.length})</summary>
+          <ul className="mt-1.5 space-y-1.5">{rest.map(row)}</ul>
+        </details>
+      )}
+    </section>
   );
 }
 
