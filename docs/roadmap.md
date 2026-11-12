@@ -129,7 +129,7 @@ Source: the owner's seven-feature implementation pack (11 Nov 2026, held private
 
 | Release | Feature | Branch | Flags | Status |
 |---|---|---|---|---|
-| R0 | Shared foundation | `feature/00-foundation` | — | **Started:** flag registry (FND-07) and Autofill answer vocabulary in `@reboundops/contracts`. Open: operations store ADR and migration (FND-01; `node:sqlite` is still experimental in Node 22/24), events and idempotency (FND-02), legacy import (FND-03), backups/deletion (FND-06) |
+| R0 | Shared foundation | `feature/00-foundation` | — | **Started:** flag registry (FND-07) and Autofill answer vocabulary in `@reboundops/contracts`. Operations store ([ADR 0004](adr-0004-operations-store.md)): `node:sqlite` file under `REBOUNDOPS_DATA_DIR`, single-owner lock, backed-up forward-only migrations (FND-01), and an append-only event ledger with idempotent ids, expected-revision conflicts and atomic batches (FND-02), tested on Linux CI. Open: wiring the store into the API with 409 responses, pairing and grants (FND-04), local-model abstraction (FND-05), legacy import (FND-03), backups/deletion (FND-06), store tests on macOS/Windows |
 | R1 | #2 Page-aware Autofill | `feature/02-autofill` | `autofill` | Not started. Extends the engine prefill pipeline (ADR 0003). Open: AF-04 code-enforced sensitive-answer policy, approved-answer reuse with context scope, per-field `FillResult` readback, Lever adapter, labelled 200-field corpus |
 | R2 | #3 Eligibility & Quality | `feature/03-eligibility-quality` | `eligibilityScreening` | Not started |
 | R3 | #1 Controlled Auto Apply | `feature/01-auto-apply` | `autoApply` + per-adapter submit | Not started. Needs R0–R2. LinkedIn/Indeed direct automation stays disabled while their terms prohibit it |
