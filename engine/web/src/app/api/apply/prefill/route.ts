@@ -11,6 +11,8 @@ import { buildAnswerPrompt } from "@/lib/apply/answer-prompt.mjs";
 import { enforceAnswerPolicy } from "@/lib/apply/answer-policy.mjs";
 import { profileFacts } from "@/lib/apply/profile-facts.mjs";
 import { runPlanner } from "@/lib/apply/planner";
+import { autofillEnabled, readLocalModelConfig } from "@/lib/apply/local-model.mjs";
+import { draftNarrative, readCvText } from "@/lib/apply/narrative-draft.mjs";
 import { extractJsonObject } from "@/lib/extract-json-object.mjs";
 import { readJsonObject } from "@/lib/json-body";
 
@@ -23,10 +25,20 @@ export const maxDuration = 320;
 // report. We stream a live diagnostic log of every step (spawn, heartbeats,
 // exit code/signal, parse outcome) so a stuck/empty prefill is observable on the
 // page AND written to <root>/.rebound-ops-web/apply-prefill.log for debugging.
+//
+// `drafter: "local_model"` (Autofill AF-05, behind the `autofill` flag) drafts
+// only the free-text answers with the optional local model instead of the CLI;
+// see narrative-draft.mjs. Its output goes through the same answer policy.
 export async function POST(req: Request) {
-  const body = await readJsonObject<{ sessionId?: string; cliId?: string; company?: string; application?: string }>(req);
+  const body = await readJsonObject<{ sessionId?: string; cliId?: string; company?: string; application?: string; drafter?: string }>(req);
   if (!body) return Response.json({ error: "bad json" }, { status: 400 });
-  const { sessionId, cliId: requestedCliId, company, application } = body;
+  const { sessionId, cliId: requestedCliId, company, application, drafter = "cli" } = body;
+  if (drafter !== "cli" && drafter !== "local_model") {
+    return Response.json({ error: 'drafter must be "cli" or "local_model"' }, { status: 400 });
+  }
+  if (drafter === "local_model" && !autofillEnabled(process.env)) {
+    return Response.json({ error: "Drafting with the local model is part of Autofill, which is off. Set REBOUNDOPS_FEATURES=autofill to use it." }, { status: 404 });
+  }
   // Same two identifiers the fill route takes, validated the same way: they
   // reach a filesystem resolver, so a non-string is refused before it gets there.
   if (company !== undefined && typeof company !== "string") {
@@ -78,13 +90,58 @@ export async function POST(req: Request) {
         controller.close();
       };
       try {
-        fs.appendFileSync(logPath, `\n===== prefill ${new Date(t0).toISOString()} session=${sessionId} cli=${requestedCliId} =====\n`);
+        fs.appendFileSync(logPath, `\n===== prefill ${new Date(t0).toISOString()} session=${sessionId} ${drafter === "local_model" ? "drafter=local_model" : `cli=${requestedCliId}`} =====\n`);
       } catch {
         /* ignore */
       }
 
       const s = sessionId ? getSession(sessionId) : undefined;
       if (!s) return fail("apply session not found (it may have expired)");
+
+      // The policy, not the drafter, decides what reaches the person as a
+      // proposed value. Reviewed facts from the person's own profile.yml
+      // (allowlisted keys only, never compensation) settle identity and stated
+      // work authorization without any model.
+      const finish = (obj: Record<string, unknown>, extra: { truncated: boolean; count: number }) => {
+        let facts = null;
+        try {
+          facts = profileFacts(yaml.load(fs.readFileSync(getProfilePath(reboundOpsRoot()), "utf8")));
+        } catch {
+          log("Profile facts: config/profile.yml not readable — every answer stays a draft or yours");
+        }
+        const { answers, summary } = enforceAnswerPolicy(s.fields, obj, { facts });
+        log(`Answer policy: ${summary.fromProfile} from your profile · ${summary.proposed} AI drafts · ${summary.held} held for review · ${summary.unresolved} left for you · ${summary.dropped} dropped (not on this form)`);
+        emit({ t: "done", answers, truncated: extra.truncated, count: extra.count, policy: summary });
+        controller.close();
+      };
+
+      if (drafter === "local_model") {
+        const config = readLocalModelConfig(process.env);
+        log(`Drafter: local model · ${config.state === "configured" ? `${config.model} at ${config.origin}` : config.state}`);
+        const cvPath = await resolveSessionCv({ company, application, title: s.title });
+        const cvSource = cvPath ? applyCvSource(reboundOpsRoot(), cvPath) : null;
+        const cv = readCvText(reboundOpsRoot(), cvSource);
+        if (!cv) {
+          log("No CV text found (no readable tailored CV and no cv.md) — nothing to draft from");
+          emit({ t: "manual", reason: "no_cv", detail: "There is no CV text to draft from. Add cv.md, or write these answers yourself.", prompt: null });
+          return finish({}, { truncated: false, count: 0 });
+        }
+        log(`CV text: ${cv.from}${cvSource && cv.from !== cvSource ? ` (the tailored CV ${cvSource} is not readable here)` : ""} · ${cv.text.length} chars`);
+        const draft = await draftNarrative({ config, title: s.title, fields: s.fields, cvText: cv.text, memory: readMemory().trim(), signal: req.signal });
+        if (draft.kind === "none") {
+          log("No free-text questions on this form — nothing for the local model to draft");
+          return finish({}, { truncated: false, count: 0 });
+        }
+        if (draft.kind === "manual") {
+          // The prompt carries CV text: it goes to the page only, never to the log file.
+          log(`No local model draft (${draft.reason}): ${draft.detail}`);
+          emit({ t: "manual", reason: draft.reason, detail: draft.detail, prompt: draft.prompt });
+          return finish({}, { truncated: false, count: 0 });
+        }
+        log(`Local model drafted ${Object.keys(draft.answers).length} of ${draft.asked} free-text answers in ${(draft.latencyMs / 1000).toFixed(1)}s`);
+        return finish(draft.answers, { truncated: false, count: Object.keys(draft.answers).length });
+      }
+
       const resolved = requestedCliId ? resolveCliOrFallback(requestedCliId) : null;
       if (!resolved) return fail(cliUnavailableError(requestedCliId ?? "").error);
       const { spec, binPath } = resolved;
@@ -137,22 +194,9 @@ export async function POST(req: Request) {
       }
       const count = Object.keys(obj).length;
       log(`Parsed ${count} answers${truncated ? " (RECOVERED from truncated output — some fields may be missing)" : ""}`);
-      // The planner's output is a model draft. The policy, not the prompt, decides
-      // what reaches the person as a proposed value: sensitive questions come back
+      // The planner's output is a model draft: sensitive questions come back
       // empty and flagged, off-list options and unknown field ids are dropped.
-      // Reviewed facts from the person's own profile.yml (allowlisted keys only,
-      // never compensation) settle identity and stated work authorization
-      // without the model. A missing or unreadable profile just means no facts.
-      let facts = null;
-      try {
-        facts = profileFacts(yaml.load(fs.readFileSync(getProfilePath(reboundOpsRoot()), "utf8")));
-      } catch {
-        log("Profile facts: config/profile.yml not readable — every answer stays a draft or yours");
-      }
-      const { answers, summary } = enforceAnswerPolicy(s.fields, obj, { facts });
-      log(`Answer policy: ${summary.fromProfile} from your profile · ${summary.proposed} AI drafts · ${summary.held} held for review · ${summary.unresolved} left for you · ${summary.dropped} dropped (not on this form)`);
-      emit({ t: "done", answers, truncated, count, policy: summary });
-      controller.close();
+      finish(obj, { truncated, count });
     },
   });
 

@@ -1,6 +1,6 @@
 # ADR 0005: An optional local model, loopback only, with an honest manual fallback
 
-**Status:** Accepted for R0 (FND-05) on 12 November 2026.
+**Status:** Accepted for R0 (FND-05) on 12 November 2026. First feature use (Autofill AF-05) added on 13 November 2026.
 
 ## Context
 
@@ -30,6 +30,10 @@ The existing Anthropic provider ([AI provider](ai-provider.md)) remains the opt-
 
 ## Consequences
 
-- No feature calls the model yet. AF-05 (Autofill drafts) will be the first, and must keep the existing answer policy: a model draft is never accepted for a sensitive category.
+- **Autofill AF-05 is the first feature to use it.** The engine has no build step and cannot import the API, so it uses its own JavaScript port (`engine/web/src/lib/apply/local-model.mjs`). `tests/local-model-parity.test.mjs` holds that port to the API adapter: the same endpoint decisions and details for loopback and remote URLs, credentials, queries, schemes and timeouts, and the same environment names and limits.
+  - It is behind the `autofill` flag. On the apply page, a box offers to draft free-text answers with the local model instead of the planner CLI (`drafter: "local_model"` on `POST /api/apply/prefill`). `GET /api/apply/local-model` reports whether that is possible and never contacts the model.
+  - It drafts only `textarea` questions outside every sensitive category (`narrative-draft.mjs`). The prompt holds the questions, the CV text (the tailored CV when its HTML or Markdown source is readable, otherwise `cv.md`, capped at 24,000 characters) and the person's notes, all marked as data. `config/profile.yml` is never put in the prompt, so compensation never reaches the model.
+  - Its output goes through the same `enforceAnswerPolicy` as planner output. Profile facts still settle identity and work authorization, sensitive questions are still held, and nothing else is answered.
+  - When there is no draft (not configured, invalid, unreachable, timeout, cancelled or invalid output), the page says why, leaves the answers for the person and offers the prompt to copy. The prompt carries CV text, so it is sent to the page only and never written to the pre-fill log file.
 - A model on another machine on the local network is not allowed. Allowing one would need an explicit, per-host opt-in in a later decision.
 - Model availability, licence, memory, download size and latency are deployment variables. They are not measured or claimed here.
