@@ -35,10 +35,13 @@ test('an unresolved answer cannot carry a value', () => {
   assert.equal(AnswerProposalSchema.safeParse({ ...base, value: 'Yes' }).success, false);
 });
 
-test('a sensitive answer cannot come from a model draft', () => {
-  const draft = { ...base, value: 'Yes', source: 'model_draft', sensitiveCategory: 'sponsorship', holdReason: null, needsConfirmation: false };
-  assert.equal(AnswerProposalSchema.safeParse(draft).success, false);
+test('a sensitive answer may only come from a reviewed fact or an approved answer', () => {
+  const draft = { ...base, value: 'Yes', source: 'model_draft', sensitiveCategory: 'work_authorization', holdReason: null, needsConfirmation: false };
+  assert.equal(AnswerProposalSchema.safeParse(draft).success, false, 'model draft');
+  assert.equal(AnswerProposalSchema.safeParse({ ...draft, source: 'derived' }).success, false, 'derived is inferred, not reviewed');
   assert.equal(AnswerProposalSchema.safeParse({ ...draft, source: 'profile_fact' }).success, true);
+  assert.equal(AnswerProposalSchema.safeParse({ ...draft, source: 'approved_answer' }).success, true);
+  assert.equal(AnswerProposalSchema.safeParse({ ...base, sensitiveCategory: 'salary', holdReason: 'sensitive_requires_reviewed_fact' }).success, true, 'empty unresolved');
 });
 
 test('a held answer must ask the person to confirm', () => {

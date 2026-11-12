@@ -36,6 +36,9 @@ export const SENSITIVE_CATEGORIES = [
 export const SensitiveCategorySchema = z.enum(SENSITIVE_CATEGORIES);
 export type SensitiveCategory = z.infer<typeof SensitiveCategorySchema>;
 
+/** The only sources a sensitive answer may have: reviewed by the person, or left empty. */
+export const SENSITIVE_ALLOWED_SOURCES: readonly AnswerSource[] = ['profile_fact', 'approved_answer', 'unresolved'];
+
 /** Why a proposal was withheld or flagged for the person. */
 export const ANSWER_HOLD_REASONS = [
   'sensitive_requires_reviewed_fact',
@@ -72,8 +75,12 @@ export const AnswerProposalSchema = z
     if (p.source === 'unresolved' && p.value !== '') {
       ctx.addIssue({ code: 'custom', path: ['value'], message: 'An unresolved answer carries no value' });
     }
-    if (p.sensitiveCategory && p.source === 'model_draft') {
-      ctx.addIssue({ code: 'custom', path: ['source'], message: 'A sensitive answer cannot come from a model draft' });
+    if (p.sensitiveCategory && !SENSITIVE_ALLOWED_SOURCES.includes(p.source)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['source'],
+        message: 'A sensitive answer may only come from a reviewed profile fact or an approved answer'
+      });
     }
     if (p.holdReason && !p.needsConfirmation) {
       ctx.addIssue({ code: 'custom', path: ['needsConfirmation'], message: 'A held answer must ask the person to confirm' });
