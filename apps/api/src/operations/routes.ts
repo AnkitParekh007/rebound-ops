@@ -14,8 +14,9 @@
  * each feature will add its own validated routes on top of them.
  */
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import { planLegacyImport } from './legacy-tracker.js';
 import {
-  FEATURE_FLAGS, OperationEventInputSchema,
+  FEATURE_FLAGS, OperationEventInputSchema, LegacyTrackerImportRequestSchema, MAX_LEGACY_TRACKER_BYTES,
   type FeatureFlag, type ResolvedFeatureFlags
 } from '@reboundops/contracts';
 import type { OperationsStore } from './store.js';
@@ -117,6 +118,26 @@ export function registerOperationsRoutes(app: FastifyInstance, options: Operatio
     } catch (error) {
       return sendStoreError(reply, error);
     }
+  });
+
+  // Legacy tracker import (FND-03). The caller sends the file's text; the API
+  // never opens or changes the original. A dry run reports without writing.
+  app.post('/api/operations/imports/legacy-tracker', { bodyLimit: MAX_LEGACY_TRACKER_BYTES + 64 * 1024 }, async (request, reply) => {
+    const parsed = LegacyTrackerImportRequestSchema.safeParse(request.body);
+    if (!parsed.success) return invalid(reply, parsed.error);
+    const opened = await getStore();
+    if (!('appendEvents' in opened)) return reply.code(opened.status).send({ error: opened.error, message: opened.message });
+    // Planning and appending run with no await between them, so no other
+    // request can change the ledger in between.
+    const plan = planLegacyImport(parsed.data, opened);
+    if (!parsed.data.dryRun && plan.events.length > 0) {
+      try {
+        opened.appendEvents(plan.events);
+      } catch (error) {
+        return sendStoreError(reply, error);
+      }
+    }
+    return reply.send({ report: plan.report });
   });
 
   app.get('/api/operations/entities/:entityType/:entityId/events', async (request, reply) => {
