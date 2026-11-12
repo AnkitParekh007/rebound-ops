@@ -5,6 +5,7 @@ import type { ApplyField } from "@/lib/apply/extract";
 import type { ApplyIssue, DriveStep } from "@/lib/apply/issue";
 import { resolveLateSession } from "@/lib/apply/exit.mjs";
 import { readFillResult, screenForFill } from "@/lib/apply/fill-stream.mjs";
+import { sensitiveCategory } from "@/lib/apply/answer-policy.mjs";
 
 export type FillStep = { fieldId: string; label: string; ok: boolean; thumb?: string };
 /** Per-field labels from the prefill answer policy (answer-policy.mjs). */
@@ -317,10 +318,15 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     setAnswers((prev) => ({ ...prev, [f.id]: value }));
     // Once the person changes a value it is theirs, not an AI draft; the review
     // note must stop calling it one. A value the chat assistant writes is still
-    // unreviewed AI output, so it must never read as "Edited by you".
+    // unreviewed AI output, so it must never read as "Edited by you". Its
+    // sensitive category comes from the field itself, not from a previous
+    // prefill: the assistant can write before any prefill has run.
     setMeta((prev) => ({
       ...prev,
-      [f.id]: by === "you" ? { ...prev[f.id], edited: true, assisted: false } : { ...prev[f.id], edited: false, assisted: true, needsConfirmation: true },
+      [f.id]:
+        by === "you"
+          ? { ...prev[f.id], edited: true, assisted: false }
+          : { ...prev[f.id], edited: false, assisted: true, needsConfirmation: true, sensitiveCategory: sensitiveCategory(f.label) },
     }));
   }, []);
 

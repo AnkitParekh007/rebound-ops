@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { answerNote } from "../../src/lib/apply/answer-note.mjs";
-import { enforceAnswerPolicy } from "../../src/lib/apply/answer-policy.mjs";
+import { enforceAnswerPolicy, sensitiveCategory } from "../../src/lib/apply/answer-policy.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (p) => readFileSync(join(root, p), "utf8");
@@ -72,9 +72,21 @@ test("a value the chat assistant wrote is an AI draft, not the person's edit", (
 test("only the review control marks an edit as the person's; the assistant path says so", () => {
   const provider = read("src/components/apply/apply-provider.tsx");
   assert.match(provider, /by: "you" \| "assistant" = "you"/);
-  assert.match(provider, /by === "you" \? \{ \.\.\.prev\[f\.id\], edited: true, assisted: false \}/);
+  assert.match(provider, /by === "you"\s*\? \{ \.\.\.prev\[f\.id\], edited: true, assisted: false \}/);
+  // The category is computed from the field, so an assistant answer written
+  // before any prefill (empty meta) still gets the sensitive-question note.
+  assert.match(provider, /assisted: true, needsConfirmation: true, sensitiveCategory: sensitiveCategory\(f\.label\)/);
+  assert.match(provider, /import \{ sensitiveCategory \} from "@\/lib\/apply\/answer-policy\.mjs"/);
   assert.match(read("src/components/assistant-console.tsx"), /setAnswer\(idOrLabel, value, "assistant"\)/);
   assert.match(read("src/components/apply-view.tsx"), /onChange=\{\(v\) => a\.setAnswer\(f\.id, v\)\}/);
+});
+
+test("an assistant answer on a sensitive question is held even without a prefill", () => {
+  // What setAnswer now records when the assistant writes into an empty meta.
+  const meta = { edited: false, assisted: true, needsConfirmation: true, sensitiveCategory: sensitiveCategory("Do you require sponsorship?") };
+  const note = answerNote(meta);
+  assert.equal(note.tone, "held");
+  assert.match(note.text, /visa sponsorship/);
 });
 
 test("the provider keeps the policy labels and marks edits", () => {
