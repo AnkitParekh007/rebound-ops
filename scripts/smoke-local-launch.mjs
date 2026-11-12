@@ -92,7 +92,8 @@ export async function runLaunchSmoke(checkout) {
     for(let attempt=1;attempt<=3&&!chooser;attempt++){
       if(await page.getByRole('menu',{name:'More actions'}).count()===0)await moreActions.click();
       const chooserPromise=page.waitForEvent('filechooser',{timeout:7000}).catch(()=>null);
-      await page.getByRole('menuitem',{name:'Import CSV',exact:true}).click();
+      // A menu that closed before this click must not end the retry early.
+      await page.getByRole('menuitem',{name:'Import CSV',exact:true}).click({timeout:7000}).catch(()=>{});
       chooser=await chooserPromise;
       if(!chooser)console.warn(`Import CSV opened no file chooser (attempt ${attempt}/3); retrying.`);
     }
