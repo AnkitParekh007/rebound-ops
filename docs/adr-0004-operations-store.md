@@ -52,4 +52,4 @@ Evidence, checked on 12 November 2026:
 - Nothing is persisted unless `REBOUNDOPS_DATA_DIR` is set; the existing memory-only recovery mode is unchanged.
 - A redaction cannot be undone except by restoring a backup taken before it, which brings the content back.
 - No feature writes to the store yet. The API opens it lazily, on the first request that appends or lists events (`GET /api/operations/status` only reports, and never opens it), and only when `REBOUNDOPS_DATA_DIR` is set and at least one operations flag is on; a default install never loads `node:sqlite` or creates the file. A second API on the same data directory gets `503 OPERATIONS_STORE_LOCKED`.
-- The store tests run on Linux CI only (Node 22 and 24); the macOS and Windows jobs do not run them.
+- The store tests are part of `npm test`, so CI runs them on Linux (Node 22 and 24) and in the Windows and macOS package smoke jobs (Node 24). On Windows the owner-only permission checks are skipped, because Windows has no POSIX file modes; file permissions there are not verified.
