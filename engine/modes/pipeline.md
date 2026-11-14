@@ -127,6 +127,17 @@ are defined:
   ends `from listing`, since a listing can be a teaser. A label only: the scan
   never drops, hides or reorders a posting because of it, so open a `blocked`
   row before discarding it.
+- `| qual: {signals}` — posting-quality signals, written with `elig:` when the
+  `eligibilityScreening` flag is on (`web/src/lib/eligibility/quality.mjs`).
+  Pay is always named: `pay stated` when the provider gave a salary or the text
+  states a pay figure (a currency amount in a sentence about pay, or a currency
+  range, never funding, revenue, budgets or allowances); `no pay found` when it
+  does not (`no pay found in listing` when only the listing's own text was
+  read, which can be a teaser); `pay unread` when there was no text. `{n}d old`
+  is added when the posted date is 30 or more days ago, and `cross-listed` when
+  the text matches a different company's recent posting (the same check as the
+  scan's cross-listing warning). Labels only: nothing is dropped. Closed
+  listings are not labelled here; `--verify` already drops them.
 - `| note: {text}` — a free-text ranking signal an importer attached to the offer
   (`- [ ] {url} | {company} | {title} | note: curated shortlist` is valid). The
   deterministic scanner never sets it.
@@ -139,7 +150,7 @@ are defined:
   row can go unranked because the CLI call failed, returned malformed JSON, or
   gave no usable reason — all of which still spent tokens.)
 
-When more than one is present the order is `posted:` → `trust:` → `yrs:` → `elig:` → `note:` →
+When more than one is present the order is `posted:` → `trust:` → `yrs:` → `elig:` → `qual:` → `note:` →
 `rank:`. Treat them as hints when triaging; none changes how you process the URL.
 
 ## Intelligent JD detection from URL
