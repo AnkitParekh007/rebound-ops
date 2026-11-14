@@ -54,3 +54,29 @@ test('field descriptors and fill results reject unknown types and outcomes', () 
   assert.equal(FillResultSchema.safeParse({ fieldId: 'a', outcome: 'accepted' }).success, true);
   assert.equal(FillResultSchema.safeParse({ fieldId: 'a', outcome: 'submitted' }).success, false);
 });
+
+test('eligibility checks: unverified kinds stay unknown, and a fail names its profile fact', async () => {
+  const { EligibilityCheckSchema, UNVERIFIED_REQUIREMENT_KINDS } = await import('../dist/index.js');
+  const base = { kind: 'work_authorization', verdict: 'meets', evidence: 'You must be authorized to work in Germany.', detail: 'Listed.', basis: ['location.authorized_in'] };
+  assert.ok(EligibilityCheckSchema.safeParse(base).success);
+  assert.equal(EligibilityCheckSchema.safeParse({ ...base, verdict: 'does_not_meet', basis: [] }).success, false);
+  assert.ok(EligibilityCheckSchema.safeParse({ ...base, verdict: 'unknown', basis: [] }).success);
+  assert.equal(EligibilityCheckSchema.safeParse({ ...base, evidence: '' }).success, false);
+  assert.equal(EligibilityCheckSchema.safeParse({ ...base, evidence: 'x'.repeat(401) }).success, false);
+  for (const kind of UNVERIFIED_REQUIREMENT_KINDS) {
+    assert.equal(EligibilityCheckSchema.safeParse({ ...base, kind }).success, false, `${kind} cannot be met from the profile`);
+    assert.ok(EligibilityCheckSchema.safeParse({ ...base, kind, verdict: 'unknown', basis: [] }).success);
+  }
+});
+
+test('an eligibility report outcome must follow from its checks', async () => {
+  const { EligibilityReportSchema, eligibilityOutcome } = await import('../dist/index.js');
+  const check = (verdict) => ({ kind: 'location', verdict, evidence: 'You must be based in Spain.', detail: 'd', basis: verdict === 'unknown' ? [] : ['location.country'] });
+  assert.equal(eligibilityOutcome([]), 'no_requirements');
+  assert.ok(EligibilityReportSchema.safeParse({ outcome: 'no_requirements', checks: [] }).success);
+  assert.equal(EligibilityReportSchema.safeParse({ outcome: 'eligible', checks: [] }).success, false, 'nothing found is not eligible');
+  assert.ok(EligibilityReportSchema.safeParse({ outcome: 'blocked', checks: [check('meets'), check('does_not_meet')] }).success);
+  assert.equal(EligibilityReportSchema.safeParse({ outcome: 'needs_review', checks: [check('does_not_meet'), check('unknown')] }).success, false);
+  assert.ok(EligibilityReportSchema.safeParse({ outcome: 'needs_review', checks: [check('meets'), check('unknown')] }).success);
+  assert.ok(EligibilityReportSchema.safeParse({ outcome: 'eligible', checks: [check('meets')] }).success);
+});
