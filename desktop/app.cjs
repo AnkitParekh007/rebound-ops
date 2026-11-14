@@ -18,8 +18,7 @@ async function ready(){
 }
 function startServices(){
   if(!existsSync(path.join(root,'scripts','start.mjs')))throw new Error('REBOUNDOPS_SOURCE_ROOT must reference a ReboundOps source checkout.');
-  const npm=process.platform==='win32'?'npm.cmd':'npm';
-  launcher=spawn(npm,['start'],{cwd:root,env:{...process.env,HOST:'127.0.0.1',PORT:'4317',REBOUNDOPS_API_PORT:'4174'},stdio:'ignore',windowsHide:true});
+  launcher=spawn('node',['scripts/start.mjs'],{cwd:root,env:{...process.env,HOST:'127.0.0.1',PORT:'4317',REBOUNDOPS_API_PORT:'4174'},stdio:'ignore',windowsHide:true});
   launcher.once('error',err=>{if(!closing)dialog.showErrorBox('ReboundOps startup failed',String(err.message));});
 }
 function shutdown(){
