@@ -26,57 +26,116 @@ const RANGE_RE = new RegExp(
   "i",
 );
 // The figure must belong to the pay wording: right after it ("salary of
-// $90k", "Base pay: £55k", "rate: $30"), or carry its own period ("$45/hr",
-// "52 000 EUR per year"). A pay word elsewhere in the sentence does not make an
-// unrelated amount pay ("competitive salary plus a $1,500 learning budget").
-const PAY_WORD = String.raw`(?:salary|salaries|pay|compensation|base(?:\s+(?:pay|salary))?|wages?|ote|on-target\s+earnings|(?:hourly|day)\s+rate|rate|stipend)`;
+// $90k", "Base pay: £55k", "rate: $30"), a few words later through a linking
+// verb ("the salary for this role is $88k", "your base salary will be $128k"),
+// or carry its own period or pay qualifier ("$45/hr", "$2,400 per week",
+// "€4.200 brutto", "Up to $85,000 DOE"). A pay word elsewhere in the sentence
+// does not make an unrelated amount pay ("competitive salary plus a $1,500
+// learning budget").
+//
+// A stipend is pay ("Stipend: $3,000/month for the fellowship") unless a perk
+// names it ("Wellness stipend: $100/month", "home office stipend of $500").
+const PERK = String.raw`(?:wellness|office|work|internet|phone|mobile|learning|education|gym|fitness|commuter|commuting|meal|lunch|coworking|equipment|tech|technology|health|travel|setup|book|childcare|transit|transport|remote)`;
+const PERK_STIPEND = String.raw`(?<!\b${PERK}[\s-]+)stipend`;
+// The same check for an amount with a period: "Remote work stipend of $75 per month".
+const PERK_NAMED_STIPEND = new RegExp(String.raw`\b${PERK}[\s-]+stipends?\b`, "i");
+const PAY_WORD = String.raw`(?:salary|salaries|pay|pays|compensation|base(?:\s+(?:pay|salary))?|wages?|ote|on-target\s+earnings|(?:hourly|day)\s+rate|rate|${PERK_STIPEND}|total\s+(?:target\s+)?cash|ctc)`;
+const QUALIFIERS = String.raw`(?:(?:is|of|from|between|up\s+to|starting\s+(?:at|from)|at|approximately|about|around|roughly)\s+)*`;
 const PAY_THEN_MONEY = new RegExp(
   // Punctuation and qualifiers are separate, so "Salary: up to £70k" reads.
-  String.raw`\b${PAY_WORD}\b(?:\s+(?:range|band))?\s*(?:[:=–—-]\s*)?(?:(?:is|of|from|between|up\s+to|starting\s+(?:at|from)|at|approximately|about|around|roughly)\s+)*${MONEY}`,
+  String.raw`\b${PAY_WORD}\b(?:\s+(?:range|band))?\s*(?:[:=–—-]\s*)?${QUALIFIERS}${MONEY}`,
+  "gi",
+);
+// "The annual salary for this role starts at $58,000", "your salary would be
+// £36,500": up to five words between the pay word and a linking verb. The gap
+// is checked in code for conjunctions and company money, so "salary plus a
+// learning budget of $1,500" is not pay.
+const PAY_LINK_MONEY = new RegExp(
+  String.raw`\b${PAY_WORD}\b((?:\s+[\p{L}'’-]+){0,5}?)\s+(?:is|are|will\s+be|would\s+be|starts?\s+at|ranges?\s+from|between|of)\s+${QUALIFIERS}${MONEY}`,
+  "giu",
+);
+const GAP_BREAK = /\b(?:plus|and|with|or|but|also|including|includes?|towards?|for\s+(?:your|our|the\s+team))\b/i;
+// Periods and pay qualifiers after an amount, in English and in the posting
+// languages the corpus covers (German, French, Spanish, Portuguese).
+const PERIOD = String.raw`(?:\/\s?(?:yr|year|annum|hr|hour|h|mo|month|wk|week|day)\b|(?:per|a|an)\s+(?:year|annum|hour|month|week|day)\b|annually\b|p\.?a\.?(?=\s|$|[,.;])|pro\s+(?:Jahr|Monat|Stunde)\b|jährlich\b|monatlich\b|par\s+(?:an|mois|heure|jour)\b|annuel(?:le)?\b|mensuel(?:le)?\b|por\s+(?:mês|mes|año|ano|hora)\b|al\s+(?:año|mes)\b|anuales\b|mensuales\b)`;
+const GROSS = String.raw`(?:gross|brutto|brut|bruto|brutos|brutas|netto)\b`;
+const PAY_TAIL = String.raw`(?:\s*(?:${GROSS}\s*)?${PERIOD}|\s*(?:${GROSS}|DOE\b|depending\s+on\s+experience\b|\+\s*(?:super(?:annuation)?|kiwisaver)\b|pro\s+rata\b))`;
+// The range word "a" is Portuguese and Spanish ("R$ 8.000 a R$ 10.000 por mês");
+// both sides must carry a currency.
+const MONEY_PER_PERIOD = new RegExp(String.raw`${MONEY}(?:\s*(?:-|–|—|to|a)\s*${MONEY})?${PAY_TAIL}`, "gi");
+// A figure with no currency is pay only in the forms that cannot be anything
+// else: "12-18 LPA" (lakh per annum), or a "k" figure right after a pay word
+// ("Salary 55-65k").
+const NO_CURRENCY_PAY = new RegExp(
+  String.raw`\b\d+(?:\.\d+)?\s*(?:(?:-|–|to)\s*\d+(?:\.\d+)?\s*)?(?:LPA|lakhs?\s+per\s+annum)\b|\b${PAY_WORD}\b\s*[:=]?\s*\d+(?:\.\d+)?\s*[kK]?\s*(?:-|–|to)\s*\d+(?:\.\d+)?\s*[kK]\b`,
   "i",
 );
-const MONEY_PER_PERIOD = new RegExp(
-  String.raw`${MONEY}(?:\s*(?:-|–|—|to)\s*${MONEY})?\s*(?:\/\s?(?:yr|year|hr|hour|h|mo|month|day)\b|(?:per|a|an)\s+(?:year|annum|hour|month|day)\b|annually\b|p\.?a\.?(?=\s|$|[,.;]))`,
-  "i",
-);
-// Company money and perks, not the person's pay.
-const NOT_PAY = /\b(?:raised|funding|funded|series\s+[a-f]\b|valuation|valued|revenue|arr|investors?|investment|million|billion|customers|users|budget|allowance|reimburse\w*|bonus\s+pool)\b|\d\s?(?:m|bn|b)\b/i;
+// Company money, perks and prices, not the person's pay. "\d B" needs no
+// letter before the digit, so "B2B" is not "2B" (two billion).
+const NOT_PAY =
+  /\b(?:raised|funding|funded|series\s+[a-f]\b|valuation|valued|revenue|arr|investors?|investment|million|billion|customers|users|budget|allowance|reimburse\w*|bonus\s+pool|commuter|transit|childcare|meals?|vouchers?|gym|wellness|tuition|relocation|donations?|parking|mileage|fund|costs?(?![\s-]+of[\s-]+living)|priced|pricing|prices?|retails?|bill(?:s|ed)?|clients?|fees?|transactions?|processes|processed|processing|payments|orders|gmv|deals?|contract\s+value|deal\s+size|saves?|saved|recover\w*)\b|(?<![\p{L}\d.,])\d+(?:[.,]\d+)?\s?(?:m|bn|b)\b/iu;
+// Where a clause starts: before an amount, only its own clause is read, so
+// "We serve 2 million users, and this role pays $90,000 a year" is pay. A colon
+// is not a break: the label before it says what the amount is ("Phone
+// allowance: £30/month").
+const CLAUSE_BREAK = /[,;()]|\band\b|\bbut\b/gi;
+
+/** The text of `s` before `start`, back to the previous amount or clause break. */
+function clauseBefore(s, start, amounts) {
+  const prev = amounts.filter((a) => a.end <= start).at(-1);
+  const window = s.slice(prev ? prev.end : 0, start);
+  const last = [...window.matchAll(CLAUSE_BREAK)].at(-1);
+  return last ? window.slice((last.index ?? 0) + last[0].length) : window;
+}
+
+/** The text of `s` after `end`, up to the next amount or clause break. */
+function clauseAfter(s, end, amounts) {
+  const next = amounts.find((a) => a.start >= end);
+  const rest = s.slice(end, next ? next.start : s.length);
+  const brk = rest.search(/[,;()]|\bbut\b/i);
+  return brk === -1 ? rest : rest.slice(0, brk);
+}
 
 /**
- * Whether an amount with its own period is pay: "$2,000 per year learning
- * budget" is a perk, but in "$100,000 per year plus a $2,000 learning budget"
- * the budget belongs to the second amount. So the perk words are looked for
- * only around each period amount, from the previous amount (or the sentence
- * start) to the next one (or the sentence end).
- * @param {string} s one sentence
+ * Whether one matched amount (with its period, range or pay wording) is pay:
+ * its own clause, from the previous amount to the next one, names no company
+ * money, perk or price. In "$100,000 per year plus a $2,000 learning budget"
+ * the budget belongs to the second amount.
  */
-function periodAmountIsPay(s) {
-  const amounts = [...s.matchAll(new RegExp(MONEY, "gi"))].map((m) => ({ start: m.index ?? 0, end: (m.index ?? 0) + m[0].length }));
-  for (const m of s.matchAll(new RegExp(MONEY_PER_PERIOD.source, "gi"))) {
-    const start = m.index ?? 0;
-    const end = start + m[0].length;
-    const prev = amounts.filter((a) => a.end <= start).at(-1);
-    const next = amounts.find((a) => a.start >= end);
-    const before = s.slice(prev ? prev.end : 0, start);
-    const after = s.slice(end, next ? next.start : s.length);
-    if (!NOT_PAY.test(`${before}${m[0]}${after}`)) return true;
-  }
-  return false;
+function matchIsPay(s, start, end, amounts) {
+  const clause = `${clauseBefore(s, start, amounts)}${s.slice(start, end)}${clauseAfter(s, end, amounts)}`;
+  return !NOT_PAY.test(clause) && !PERK_NAMED_STIPEND.test(clause);
 }
 
 /**
  * Whether a posting text states a pay figure: an amount tied to pay wording,
- * an amount with its own pay period, or a currency range in a sentence that
- * is not about company money or perks.
+ * an amount with its own pay period or qualifier, a currency range, or a
+ * figure in a form that is always pay ("12-18 LPA"), when its clause is not
+ * about company money, perks or prices.
  * @param {string | null | undefined} text
  */
 export function statesPay(text) {
   for (const s of sentences(String(text ?? ""))) {
+    if (NO_CURRENCY_PAY.test(s)) return true;
     if (!MONEY_RE.test(s)) continue;
-    if (PAY_THEN_MONEY.test(s)) return true;
-    if (periodAmountIsPay(s)) return true;
-    const range = RANGE_RE.exec(s);
-    if (range && new RegExp(CURRENCY, "i").test(range[0]) && !NOT_PAY.test(s)) return true;
+    const amounts = [...s.matchAll(new RegExp(MONEY, "gi"))].map((m) => ({ start: m.index ?? 0, end: (m.index ?? 0) + m[0].length }));
+    for (const m of s.matchAll(PAY_THEN_MONEY)) {
+      const start = m.index ?? 0;
+      // "Customers pay $99 a month": the pay word's own clause decides.
+      if (!NOT_PAY.test(clauseBefore(s, start, amounts))) return true;
+    }
+    for (const m of s.matchAll(PAY_LINK_MONEY)) {
+      const start = m.index ?? 0;
+      if (!GAP_BREAK.test(m[1]) && !NOT_PAY.test(m[1]) && !NOT_PAY.test(clauseBefore(s, start, amounts))) return true;
+    }
+    for (const m of s.matchAll(MONEY_PER_PERIOD)) {
+      const start = m.index ?? 0;
+      if (matchIsPay(s, start, start + m[0].length, amounts)) return true;
+    }
+    for (const m of s.matchAll(new RegExp(RANGE_RE.source, "gi"))) {
+      const start = m.index ?? 0;
+      if (new RegExp(CURRENCY, "i").test(m[0]) && matchIsPay(s, start, start + m[0].length, amounts)) return true;
+    }
   }
   return false;
 }

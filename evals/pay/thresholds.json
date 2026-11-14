@@ -1,8 +1,8 @@
 {
-  "status": "AGREED by the repository owner (14 Nov 2026). Regression floors at the first measurement (14 Nov 2026, detector unchanged): they stop the pay detector getting worse on this corpus, not prove it good. Raise them when the detector is widened for the misses the corpus found.",
+  "status": "AGREED by the repository owner (14 Nov 2026) as regression floors, raised as that agreement says once the detector was widened for the corpus misses (14 Nov 2026). They sit at or just under the corpus scores after widening, so they catch regressions, not prove quality.",
   "minRows": 222,
-  "minPrecision": 0.84,
-  "minRecall": 0.83,
-  "maxFalsePay": 18,
-  "maxMissedPay": 19
+  "minPrecision": 0.99,
+  "minRecall": 0.98,
+  "maxFalsePay": 1,
+  "maxMissedPay": 2
 }
