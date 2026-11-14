@@ -1,6 +1,7 @@
 import type { Page, Frame } from "playwright-core";
 import { applySections, findRepeatedSections, type FieldSection } from "./repeated-sections.mjs";
 import { autofillEnabled } from "./local-model.mjs";
+import { enrichFromLever, LEVER_FORM_SCOPE, parseLever, readLeverPage } from "./lever.mjs";
 
 export type ApplyField = {
   id: string; // our stable handle, also set as data-co-field on the live element
@@ -14,7 +15,12 @@ export type ApplyField = {
   nativeId?: string; // the live element's id/name — used to match ATS API schemas (Greenhouse)
   nativeName?: string;
   section?: FieldSection; // one entry of a repeated employment/education section (repeated-sections.mjs)
+  sensitiveHint?: string; // an ATS marks this a sensitive question whatever its label says (lever.mjs); one of SENSITIVE_CATEGORIES
 };
+
+/** `scope`: a selector for the form element; only controls inside it are read
+ *  (the Lever adapter's context scope). Missing on the page → the whole page. */
+export type ExtractOptions = { scope?: string };
 
 export type ExtractedForm = { title: string; url: string; fields: ApplyField[] };
 
@@ -22,8 +28,12 @@ export type ExtractedForm = { title: string; url: string; fields: ApplyField[] }
 // a stable `data-co-field` id on the LIVE page (which the session keeps open), so
 // the later fill phase can locate each field deterministically. Generic DOM/a11y
 // introspection — clean ATS (Ashby/Lever/Greenhouse) work well; Workday best-effort.
-export async function extractForm(ctx: Page | Frame): Promise<ExtractedForm> {
-  const data = await ctx.evaluate(() => {
+export async function extractForm(ctx: Page | Frame, opts: ExtractOptions = {}): Promise<ExtractedForm> {
+  // Lever adapter (behind the `autofill` flag): on a Lever apply page, read only
+  // the application form and take each question card's own schema (lever.mjs).
+  const lever = !opts.scope && autofillEnabled(process.env) && parseLever(ctx.url()) ? LEVER_FORM_SCOPE : null;
+  const data = await ctx.evaluate((scope: string | null) => {
+    const root: ParentNode = (scope && document.querySelector(scope)) || document;
     const clean = (s: string | null | undefined) => (s || "").replace(/\s+/g, " ").trim().slice(0, 160);
     const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.trim());
     // generic placeholders that masquerade as labels (Ashby/react-select)
@@ -120,7 +130,7 @@ export async function extractForm(ctx: Page | Frame): Promise<ExtractedForm> {
 
     const fields: Array<Record<string, unknown>> = [];
     const seenRadio = new Set<string>();
-    const els = Array.from(document.querySelectorAll("input, textarea, select"));
+    const els = Array.from(root.querySelectorAll("input, textarea, select"));
     let n = 0;
 
     for (const el of els) {
@@ -157,13 +167,13 @@ export async function extractForm(ctx: Page | Frame): Promise<ExtractedForm> {
           continue;
         }
         if (name) seenRadio.add(name);
-        const group = Array.from(document.querySelectorAll(`input[type=radio][name="${CSS.escape(name)}"]`));
+        const group = Array.from(root.querySelectorAll(`input[type=radio][name="${CSS.escape(name)}"]`));
         const options = group.map((r) => clean(labelFor(r) || (r as HTMLInputElement).value)).filter(Boolean);
         group.forEach((r, i) => {
           r.setAttribute("data-co-field", fid);
           r.setAttribute("data-co-option", options[i] ?? String(i));
         });
-        fields.push({ id: fid, type: "radio", label: clean(groupLabel(el, options)) || name, required, options });
+        fields.push({ id: fid, type: "radio", label: clean(groupLabel(el, options)) || name, required, options, nativeName: name || undefined });
         continue;
       }
 
@@ -188,12 +198,13 @@ export async function extractForm(ctx: Page | Frame): Promise<ExtractedForm> {
       });
     }
     return { title: document.title, fields };
-  });
+  }, opts.scope ?? lever);
 
   // Repeated employment/education entries (behind the `autofill` flag): re-tag
   // their controls with ids that name the entry, so they stay put when the form
   // grows. A failure here keeps the positional ids, which still fill correctly.
-  const fields = data.fields as ApplyField[];
+  let fields = data.fields as ApplyField[];
+  if (lever) fields = enrichFromLever(fields, await ctx.evaluate(readLeverPage, lever).catch(() => null));
   const found = autofillEnabled(process.env)
     ? await ctx.evaluate(findRepeatedSections, fields.map((f) => ({ id: f.id, label: f.label }))).catch(() => null)
     : null;

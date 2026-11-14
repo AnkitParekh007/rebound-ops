@@ -116,7 +116,9 @@ async function enrichFromAts(url: string, fields: ApplyField[]): Promise<void> {
   if (!schema) return;
   for (const f of fields) {
     const hit =
-      (f.nativeName && schema.get(f.nativeName)) ||
+      // radios carry their group name for the Lever adapter; Greenhouse's schema
+      // would turn one into a combobox, so a radio is never matched by name
+      (f.type !== "radio" && f.nativeName && schema.get(f.nativeName)) ||
       (f.nativeId && schema.get(f.nativeId)) ||
       // a repeated entry's "Company" is not the form's one "Company" question
       (!f.section && f.label && schema.get(`label:${f.label.toLowerCase()}`));

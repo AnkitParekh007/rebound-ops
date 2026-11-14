@@ -75,8 +75,8 @@ test("only the review control marks an edit as the person's; the assistant path 
   assert.match(provider, /by === "you"\s*\? \{ \.\.\.prev\[f\.id\], edited: true, assisted: false \}/);
   // The category is computed from the field, so an assistant answer written
   // before any prefill (empty meta) still gets the sensitive-question note.
-  assert.match(provider, /assisted: true, needsConfirmation: true, sensitiveCategory: sensitiveCategory\(f\.label\)/);
-  assert.match(provider, /import \{ sensitiveCategory \} from "@\/lib\/apply\/answer-policy\.mjs"/);
+  assert.match(provider, /assisted: true, needsConfirmation: true, sensitiveCategory: fieldSensitiveCategory\(f\)/);
+  assert.match(provider, /import \{ fieldSensitiveCategory \} from "@\/lib\/apply\/answer-policy\.mjs"/);
   assert.match(read("src/components/assistant-console.tsx"), /setAnswer\(idOrLabel, value, "assistant"\)/);
   assert.match(read("src/components/apply-view.tsx"), /onChange=\{\(v\) => a\.setAnswer\(f\.id, v\)\}/);
 });
