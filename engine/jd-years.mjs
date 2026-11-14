@@ -148,6 +148,13 @@ export async function fetchJdText(url, { boardCache, ctx = makeHttpCtx() } = {})
  */
 
 /**
+ * Where an offer annotated by applyExperienceFilter keeps the full ATS
+ * description it read (non-enumerable, so never serialized). Absent when the
+ * JD could not be fetched.
+ */
+export const JD_TEXT = Symbol.for('reboundops.jdText');
+
+/**
  * Read each offer's stated years and split the list by band.
  *
  * One JD request per offer at most, through its ATS's public API. The full JD
@@ -198,6 +205,9 @@ export async function applyExperienceFilter(offers, filter, deps = {}) {
       const verdict = classifyYears(req, filter);
       const label = formatYearsSegment(req, verdict).replace(/^yrs: /, '');
       annotated[i] = { ...offer, years: { req, verdict, source, error, label } };
+      // Kept out of JSON and the pipeline row: the eligibility screen reuses it
+      // so a scan with both on makes one request per offer, not two.
+      if (text) Object.defineProperty(annotated[i], JD_TEXT, { value: text, enumerable: false });
       deps.onProgress?.(++done, offers.length);
     }
   }
