@@ -209,3 +209,52 @@ test("job locations accept a bare US but not the word us", () => {
   assert.deepEqual(jobCountries("Berlin, Germany"), ["germany"]);
   assert.deepEqual(jobCountries("Work with us"), []);
 });
+
+// Wording families the posting corpus (evals/eligibility) found missing. These
+// paraphrases are kept out of the corpus, so they check that each family was
+// widened, not just the corpus sentence.
+test("widened wording families find paraphrases the corpus does not contain", () => {
+  const stance = (s) => findRequirements(s).find((x) => x.kind === "sponsorship")?.stance;
+  for (const s of [
+    "Sponsorship isn’t available for this opening.",
+    "Immigration sponsorship cannot be offered.",
+    "Candidates are ineligible for visa sponsorship.",
+    "We will only consider applicants who don't require sponsorship.",
+    "We won't be able to offer visa sponsorship.",
+    "We cannot offer relocation and visa sponsorship.",
+  ]) assert.equal(stance(s), "refused", s);
+  for (const s of ["We sponsor UK Global Talent visas.", "Visa sponsorship will be provided.", "Roles are eligible for immigration sponsorship."]) {
+    assert.equal(stance(s), "offered", s);
+  }
+  const cases = [
+    ["You must be legally allowed to work in Brazil.", "work_authorization"],
+    ["Full work rights in New Zealand are needed.", "work_authorization"],
+    ["Requires a permit that allows you to work in Norway.", "work_authorization"],
+    ["Must be work-authorised in Ireland.", "work_authorization"],
+    ["Must be Canadian citizens or permanent residents.", "citizenship_or_clearance"],
+    ["Swiss nationality is mandatory.", "citizenship_or_clearance"],
+    ["Position limited to U.S. persons.", "citizenship_or_clearance"],
+    ["You must currently live in Scotland.", "location"],
+    ["Applicants need to be physically based in Chile.", "location"],
+    ["We are only hiring in Germany at the moment.", "location"],
+    ["Only applicants based in Kenya will be considered.", "location"],
+    ["You must be able to speak Greek.", "language"],
+    ["C2 level in German.", "language"],
+    ["Fluent Dutch is essential.", "language"],
+    ["Postgraduate diploma in Accounting.", "degree"],
+  ];
+  for (const [s, kind] of cases) assert.ok(kinds(s).includes(kind), `${s} -> ${kind}`);
+});
+
+test("the widened families leave near misses alone", () => {
+  assert.deepEqual(kinds("German citizenship is essential for this role."), ["citizenship_or_clearance"]);
+  for (const s of [
+    "Our sponsorship team is available to answer questions.",
+    "French law experience is required.",
+    "We only hire people who love learning.",
+    "Software that allows you to work in the cloud.",
+    "Our offices are only hiring in-person roles.",
+    "You must speak to customers daily.",
+    "Experience handling citizens' records is required.",
+  ]) assert.deepEqual(kinds(s), [], s);
+});

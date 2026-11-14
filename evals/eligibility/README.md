@@ -16,4 +16,4 @@ npm run eval:eligibility            # report and gate
 npm run eval:eligibility -- --json  # full score
 ```
 
-The corpus runs in `npm test` (`corpus.test.mjs`). Its scores describe this corpus only, not real postings. The first measurement (14 Nov 2026) was taken before any pattern was changed to fit the corpus. Add a snippet by adding a row with its labels; never adjust a label to match what the code does.
+The corpus runs in `npm test` (`corpus.test.mjs`). Its scores describe this corpus only, not real postings. The first measurement (14 Nov 2026), taken before any pattern changed, was 96.0% micro precision and 81.5% micro recall. The patterns were then widened by wording family for the misses it found, and each family is checked with paraphrases kept out of the corpus (`engine/web/tests/lib/eligibility-screen.test.mjs`). On the corpus now: 98.3% micro precision and 99.4% micro recall. Because the corpus found those gaps, its scores are not an unbiased estimate of anything. Add a snippet by adding a row with its labels; never adjust a label to match what the code does.
