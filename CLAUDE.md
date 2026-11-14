@@ -18,7 +18,8 @@ Never force-push `main` or rewrite its history.
 
 Work on the seven operations features (owner decision, 12 Nov 2026; see [ADR 0003](docs/adr-0003-operations-features.md)):
 
-- Shared work goes on `feature/00-foundation`. Feature work goes on its own branch: `feature/01-auto-apply`, `feature/02-autofill`, `feature/03-eligibility-quality`, `feature/04-recruiter-inbox`, `feature/05-referrals`, `feature/06-interview-coach` or `feature/07-strategy-advisor`.
+- Shared work goes on `feature/00-foundation`. Feature work goes on its own branch: `feature/01-auto-apply`, `feature/02-autofill`, `feature/04-recruiter-inbox`, `feature/05-referrals`, `feature/06-interview-coach` or `feature/07-strategy-advisor`.
+- Eligibility & Quality (#3, R2) has no long-lived branch. Each work package branches from `origin/main` as `feature/03-eligibility-<topic>` and its branch is deleted once merged (owner decision, 14 Nov 2026; `feature/03-eligibility-quality` was retired).
 - Feature branches start from `feature/00-foundation`. Bring a branch up to date by merging its base into it, not by rebasing; never force-push a branch someone else may have pulled without asking the owner.
 - Each coherent work package is its own pull request, with its feature flags off by default. A work package can be stacked on another (its PR targets that branch instead of `main`).
 - A squash merge into `main` rewrites the merged branch's commits, so the next PR in a stack then conflicts with `main`. Fix it by merging `main` into that next branch, and keep the branch side only after confirming `main`'s tree equals the squashed branch.
