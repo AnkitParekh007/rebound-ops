@@ -1,26 +1,26 @@
 {
-  "status": "PROPOSED: the repository owner must agree these. No sponsorship stance flip is allowed by design, and sponsorship:refused precision must stay at 1 because a false refusal can block a job. The other floors sit at or just under the first measured scores (14 Nov 2026, patterns unchanged by this corpus), so they catch regressions, not prove quality.",
+  "status": "PROPOSED: the repository owner must agree these. No sponsorship stance flip is allowed by design, and sponsorship:refused precision must stay at 1 because a false refusal can block a job. The other floors sit at or just under the scores after the patterns were widened for the corpus misses (14 Nov 2026), so they catch regressions, not prove quality.",
   "minRows": 233,
   "maxStanceFlips": 0,
-  "maxFalseAlarms": 5,
-  "minMicroPrecision": 0.95,
-  "minMicroRecall": 0.8,
+  "maxFalseAlarms": 3,
+  "minMicroPrecision": 0.98,
+  "minMicroRecall": 0.99,
   "minRecallByLabel": {
-    "work_authorization": 0.82,
-    "sponsorship:refused": 0.76,
-    "sponsorship:offered": 0.76,
-    "citizenship_or_clearance": 0.81,
-    "location": 0.76,
-    "language": 0.8,
-    "degree": 0.95
+    "work_authorization": 1,
+    "sponsorship:refused": 0.96,
+    "sponsorship:offered": 1,
+    "citizenship_or_clearance": 1,
+    "location": 1,
+    "language": 1,
+    "degree": 1
   },
   "minPrecisionByLabel": {
     "work_authorization": 0.96,
     "sponsorship:refused": 1,
     "sponsorship:offered": 1,
-    "citizenship_or_clearance": 0.94,
-    "location": 0.95,
-    "language": 0.91,
-    "degree": 0.95
+    "citizenship_or_clearance": 1,
+    "location": 0.96,
+    "language": 1,
+    "degree": 0.96
   }
 }
