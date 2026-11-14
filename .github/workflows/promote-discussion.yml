@@ -1,0 +1,46 @@
+name: Promote Discussion to Issue
+
+on:
+  workflow_dispatch:
+    inputs:
+      discussion_number:
+        description: GitHub Discussion number to promote
+        type: string
+        required: true
+      confirmation:
+        description: Enter PROMOTE to authorize issue creation
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reboundops-community-triage
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Review and promote one discussion
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      discussions: read
+      issues: write
+    steps:
+      - name: Check out reviewed publisher
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Promote reviewed discussion
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCUSSION_NUMBER: ${{ inputs.discussion_number }}
+          PROMOTE_CONFIRMATION: ${{ inputs.confirmation }}
+        run: node scripts/promote-discussion.mjs
