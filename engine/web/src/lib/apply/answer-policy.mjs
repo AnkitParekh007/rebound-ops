@@ -65,16 +65,16 @@ const CATEGORY_PATTERNS = [
   ["citizenship", /\b(citizen(ship)?|nationality|national\s+of|passport)\b/i],
   [
     "salary",
-    /\b(salary|salaries|compensation|remuneration|wages?|pay\s+(expectations?|range|requirements?|rate)|desired\s+pay|expected\s+(pay|ctc|package)|current\s+(ctc|pay|package)|ctc|hourly\s+rate|day\s+rate|rate\s+expectations?)\b/i,
+    /\b(salary|salaries|compensation|remuneration|wages?|pay\s+(expectations?|range|requirements?|rate)|desired\s+pay|expected\s+(pay|ctc|package)|expect(ed|ing)?\s+to\s+(be\s+paid|earn)|current\s+(ctc|pay|package)|ctc|hourly\s+rate|day\s+rate|rate\s+expectations?)\b/i,
   ],
   [
     "demographic",
-    /\b(gender|sex|race|racial|ethnic(ity)?|hispanic|latin[oax]|veteran|disab(led|ility|ilities)|sexual\s+orientation|transgender|pronouns?|date\s+of\s+birth|birth\s*date|age|ages|\d{1,2}\s*\+?\s*(years?|yrs?)\s+(old|of\s+age|or\s+(older|over|above))|years\s+of\s+age|religio(n|us)|marital|caste)\b/i,
+    /\b(gender|sex|race|racial|ethnic(ity)?|hispanic|latin[oax]|veteran|disab(led|ility|ilities)|sexual\s+orientation|transgender|pronouns?|date\s+of\s+birth|birth\s*date|age|ages|\d{1,2}\s*\+?\s*(years?|yrs?)\s+(old|of\s+age|or\s+(older|over|above))|years\s+of\s+age|religio(n|us)|marital|caste|lgbt[a-z]*|queer|armed\s+forces|military|(health|medical)\s+conditions?|how\s+do\s+you\s+identify|self[-\s]?identif(y|ies|ied|ication)|identif(y|ies)\s+as)\b/i,
   ],
-  ["background_check", /\b(convicted|convictions?|criminal|felon(y|ies)|misdemeanou?rs?|background\s+checks?)\b/i],
+  ["background_check", /\b(convicted|convictions?|criminal|felon(y|ies)|misdemeanou?rs?|background\s+checks?|arrest(ed|s)?|police\s+record)\b/i],
   [
     "attestation",
-    /\b(i\s+(have\s+)?read|i\s+agree|i\s+consent|i\s+accept|i\s+acknowledge|i\s+certify|i\s+attest|i\s+confirm|consent\s+to|privacy\s+(notice|policy)|terms\s+(of|and)|gdpr|data\s+protection|acknowledge|certify|attest)\b/i,
+    /\b(i\s+(have\s+)?read|i\s+agree|i\s+consent|i\s+accept|i\s+acknowledge|i\s+certify|i\s+attest|i\s+confirm|consent\s+to|privacy\s+(notice|policy)|terms\s+(of|and)|gdpr|data\s+protection|acknowledge|certify|attest|i\s+understand\s+that|agree\s+to|(electronic|digital)\s+signature|e-?signature|signature)\b/i,
   ],
 ];
 
