@@ -18,11 +18,11 @@ Never force-push `main` or rewrite its history.
 
 Work on the seven operations features (owner decision, 12 Nov 2026; see [ADR 0003](docs/adr-0003-operations-features.md)):
 
-- Shared work goes on `feature/00-foundation`. Feature work goes on its own branch: `feature/01-auto-apply`, `feature/02-autofill`, `feature/03-eligibility-quality`, `feature/04-recruiter-inbox`, `feature/05-referrals`, `feature/06-interview-coach` or `feature/07-strategy-advisor`.
-- Feature branches start from `feature/00-foundation`. Bring a branch up to date by merging its base into it, not by rebasing; never force-push a branch someone else may have pulled without asking the owner.
-- Each coherent work package is its own pull request, with its feature flags off by default. A work package can be stacked on another (its PR targets that branch instead of `main`).
+- There are no long-lived feature bases. Each coherent work package branches from `origin/main`, named for its feature: `feature/00-foundation-<topic>` for shared work, then `feature/01-auto-apply-<topic>`, `feature/02-autofill-<topic>`, `feature/03-eligibility-<topic>`, `feature/04-recruiter-inbox-<topic>`, `feature/05-referrals-<topic>`, `feature/06-interview-coach-<topic>` or `feature/07-strategy-advisor-<topic>`. This is how every work package since #25 was delivered. `feature/00-foundation` (deleted 12 Nov 2026) and `feature/03-eligibility-quality` (deleted 14 Nov 2026) are retired; the older `feature/01-auto-apply`, `feature/02-autofill` and `feature/04-…`–`feature/07-…` branches predate this, so do not base new work on them.
+- Bring a branch up to date by merging its base into it, not by rebasing; never force-push a branch someone else may have pulled without asking the owner.
+- Each coherent work package is its own pull request, with its feature flags off by default. A work package can be stacked on another (its PR targets that branch instead of `main`). Delete a branch only once its PR is merged and no open PR targets it.
 - A squash merge into `main` rewrites the merged branch's commits, so the next PR in a stack then conflicts with `main`. Fix it by merging `main` into that next branch, and keep the branch side only after confirming `main`'s tree equals the squashed branch.
-- Head branches are kept after merging, so GitHub does not retarget the next PR in a stack. Once its base is squash-merged into `main`, change that PR's base to `main` before merging it, then confirm `origin/main` contains the change. The simpler order is to merge a stack top-down into its feature bases with merge commits, then squash the bottom PR into `main` once.
+- Keep a merged head branch while another open PR is stacked on it, so GitHub does not retarget that PR. Once its base is squash-merged into `main`, change that PR's base to `main` before merging it, then confirm `origin/main` contains the change. The simpler order is to merge a stack top-down into its feature bases with merge commits, then squash the bottom PR into `main` once.
 
 ### Everything else
 

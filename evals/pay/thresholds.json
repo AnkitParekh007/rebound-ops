@@ -1,0 +1,8 @@
+{
+  "status": "AGREED by the repository owner (14 Nov 2026) as regression floors, raised as that agreement says once the detector was widened for the corpus misses (14 Nov 2026). They sit at or just under the corpus scores after widening, so they catch regressions, not prove quality.",
+  "minRows": 222,
+  "minPrecision": 0.99,
+  "minRecall": 0.98,
+  "maxFalsePay": 1,
+  "maxMissedPay": 2
+}

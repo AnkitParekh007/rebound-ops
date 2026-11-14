@@ -12,7 +12,10 @@ import * as yaml from "js-yaml";
 import { getProfilePath } from "@/lib/core/profile-path.mjs";
 import { eligibilityScreeningEnabled } from "@/lib/eligibility/screen.mjs";
 import { screenReport } from "@/lib/eligibility/report-view.mjs";
+import { reportQuality } from "@/lib/eligibility/quality-view.mjs";
+import { resolvePostingUrl } from "@/lib/posting-url.mjs";
 import type { EligibilityView } from "@/components/eligibility-panel";
+import type { QualityView } from "@/components/quality-panel";
 
 // Same filter /api/cv-pdf applies, so a directory or a symlink out of output/
 // never marks a CV ready that the View link would refuse.
@@ -28,21 +31,10 @@ function outputPdfNames(): string[] {
   }
 }
 
-// Eligibility screen of the report's archived posting, behind the
-// eligibilityScreening flag. With the flag off nothing is read or computed.
-// The profile is parsed here (screen.mjs copies only its four allowlisted
-// keys), and a jds/ capture is read only as a regular file inside jds/.
-function eligibilityFor(content: string | null, location: string | undefined): EligibilityView | null {
-  if (!content || !eligibilityScreeningEnabled(process.env)) return null;
-  const root = reboundOpsRoot();
-  let profile: unknown = null;
-  try {
-    profile = yaml.load(fs.readFileSync(getProfilePath(root), "utf8"));
-  } catch {
-    profile = null;
-  }
+// A jds/ capture is read only as a regular file inside jds/.
+function captureReader(root: string): (file: string) => string | null {
   const jds = path.join(root, "jds");
-  const readCapture = (file: string): string | null => {
+  return (file: string): string | null => {
     const p = path.join(jds, file);
     if (!isRegularContainedFile(p, jds)) return null;
     try {
@@ -51,7 +43,38 @@ function eligibilityFor(content: string | null, location: string | undefined): E
       return null;
     }
   };
-  return screenReport({ report: content, location, profile, readCapture }) as EligibilityView;
+}
+
+// Eligibility screen and posting-quality signals of the report's archived
+// posting, behind the eligibilityScreening flag. With the flag off nothing is
+// read or computed. The profile is parsed here (screen.mjs copies only its
+// four allowlisted keys); data/pipeline.md is read only to find the scan row
+// for the report's posting URL.
+function screensFor(
+  content: string | null,
+  location: string | undefined,
+  postingUrl: string,
+): { eligibility: EligibilityView | null; quality: QualityView | null } {
+  if (!content || !eligibilityScreeningEnabled(process.env)) return { eligibility: null, quality: null };
+  const root = reboundOpsRoot();
+  let profile: unknown = null;
+  try {
+    profile = yaml.load(fs.readFileSync(getProfilePath(root), "utf8"));
+  } catch {
+    profile = null;
+  }
+  const pipelineFile = path.join(root, "data", "pipeline.md");
+  let pipelineMd: string | null = null;
+  try {
+    pipelineMd = isRegularContainedFile(pipelineFile, path.join(root, "data")) ? fs.readFileSync(pipelineFile, "utf8") : null;
+  } catch {
+    pipelineMd = null;
+  }
+  const readCapture = captureReader(root);
+  return {
+    eligibility: screenReport({ report: content, location, profile, readCapture }) as EligibilityView,
+    quality: reportQuality({ report: content, readCapture, pipelineMd, postingUrl, now: Date.now() }) as QualityView,
+  };
 }
 
 export const dynamic = "force-dynamic";
@@ -76,7 +99,9 @@ export default async function ReportPage({ params, searchParams }: {
   const companyName = app?.company || parseReport(report?.content ?? "").title || "";
   // The tracker's Location column, else a Location header field in the report.
   const jobLocation = app?.location || parseReport(report?.content ?? "").fields.find((f) => f.label === "Location")?.value || undefined;
-  const eligibility = eligibilityFor(report?.content ?? null, jobLocation);
+  const reportFields = parseReport(report?.content ?? "").fields;
+  const postingUrl = resolvePostingUrl(app?.url, reportFields.find((f) => f.label === "URL")?.value);
+  const { eligibility, quality } = screensFor(report?.content ?? null, jobLocation, postingUrl);
   const pdfFileReady = tailoredCvOnDisk({
     indexStatus,
     filenames: outputPdfNames(),
@@ -96,6 +121,7 @@ export default async function ReportPage({ params, searchParams }: {
       applyHref={`/pipeline/${encodeURIComponent(id)}/apply${query ? `?${query}` : ""}`}
       reportNum={reportNumberFor(id, app, report?.file ?? null)}
       eligibility={eligibility}
+      quality={quality}
     />
   );
 }
