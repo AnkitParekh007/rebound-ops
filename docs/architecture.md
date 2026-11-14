@@ -17,7 +17,7 @@ Angular standalone app (apps/web, port 4200)
                 └── Markdown export
 
 Shared: packages/contracts (Zod schemas, pure workflow logic, schema migrations)
-Evaluation: evals/ai-review (fictional golden set; not shipped)
+Evaluation: evals/ai-review (fictional golden set) and evals/autofill (fictional Autofill policy corpus); not shipped
 Release: preview archive with manifest hashes, CycloneDX SBOM and CI attestations
 Legacy: root static prototype (preserved)
 ```

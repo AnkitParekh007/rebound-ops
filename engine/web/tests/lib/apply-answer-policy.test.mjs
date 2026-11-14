@@ -155,3 +155,29 @@ test("the prefill route emits the policy's answers, not the raw planner object",
   assert.match(route, /enforceAnswerPolicy\(s\.fields, obj, \{ facts, approved \}\)/);
   assert.doesNotMatch(route, /answers:\s*obj\b/, "raw planner output must not be emitted");
 });
+
+// Wording families the policy corpus (evals/autofill) found missing. These
+// paraphrases are deliberately not in the corpus, so they test the pattern,
+// not the corpus's own sentences.
+test("wording found missing by the policy corpus is held, in other words too", () => {
+  const cases = [
+    ["What salary would you expect to earn?", "salary"],
+    ["How much are you expecting to be paid annually?", "salary"],
+    ["Are you part of the LGBT community?", "demographic"],
+    ["Do you identify as queer?", "demographic"],
+    ["Please indicate how you self-identify", "demographic"],
+    ["Have you ever served in the military?", "demographic"],
+    ["Are you a former member of the armed forces?", "demographic"],
+    ["Do you have a medical condition we should know about?", "demographic"],
+    ["Have you been arrested in the past ten years?", "background_check"],
+    ["Do you have a police record?", "background_check"],
+    ["I understand that this offer depends on references", "attestation"],
+    ["Signature", "attestation"],
+    ["Type your name as an e-signature", "attestation"],
+    ["Do you agree to these conditions?", "attestation"],
+  ];
+  for (const [label, category] of cases) assert.equal(sensitiveCategory(label), category, label);
+  for (const label of ["Why do you want this job?", "Which cloud providers have you used?", "Describe your ideal team"]) {
+    assert.equal(sensitiveCategory(label), null, label);
+  }
+});
