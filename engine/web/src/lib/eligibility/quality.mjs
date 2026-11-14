@@ -107,6 +107,9 @@ function matchIsPay(s, start, end, amounts) {
   return !NOT_PAY.test(clause) && !PERK_NAMED_STIPEND.test(clause);
 }
 
+/** Longest quote the report page shows for a pay sentence. */
+const MAX_PAY_EVIDENCE = 300;
+
 /**
  * Whether a posting text states a pay figure: an amount tied to pay wording,
  * an amount with its own pay period or qualifier, a currency range, or a
@@ -115,27 +118,44 @@ function matchIsPay(s, start, end, amounts) {
  * @param {string | null | undefined} text
  */
 export function statesPay(text) {
+  return payEvidence(text) !== null;
+}
+
+/**
+ * The first sentence of a posting text that states a pay figure (cut to
+ * MAX_PAY_EVIDENCE characters), or null when none does. Same rules as
+ * `statesPay`.
+ * @param {string | null | undefined} text
+ * @returns {string | null}
+ */
+export function payEvidence(text) {
   for (const s of sentences(String(text ?? ""))) {
-    if (NO_CURRENCY_PAY.test(s)) return true;
-    if (!MONEY_RE.test(s)) continue;
-    const amounts = [...s.matchAll(new RegExp(MONEY, "gi"))].map((m) => ({ start: m.index ?? 0, end: (m.index ?? 0) + m[0].length }));
-    for (const m of s.matchAll(PAY_THEN_MONEY)) {
-      const start = m.index ?? 0;
-      // "Customers pay $99 a month": the pay word's own clause decides.
-      if (!NOT_PAY.test(clauseBefore(s, start, amounts))) return true;
-    }
-    for (const m of s.matchAll(PAY_LINK_MONEY)) {
-      const start = m.index ?? 0;
-      if (!GAP_BREAK.test(m[1]) && !NOT_PAY.test(m[1]) && !NOT_PAY.test(clauseBefore(s, start, amounts))) return true;
-    }
-    for (const m of s.matchAll(MONEY_PER_PERIOD)) {
-      const start = m.index ?? 0;
-      if (matchIsPay(s, start, start + m[0].length, amounts)) return true;
-    }
-    for (const m of s.matchAll(new RegExp(RANGE_RE.source, "gi"))) {
-      const start = m.index ?? 0;
-      if (new RegExp(CURRENCY, "i").test(m[0]) && matchIsPay(s, start, start + m[0].length, amounts)) return true;
-    }
+    if (sentenceStatesPay(s)) return s.length > MAX_PAY_EVIDENCE ? s.slice(0, MAX_PAY_EVIDENCE) : s;
+  }
+  return null;
+}
+
+/** @param {string} s one sentence */
+function sentenceStatesPay(s) {
+  if (NO_CURRENCY_PAY.test(s)) return true;
+  if (!MONEY_RE.test(s)) return false;
+  const amounts = [...s.matchAll(new RegExp(MONEY, "gi"))].map((m) => ({ start: m.index ?? 0, end: (m.index ?? 0) + m[0].length }));
+  for (const m of s.matchAll(PAY_THEN_MONEY)) {
+    const start = m.index ?? 0;
+    // "Customers pay $99 a month": the pay word's own clause decides.
+    if (!NOT_PAY.test(clauseBefore(s, start, amounts))) return true;
+  }
+  for (const m of s.matchAll(PAY_LINK_MONEY)) {
+    const start = m.index ?? 0;
+    if (!GAP_BREAK.test(m[1]) && !NOT_PAY.test(m[1]) && !NOT_PAY.test(clauseBefore(s, start, amounts))) return true;
+  }
+  for (const m of s.matchAll(MONEY_PER_PERIOD)) {
+    const start = m.index ?? 0;
+    if (matchIsPay(s, start, start + m[0].length, amounts)) return true;
+  }
+  for (const m of s.matchAll(new RegExp(RANGE_RE.source, "gi"))) {
+    const start = m.index ?? 0;
+    if (new RegExp(CURRENCY, "i").test(m[0]) && matchIsPay(s, start, start + m[0].length, amounts)) return true;
   }
   return false;
 }

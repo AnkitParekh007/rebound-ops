@@ -47,33 +47,65 @@ const ROW_TARGET = /^(?:https?:\/\/|local:\S)/i;
 export function parseInbox(md) {
   const jobs = [];
   for (const line of splitLines(md)) {
-    const m = line.match(/^\s*-\s*\[([ xX])\]\s*(.+)$/);
-    if (!m) continue;
-    const all = m[2].split("|").map((s) => s.trim());
-    const urlIndex = all.findIndex((seg) => ROW_TARGET.test(seg));
-    if (urlIndex < 0) continue;
-    const labels = new Map();
-    const positional = [];
-    for (let i = urlIndex + 1; i < all.length; i++) {
-      const seg = all[i];
-      // Company and role sit in the two cells after the URL. Reading `word:`
-      // there as a tag turned a real company or title into a dropped column.
-      const lm = i >= urlIndex + 3 ? seg.match(LABELED_SEGMENT) : null;
-      if (lm) labels.set(lm[1].toLowerCase(), lm[2].trim());
-      else positional.push(seg);
-    }
-    const posted = labels.get("posted");
-    jobs.push({
-      done: m[1].toLowerCase() === "x",
-      url: all[urlIndex],
-      company: positional[0] ?? "",
-      role: positional[1] ?? "",
-      location: positional[2] || undefined, // optional 4th column (#1015)
-      compensation: positional[3] || undefined, // optional 5th column (#1017); 6th+ ignored
-      // the row's own posting date (scan.mjs `posted:` label) — a more direct
-      // freshness signal than the scan-history join, which stays as fallback
-      postedAt: posted && /^\d{4}-\d{2}-\d{2}$/.test(posted) ? posted : undefined,
-    });
+    const row = parseRow(line);
+    if (row) jobs.push(row.job);
   }
   return jobs;
+}
+
+/**
+ * One pipeline.md line, or null when it is not a row. `labels` holds every
+ * labelled segment (`posted`, `qual`, …) by its lower-case name.
+ * @param {string} line
+ */
+function parseRow(line) {
+  const m = line.match(/^\s*-\s*\[([ xX])\]\s*(.+)$/);
+  if (!m) return null;
+  const all = m[2].split("|").map((s) => s.trim());
+  const urlIndex = all.findIndex((seg) => ROW_TARGET.test(seg));
+  if (urlIndex < 0) return null;
+  const labels = new Map();
+  const positional = [];
+  for (let i = urlIndex + 1; i < all.length; i++) {
+    const seg = all[i];
+    // Company and role sit in the two cells after the URL. Reading `word:`
+    // there as a tag turned a real company or title into a dropped column.
+    const lm = i >= urlIndex + 3 ? seg.match(LABELED_SEGMENT) : null;
+    if (lm) labels.set(lm[1].toLowerCase(), lm[2].trim());
+    else positional.push(seg);
+  }
+  const posted = labels.get("posted");
+  const job = {
+    done: m[1].toLowerCase() === "x",
+    url: all[urlIndex],
+    company: positional[0] ?? "",
+    role: positional[1] ?? "",
+    location: positional[2] || undefined, // optional 4th column (#1015)
+    compensation: positional[3] || undefined, // optional 5th column (#1017); 6th+ ignored
+    // the row's own posting date (scan.mjs `posted:` label) — a more direct
+    // freshness signal than the scan-history join, which stays as fallback
+    postedAt: posted && /^\d{4}-\d{2}-\d{2}$/.test(posted) ? posted : undefined,
+  };
+  return { job, labels };
+}
+
+/** A posting URL compared loosely: no fragment, no trailing slash, no space. */
+const urlKey = (url) => String(url ?? "").trim().replace(/#.*$/, "").replace(/\/+$/, "");
+
+/**
+ * The pipeline.md row for one posting URL (the last one, if a URL was queued
+ * twice), with its labels, or null when no row names that URL.
+ * @param {string} md - content of data/pipeline.md.
+ * @param {string} url - the posting URL, for example a report's URL field.
+ * @returns {{ job: ReturnType<typeof parseInbox>[number], labels: Map<string, string> } | null}
+ */
+export function findPipelineRow(md, url) {
+  const key = urlKey(url);
+  if (!key) return null;
+  let found = null;
+  for (const line of splitLines(String(md ?? ""))) {
+    const row = parseRow(line);
+    if (row && urlKey(row.job.url) === key) found = row;
+  }
+  return found;
 }

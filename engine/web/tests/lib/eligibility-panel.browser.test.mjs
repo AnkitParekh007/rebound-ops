@@ -13,7 +13,7 @@ import { liveServerSkip } from "../helpers/live-server.mjs";
 const url = process.env.ELIGIBILITY_PANEL_TEST_URL;
 const root = process.env.ELIGIBILITY_PANEL_TEST_ROOT;
 
-test("A report shows the eligibility screen of its archived posting", { skip: liveServerSkip("ELIGIBILITY_PANEL_TEST_URL", "ELIGIBILITY_PANEL_TEST_ROOT"), timeout: 120_000 }, async (t) => {
+test("A report shows the eligibility screen and posting quality of its archived posting", { skip: liveServerSkip("ELIGIBILITY_PANEL_TEST_URL", "ELIGIBILITY_PANEL_TEST_ROOT"), timeout: 120_000 }, async (t) => {
   const origin = new URL(url);
   assert.ok(["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname));
   const relative = path.relative(os.tmpdir(), fs.realpathSync(root));
@@ -26,6 +26,7 @@ test("A report shows the eligibility screen of its archived posting", { skip: li
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const panel = () => page.getByRole("region", { name: "Eligibility" });
+  const quality = () => page.getByRole("region", { name: "Posting quality" });
 
   // Archived in the report: Germany is authorized, so the refusal to sponsor
   // does not count against the person; the language is theirs to check.
@@ -39,6 +40,15 @@ test("A report shows the eligibility screen of its archived posting", { skip: li
   assert.ok(await panel().getByText("Years of experience", { exact: true }).isVisible(), "years are screened in the web view too");
   assert.ok((await panel().getByText("Check yourself", { exact: true }).count()) >= 1, "language is left to the person");
   assert.ok((await panel().getByText(/From your profile: location\.authorized_in/).count()) >= 1, "names the profile keys it used");
+  // Posting quality: pay quoted from the archived posting; age counted from the
+  // scan row's posted date, and cross-listing from its qual: label.
+  await quality().waitFor({ timeout: 15_000 });
+  assert.ok(await quality().getByText("Pay stated", { exact: true }).isVisible());
+  assert.ok(await quality().getByText("“The salary range for this role is €68,000 – €82,000 per year.”").isVisible());
+  assert.ok(await quality().getByText("Cross-listed", { exact: true }).isVisible());
+  assert.ok(await quality().getByText(/^\d+d old$/).isVisible(), "a posting from January is stale");
+  assert.ok(await quality().getByText(/Posted 2026-01-05, \d+ days ago\./).isVisible());
+  assert.ok(await quality().getByText(/Scan label: qual: pay stated, 313d old, cross-listed/).isVisible());
 
   // Pointer to a jds/ capture: the UK is not in authorized_in and the profile
   // needs sponsorship, so the screen says the profile does not meet it.
@@ -48,12 +58,17 @@ test("A report shows the eligibility screen of its archived posting", { skip: li
   assert.ok(await panel().getByText("“Candidates must have the right to work in the UK.”").isVisible());
   assert.ok(await panel().getByText("Does not meet", { exact: true }).isVisible());
   assert.ok(await panel().getByText(/its jds\/ capture/).isVisible());
+  // No pay in the capture, and no scan row for this URL: both said plainly.
+  assert.ok(await quality().getByText("No pay found", { exact: true }).isVisible());
+  assert.ok(await quality().getByText(/No row in data\/pipeline\.md has this posting's URL/).isVisible());
 
   // No archived posting: said plainly, nothing screened.
   await page.goto(`${origin.origin}/pipeline/23`);
   await panel().waitFor({ timeout: 15_000 });
   assert.ok(await panel().getByText(/no archived posting text to screen/).isVisible());
   assert.equal(await panel().getByRole("listitem").count(), 0);
+  assert.ok(await quality().getByText("Not read", { exact: true }).isVisible());
+  assert.ok(await quality().getByText(/Pay was not checked/).isVisible());
 
   assert.deepEqual(errors, []);
 });

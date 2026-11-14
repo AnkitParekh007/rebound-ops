@@ -31,6 +31,7 @@ import { CompanyEvidence } from "@/components/company-evidence";
 import { companyPresentation } from "@/lib/company-presentation.mjs";
 import { PageFrame } from "@/components/page-frame";
 import { EligibilityPanel, type EligibilityView } from "@/components/eligibility-panel";
+import { QualityPanel, type QualityView } from "@/components/quality-panel";
 
 // Progressive disclosure of the report. Current oferta.md writes letter F as
 // Interview Plan (STAR+R), not a verdict — never promote by letter (#3416).
@@ -59,6 +60,7 @@ export function ReportView({
   applyHref,
   reportNum = null,
   eligibility = null,
+  quality = null,
 }: {
   id: string;
   app: Application | null;
@@ -80,6 +82,8 @@ export function ReportView({
   reportNum?: number | null;
   /** Eligibility screen of the archived posting; null when the eligibilityScreening flag is off. */
   eligibility?: EligibilityView | null;
+  /** Posting-quality signals; null when the eligibilityScreening flag is off. */
+  quality?: QualityView | null;
 }) {
   const meta = report ? parseReport(report) : null;
   const field = (label: string) => meta?.fields.find((f) => f.label === label)?.value;
@@ -224,6 +228,7 @@ export function ReportView({
                   {callout}
                   <ScoreLevers report={report} />
                   {eligibility && <EligibilityPanel view={eligibility} />}
+                  {quality && <QualityPanel view={quality} />}
                   <article className="report-prose mt-6">
                     <ReportMarkdown>{meta?.body ?? report}</ReportMarkdown>
                   </article>
@@ -235,6 +240,7 @@ export function ReportView({
                 {callout}
                 <ScoreLevers report={report} />
                 {eligibility && <EligibilityPanel view={eligibility} />}
+                  {quality && <QualityPanel view={quality} />}
 
                 {mainSections.map((s, i) => {
                   const expanded = isLeadSection(s);
