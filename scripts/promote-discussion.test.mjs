@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateNumber, markerFor, buildIssue} from './promote-discussion.mjs';
+import {validateNumber, markerFor, buildIssue, withoutMentions} from './promote-discussion.mjs';
 
 test('accepts a positive numeric discussion ID',()=>{
   assert.equal(validateNumber('42'),42);
@@ -12,4 +12,11 @@ test('creates stable dedupe marker and maintainer checklist',()=>{
   assert.match(result.body,/reboundops-discussion:42/);
   assert.match(result.body,/Maintainer triage/);
   assert.match(result.title,/\[triage\]/);
+});
+test('a title naming someone does not mention them, and brackets do not break the link',()=>{
+  const result=buildIssue({number:7,title:'Ask @fixture-user about [beta] access',url:'https://github.com/AnkitParekh007/rebound-ops/discussions/7',bodyText:'',category:{name:'Ideas'}});
+  assert.equal(withoutMentions('@a and @b'),'@\u200ba and @\u200bb');
+  assert.ok(!/@fixture-user/.test(result.title));
+  assert.ok(!/@fixture-user/.test(result.body));
+  assert.match(result.body,/\[Ask @\u200bfixture-user about \\\[beta\\\] access\]\(https:\/\/github\.com\/AnkitParekh007\/rebound-ops\/discussions\/7\)/);
 });

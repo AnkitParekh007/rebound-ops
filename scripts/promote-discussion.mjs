@@ -7,15 +7,19 @@ export function validateNumber(value) {
   return Number(value);
 }
 export function markerFor(number) { return `<!-- reboundops-discussion:${number} -->`; }
+// A zero-width space after each @ keeps a discussion title from notifying anyone
+// it names: the title lands in the issue title and in link text, where GitHub
+// turns @name into a mention.
+export function withoutMentions(text) { return String(text ?? '').replaceAll('@', '@\u200b'); }
 export function buildIssue(discussion) {
   const marker = markerFor(discussion.number);
   const excerpt = String(discussion.bodyText || '').slice(0, 6000);
   return {
-    title: `[triage] ${String(discussion.title).slice(0, 180)}`,
+    title: `[triage] ${withoutMentions(discussion.title).slice(0, 180)}`,
     body: [
       marker,
       '## Original discussion',
-      `[${discussion.title}](${discussion.url})`,
+      `[${withoutMentions(discussion.title).replace(/[[\]]/g, '\\$&')}](${discussion.url})`,
       '',
       `Category: ${discussion.category?.name || 'Unknown'}`,
       '',

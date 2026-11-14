@@ -6,7 +6,7 @@
 
 ReboundOps is an open-source, local-first job-search workspace for experienced software engineers. Compare a role against your experience, review what you can substantiate, prepare application materials, and track follow-ups.
 
-[See a sample job review](https://rebound-ops.org/#sample-job-review) · [Install locally](#quick-start) · [Screenshots](https://rebound-ops.org/screenshots/) · [Wiki](https://github.com/AnkitParekh007/rebound-ops/wiki) · [Discussions](https://github.com/AnkitParekh007/rebound-ops/discussions) · [Roadmap](docs/roadmap.md)
+[See a sample job review](https://rebound-ops.org/#sample-job-review) · [Install locally](#quick-start) · [Screenshots](https://rebound-ops.org/screenshots/) · [Documentation](https://rebound-ops.org/docs/) · [Wiki](https://github.com/AnkitParekh007/rebound-ops/wiki) · [Discussions](https://github.com/AnkitParekh007/rebound-ops/discussions) · [Roadmap](docs/roadmap.md)
 
 ## Get help and contribute
 
