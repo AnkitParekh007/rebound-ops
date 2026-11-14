@@ -20,3 +20,7 @@ test('a title naming someone does not mention them, and brackets do not break th
   assert.ok(!/@fixture-user/.test(result.body));
   assert.match(result.body,/\[Ask @\u200bfixture-user about \\\[beta\\\] access\]\(https:\/\/github\.com\/AnkitParekh007\/rebound-ops\/discussions\/7\)/);
 });
+test('link text escapes backslashes before brackets, so a trailing backslash cannot close the link',()=>{
+  const result=buildIssue({number:9,title:'Path C:\\]evil [x]',url:'https://github.com/AnkitParekh007/rebound-ops/discussions/9',bodyText:'',category:{name:'Ideas'}});
+  assert.ok(result.body.includes('[Path C:\\\\\\]evil \\[x\\]](https://github.com/AnkitParekh007/rebound-ops/discussions/9)'), result.body);
+});
