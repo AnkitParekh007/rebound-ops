@@ -54,6 +54,24 @@ export function archivedPosting(report) {
 }
 
 /**
+ * The text of a report's archived posting, from the report itself or from the
+ * `jds/` capture its pointer sentence names, or the reason there is none.
+ * Shared by the eligibility and posting-quality panels.
+ * @param {{ report: string | null | undefined, readCapture: (file: string) => string | null }} input
+ * @returns {{ text: string, source: "report" | "capture" } | { reason: string }}
+ */
+export function archivedPostingText({ report, readCapture }) {
+  const posting = archivedPosting(report);
+  if (posting.kind === "text") return { text: posting.text, source: "report" };
+  if (posting.kind === "capture") {
+    const read = readCapture(posting.file);
+    if (typeof read === "string" && read.trim().length >= MIN_POSTING_CHARS) return { text: read, source: "capture" };
+    return { reason: `The report points to jds/${posting.file}, which could not be read.` };
+  }
+  return { reason: "This report has no archived posting text to screen." };
+}
+
+/**
  * Screen a report's archived posting.
  * @param {{
  *   report: string | null | undefined,
@@ -67,17 +85,9 @@ export function archivedPosting(report) {
  *       outcome: string, checks: { kind: string, verdict: string, evidence: string, detail: string, basis: string[] }[] }}
  */
 export function screenReport({ report, location, profile, readCapture }) {
-  const posting = archivedPosting(report);
-  let text = null;
-  let source = /** @type {"report" | "capture"} */ ("report");
-  if (posting.kind === "text") text = posting.text;
-  else if (posting.kind === "capture") {
-    source = "capture";
-    const read = readCapture(posting.file);
-    text = typeof read === "string" && read.trim().length >= MIN_POSTING_CHARS ? read : null;
-    if (text === null) return { status: "no_posting", reason: `The report points to jds/${posting.file}, which could not be read.` };
-  }
-  if (text === null) return { status: "no_posting", reason: "This report has no archived posting text to screen." };
+  const posting = archivedPostingText({ report, readCapture });
+  if ("reason" in posting) return { status: "no_posting", reason: posting.reason };
+  const { text, source } = posting;
   const profileRead = profile !== null && typeof profile === "object";
   const result = screenEligibility({ description: text, location }, eligibilityFacts(profileRead ? profile : {}), {
     years: parseYearsRequirement(text),

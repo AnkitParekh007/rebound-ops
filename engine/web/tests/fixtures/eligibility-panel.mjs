@@ -1,7 +1,8 @@
 // node tests/fixtures/eligibility-panel.mjs prints a fresh disposable data
 // root for eligibility-panel.browser.test.mjs. Everything is fictional: row 21
-// archives its posting in the report, row 22 points to a jds/ capture, and
-// row 23 has no archived posting. The profile names no real person.
+// archives its posting in the report (with a pay range) and has a scan row in
+// data/pipeline.md, row 22 points to a jds/ capture with no pay and has no scan
+// row, and row 23 has no archived posting. The profile names no real person.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -24,6 +25,7 @@ const archived = [
   "We are unable to sponsor visas.",
   "Fluent German is required.",
   "5+ years of experience in data engineering required.",
+  "The salary range for this role is €68,000 – €82,000 per year.",
 ].join("\n");
 fs.writeFileSync(
   path.join(root, "reports/021-fixture-archive-co.md"),
@@ -44,6 +46,10 @@ fs.writeFileSync(
 fs.writeFileSync(
   path.join(root, "config/profile.yml"),
   "# Fictional browser fixture profile\ncandidate:\n  full_name: Fixture Person\n  email: fixture@example.invalid\n  years_of_experience: 6\nlocation:\n  country: Germany\n  authorized_in: [Germany]\n  needs_sponsorship: true\n",
+);
+fs.writeFileSync(
+  path.join(root, "data/pipeline.md"),
+  "# Pipeline\n\n- [x] https://jobs.fixture-archive.example/data-engineer | Fixture Archive Co | Data Engineer | Berlin, Germany | | posted: 2026-01-05 | qual: pay stated, 313d old, cross-listed\n- [ ] https://jobs.fixture-unrelated.example/1 | Fixture Unrelated Co | Tester\n",
 );
 fs.writeFileSync(path.join(root, "cv.md"), "# Fictional browser fixture\n\nNot a real candidate.\n");
 console.log(root);
