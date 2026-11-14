@@ -59,6 +59,12 @@ const SUITES = {
   "cv-studio-keep": { url: "CV_STUDIO_KEEP_TEST_URL", root: "CV_STUDIO_KEEP_TEST_ROOT", fixture: "cv-studio" },
   "cv-studio-preview": { url: "CV_STUDIO_PREVIEW_TEST_URL", fixture: "cv-studio-preview" },
   "cv-upload": { url: "CV_UPLOAD_TEST_URL", root: "CV_UPLOAD_TEST_ROOT", fixture: "cv-upload" },
+  "eligibility-panel": {
+    url: "ELIGIBILITY_PANEL_TEST_URL",
+    root: "ELIGIBILITY_PANEL_TEST_ROOT",
+    fixture: "eligibility-panel",
+    serverEnv: { REBOUNDOPS_FEATURES: "eligibilityScreening" },
+  },
   "employer-preset": { url: "EXPLORE_EMPLOYER_TEST_URL", fixture: "blank" },
   "evaluation-options": { url: "EVALUATION_OPTIONS_TEST_URL", fixture: "inbox-undo" },
   "followups-loading": { url: "FOLLOWUPS_LOADING_TEST_URL", root: "FOLLOWUPS_LOADING_TEST_ROOT", fixture: "pipeline-status" },
@@ -98,9 +104,12 @@ function makeRoot(fixture) {
 
 // detached, so the server and the next process server.mjs spawns share a
 // process group that stop() can signal in one call.
-function startServer(root, port, log) {
+// Feature flags and a profile override never come from the caller's shell:
+// a suite that needs a flag names it in `serverEnv`.
+function startServer(root, port, log, serverEnv = {}) {
   const env = { ...process.env, REBOUND_OPS_ROOT: root, NEXT_TELEMETRY_DISABLED: "1" };
-  for (const name of ["REBOUND_OPS_DATA_DIR", "REBOUND_OPS_TRACKER", "REBOUND_OPS_WEB_ALLOWED_HOSTS", ...SUITE_VARS]) delete env[name];
+  for (const name of ["REBOUND_OPS_DATA_DIR", "REBOUND_OPS_TRACKER", "REBOUND_OPS_WEB_ALLOWED_HOSTS", "REBOUND_OPS_PROFILE", "REBOUNDOPS_FEATURES", ...SUITE_VARS]) delete env[name];
+  Object.assign(env, serverEnv);
   const child = spawn(process.execPath, ["server.mjs", "start", "-p", String(port)], {
     cwd: WEB, env, detached: true, stdio: ["ignore", log, log],
   });
@@ -189,7 +198,7 @@ async function attempt(name) {
     const url = `http://127.0.0.1:${port}`;
     logPath = path.join(root, "..", `${path.basename(root)}-server.log`);
     const log = fs.openSync(logPath, "w");
-    server = startServer(root, port, log);
+    server = startServer(root, port, log, suite.serverEnv);
     fs.closeSync(log);
     await waitReady(url, server);
     // FORCE_COLOR=0: an inherited FORCE_COLOR colors the reporter's summary
