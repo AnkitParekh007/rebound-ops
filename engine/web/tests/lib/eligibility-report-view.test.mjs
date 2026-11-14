@@ -53,6 +53,16 @@ test("no section, a placeholder or a too-short section is no posting", () => {
   assert.deepEqual(archivedPosting(null), { kind: "none" });
 });
 
+test("comments are stripped until none are left, nested or unterminated", () => {
+  const nested = archivedPosting(report(`<!<!-- a -->-- b -->${POSTING}`));
+  assert.equal(nested.kind, "text");
+  assert.ok(!nested.text.includes("<!--"));
+  const open = archivedPosting(report(`${POSTING}\n<!-- never closed ${"x".repeat(80)}`));
+  assert.equal(open.kind, "text");
+  assert.ok(!open.text.includes("<!--"));
+  assert.ok(!open.text.includes("never closed"));
+});
+
 test("a screened report quotes each requirement and checks it against the profile", () => {
   const view = screenReport({
     report: report(POSTING),

@@ -19,6 +19,23 @@ const POINTER = /^See jds\/([A-Za-z0-9][A-Za-z0-9._-]{0,200}\.(?:md|txt)) for th
 const MIN_POSTING_CHARS = 50;
 
 /**
+ * Drop HTML comments (template placeholders) until none are left, so a nested
+ * `<!<!-- -->-- -->` cannot leave a fresh opener behind, then drop an
+ * unterminated opener and everything after it.
+ * @param {string} text
+ */
+function withoutComments(text) {
+  let previous;
+  let current = text;
+  do {
+    previous = current;
+    current = current.replace(/<!--[\s\S]*?-->/g, "");
+  } while (current !== previous);
+  const open = current.indexOf("<!--");
+  return open === -1 ? current : current.slice(0, open);
+}
+
+/**
  * The archived posting in a report.
  * @param {string | null | undefined} report
  * @returns {{ kind: "text", text: string } | { kind: "capture", file: string } | { kind: "none" }}
@@ -29,7 +46,7 @@ export function archivedPosting(report) {
   if (!m) return { kind: "none" };
   const after = content.slice(m.index + m[0].length);
   const next = after.search(/^##[ \t]/m);
-  const section = (next === -1 ? after : after.slice(0, next)).replace(/<!--[\s\S]*?-->/g, "").trim();
+  const section = withoutComments(next === -1 ? after : after.slice(0, next)).trim();
   const pointer = POINTER.exec(section);
   if (pointer && !pointer[1].includes("..")) return { kind: "capture", file: pointer[1] };
   if (section.length < MIN_POSTING_CHARS) return { kind: "none" };
