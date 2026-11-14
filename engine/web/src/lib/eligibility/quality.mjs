@@ -46,7 +46,8 @@ const NOT_PAY = /\b(?:raised|funding|funded|series\s+[a-f]\b|valuation|valued|re
  * Whether an amount with its own period is pay: "$2,000 per year learning
  * budget" is a perk, but in "$100,000 per year plus a $2,000 learning budget"
  * the budget belongs to the second amount. So the perk words are looked for
- * only around each period amount, up to the neighbouring amounts.
+ * only around each period amount, from the previous amount (or the sentence
+ * start) to the next one (or the sentence end).
  * @param {string} s one sentence
  */
 function periodAmountIsPay(s) {
@@ -56,8 +57,8 @@ function periodAmountIsPay(s) {
     const end = start + m[0].length;
     const prev = amounts.filter((a) => a.end <= start).at(-1);
     const next = amounts.find((a) => a.start >= end);
-    const before = s.slice(Math.max(prev ? prev.end : 0, start - 30), start);
-    const after = s.slice(end, Math.min(next ? next.start : s.length, end + 40));
+    const before = s.slice(prev ? prev.end : 0, start);
+    const after = s.slice(end, next ? next.start : s.length);
     if (!NOT_PAY.test(`${before}${m[0]}${after}`)) return true;
   }
   return false;

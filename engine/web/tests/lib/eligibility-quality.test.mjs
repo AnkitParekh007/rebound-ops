@@ -42,6 +42,7 @@ test("company money, perks and vague pay are not a stated pay figure", () => {
     "Great pay, and $500 towards your first conference.",
     "We provide a $2,000 per year learning budget.",
     "A $100 a month phone allowance.",
+    "Annual revenue from enterprise software subscriptions reached $100,000,000 per year.",
     "Founded in 2015, we have 200 employees.",
   ]) {
     assert.equal(statesPay(s), false, s);
