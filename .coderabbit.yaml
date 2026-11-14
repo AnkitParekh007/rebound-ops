@@ -20,7 +20,7 @@ reviews:
     drafts: false
     auto_incremental_review: true
     # main, plus the operations feature branches that stacked PRs target
-    # (feature/00-foundation, feature/02-autofill, …).
+    # (feature/0N-<feature>-<topic> work-package branches).
     base_branches:
       - "^main$"
       - "^feature/.*$"
