@@ -4,7 +4,7 @@ Thank you for helping build an evidence-led, user-controlled career recovery too
 
 ## Before starting
 
-Read [product brief](docs/product-brief.md), [architecture](docs/architecture.md), [privacy notes](docs/privacy.md) and [evaluation rubric](docs/evaluation-rubric.md). Open an issue to discuss major behavior changes.
+Read the [community guidelines](CODE_OF_CONDUCT.md), [Wiki](https://github.com/AnkitParekh007/rebound-ops/wiki), [Discussions](https://github.com/AnkitParekh007/rebound-ops/discussions), and [product brief](docs/product-brief.md), [architecture](docs/architecture.md), [privacy notes](docs/privacy.md) and [evaluation rubric](docs/evaluation-rubric.md). For substantial ideas, begin in [Discussions](https://github.com/AnkitParekh007/rebound-ops/discussions). Open an issue for reproducible bugs or accepted, scoped work. Maintainers can use the [manual discussion-to-issue workflow](docs/community-triage.md).
 
 ## Development
 

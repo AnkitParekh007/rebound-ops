@@ -6,7 +6,19 @@
 
 ReboundOps is an open-source, local-first job-search workspace for experienced software engineers. Compare a role against your experience, review what you can substantiate, prepare application materials, and track follow-ups.
 
-[See a sample job review](https://rebound-ops.org/#sample-job-review) · [Install locally](#quick-start) · [Screenshots](https://rebound-ops.org/screenshots/) · [Documentation](https://rebound-ops.org/docs/) · [Roadmap](docs/roadmap.md)
+[See a sample job review](https://rebound-ops.org/#sample-job-review) · [Install locally](#quick-start) · [Screenshots](https://rebound-ops.org/screenshots/) · [Wiki](https://github.com/AnkitParekh007/rebound-ops/wiki) · [Discussions](https://github.com/AnkitParekh007/rebound-ops/discussions) · [Roadmap](docs/roadmap.md)
+
+## Get help and contribute
+
+| Looking for… | Start here |
+| --- | --- |
+| Setup instructions, features and architecture | [ReboundOps Wiki](https://github.com/AnkitParekh007/rebound-ops/wiki) |
+| Questions, ideas, introductions and workflows | [GitHub Discussions](https://github.com/AnkitParekh007/rebound-ops/discussions) |
+| Reproducible bugs and approved development tasks | [GitHub Issues](https://github.com/AnkitParekh007/rebound-ops/issues) |
+| Contributing and community expectations | [Contributing](CONTRIBUTING.md) · [Community guidelines](CODE_OF_CONDUCT.md) |
+| Sensitive vulnerabilities | [Private security reporting guidance](SECURITY.md) |
+
+Discuss exploratory ideas before opening implementation issues. Maintainers may promote a well-scoped discussion to an issue after reviewing evidence, privacy implications and acceptance criteria.
 
 ## Sample job review
 
