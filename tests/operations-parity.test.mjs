@@ -55,3 +55,20 @@ test('every report the engine screen produces parses as an EligibilityReport', a
   }
   assert.ok(EligibilityReportSchema.safeParse(screenEligibility({ description: 'We build tools.' }, eligibilityFacts({}))).success);
 });
+
+test('the engine apply queue mirrors the Controlled Auto Apply contracts', async () => {
+  const contracts = await import('../packages/contracts/dist/index.js');
+  const queue = await import('../engine/web/src/lib/apply/apply-queue.mjs');
+  assert.deepEqual([...queue.APPLY_QUEUE_STATES], [...contracts.APPLY_QUEUE_STATES]);
+  assert.deepEqual([...queue.APPLY_ADAPTERS], [...contracts.APPLY_ADAPTERS]);
+  assert.equal(queue.APPLY_QUEUE_DAILY_CAP, contracts.APPLY_QUEUE_DAILY_CAP);
+  assert.equal(queue.APPLY_QUEUE_MIN_SCORE, contracts.APPLY_QUEUE_MIN_SCORE);
+  assert.equal(queue.FEATURE_FLAG_ENV, contracts.FEATURE_FLAG_ENV);
+  assert.ok(Object.hasOwn(contracts.FEATURE_FLAGS, queue.AUTO_APPLY_FLAG));
+  const items = queue.syncItems([], [{
+    trackerNumber: '21', company: 'Fictional Co', role: 'Data Engineer', status: 'Evaluated', score: '4.4/5',
+    postingUrl: 'https://job-boards.greenhouse.io/fictionalco/jobs/1234567', eligibility: 'needs_review'
+  }], new Date('2026-11-14T10:00:00Z'));
+  const parsed = contracts.ApplyQueueItemSchema.safeParse(items[0]);
+  assert.ok(parsed.success, JSON.stringify(parsed.error?.issues));
+});

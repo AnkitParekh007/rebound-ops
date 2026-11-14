@@ -51,6 +51,7 @@ These files contain your personal data, customizations, and work product. Update
 | `data/cache/http/` | Board responses saved for a few minutes so a repeat `scan` can reuse them (written by `scan.mjs` through `providers/_http-cache.mjs`). Each file name is a hash. The URL is not stored, because a query string can carry a token. Safe to delete. The next scan downloads the boards again. |
 | `data/follow-ups.md` | Your follow-up history |
 | `data/approved-answers.json` | Answers you chose to save for reuse on later application forms (Autofill, behind `REBOUNDOPS_FEATURES=autofill`); owner-only, delete entries on the apply page |
+| `data/apply-queue.json` | The Controlled Auto Apply queue (behind `REBOUNDOPS_FEATURES=autoApply`): tracker rows that qualify for ReboundOps to prepare (never submit), with why each one qualified and its state. Owner-only, written under a lock with a revision; a damaged file is reported, never overwritten. Rebuilt from the tracker on read, except the rows you removed. |
 | `data/active-interviews.md` | Your active interview processes, incl. inline `[process-friction]` notes (read by `process-quality.mjs`) |
 | `data/agent-inbox.md` | Your append-only request queue drained at session start (written by `agent-inbox.mjs`) |
 | `data/reply-candidates.json` | Your normalized employer-reply candidates (subject, body, sender, signal, plus optional `received_at`/`date` — read by `reply-watch.mjs`; a reliable received date is required for date-guarded company-wide rejection suggestions) |

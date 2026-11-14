@@ -4,3 +4,4 @@ export * from './events.js';
 export * from './legacy-import.js';
 export * from './local-model.js';
 export * from './eligibility.js';
+export * from './auto-apply.js';

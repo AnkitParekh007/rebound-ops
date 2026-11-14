@@ -6,23 +6,8 @@
 
 export type GhField = { label: string; type: string; required: boolean; options: string[] };
 
-/** Parse a Greenhouse job-board URL → {token, jobId}, else null. */
-export function parseGreenhouse(url: string): { token: string; jobId: string } | null {
-  try {
-    const u = new URL(url);
-    if (!/(^|\.)greenhouse\.io$/i.test(u.hostname)) return null;
-    // .../{token}/jobs/{id}  (job-boards.greenhouse.io or boards.greenhouse.io)
-    const m = u.pathname.match(/\/([^/]+)\/jobs\/(\d+)/);
-    if (m) return { token: m[1], jobId: m[2] };
-    // embed form: boards.greenhouse.io/embed/job_app?for={token}&token={id}
-    const forToken = u.searchParams.get("for");
-    const jobId = u.searchParams.get("token");
-    if (forToken && jobId) return { token: forToken, jobId };
-    return null;
-  } catch {
-    return null;
-  }
-}
+// The URL parser lives in greenhouse-url.mjs so plain .mjs callers can use it.
+export { parseGreenhouse } from "./greenhouse-url.mjs";
 
 const GH_TYPE: Record<string, GhField["type"]> = {
   input_text: "text",
