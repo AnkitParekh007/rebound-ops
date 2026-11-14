@@ -3,7 +3,7 @@ const REPO = 'AnkitParekh007/rebound-ops';
 
 function abort(message) { throw new Error(message); }
 export function validateNumber(value) {
-  if (!/^[1-9]\\d{0,8}$/.test(String(value ?? ''))) abort('Expected a positive numeric Discussion number.');
+  if (!/^[1-9]\d{0,8}$/.test(String(value ?? ''))) abort('Expected a positive numeric Discussion number.');
   return Number(value);
 }
 export function markerFor(number) { return `<!-- reboundops-discussion:${number} -->`; }
@@ -32,7 +32,7 @@ export function buildIssue(discussion) {
       '- [ ] Review privacy, safety and accessibility impact',
       '- [ ] Define minimal acceptance criteria and tests',
       '- [ ] Decide priority and owner; close if out of scope'
-    ].join('\\n')
+    ].join('\n')
   };
 }
 async function request(path, options={}) {
@@ -77,7 +77,7 @@ async function main() {
     console.log(msg);
     if(process.env.GITHUB_STEP_SUMMARY) {
       const {appendFile}=await import('node:fs/promises');
-      await appendFile(process.env.GITHUB_STEP_SUMMARY,msg+'\\n');
+      await appendFile(process.env.GITHUB_STEP_SUMMARY,msg+'\n');
     }
     return;
   }
@@ -87,7 +87,7 @@ async function main() {
   console.log(msg);
   if(process.env.GITHUB_STEP_SUMMARY) {
     const {appendFile}=await import('node:fs/promises');
-    await appendFile(process.env.GITHUB_STEP_SUMMARY,msg+'\\n');
+    await appendFile(process.env.GITHUB_STEP_SUMMARY,msg+'\n');
   }
 }
 if(process.argv[1]?.endsWith('/promote-discussion.mjs')) main().catch(error=>{console.error(error.message);process.exitCode=1;});
