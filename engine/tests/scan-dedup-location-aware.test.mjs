@@ -264,6 +264,8 @@ const BARE = companyRoleDedupKey(CO, ROLE);
       null, 'labeled `trust:` segment in the 4th cell is not a location'],
     ['- [ ] https://ex.com/p/7b | Acme Corp | Strategy Analyst | yrs: 3-5',
       null, 'labeled `yrs:` segment (experience_filter) in the 4th cell is not a location'],
+    ['- [ ] https://ex.com/p/7c | Acme Corp | Data Analyst | elig: blocked (sponsorship)',
+      null, 'labeled `elig:` segment (eligibilityScreening) in the 4th cell is not a location'],
     ['- [ ] https://ex.com/p/7 | Acme Corp | Product Designer | note: curated list',
       null, 'labeled `note:` segment in the 4th cell is not a location'],
     ['- [ ] https://ex.com/p/8 | Acme Corp | ML Engineer | rank: 4.2/5 — Strong match',
