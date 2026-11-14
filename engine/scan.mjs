@@ -84,7 +84,9 @@ import { sectionKind } from './lib/pipeline-sections.mjs';
 import { promoteKnownFragmentIdentity, LANGUAGE_PARAMS, languageSubtag } from './url-key.mjs';
 import { getReboundOpsRoot, getProfilePath, hasProfileOverride } from './path-resolver.mjs';
 import { checkLivenessViaApi } from './liveness-api.mjs';
-import { resolveExperienceFilter, applyExperienceFilter } from './jd-years.mjs';
+import { resolveExperienceFilter, applyExperienceFilter, JD_TEXT } from './jd-years.mjs';
+import { eligibilityFacts, eligibilityScreeningEnabled } from './web/src/lib/eligibility/screen.mjs';
+import { screenScanOffer, summarizeScanEligibility } from './web/src/lib/eligibility/scan-label.mjs';
 
 const CODE_ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DATA_ROOT = getReboundOpsRoot();
@@ -1311,6 +1313,40 @@ export function loadCandidateCountry(profilePath = PROFILE_PATH) {
 // keeps the filter off and says why. A value that is set but not a number, or
 // a profile that does not parse, is named here: "no years are set" would send
 // the user looking for a key they already wrote.
+/**
+ * The profile for the eligibility label (eligibilityScreening). Only the four
+ * keys eligibilityFacts reads are used. A missing or unreadable profile is an
+ * empty one, so every requirement is labelled for review, never blocked.
+ */
+export function loadEligibilityProfile(profilePath = PROFILE_PATH) {
+  if (!existsSync(profilePath)) {
+    console.warn(`⚠️  eligibility screening: no profile at ${profilePath}, so every requirement is left for review`);
+    return {};
+  }
+  try {
+    const raw = loadYaml(readFileSync(profilePath, 'utf-8'));
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch (err) {
+    console.warn(`⚠️  eligibility screening could not read ${profilePath}: ${String(err?.message ?? err).split('\n')[0]}`);
+    return {};
+  }
+}
+
+/**
+ * Label each offer with its eligibility screen (offer.eligibility), in place.
+ * Reuses the full description the experience filter fetched, else the
+ * listing's own. Labels only: no offer is dropped or reordered.
+ * @param {Array<{description?: unknown, location?: unknown}>} offers
+ * @param {unknown} profile
+ */
+export function labelEligibility(offers, profile) {
+  const facts = eligibilityFacts(profile);
+  for (const offer of offers) {
+    offer.eligibility = screenScanOffer({ fullText: offer[JD_TEXT], listing: offer.description, location: offer.location }, facts);
+  }
+  return summarizeScanEligibility(offers.map(o => o.eligibility));
+}
+
 export function loadCandidateYears(profilePath = PROFILE_PATH) {
   if (!existsSync(profilePath)) return undefined;
   let raw;
@@ -1911,7 +1947,7 @@ const PIPELINE_CHECKBOX_STRICT_RE = /^- \[[ x]\]\s+/;
 
 /**
  * A labeled trailing segment of a pipeline entry, as written by the two writers
- * that emit one: `formatPipelineOffer` here (`posted:`, `trust:`, `yrs:`, `note:`) and
+ * that emit one: `formatPipelineOffer` here (`posted:`, `trust:`, `yrs:`, `elig:`, `note:`) and
  * `appendRankAnnotation` in `rank-pipeline.mjs` (`rank:`).
  *
  * Labeled segments are appended after the positional columns, so one slides into
@@ -1938,7 +1974,7 @@ const PIPELINE_CHECKBOX_STRICT_RE = /^- \[[ x]\]\s+/;
  * segment invents a city for a role and lets it resurface, while a genuine
  * location beginning `Posted: ` / `Rank: ` does not occur.
  */
-const PIPELINE_LABELED_SEGMENT_RE = /^(?:posted|trust|yrs|note|rank):\s/iu;
+const PIPELINE_LABELED_SEGMENT_RE = /^(?:posted|trust|yrs|elig|note|rank):\s/iu;
 
 /**
  * The `~~…~~` wrapper an expired entry is written with.
@@ -2038,9 +2074,9 @@ function extractPipelineUrl(line) {
  *   writes — is it the location. A report-led processed entry (`#143 | {url} |
  *   … | 4.2/5 | PDF ✅`) puts the SCORE in that position, and keying on it would
  *   invent a city for an already-processed role.
- * - A labeled segment (`posted:` / `trust:` / `yrs:` / `note:` / `rank:`) slides into that
+ * - A labeled segment (`posted:` / `trust:` / `yrs:` / `elig:` / `note:` / `rank:`) slides into that
  *   position when the offer carried no location and no compensation, so it is
- *   skipped too. Only those five labels count — see
+ *   skipped too. Only those six labels count — see
  *   {@link PIPELINE_LABELED_SEGMENT_RE} for why a bare `word:` prefix does not.
  *
  * Both fall back to `''` (location unknown), which `companyRoleDedupKey` reads as
@@ -3155,6 +3191,12 @@ export function formatPipelineOffer(offer) {
   // is off, so such a row stays byte-identical. After trust:, before note:.
   const yrs = typeof offer.years?.label === 'string' ? sanitizeMarkdownField(offer.years.label) : '';
   if (yrs) line = `${line} | yrs: ${yrs}`;
+  // Labeled eligibility segment (eligibilityScreening): what the posting's
+  // hard requirements say against the profile ("blocked (sponsorship)",
+  // "review (language)", "none found"). Absent when the flag is off, so such a
+  // row stays byte-identical. After yrs:, before note:.
+  const elig = typeof offer.eligibility?.label === 'string' ? sanitizeMarkdownField(offer.eligibility.label) : '';
+  if (elig) line = `${line} | elig: ${elig}`;
   // Optional free-text ranking signal (e.g. a curated-list flag an importer
   // attaches). Labeled — not positional like location/compensation — so it can
   // ride on any row shape (bare URL, 3-, 4-, or 5-column) without a reader
@@ -4892,6 +4934,14 @@ async function main() {
     });
     verifiedOffers = kept;
     experienceDropped = dropped;
+  }
+
+  // 5.65. Eligibility label (eligibilityScreening, off by default): screen each
+  // new offer's hard requirements against the profile and label the row.
+  // Never drops: a blocked posting is still added, with the reason on it.
+  if (eligibilityScreeningEnabled(process.env) && verifiedOffers.length > 0) {
+    const c = labelEligibility(verifiedOffers, loadEligibilityProfile());
+    console.log(`\nEligibility (labels only): ${c.blocked} blocked, ${c.needs_review} to review, ${c.eligible} eligible, ${c.no_requirements} with none found, ${c.unread} unread`);
   }
 
   // 5.7. Cross-listing check (#1597): fingerprint each new offer's JD body and
