@@ -116,3 +116,15 @@ Screenshots and walkthroughs are welcome, but **redact all personal information,
 - [ ] Keep moderation respectful and remove spam, doxxing and exposed credentials
 
 **Community principle:** Helpful discussion, truthful product claims, privacy and constructive criticism. Do not promise jobs, automated applications or unreleased features.
+
+## Automated publishing (manual GitHub Actions trigger)
+
+1. Confirm these five categories exist in **Settings → Discussions**: Announcements, General, Ideas, Q&A, and Show and tell. Category spelling is matched case-insensitively; missing categories stop the workflow before creating anything.
+2. Open **Actions → Publish ReboundOps Discussions → Run workflow** and select branch **main**.
+3. First run with **action=preview**. Review existing titles, duplicate detection, and proposed posts in the workflow summary.
+4. When ready, run again with **action=publish** and enter **PUBLISH** exactly in the confirmation field.
+5. Open the discussion URLs listed in the workflow summary. Pin the founder's welcome announcement manually.
+
+The workflow uses the GitHub Actions job token with only `contents: read` and `discussions: write`; it does not require a personal access token or API key. It does not run on push, PR creation, or a schedule. Existing discussions with matching titles are skipped. If publication partially fails, rerunning the workflow skips already-created topics.
+
+**Safety:** Only launch the five numbered topics from this document; review copy changes before publishing. Edits to a previously published thread are not applied automatically. The publisher cannot create or pin categories. The workflow requires `main` and an explicit confirmation to publish.
