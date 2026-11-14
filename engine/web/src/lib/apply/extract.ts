@@ -1,4 +1,6 @@
 import type { Page, Frame } from "playwright-core";
+import { applySections, findRepeatedSections, type FieldSection } from "./repeated-sections.mjs";
+import { autofillEnabled } from "./local-model.mjs";
 
 export type ApplyField = {
   id: string; // our stable handle, also set as data-co-field on the live element
@@ -11,6 +13,7 @@ export type ApplyField = {
   combobox?: boolean; // react-select-style widget → fill via click+type+Enter, not selectOption
   nativeId?: string; // the live element's id/name — used to match ATS API schemas (Greenhouse)
   nativeName?: string;
+  section?: FieldSection; // one entry of a repeated employment/education section (repeated-sections.mjs)
 };
 
 export type ExtractedForm = { title: string; url: string; fields: ApplyField[] };
@@ -187,5 +190,12 @@ export async function extractForm(ctx: Page | Frame): Promise<ExtractedForm> {
     return { title: document.title, fields };
   });
 
-  return { title: data.title, url: ctx.url(), fields: data.fields as ApplyField[] };
+  // Repeated employment/education entries (behind the `autofill` flag): re-tag
+  // their controls with ids that name the entry, so they stay put when the form
+  // grows. A failure here keeps the positional ids, which still fill correctly.
+  const fields = data.fields as ApplyField[];
+  const found = autofillEnabled(process.env)
+    ? await ctx.evaluate(findRepeatedSections, fields.map((f) => ({ id: f.id, label: f.label }))).catch(() => null)
+    : null;
+  return { title: data.title, url: ctx.url(), fields: applySections(fields, found) };
 }

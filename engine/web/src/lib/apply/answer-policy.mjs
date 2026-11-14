@@ -89,7 +89,7 @@ export function sensitiveCategory(label) {
 }
 
 /**
- * @typedef {{ id: string, type: string, label?: string, required?: boolean, options?: string[], maxLength?: number, combobox?: boolean }} PolicyField
+ * @typedef {{ id: string, type: string, label?: string, required?: boolean, options?: string[], maxLength?: number, combobox?: boolean, section?: import("./repeated-sections.mjs").FieldSection }} PolicyField
  * @typedef {{ value: string, needs_confirmation: boolean, source: string, sensitive_category: string | null, hold_reason: string | null }} PolicyAnswer
  * @typedef {{ proposed: number, held: number, unresolved: number, dropped: number, fromProfile: number, fromApproved: number }} PolicySummary
  * @typedef {{ value: string }} SavedAnswer
@@ -133,7 +133,11 @@ export function enforceAnswerPolicy(fields, raw, opts = {}) {
     const fits = (/** @type {string} */ v) => !(typeof field.maxLength === "number" && field.maxLength > 0 && v.length > field.maxLength);
     const options = Array.isArray(field.options) ? field.options : [];
     const choosesOption = field.type === "select" || field.type === "radio" || !!field.combobox;
-    const fromProfile = facts ? resolveProfileAnswer(field, facts, category) : null;
+    // One entry of a repeated employment/education section is about one job or
+    // school: a profile fact ("Country", "City") or a saved answer ("Company")
+    // would put the same value into every entry, so neither applies there.
+    const repeated = !!field.section;
+    const fromProfile = facts && !repeated ? resolveProfileAnswer(field, facts, category) : null;
     // Source order (contracts ANSWER_SOURCES): profile_fact, approved_answer, derived, model_draft.
     if (fromProfile && fromProfile.source === "profile_fact" && fits(fromProfile.value)) {
       summary.fromProfile++;
@@ -142,7 +146,7 @@ export function enforceAnswerPolicy(fields, raw, opts = {}) {
     }
     // A sensitive checkbox is a consent or declaration (attestation, background
     // check, …): the person ticks it on each form, never a saved answer.
-    const saved = approved && category !== "attestation" && !(field.type === "checkbox" && category) ? approved(field) : null;
+    const saved = approved && !repeated && category !== "attestation" && !(field.type === "checkbox" && category) ? approved(field) : null;
     if (saved && typeof saved.value === "string" && saved.value.trim() !== "") {
       // A saved choice must still be one of this form's options, spelled its way;
       // otherwise it does not apply here and the field resolves as if unsaved.

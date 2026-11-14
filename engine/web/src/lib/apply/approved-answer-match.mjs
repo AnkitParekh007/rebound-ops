@@ -7,7 +7,7 @@ import { sensitiveCategory } from "./answer-policy.mjs";
 
 /**
  * @typedef {{ id: string, question: string, key: string, kind: "text" | "choice" | "checkbox", value: string, company: string | null, savedAt: string }} ApprovedAnswer
- * @typedef {{ type: string, label?: string, combobox?: boolean }} AnswerField
+ * @typedef {{ type: string, label?: string, combobox?: boolean, section?: import("./repeated-sections.mjs").FieldSection }} AnswerField
  */
 
 /**
@@ -46,6 +46,7 @@ export function companyKey(company) {
 export function cannotSave(field) {
   if (!fieldKind(field)) return "A file upload is not saved as an answer.";
   if (!questionKey(field.label)) return "This field has no question text to recognise it by.";
+  if (field.section) return "This question belongs to one entry of a repeated section (one job or school), so it is not saved for other forms.";
   const category = sensitiveCategory(field.label);
   if (category === "attestation" || (category && fieldKind(field) === "checkbox")) {
     return "Consent and declaration questions are never saved; you answer them yourself on each form.";

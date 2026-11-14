@@ -7,6 +7,7 @@ import { resolveLateSession } from "@/lib/apply/exit.mjs";
 import { readFillResult, screenForFill } from "@/lib/apply/fill-stream.mjs";
 import { sensitiveCategory } from "@/lib/apply/answer-policy.mjs";
 import type { FillResult } from "@/lib/apply/fill-readback.mjs";
+import { fieldDisplayLabel } from "@/lib/apply/repeated-sections.mjs";
 
 export type FillStep = { fieldId: string; label: string; ok: boolean; thumb?: string };
 /** Per-field labels from the prefill answer policy (answer-policy.mjs). */
@@ -414,10 +415,13 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
   const setAnswer = useCallback((idOrLabel: string, value: string, by: "you" | "assistant" = "you") => {
     const fs = fieldsRef.current;
     const key = idOrLabel.toLowerCase();
+    // By label only when the question is asked once: with repeated entries
+    // ("Company" for each job) a label alone cannot say which one is meant.
+    const once = fs.filter((x) => !x.section);
     const f =
       fs.find((x) => x.id === idOrLabel) ||
-      fs.find((x) => x.label.toLowerCase().includes(key)) ||
-      fs.find((x) => key.includes(x.label.toLowerCase()) && x.label.length > 2);
+      once.find((x) => x.label.toLowerCase().includes(key)) ||
+      once.find((x) => key.includes(x.label.toLowerCase()) && x.label.length > 2);
     if (!f) return;
     setAnswers((prev) => ({ ...prev, [f.id]: value }));
     // Once the person changes a value it is theirs, not an AI draft; the review
@@ -485,7 +489,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     const gen = generation.current;
     const fs = fieldsRef.current;
     const a = answersRef.current;
-    const ans = fs.filter((f) => f.type !== "file" && (a[f.id] || "").trim()).map((f) => ({ label: f.label || f.id, value: a[f.id] }));
+    const ans = fs.filter((f) => f.type !== "file" && (a[f.id] || "").trim()).map((f) => ({ label: fieldDisplayLabel(f, f.id), value: a[f.id] }));
     setDriveSteps([]);
     setReadback([]);
     setError("");

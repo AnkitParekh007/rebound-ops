@@ -7,6 +7,7 @@ import { useApply, type ManualDraft, type SavedAnswer } from "@/components/apply
 import { cannotSave } from "@/lib/apply/approved-answer-match.mjs";
 import { needsLeaveConfirmation, resolveReturnPath } from "@/lib/apply/exit.mjs";
 import { isResumeLabel } from "@/lib/apply/resume-label.mjs";
+import { sectionLabel, startsEntry } from "@/lib/apply/repeated-sections.mjs";
 import { answerNote, type AnswerNote } from "@/lib/apply/answer-note.mjs";
 import { readbackSummary, readbackText, type FillResult } from "@/lib/apply/fill-readback.mjs";
 import type { ApplyField } from "@/lib/apply/extract";
@@ -199,18 +200,24 @@ export function ApplyView() {
               flashes brand-orange the instant its drafted answer lands */}
           <div className="space-y-1 rounded-2xl border border-border/70 bg-surface/80 p-2 shadow-2xl shadow-black/10 backdrop-blur-md sm:p-3">
             {a.fields.map((f, i) => (
-              <div key={f.id} className="co-rise rounded-xl px-3 py-2.5" style={{ animationDelay: `${Math.min(i * 45, 700)}ms` }}>
-                <FieldRow
-                  field={f}
-                  value={a.answers[f.id] ?? ""}
-                  needs={!!a.meta[f.id]?.needsConfirmation}
-                  note={answerNote(a.meta[f.id], f)}
-                  index={i}
-                  drafting={prefilling}
-                  onChange={(v) => a.setAnswer(f.id, v)}
-                  save={a.savedAnswers ? { company: a.company, onSave: (scope) => a.saveAnswer(f.id, scope) } : null}
-                />
-              </div>
+              <Fragment key={f.id}>
+                {/* a repeated employment/education entry starts here */}
+                {startsEntry(a.fields[i - 1], f) && (
+                  <h3 className="px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-muted">{sectionLabel(f.section)}</h3>
+                )}
+                <div className="co-rise rounded-xl px-3 py-2.5" style={{ animationDelay: `${Math.min(i * 45, 700)}ms` }}>
+                  <FieldRow
+                    field={f}
+                    value={a.answers[f.id] ?? ""}
+                    needs={!!a.meta[f.id]?.needsConfirmation}
+                    note={answerNote(a.meta[f.id], f)}
+                    index={i}
+                    drafting={prefilling}
+                    onChange={(v) => a.setAnswer(f.id, v)}
+                    save={a.savedAnswers ? { company: a.company, onSave: (scope) => a.saveAnswer(f.id, scope) } : null}
+                  />
+                </div>
+              </Fragment>
             ))}
           </div>
 
@@ -596,6 +603,8 @@ function FieldRow({
     "aria-describedby": describedBy || undefined,
   };
   const labelText = f.label || "Untitled field";
+  // Two "Company" questions read the same aloud; say which entry this one is.
+  const entry = f.section ? <span className="sr-only"> ({sectionLabel(f.section)})</span> : null;
 
   // Flash brand-orange the moment a drafted answer first lands (empty → value).
   const prev = useRef(value);
@@ -622,9 +631,9 @@ function FieldRow({
     <div className={flash ? "co-flash" : ""} style={flash ? { animationDelay: `${Math.min(index * 70, 900)}ms` } : undefined}>
       <div className="mb-1.5 flex items-center gap-1 text-sm font-medium">
         {f.type === "file" || f.type === "checkbox" ? (
-          <span className={f.label ? undefined : "text-faint"}>{labelText}</span>
+          <span className={f.label ? undefined : "text-faint"}>{labelText}{entry}</span>
         ) : (
-          <label htmlFor={controlId} className={f.label ? undefined : "text-faint"}>{labelText}</label>
+          <label htmlFor={controlId} className={f.label ? undefined : "text-faint"}>{labelText}{entry}</label>
         )}
         {f.required && <Asterisk aria-hidden="true" className="size-3 text-brand-text" />}
         {needs && <span id={confirmationId} className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-400">you confirm</span>}

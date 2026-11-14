@@ -24,9 +24,10 @@
  * Client-safe: no Playwright or Node imports.
  */
 import { pickComboboxOption } from "./option-match.mjs";
+import { fieldDisplayLabel } from "./repeated-sections.mjs";
 
 /**
- * @typedef {{ id: string, type: string, label?: string, required?: boolean, combobox?: boolean, maxLength?: number }} ReadbackField
+ * @typedef {{ id: string, type: string, label?: string, required?: boolean, combobox?: boolean, maxLength?: number, section?: import("./repeated-sections.mjs").FieldSection }} ReadbackField
  * @typedef {{ kind: "missing" }
  *   | { kind: "text", value: string }
  *   | { kind: "checked", value: boolean }
@@ -96,7 +97,7 @@ const clip = (s) => (s.length > MAX_ACTUAL_CHARS ? `${s.slice(0, MAX_ACTUAL_CHAR
  */
 export function compareFill(field, intended, observed, opts = {}) {
   const want = String(intended ?? "");
-  const base = { fieldId: field.id, label: field.label || "this field", required: !!field.required, intended: field.type === "file" && want ? "file attached" : clip(want) };
+  const base = { fieldId: field.id, label: fieldDisplayLabel(field), required: !!field.required, intended: field.type === "file" && want ? "file attached" : clip(want) };
   /** @param {FillStatus} status @param {Partial<FillResult>} [more] @returns {FillResult} */
   const r = (status, more = {}) => ({ ...base, status, ...more });
   if (!observed || observed.kind === "missing") return r("missing");
