@@ -13,6 +13,7 @@
  * receiving all along; this is a relocation, not a rewrite.
  */
 import { DEFAULT_PROFILE_REF } from "../core/profile-path.mjs";
+import { sectionLabel } from "./repeated-sections.mjs";
 
 
 /**
@@ -26,6 +27,7 @@ import { DEFAULT_PROFILE_REF } from "../core/profile-path.mjs";
  * @property {string} label
  * @property {boolean} [required]
  * @property {string[]} [options]
+ * @property {import("./repeated-sections.mjs").FieldSection} [section]
  */
 
 /**
@@ -46,7 +48,7 @@ import { DEFAULT_PROFILE_REF } from "../core/profile-path.mjs";
  */
 export function buildAnswerPrompt({ title, fields, memory = "", cvSource = null, profile = DEFAULT_PROFILE_REF }) {
   const fieldsList = fields
-    .map((f) => `${f.id}\t${f.type}${f.required ? "*" : ""}\t${f.label}${f.options ? `\t[options: ${f.options.join(" | ")}]` : ""}`)
+    .map((f) => `${f.id}\t${f.type}${f.required ? "*" : ""}\t${f.label}${f.section ? ` (${sectionLabel(f.section)})` : ""}${f.options ? `\t[options: ${f.options.join(" | ")}]` : ""}`)
     .join("\n");
   const sources = cvSource
     ? `SOURCES. The document being attached to this form is the tailored CV at ${cvSource} — read it, and read ${profile}. If a matching report for this company exists in reports/, read it too.
@@ -68,7 +70,7 @@ For each field give the best answer:
 - identity/contact (name, email, phone, github, linkedin, location) → from ${profile}.
 - experience (employer, job title, dates, location, role description) → from the source that owns it above, verbatim in substance.
 - free-text (Why us?, cover-letter, "most impactful thing you've built", etc.) → a concise, honest, concrete answer in the candidate's own voice (no buzzwords, active voice, real metrics only). Keep each under ~120 words.
-- select/radio → choose the best-matching option using the EXACT option text from the list.
+${fields.some((f) => f.section) ? `- repeated entries (a label ending in "(Employment 1 of 2)" or similar) → entry 1 is the most recent job or school in the source, entry 2 the one before it, and so on. Answer each entry about its own job or school, never copy one into two entries, and leave an entry empty when the source has no job or school for it.\n` : ""}- select/radio → choose the best-matching option using the EXACT option text from the list.
 - NEVER fill legal / visa / work-authorization / salary / demographic / sensitive fields → set needs_confirmation:true and value:"".
 
 Output ONLY a compact JSON object mapping each field id → {"value": "...", "needs_confirmation": boolean}. No prose, no markdown, no code fence.`;
