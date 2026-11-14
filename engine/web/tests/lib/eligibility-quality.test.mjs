@@ -21,6 +21,7 @@ test("a stated pay figure is found in common wordings", () => {
     "OTE £70k.",
     "Salary: up to £70k.",
     "Base pay: from $85,000.",
+    "$100,000 per year plus a $2,000 learning budget.",
   ]) {
     assert.equal(statesPay(s), true, s);
   }

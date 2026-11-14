@@ -43,6 +43,27 @@ const MONEY_PER_PERIOD = new RegExp(
 const NOT_PAY = /\b(?:raised|funding|funded|series\s+[a-f]\b|valuation|valued|revenue|arr|investors?|investment|million|billion|customers|users|budget|allowance|reimburse\w*|bonus\s+pool)\b|\d\s?(?:m|bn|b)\b/i;
 
 /**
+ * Whether an amount with its own period is pay: "$2,000 per year learning
+ * budget" is a perk, but in "$100,000 per year plus a $2,000 learning budget"
+ * the budget belongs to the second amount. So the perk words are looked for
+ * only around each period amount, up to the neighbouring amounts.
+ * @param {string} s one sentence
+ */
+function periodAmountIsPay(s) {
+  const amounts = [...s.matchAll(new RegExp(MONEY, "gi"))].map((m) => ({ start: m.index ?? 0, end: (m.index ?? 0) + m[0].length }));
+  for (const m of s.matchAll(new RegExp(MONEY_PER_PERIOD.source, "gi"))) {
+    const start = m.index ?? 0;
+    const end = start + m[0].length;
+    const prev = amounts.filter((a) => a.end <= start).at(-1);
+    const next = amounts.find((a) => a.start >= end);
+    const before = s.slice(Math.max(prev ? prev.end : 0, start - 30), start);
+    const after = s.slice(end, Math.min(next ? next.start : s.length, end + 40));
+    if (!NOT_PAY.test(`${before}${m[0]}${after}`)) return true;
+  }
+  return false;
+}
+
+/**
  * Whether a posting text states a pay figure: an amount tied to pay wording,
  * an amount with its own pay period, or a currency range in a sentence that
  * is not about company money or perks.
@@ -52,8 +73,7 @@ export function statesPay(text) {
   for (const s of sentences(String(text ?? ""))) {
     if (!MONEY_RE.test(s)) continue;
     if (PAY_THEN_MONEY.test(s)) return true;
-    // "$2,000 per year learning budget" has a period but is a perk.
-    if (MONEY_PER_PERIOD.test(s) && !NOT_PAY.test(s)) return true;
+    if (periodAmountIsPay(s)) return true;
     const range = RANGE_RE.exec(s);
     if (range && new RegExp(CURRENCY, "i").test(range[0]) && !NOT_PAY.test(s)) return true;
   }
