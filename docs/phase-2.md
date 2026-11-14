@@ -11,6 +11,7 @@ apps/web/              Angular standalone app: shell + feature components, Sessi
 apps/api/              Fastify API, bound to 127.0.0.1
 packages/contracts/    Zod schemas, deterministic workflow transitions, schema migrations
 evals/ai-review/       Fictional golden set and harness for the optional AI review (not shipped)
+evals/autofill/        Fictional 200-question corpus scoring the Autofill answer policy (not shipped)
 dist/                  Generated artifacts; not committed
 ```
 
