@@ -13,6 +13,8 @@ import { resolveCli } from "../clis";
 import { fencingReport } from "../cli-fencing.mjs";
 import { CAPS } from "../worker-capabilities.mjs";
 import { assertSafeApplyUrl, installApplyEgressGuard, isUnsafeApplyUrlError, isBlockedNavigation, UnsafeApplyUrlError } from "./url-guard.mjs";
+// The page cannot submit the form while we drive it; released at the hand-off (AA-01).
+import { installSubmitInterlock, setSubmitHold, blockedSubmits, submitBlockedIssue } from "./submit-interlock.mjs";
 
 type ApplyLaunch = { headless?: boolean; channel?: string; args?: string[] };
 
@@ -200,6 +202,7 @@ export async function openSession(url: string, cliId?: string, forceAgent?: bool
   const browser = await headedBrowser();
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await installApplyEgressGuard(context);
+  await installSubmitInterlock(context);
   context.setDefaultTimeout(8000); // no single action hangs the whole open/fill
   const page = await context.newPage();
   const abort = async (msg: string): Promise<never> => {
@@ -341,6 +344,7 @@ export async function newDrivePage(url: string): Promise<{ page: Page; context: 
   const browser = await headedBrowser();
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await installApplyEgressGuard(context);
+  await installSubmitInterlock(context);
   context.setDefaultTimeout(8000);
   const page = await context.newPage();
   try {
@@ -404,6 +408,8 @@ export async function finalizeDrivenSession(id: string, cliId?: string): Promise
   if (interpretFencing?.notice) issues.push({ level: "warn", code: "cli-unfenced", message: interpretFencing.notice });
   const cap = await captchaWarning(s.page);
   if (cap) issues.push(cap);
+  const blocked = await blockedSubmits(s.context);
+  if (blocked > 0) issues.push(submitBlockedIssue(blocked));
   return { title: s.title, fields: s.fields, issues };
 }
 
@@ -434,6 +440,9 @@ export async function fillSession(
 ): Promise<{ steps: FillStep[]; navigated: boolean; issues: ApplyIssue[]; results: FillResult[] }> {
   const s = SESSIONS.get(id);
   if (!s) throw new Error("apply session not found (it may have expired)");
+  // A fill after the hand-off (the person asked to fill again) holds the
+  // interlock again: the window is ours until the next hand-off.
+  const blockedBefore = s.context ? await setSubmitHold(s.context, true) : 0;
   const byId = new Map(fieldsMeta.map((f) => [f.id, f]));
   const steps: FillStep[] = [];
   // For the readback: consent boxes left for the person on purpose, and the
@@ -584,6 +593,8 @@ export async function fillSession(
   // divergence before the handoff.
   const { results, issues } = await verifyFill(s.frame, fieldsMeta, answers, { held, attached, differences: opts.differences })
     .catch(() => ({ results: [] as FillResult[], issues: [] as ApplyIssue[] }));
+  const blockedDuring = s.context ? (await blockedSubmits(s.context)) - blockedBefore : 0;
+  if (blockedDuring > 0) issues.unshift(submitBlockedIssue(blockedDuring));
   return { steps, navigated: endPath !== startPath, issues, results };
 }
 
@@ -606,6 +617,9 @@ export async function readbackSession(
 export async function handoffSession(id: string): Promise<void> {
   const s = SESSIONS.get(id);
   if (!s) throw new Error("apply session not found");
+  // The person takes over: their own Submit must work, in this frame and in
+  // every frame that loads from now on.
+  await setSubmitHold(s.context, false);
   try {
     const cdp = await s.context.newCDPSession(s.page);
     const { windowId } = (await cdp.send("Browser.getWindowForTarget")) as { windowId: number };
