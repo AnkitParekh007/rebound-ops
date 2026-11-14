@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateOffers,renderSupport} from './affiliate.mjs';
+import {validateOffers,renderSupport} from '../src/affiliate.mjs';
 const good={id:'sample-approved',name:'Example product',description:'Optional career learning tool',category:'Learning',url:'https://example.com/course',active:true};
 test('no sponsorship displayed without approved partners',()=>{
  const body=renderSupport(validateOffers([]));
