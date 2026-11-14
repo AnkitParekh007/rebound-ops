@@ -1,0 +1,54 @@
+name: Publish ReboundOps Discussions
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Preview or publish missing discussions
+        type: choice
+        required: true
+        default: preview
+        options:
+          - preview
+          - publish
+      confirmation:
+        description: Enter PUBLISH to authorize publication
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reboundops-discussions-publisher
+  cancel-in-progress: false
+
+jobs:
+  discussions:
+    name: Review or publish GitHub Discussions
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      discussions: write
+    steps:
+      - name: Check out reviewed content
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Preview or publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONFIRM_DISCUSSIONS_PUBLISH: ${{ inputs.confirmation }}
+          ACTION_MODE: ${{ inputs.action }}
+        run: |
+          if [ "$ACTION_MODE" = "publish" ]; then
+            node scripts/publish-discussions.mjs --publish
+          else
+            node scripts/publish-discussions.mjs
+          fi
