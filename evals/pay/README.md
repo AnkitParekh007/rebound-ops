@@ -6,7 +6,7 @@
 
 `lib.mjs` runs every snippet through `statesPay` from `engine/web/src/lib/eligibility/quality.mjs`, exactly as the scan's `qual:` label does, and compares its answer with the label. A provider's structured salary field is not scored: the label uses it without reading any text.
 
-The gate (`thresholds.json`, **proposed**, owner to agree) sets regression floors for precision and recall and caps on false "pay stated" answers and on missed pay.
+The gate (`thresholds.json`, agreed by the owner 14 Nov 2026) sets regression floors for precision and recall and caps on false "pay stated" answers and on missed pay.
 
 ```
 npm run eval:pay            # report and gate
