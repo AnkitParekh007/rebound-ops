@@ -69,7 +69,7 @@ const CATEGORY_PATTERNS = [
   ],
   [
     "demographic",
-    /\b(gender|sex|race|racial|ethnic(ity)?|hispanic|latin[oax]|veteran|disab(led|ility|ilities)|sexual\s+orientation|transgender|pronouns?|date\s+of\s+birth|birth\s*date|age|ages|\d{1,2}\s*\+?\s*(years?|yrs?)\s+(old|of\s+age)|years\s+of\s+age|religio(n|us)|marital|caste)\b/i,
+    /\b(gender|sex|race|racial|ethnic(ity)?|hispanic|latin[oax]|veteran|disab(led|ility|ilities)|sexual\s+orientation|transgender|pronouns?|date\s+of\s+birth|birth\s*date|age|ages|\d{1,2}\s*\+?\s*(years?|yrs?)\s+(old|of\s+age|or\s+(older|over|above))|years\s+of\s+age|religio(n|us)|marital|caste)\b/i,
   ],
   ["background_check", /\b(convicted|convictions?|criminal|felon(y|ies)|misdemeanou?rs?|background\s+checks?)\b/i],
   [
@@ -89,7 +89,21 @@ export function sensitiveCategory(label) {
 }
 
 /**
- * @typedef {{ id: string, type: string, label?: string, required?: boolean, options?: string[], maxLength?: number, combobox?: boolean, section?: import("./repeated-sections.mjs").FieldSection }} PolicyField
+ * A field's sensitive category: from its label, else from what the ATS itself
+ * says about the question (`sensitiveHint`, e.g. a Lever survey or EEO field).
+ * A hint can only add a category, never clear one the label names.
+ * @param {{ label?: string | null, sensitiveHint?: unknown } | null | undefined} field
+ * @returns {string | null}
+ */
+export function fieldSensitiveCategory(field) {
+  const fromLabel = sensitiveCategory(field?.label);
+  if (fromLabel) return fromLabel;
+  const hint = field?.sensitiveHint;
+  return typeof hint === "string" && SENSITIVE_CATEGORIES.includes(hint) ? hint : null;
+}
+
+/**
+ * @typedef {{ id: string, type: string, label?: string, required?: boolean, options?: string[], maxLength?: number, combobox?: boolean, section?: import("./repeated-sections.mjs").FieldSection, sensitiveHint?: string }} PolicyField
  * @typedef {{ value: string, needs_confirmation: boolean, source: string, sensitive_category: string | null, hold_reason: string | null }} PolicyAnswer
  * @typedef {{ proposed: number, held: number, unresolved: number, dropped: number, fromProfile: number, fromApproved: number }} PolicySummary
  * @typedef {{ value: string }} SavedAnswer
@@ -123,7 +137,7 @@ export function enforceAnswerPolicy(fields, raw, opts = {}) {
     const rawValue = entry && typeof entry === "object" ? /** @type {{value?: unknown}} */ (entry).value : entry;
     let value = typeof rawValue === "string" || typeof rawValue === "number" || typeof rawValue === "boolean" ? String(rawValue) : "";
     const modelAsked = !!(entry && typeof entry === "object" && /** @type {{needs_confirmation?: unknown}} */ (entry).needs_confirmation);
-    const category = sensitiveCategory(field.label);
+    const category = fieldSensitiveCategory(field);
 
     const unresolved = (/** @type {string | null} */ hold) => {
       summary.unresolved++;

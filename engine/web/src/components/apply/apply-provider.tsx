@@ -5,7 +5,7 @@ import type { ApplyField } from "@/lib/apply/extract";
 import type { ApplyIssue, DriveStep } from "@/lib/apply/issue";
 import { resolveLateSession } from "@/lib/apply/exit.mjs";
 import { readFillResult, screenForFill } from "@/lib/apply/fill-stream.mjs";
-import { sensitiveCategory } from "@/lib/apply/answer-policy.mjs";
+import { fieldSensitiveCategory } from "@/lib/apply/answer-policy.mjs";
 import type { FillResult } from "@/lib/apply/fill-readback.mjs";
 import { fieldDisplayLabel } from "@/lib/apply/repeated-sections.mjs";
 
@@ -434,7 +434,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
       [f.id]:
         by === "you"
           ? { ...prev[f.id], edited: true, assisted: false }
-          : { ...prev[f.id], edited: false, assisted: true, needsConfirmation: true, sensitiveCategory: sensitiveCategory(f.label) },
+          : { ...prev[f.id], edited: false, assisted: true, needsConfirmation: true, sensitiveCategory: fieldSensitiveCategory(f) },
     }));
   }, []);
 
