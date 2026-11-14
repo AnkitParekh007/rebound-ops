@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateNumber, markerFor, buildIssue, withoutMentions} from './promote-discussion.mjs';
+import {validateNumber, markerFor, buildIssue, withoutMentions, isPromotionOf} from './promote-discussion.mjs';
 
 test('accepts a positive numeric discussion ID',()=>{
   assert.equal(validateNumber('42'),42);
@@ -23,4 +23,15 @@ test('a title naming someone does not mention them, and brackets do not break th
 test('link text escapes backslashes before brackets, so a trailing backslash cannot close the link',()=>{
   const result=buildIssue({number:9,title:'Path C:\\]evil [x]',url:'https://github.com/AnkitParekh007/rebound-ops/discussions/9',bodyText:'',category:{name:'Ideas'}});
   assert.ok(result.body.includes('[Path C:\\\\\\]evil \\[x\\]](https://github.com/AnkitParekh007/rebound-ops/discussions/9)'), result.body);
+});
+test('only an issue that starts with the marker counts as already promoted',()=>{
+  const promoted=buildIssue({number:42,title:'Better onboarding',url:'https://github.com/AnkitParekh007/rebound-ops/discussions/42',bodyText:'',category:{name:'Ideas'}});
+  assert.equal(isPromotionOf(promoted.body,42),true);
+  assert.equal(isPromotionOf(promoted.body.replaceAll('\n','\r\n'),42),true,'GitHub may store CRLF');
+  assert.equal(isPromotionOf(promoted.body,4),false);
+  // Another discussion's text quoting marker 42 is copied into issue 7's body: it is not a promotion of 42.
+  const quoting=buildIssue({number:7,title:'Debugging',url:'https://github.com/AnkitParekh007/rebound-ops/discussions/7',bodyText:'I saw <!-- reboundops-discussion:42 --> in an issue',category:{name:'Q&A'}});
+  assert.equal(isPromotionOf(quoting.body,42),false);
+  assert.equal(isPromotionOf('Troubleshooting\n```\n<!-- reboundops-discussion:42 -->\n```',42),false);
+  assert.equal(isPromotionOf(null,42),false);
 });

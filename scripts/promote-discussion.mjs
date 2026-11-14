@@ -7,6 +7,10 @@ export function validateNumber(value) {
   return Number(value);
 }
 export function markerFor(number) { return `<!-- reboundops-discussion:${number} -->`; }
+// An issue promoted from a discussion starts with that discussion's marker
+// (buildIssue puts it on the first line). A marker quoted anywhere else, such
+// as in community text copied into another promoted issue, does not count.
+export function isPromotionOf(body, number) { return String(body ?? '').split(/\r?\n/, 1)[0].trim() === markerFor(number); }
 // A zero-width space after each @ keeps a discussion title from notifying anyone
 // it names: the title lands in the issue title and in link text, where GitHub
 // turns @name into a mention.
@@ -72,7 +76,7 @@ async function main() {
   let page=1;
   while(true){
     const issues=await request(`/repos/${REPO}/issues?state=all&per_page=100&page=${page}`);
-    for(const issue of issues) if(!issue.pull_request && issue.body?.includes(markerFor(number))) existing.add(issue.html_url);
+    for(const issue of issues) if(!issue.pull_request && isPromotionOf(issue.body, number)) existing.add(issue.html_url);
     if(issues.length<100) break;
     page++;
   }

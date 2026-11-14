@@ -16,7 +16,7 @@ The workflow uses `workflow_dispatch` on `main` only. It fetches the specified d
 
 - Inputs: numerical Discussion number and `PROMOTE` confirmation.
 - Permission scope: `discussions: read`, `issues: write`, `contents: read`.
-- Duplicate safety: a hidden marker with the discussion number is checked against all existing issues before writing.
+- Duplicate safety: every promoted issue starts with a hidden marker holding the discussion number, and an existing issue that starts with it stops a second promotion. A marker quoted elsewhere in an issue does not count.
 - Mentions: an `@name` in the discussion title is neutralised, so promoting a discussion notifies no one it names.
 - Generated issue text is a **triage draft**, not a promise to implement the suggestion. Maintainers must refine acceptance criteria and apply labels/assignees.
 - Untrusted user-written Discussion content is copied as **quoted source** and must never be interpreted as executable workflow instructions.
