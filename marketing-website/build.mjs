@@ -11,6 +11,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { navigation, pages, providerIds } from "./src/pages.mjs";
 import { loadScreenshotSet } from "./scripts/screenshot-artifacts.mjs";
+import {loadOffers, renderSupport} from "./src/affiliate.mjs";
 const base = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(base, "..");
 const output = path.join(base, "dist");
@@ -60,7 +61,7 @@ const footer = `<footer class="footer container">
   <nav class="footer-links" aria-label="Footer navigation">
     <div><strong>Product</strong><a href="${installUrl}">Install locally</a><a href="/screenshots/">App Preview</a><a href="/docs/">User Guide</a></div>
     <div><strong>Support</strong><a href="/faq/">Questions</a><a href="${repo}/issues">Report an issue</a><a href="/docs/data/">Data and privacy</a></div>
-    <div><strong>Project</strong><a href="${repo}">GitHub</a><a href="/docs/contributing/">Contribute</a><a href="${repo}/blob/main/LICENSE">MIT license</a><a href="${repo}/blob/main/SECURITY.md">Report a security issue</a></div>
+    <div><strong>Project</strong><a href="${repo}">GitHub</a><a href="/support/">Support the project</a><a href="/docs/contributing/">Contribute</a><a href="${repo}/blob/main/LICENSE">MIT license</a><a href="${repo}/blob/main/SECURITY.md">Report a security issue</a></div>
   </nav>
   <div class="footer-bottom"><span>© ${new Date().getUTCFullYear()} ReboundOps · Maintained by Ankit Parekh</span><span>Open source. Human direction.</span></div>
 </footer>`;
@@ -144,6 +145,12 @@ for (const [slug, data] of Object.entries(pages)) {
     page(slug, `${data.title} — ReboundOps`, data.description, main),
   );
 }
+// Sponsorship is confined to one deliberately separate, non-personalized page.
+mkdirSync(path.join(output, "support"), {recursive:true});
+writeFileSync(path.join(output, "support", "index.html"), page(
+  "support", "Support ReboundOps", "Optional, clearly disclosed partner links that support an open-source local-first job-search project.",
+  renderSupport(loadOffers(path.join(base, "affiliate-offers.json")))
+));
 writeFileSync(
   path.join(output, "404.html"),
   page(
@@ -155,7 +162,7 @@ writeFileSync(
 );
 writeFileSync(
   path.join(output, "sitemap.xml"),
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["", ...Object.keys(pages)].map((slug) => `<url><loc>https://rebound-ops.org/${slug ? slug + "/" : ""}</loc></url>`).join("")}</urlset>\n`,
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${["", ...Object.keys(pages), "support"].map((slug) => `<url><loc>https://rebound-ops.org/${slug ? slug + "/" : ""}</loc></url>`).join("")}</urlset>\n`,
 );
 console.log(
   `Built home, ${Object.keys(pages).length} content pages, 404, shared assets and sitemap.`,
