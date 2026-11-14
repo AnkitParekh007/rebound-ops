@@ -19,10 +19,10 @@
  * What this does NOT construct away: an allowed control's own JS handler can
  * still call `form.submit()`/`requestSubmit()` on a click this guard has no
  * wording or shape to object to (a `<button type="button">Continue</button>`
- * that quietly files the form). No DOM heuristic closes that; only an
- * independent interlock on the `submit`/`requestSubmit` event itself would,
- * and that is the documented next step (PR body, "Out of scope"), not this
- * guard's job.
+ * that quietly files the form). No DOM heuristic closes that. The independent
+ * interlock on the `submit` event and on `form.submit()` itself does:
+ * `submit-interlock.mjs`, held from the moment the apply context opens until
+ * the hand-off.
  *
  * Plain .mjs (same pattern as exit.mjs / cv-match.mjs) so `node --test` imports
  * it with no build step and every branch can be pinned in a test.
