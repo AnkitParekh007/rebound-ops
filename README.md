@@ -2,21 +2,25 @@
 
 [![Node.js](https://img.shields.io/badge/Node.js-24.15%2B_recommended-339933?logo=nodedotjs)](package.json) [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE) [![Product Hunt](https://img.shields.io/badge/Product_Hunt-See_the_launch-DA552F?logo=producthunt)](https://www.producthunt.com/products/reboundops?launch=reboundops)
 
-**Your experience. Your next chapter.**
+**Decide which jobs are worth applying for.**
 
-A local-first toolkit for experienced software professionals navigating a layoff, a career change or their next job search. Review what your experience supports, choose a direction to explore, and manage the practical work of finding and applying for roles.
+ReboundOps is an open-source, local-first job-search workspace for experienced software engineers. Compare a role against your experience, review what you can substantiate, prepare application materials, and track follow-ups.
 
-[Website](https://rebound-ops.org) · [Product screenshots](https://rebound-ops.org/screenshots/) · [Documentation](https://rebound-ops.org/docs/) · [Setup help](https://rebound-ops.org/help/) · [CI](https://github.com/AnkitParekh007/rebound-ops/actions/workflows/ci.yml) · [Roadmap](docs/roadmap.md)
+[See a sample job review](https://rebound-ops.org/#sample-job-review) · [Install locally](#quick-start) · [Screenshots](https://rebound-ops.org/screenshots/) · [Documentation](https://rebound-ops.org/docs/) · [Roadmap](docs/roadmap.md)
 
-## Three directions. One manageable week.
+## Sample job review
 
-| Direction | What to explore |
+A fictional senior frontend engineer is exploring a Forward Deployed AI Engineer role.
+
+| Job requirement | Evidence to review |
 | --- | --- |
-| **Similar** | Roles that build on your existing strengths. |
-| **New** | A different direction your experience could support. |
-| **Stepping Stone** | An intermediate role that helps you build toward a longer-term goal. |
+| Ship AI features | A project note says “I led the frontend rollout of a supplier onboarding assistant.” This supports frontend rollout ownership. |
+| Lead customer discovery | The note gives no example of customer interviews or requirements discovery. Check another project for evidence. |
+| Own production deployments | The note describes rollout but leaves infrastructure and release ownership unclear. Check who owned deployment and monitoring. |
 
-Choose a direction and build a seven-day action plan around the time you have. [Start locally](#quick-start) with a fictional example. AI is optional.
+**Decision: Investigate.** Keep the role on the shortlist and spend 30 minutes checking project notes for evidence of customer discovery and deployment ownership before tailoring the CV.
+
+To explore the app without an AI key, [start locally](#quick-start) and choose **Use a fictional example**. The bundled example introduces recovery planning. The full recovery interface lets you enter your own source excerpts and review evidence against requirements.
 
 ## What you can do
 
