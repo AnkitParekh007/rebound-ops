@@ -13,6 +13,7 @@ packages/contracts/    Zod schemas, deterministic workflow transitions, schema m
 evals/ai-review/       Fictional golden set and harness for the optional AI review (not shipped)
 evals/autofill/        Fictional 200-question corpus scoring the Autofill answer policy (not shipped)
 evals/eligibility/     Fictional 233-snippet posting corpus scoring the eligibility requirement patterns (not shipped)
+evals/pay/             Fictional 222-snippet posting corpus scoring the pay detector (not shipped)
 dist/                  Generated artifacts; not committed
 ```
 

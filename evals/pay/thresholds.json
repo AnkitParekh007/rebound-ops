@@ -1,0 +1,8 @@
+{
+  "status": "PROPOSED, owner to agree. Regression floors at the first measurement (14 Nov 2026, detector unchanged): they stop the pay detector getting worse on this corpus, not prove it good. Raise them when the detector is widened for the misses the corpus found.",
+  "minRows": 222,
+  "minPrecision": 0.84,
+  "minRecall": 0.83,
+  "maxFalsePay": 18,
+  "maxMissedPay": 19
+}
