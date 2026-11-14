@@ -31,7 +31,8 @@ const RANGE_RE = new RegExp(
 // unrelated amount pay ("competitive salary plus a $1,500 learning budget").
 const PAY_WORD = String.raw`(?:salary|salaries|pay|compensation|base(?:\s+(?:pay|salary))?|wages?|ote|on-target\s+earnings|(?:hourly|day)\s+rate|rate|stipend)`;
 const PAY_THEN_MONEY = new RegExp(
-  String.raw`\b${PAY_WORD}\b(?:\s+(?:range|band))?\s*(?::|=|–|—|-|\bis\b|\bof\b|\bfrom\b|\bbetween\b|\bup\s+to\b|\bstarting\s+(?:at|from)\b|\bat\b)?\s*(?:(?:approximately|about|around|roughly)\s+)?${MONEY}`,
+  // Punctuation and qualifiers are separate, so "Salary: up to £70k" reads.
+  String.raw`\b${PAY_WORD}\b(?:\s+(?:range|band))?\s*(?:[:=–—-]\s*)?(?:(?:is|of|from|between|up\s+to|starting\s+(?:at|from)|at|approximately|about|around|roughly)\s+)*${MONEY}`,
   "i",
 );
 const MONEY_PER_PERIOD = new RegExp(
@@ -50,7 +51,9 @@ const NOT_PAY = /\b(?:raised|funding|funded|series\s+[a-f]\b|valuation|valued|re
 export function statesPay(text) {
   for (const s of sentences(String(text ?? ""))) {
     if (!MONEY_RE.test(s)) continue;
-    if (PAY_THEN_MONEY.test(s) || MONEY_PER_PERIOD.test(s)) return true;
+    if (PAY_THEN_MONEY.test(s)) return true;
+    // "$2,000 per year learning budget" has a period but is a perk.
+    if (MONEY_PER_PERIOD.test(s) && !NOT_PAY.test(s)) return true;
     const range = RANGE_RE.exec(s);
     if (range && new RegExp(CURRENCY, "i").test(range[0]) && !NOT_PAY.test(s)) return true;
   }
