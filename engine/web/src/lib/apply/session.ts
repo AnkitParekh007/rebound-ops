@@ -8,6 +8,7 @@ import { interpretFormWithAgent } from "./agent-interpret";
 import { pickComboboxOption } from "./option-match.mjs";
 import type { FillResult } from "./fill-readback.mjs";
 import { isResumeLabel } from "./resume-label.mjs";
+import { fieldDisplayLabel } from "./repeated-sections.mjs";
 import { resolveCli } from "../clis";
 import { fencingReport } from "../cli-fencing.mjs";
 import { CAPS } from "../worker-capabilities.mjs";
@@ -117,7 +118,8 @@ async function enrichFromAts(url: string, fields: ApplyField[]): Promise<void> {
     const hit =
       (f.nativeName && schema.get(f.nativeName)) ||
       (f.nativeId && schema.get(f.nativeId)) ||
-      (f.label && schema.get(`label:${f.label.toLowerCase()}`));
+      // a repeated entry's "Company" is not the form's one "Company" question
+      (!f.section && f.label && schema.get(`label:${f.label.toLowerCase()}`));
     if (!hit) continue;
     if (hit.label) f.label = hit.label;
     if (hit.type) f.type = hit.type as ApplyField["type"];
@@ -488,7 +490,7 @@ export async function fillSession(
     // needs_confirmation; this guarantees it even if it slips.)
     if (meta.type === "checkbox" && /\b(i (have )?read|i agree|i consent|i accept|consent to|privacy notice|terms|gdpr|data protection)\b/i.test(meta.label || "")) {
       held.add(fid);
-      steps.push({ fieldId: fid, label: `${meta.label} — you confirm`, ok: false, thumb: undefined });
+      steps.push({ fieldId: fid, label: `${fieldDisplayLabel(meta, "")} — you confirm`, ok: false, thumb: undefined });
       continue;
     }
     let ok = false;
@@ -566,7 +568,7 @@ export async function fillSession(
     } catch {
       ok = false;
     }
-    steps.push({ fieldId: fid, label: meta.label, ok, thumb: await shoot() });
+    steps.push({ fieldId: fid, label: fieldDisplayLabel(meta, ""), ok, thumb: await shoot() });
   }
   const endPath = (() => {
     try {

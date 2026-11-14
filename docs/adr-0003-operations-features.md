@@ -10,7 +10,7 @@ The pack proposed building Autofill as a new Chrome Manifest V3 extension with l
 
 | What already exists | Where |
 |---|---|
-| Headed browser session, form extraction tagged with stable `data-co-field` ids | `session.ts`, `extract.ts` |
+| Headed browser session, form extraction tagged with stable `data-co-field` ids; repeated employment/education entries get ids that name the entry | `session.ts`, `extract.ts`, `repeated-sections.mjs` |
 | Greenhouse public question schema used to enrich labels, types and options | `greenhouse.ts` |
 | SSRF/egress guard on every navigation and redirect | `url-guard.mjs` |
 | Never-submit guard shared by the snapshot and the action path | `submit-guard.mjs`, `drive-action.mjs` |
