@@ -29,6 +29,8 @@ test("application review labels, requirements and confirmation descriptions", { 
     await route.abort();
   });
   await page.route("**/api/apply/session", (route) => route.fulfill({ json: { id: "fixture-session", title: "Fictional application", fields } }));
+  // The page asks once whether pre-fill may offer the local model (AF-05); the default, flag-off answer.
+  await page.route("**/api/apply/local-model", (route) => route.fulfill({ json: { enabled: false } }));
   let release;
   const drafting = new Promise((resolve) => { release = resolve; });
   await page.route("**/api/apply/prefill", async (route) => {
