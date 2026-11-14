@@ -9,7 +9,7 @@ export function validateOffers(raw) {
     if(!/^[a-z0-9-]{2,60}$/.test(o.id) || seen.has(o.id))throw new Error('Invalid or duplicate offer ID');
     seen.add(o.id);
     const u=new URL(o.url);
-    if(u.protocol!=='https:' || u.username || u.password || !u.hostname.includes('.') || /^(localhost|127\\.|10\\.|192\\.168\\.)/.test(u.hostname))throw new Error('Public HTTPS destination required');
+    if(u.protocol!=='https:' || u.username || u.password || !u.hostname.includes('.') || /^(localhost|127\.|10\.|192\.168\.)/.test(u.hostname))throw new Error('Public HTTPS destination required');
     if(o.description.length>220 || o.name.length>80)throw new Error('Offer copy too long');
     if(o.active!==true)throw new Error('Only explicitly approved offers may be published');
     return {id:o.id,name:o.name,description:o.description,category:o.category,url:u.href};
