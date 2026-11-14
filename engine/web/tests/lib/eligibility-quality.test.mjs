@@ -49,6 +49,75 @@ test("company money, perks and vague pay are not a stated pay figure", () => {
   }
 });
 
+// Wording families the pay corpus (evals/pay) found missing or misread. These
+// paraphrases are kept out of the corpus, so they check each family, not the
+// corpus rows.
+test("pay wording families found by the corpus are read as pay", () => {
+  for (const s of [
+    // weekly rates and /annum
+    "Locum contract paying $3,100 per week plus housing.",
+    "$2,800/wk travel contract",
+    "Weekly rate: $1,950",
+    "£52,500/annum plus pension.",
+    // a pay word, a few words, then a linking verb
+    "The base salary for candidates in Washington is $104,000.",
+    "Your starting salary would be £36,500.",
+    "The hourly wage for this shift starts at $23.40.",
+    "Total cash: $210,000 at target.",
+    // pay qualifiers after the figure
+    "Up to £60,000 depending on experience",
+    "NZD 95k + KiwiSaver, DOE",
+    "AUD 145,000 + superannuation",
+    // figures with no currency that can only be pay
+    "Salary 40-48k",
+    "CTC: 9.5-14 LPA",
+    // German, Portuguese, French and Spanish wording
+    "Gehalt: 5.100 € brutto pro Monat",
+    "Salário: R$ 6.500 por mês",
+    "Salaire : 48 000 € brut annuel",
+    "MXN 38,000 mensuales",
+    "PLN 15 000 – 21 000 brutto (UoP) or B2B",
+    // company money in another clause of the same sentence
+    "We raised $25M last year, and the salary for this role is $130k to $150k.",
+    "Our app has 3 million users, and this job pays $88,000 per year.",
+    // words near company money that are not company money
+    "Cost-of-living adjusted salary: $90,000",
+    "As part of our hiring process, the salary range is $90,000–$110,000.",
+  ]) {
+    assert.equal(statesPay(s), true, s);
+  }
+});
+
+test("perk stipends, prices, billing and volumes with a period are not pay", () => {
+  for (const s of [
+    "Fitness stipend: $50/month.",
+    "Mobile phone stipend of $40 per month.",
+    "Internet stipend up to $60/month.",
+    "Coworking stipend of €200 per month.",
+    "Transit passes worth $120 per month are covered.",
+    "Lunch vouchers worth €10 per day.",
+    "Tuition support of up to $4,000 per year.",
+    "Childcare vouchers up to £250 a month.",
+    "Parking is available at $8 a day.",
+    "We match charitable donations up to $500 a year.",
+    "Our software costs $15 per user per month.",
+    "Seats cost $20 per month after the trial.",
+    "Licences are priced at €900 per year.",
+    "Our lawyers bill at $400 an hour.",
+    "Our clients pay $50 an hour for support.",
+    "The team closes deals between $10k and $80k.",
+    "Members save $200 per year on average.",
+    "We handle $3,000,000 in payments per day.",
+    "Our B2B platform processes €5,000,000 per month.",
+    "Quota: $900k ARR per year.",
+    "Competitive salary plus a learning budget of $1,500.",
+    "Salary reviews happen twice a year, and the bonus pool is $2M.",
+    "Salary benchmarking for 3,000 roles in 12 countries.",
+  ]) {
+    assert.equal(statesPay(s), false, s);
+  }
+});
+
 test("age is whole days from the posted date, and unknown or future dates are null", () => {
   assert.equal(postingAgeDays(NOW - 42 * DAY, NOW), 42);
   assert.equal(postingAgeDays(NOW - DAY / 2, NOW), 0);
