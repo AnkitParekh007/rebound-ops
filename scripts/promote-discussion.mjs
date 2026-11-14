@@ -19,7 +19,7 @@ export function buildIssue(discussion) {
     body: [
       marker,
       '## Original discussion',
-      `[${withoutMentions(discussion.title).replace(/[[\]]/g, '\\$&')}](${discussion.url})`,
+      `[${withoutMentions(discussion.title).replace(/\\/g, '\\\\').replace(/[[\]]/g, '\\$&')}](${discussion.url})`,
       '',
       `Category: ${discussion.category?.name || 'Unknown'}`,
       '',
