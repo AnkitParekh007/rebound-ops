@@ -38,4 +38,5 @@ if (process.argv.includes('--json')) {
   for (const ch of verdict.checks) console.log(`${ch.pass ? 'PASS' : 'FAIL'}  ${ch.name}: ${ch.actual} (${ch.limit})`);
   console.log(`\nGate ${verdict.pass ? 'passed' : 'FAILED'}.`);
 }
-process.exit(verdict.pass ? 0 : 1);
+// exitCode, not exit(): exit() can end the process before piped stdout (the --json report) is written.
+process.exitCode = verdict.pass ? 0 : 1;
