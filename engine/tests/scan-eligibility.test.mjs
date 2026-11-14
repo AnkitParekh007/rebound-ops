@@ -78,3 +78,41 @@ test('a missing or unparsable profile is an empty one, so nothing is blocked', (
   labelEligibility(offers, loadEligibilityProfile(bad));
   assert.notEqual(offers[0].eligibility.outcome, 'blocked');
 });
+
+// ── Posting-quality label (`qual:`) ─────────────────────────────────────────
+const NOW = Date.UTC(2026, 10, 14);
+const DAY = 86_400_000;
+
+test('quality uses the fetched description, the real cross-listing check and the posted date', async () => {
+  const { labelQuality } = await import('../scan.mjs');
+  const { fingerprintText, findCrossListings } = await import('../fingerprint-core.mjs');
+  const body = 'Fictional Co builds data pipelines for logistics teams. You will own ingestion, modelling and reporting across many warehouses, mentor two analysts, and work with product on new metrics. We value clear writing and careful testing.';
+  const offers = [
+    { url: 'https://x/1', company: 'Fictional Co', title: 'Analyst', description: 'Teaser.', postedAt: NOW - 45 * DAY },
+    { url: 'https://x/2', company: 'Other Co', title: 'Engineer', description: 'Pay: $100,000 - $120,000 per year.', postedAt: NOW - 2 * DAY },
+  ];
+  Object.defineProperty(offers[0], JD_TEXT, { value: body, enumerable: false });
+  for (const o of offers) o.fingerprint = fingerprintText(o[JD_TEXT] ?? o.description);
+  const history = [{ url: 'https://agency.example/9', dateStr: '2026-11-10', company: 'Fictional Agency', title: 'Analyst', fingerprint: fingerprintText(body) }];
+  const cross = findCrossListings(offers, history, { today: new Date(NOW) });
+  assert.equal(cross.length, 1);
+  const counts = labelQuality(offers, cross, NOW);
+  assert.equal(offers[0].quality.label, 'no pay found, 45d old, cross-listed');
+  assert.equal(offers[1].quality.label, 'pay stated');
+  assert.deepEqual(counts, { payStated: 1, noPay: 1, payUnread: 0, stale: 1, crossListed: 1 });
+});
+
+test('the `qual:` segment rides after elig:, before note:, and readers treat it as a label', async () => {
+  const base = { url: 'https://x/1', company: 'Acme', title: 'Analyst' };
+  assert.equal(
+    formatPipelineOffer({ ...base, eligibility: { label: 'eligible' }, quality: { label: 'no pay found, 42d old' }, note: 'curated' }),
+    '- [ ] https://x/1 | Acme | Analyst | elig: eligible | qual: no pay found, 42d old | note: curated',
+  );
+  const line = '- [ ] https://x/3 | Acme | Analyst | qual: pay stated | note: keep';
+  assert.deepEqual(extractLabels(line.slice(6)), { qual: 'pay stated', note: 'keep' });
+  const webReader = join(ENGINE, 'web', 'src', 'lib', 'pipeline-table.mjs');
+  if (!existsSync(webReader)) return;
+  const { parseInbox } = await import(pathToFileURL(webReader).href);
+  const [row] = parseInbox(`${line}\n`);
+  assert.equal(row.location, undefined);
+});
