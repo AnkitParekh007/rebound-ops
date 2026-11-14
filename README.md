@@ -206,7 +206,7 @@ engine/                   Job-search scripts, provider adapters and data files
 marketing-website/        Static public website and screenshot automation
 src/                      Earlier browser-only prototype
 examples/                 Fictional recovery scenarios
-evals/                    Synthetic AI evaluation fixtures and harness
+evals/                    Synthetic AI-review and Autofill-policy evaluation fixtures and harnesses
 scripts/                  Development, packaging and release checks
 e2e/                      Recovery browser journeys and accessibility checks
 docs/                     Architecture, setup, privacy and pilot documentation

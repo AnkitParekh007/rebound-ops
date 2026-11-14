@@ -3,11 +3,11 @@
  * access, so the review screen can use it in the browser too). Storage is in
  * approved-answers.mjs.
  */
-import { sensitiveCategory } from "./answer-policy.mjs";
+import { fieldSensitiveCategory } from "./answer-policy.mjs";
 
 /**
  * @typedef {{ id: string, question: string, key: string, kind: "text" | "choice" | "checkbox", value: string, company: string | null, savedAt: string }} ApprovedAnswer
- * @typedef {{ type: string, label?: string, combobox?: boolean, section?: import("./repeated-sections.mjs").FieldSection }} AnswerField
+ * @typedef {{ type: string, label?: string, combobox?: boolean, section?: import("./repeated-sections.mjs").FieldSection, sensitiveHint?: string }} AnswerField
  */
 
 /**
@@ -47,7 +47,7 @@ export function cannotSave(field) {
   if (!fieldKind(field)) return "A file upload is not saved as an answer.";
   if (!questionKey(field.label)) return "This field has no question text to recognise it by.";
   if (field.section) return "This question belongs to one entry of a repeated section (one job or school), so it is not saved for other forms.";
-  const category = sensitiveCategory(field.label);
+  const category = fieldSensitiveCategory(field);
   if (category === "attestation" || (category && fieldKind(field) === "checkbox")) {
     return "Consent and declaration questions are never saved; you answer them yourself on each form.";
   }

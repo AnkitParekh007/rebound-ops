@@ -19,7 +19,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { completeJson } from "./local-model.mjs";
-import { sensitiveCategory } from "./answer-policy.mjs";
+import { fieldSensitiveCategory } from "./answer-policy.mjs";
 import { sectionLabel } from "./repeated-sections.mjs";
 
 /** CV text beyond this is cut, so a long CV cannot crowd out the questions. */
@@ -29,7 +29,7 @@ export const MAX_MEMORY_CHARS = 4_000;
 export const MAX_ANSWER_CHARS = 4_000;
 
 /**
- * @typedef {{ id: string, type: string, label?: string, required?: boolean, options?: string[], maxLength?: number, section?: import("./repeated-sections.mjs").FieldSection }} DraftField
+ * @typedef {{ id: string, type: string, label?: string, required?: boolean, options?: string[], maxLength?: number, section?: import("./repeated-sections.mjs").FieldSection, sensitiveHint?: string }} DraftField
  */
 
 /**
@@ -39,7 +39,7 @@ export const MAX_ANSWER_CHARS = 4_000;
  * @returns {DraftField[]}
  */
 export function narrativeFields(fields) {
-  return (fields ?? []).filter((f) => f && typeof f.id === "string" && f.type === "textarea" && !sensitiveCategory(f.label));
+  return (fields ?? []).filter((f) => f && typeof f.id === "string" && f.type === "textarea" && !fieldSensitiveCategory(f));
 }
 
 /** @param {string} text */

@@ -30,6 +30,7 @@ import { KeywordCoverage } from "@/components/keyword-coverage";
 import { CompanyEvidence } from "@/components/company-evidence";
 import { companyPresentation } from "@/lib/company-presentation.mjs";
 import { PageFrame } from "@/components/page-frame";
+import { EligibilityPanel, type EligibilityView } from "@/components/eligibility-panel";
 
 // Progressive disclosure of the report. Current oferta.md writes letter F as
 // Interview Plan (STAR+R), not a verdict — never promote by letter (#3416).
@@ -57,6 +58,7 @@ export function ReportView({
   backHref = "/pipeline",
   applyHref,
   reportNum = null,
+  eligibility = null,
 }: {
   id: string;
   app: Application | null;
@@ -76,6 +78,8 @@ export function ReportView({
   backHref?: string;
   applyHref?: string;
   reportNum?: number | null;
+  /** Eligibility screen of the archived posting; null when the eligibilityScreening flag is off. */
+  eligibility?: EligibilityView | null;
 }) {
   const meta = report ? parseReport(report) : null;
   const field = (label: string) => meta?.fields.find((f) => f.label === label)?.value;
@@ -219,6 +223,7 @@ export function ReportView({
                 <div className="mt-8 max-w-4xl">
                   {callout}
                   <ScoreLevers report={report} />
+                  {eligibility && <EligibilityPanel view={eligibility} />}
                   <article className="report-prose mt-6">
                     <ReportMarkdown>{meta?.body ?? report}</ReportMarkdown>
                   </article>
@@ -229,6 +234,7 @@ export function ReportView({
               <div className="mt-8 max-w-4xl">
                 {callout}
                 <ScoreLevers report={report} />
+                {eligibility && <EligibilityPanel view={eligibility} />}
 
                 {mainSections.map((s, i) => {
                   const expanded = isLeadSection(s);

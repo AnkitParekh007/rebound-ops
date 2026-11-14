@@ -11,7 +11,7 @@ The pack proposed building Autofill as a new Chrome Manifest V3 extension with l
 | What already exists | Where |
 |---|---|
 | Headed browser session, form extraction tagged with stable `data-co-field` ids; repeated employment/education entries get ids that name the entry | `session.ts`, `extract.ts`, `repeated-sections.mjs` |
-| Greenhouse public question schema used to enrich labels, types and options | `greenhouse.ts` |
+| Greenhouse public question schema used to enrich labels, types and options; Lever's in-form card schema, read from the application form only | `greenhouse.ts`, `lever.mjs` |
 | SSRF/egress guard on every navigation and redirect | `url-guard.mjs` |
 | Never-submit guard shared by the snapshot and the action path | `submit-guard.mjs`, `drive-action.mjs` |
 | Post-fill verification of values, required fields and validation errors | `diagnose.ts` (`verifyFill`), per field in `fill-readback.mjs` |
@@ -24,6 +24,7 @@ The pack proposed building Autofill as a new Chrome Manifest V3 extension with l
 3. **Feature flags default off** (`FEATURE_FLAGS`, enabled only through `REBOUNDOPS_FEATURES`). Safety guards that only narrow what an existing path may do are not flag-gated.
 4. **Sensitive answers are policed in code, not only in the prompt.** Answers on work authorization, sponsorship, citizenship, salary, demographics, attestations and background checks may only come from a reviewed profile fact or an approved answer (`AnswerProposalSchema`). The prefill route enforces this on every planner answer (`answer-policy.mjs`). The agentic `drive` loop enforces it on every write it performs (`drive-write-guard.mjs`, roadmap gap C3). Its question detection is a DOM heuristic, so a radio whose question it cannot read is left for the person rather than guessed.
 5. **Branching:** `feature/00-foundation` holds shared work. `feature/01-auto-apply` … `feature/07-strategy-advisor` branch from it. Each coherent work package reaches `main` by pull request with its flags off.
+   *Amended by the owner, 14 Nov 2026:* in practice each work package branches from `main` as `feature/0N-<feature>-<topic>` (from #25 on), and the long-lived bases are retired (`feature/00-foundation` deleted 12 Nov, `feature/03-eligibility-quality` 14 Nov). Work packages still reach `main` one pull request each, flags off; see `CLAUDE.md`.
 
 This narrows [ADR 0001](adr-0001-local-first.md) and does not replace it. Model suggestions are still never applied without a person selecting them. LinkedIn and Indeed direct automation stays disabled while their terms prohibit third-party automation.
 

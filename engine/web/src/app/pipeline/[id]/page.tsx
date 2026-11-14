@@ -8,6 +8,11 @@ import { pipelineQuery } from "@/lib/pipeline-navigation.mjs";
 import { reportNumberFor } from "@/lib/apply-checklist.mjs";
 import { tailoredCvOnDisk } from "@/lib/tailored-cv-ready.mjs";
 import { parseReport } from "@/lib/format";
+import * as yaml from "js-yaml";
+import { getProfilePath } from "@/lib/core/profile-path.mjs";
+import { eligibilityScreeningEnabled } from "@/lib/eligibility/screen.mjs";
+import { screenReport } from "@/lib/eligibility/report-view.mjs";
+import type { EligibilityView } from "@/components/eligibility-panel";
 
 // Same filter /api/cv-pdf applies, so a directory or a symlink out of output/
 // never marks a CV ready that the View link would refuse.
@@ -21,6 +26,32 @@ function outputPdfNames(): string[] {
   } catch {
     return [];
   }
+}
+
+// Eligibility screen of the report's archived posting, behind the
+// eligibilityScreening flag. With the flag off nothing is read or computed.
+// The profile is parsed here (screen.mjs copies only its four allowlisted
+// keys), and a jds/ capture is read only as a regular file inside jds/.
+function eligibilityFor(content: string | null, location: string | undefined): EligibilityView | null {
+  if (!content || !eligibilityScreeningEnabled(process.env)) return null;
+  const root = reboundOpsRoot();
+  let profile: unknown = null;
+  try {
+    profile = yaml.load(fs.readFileSync(getProfilePath(root), "utf8"));
+  } catch {
+    profile = null;
+  }
+  const jds = path.join(root, "jds");
+  const readCapture = (file: string): string | null => {
+    const p = path.join(jds, file);
+    if (!isRegularContainedFile(p, jds)) return null;
+    try {
+      return fs.readFileSync(/* turbopackIgnore: true */ p, "utf8");
+    } catch {
+      return null;
+    }
+  };
+  return screenReport({ report: content, location, profile, readCapture }) as EligibilityView;
 }
 
 export const dynamic = "force-dynamic";
@@ -43,6 +74,9 @@ export default async function ReportPage({ params, searchParams }: {
   const indexStatus = (await pdfPathStatusForReport(id)).status;
   // Same name the View link puts in ?company=, so a slug match here is the file that link would open.
   const companyName = app?.company || parseReport(report?.content ?? "").title || "";
+  // The tracker's Location column, else a Location header field in the report.
+  const jobLocation = app?.location || parseReport(report?.content ?? "").fields.find((f) => f.label === "Location")?.value || undefined;
+  const eligibility = eligibilityFor(report?.content ?? null, jobLocation);
   const pdfFileReady = tailoredCvOnDisk({
     indexStatus,
     filenames: outputPdfNames(),
@@ -61,6 +95,7 @@ export default async function ReportPage({ params, searchParams }: {
       backHref={`/pipeline${query ? `?${query}` : ""}`}
       applyHref={`/pipeline/${encodeURIComponent(id)}/apply${query ? `?${query}` : ""}`}
       reportNum={reportNumberFor(id, app, report?.file ?? null)}
+      eligibility={eligibility}
     />
   );
 }

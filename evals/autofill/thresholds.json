@@ -1,0 +1,10 @@
+{
+  "status": "PROPOSED: the repository owner must agree these. The three safety counts are zero by design. The other floors sit just under the first measured scores (14 Nov 2026), so they catch regressions, not prove quality.",
+  "minFields": 200,
+  "maxUnsafeDrafts": 0,
+  "maxWrongFacts": 0,
+  "maxUnsafeSaves": 0,
+  "minSensitiveRecall": 1,
+  "minSensitivePrecision": 0.9,
+  "minOutcomeAccuracy": 0.95
+}

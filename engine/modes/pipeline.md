@@ -113,6 +113,35 @@ are defined:
   fetched. `… above band` marks a row above your band; the default `action: label`
   keeps it, `action: drop` would have removed it.
   Check `unread` and `none stated` rows yourself: the filter never drops them.
+- `| elig: {outcome}` — what the posting's hard requirements say against your
+  profile, written only when the `eligibilityScreening` operations flag is on
+  (`REBOUNDOPS_FEATURES=eligibilityScreening`; rules in
+  `web/src/lib/eligibility/screen.mjs`, the same as `eligibility-check.mjs`).
+  `blocked (sponsorship)` names the kinds your profile does not meet;
+  `review (language, degree)` names the ones it cannot settle (citizenship,
+  clearance, language and degree are always for you to check); `eligible`
+  means the profile meets every requirement found; `none found` means the
+  screen found no hard requirement, which is not the same as eligible; `unread`
+  means there was no text to screen. It screens the full description the
+  experience filter already fetched, else the listing's own text, and then
+  ends `from listing`, since a listing can be a teaser. A label only: the scan
+  never drops, hides or reorders a posting because of it, so open a `blocked`
+  row before discarding it.
+- `| qual: {signals}` — posting-quality signals, written with `elig:` when the
+  `eligibilityScreening` flag is on (`web/src/lib/eligibility/quality.mjs`).
+  Pay is always named: `pay stated` when the provider gave a salary or the text
+  states a pay figure (an amount right after pay wording such as "salary of" or
+  "Base pay:", an amount with its own period such as `$45/hr`, or a currency
+  range; never funding, revenue, budgets or allowances, and a pay word elsewhere
+  in the sentence does not make another amount pay); `no pay found` when it
+  does not (`no pay found in listing` when only the listing's own text was
+  read, which can be a teaser); `pay unread` when there was no text. `{n}d old`
+  is added when the posted date is 30 or more days ago, and `cross-listed` when
+  the text matches a different company's recent posting (the same check as the
+  scan's cross-listing warning). Labels only: nothing is dropped. `qual:` says
+  nothing about whether a listing is still open: with `--verify`, closed
+  listings are dropped before labelling; without it, liveness is not checked,
+  so a closed listing can carry a `qual:` label.
 - `| note: {text}` — a free-text ranking signal an importer attached to the offer
   (`- [ ] {url} | {company} | {title} | note: curated shortlist` is valid). The
   deterministic scanner never sets it.
@@ -125,7 +154,7 @@ are defined:
   row can go unranked because the CLI call failed, returned malformed JSON, or
   gave no usable reason — all of which still spent tokens.)
 
-When more than one is present the order is `posted:` → `trust:` → `yrs:` → `note:` →
+When more than one is present the order is `posted:` → `trust:` → `yrs:` → `elig:` → `qual:` → `note:` →
 `rank:`. Treat them as hints when triaging; none changes how you process the URL.
 
 ## Intelligent JD detection from URL
