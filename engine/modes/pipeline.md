@@ -130,14 +130,18 @@ are defined:
 - `| qual: {signals}` — posting-quality signals, written with `elig:` when the
   `eligibilityScreening` flag is on (`web/src/lib/eligibility/quality.mjs`).
   Pay is always named: `pay stated` when the provider gave a salary or the text
-  states a pay figure (a currency amount in a sentence about pay, or a currency
-  range, never funding, revenue, budgets or allowances); `no pay found` when it
+  states a pay figure (an amount right after pay wording such as "salary of" or
+  "Base pay:", an amount with its own period such as `$45/hr`, or a currency
+  range; never funding, revenue, budgets or allowances, and a pay word elsewhere
+  in the sentence does not make another amount pay); `no pay found` when it
   does not (`no pay found in listing` when only the listing's own text was
   read, which can be a teaser); `pay unread` when there was no text. `{n}d old`
   is added when the posted date is 30 or more days ago, and `cross-listed` when
   the text matches a different company's recent posting (the same check as the
-  scan's cross-listing warning). Labels only: nothing is dropped. Closed
-  listings are not labelled here; `--verify` already drops them.
+  scan's cross-listing warning). Labels only: nothing is dropped. `qual:` says
+  nothing about whether a listing is still open: with `--verify`, closed
+  listings are dropped before labelling; without it, liveness is not checked,
+  so a closed listing can carry a `qual:` label.
 - `| note: {text}` — a free-text ranking signal an importer attached to the offer
   (`- [ ] {url} | {company} | {title} | note: curated shortlist` is valid). The
   deterministic scanner never sets it.

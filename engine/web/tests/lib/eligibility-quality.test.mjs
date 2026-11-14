@@ -17,6 +17,8 @@ test("a stated pay figure is found in common wordings", () => {
     "We offer a salary of 52 000 EUR per year.",
     "$95,000 to $120,000 USD annually",
     "Hourly rate: $30 - $40",
+    "Salary of approximately $90k.",
+    "OTE £70k.",
   ]) {
     assert.equal(statesPay(s), true, s);
   }
@@ -32,6 +34,9 @@ test("company money, perks and vague pay are not a stated pay figure", () => {
     "We have 5,000 customers in 40 countries.",
     "401(k) matching up to 4%.",
     "A €500 home-office allowance.",
+    "Competitive salary plus a $1,500 learning budget.",
+    "Competitive salary and a $2,000 home-office setup.",
+    "Great pay, and $500 towards your first conference.",
     "Founded in 2015, we have 200 employees.",
   ]) {
     assert.equal(statesPay(s), false, s);

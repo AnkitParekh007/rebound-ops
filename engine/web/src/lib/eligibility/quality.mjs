@@ -25,24 +25,34 @@ const RANGE_RE = new RegExp(
   String.raw`(?:${CURRENCY}\s?)?(?:${AMOUNT})\s?(?:${CURRENCY})?\s*(?:-|–|—|to|and)\s*(?:${CURRENCY}\s?)?(?:${AMOUNT})\s?(?:${CURRENCY})?`,
   "i",
 );
-const PAY_CONTEXT =
-  /\b(?:salary|salaries|pay|paid|compensation|base|wage|wages|ote|on-target|hourly|per\s+(?:year|annum|hour|month|day)|a\s+year|an\s+hour|annual(?:ly)?|p\.?a\.?|gross|stipend|day\s+rate|rate)\b|\/\s?(?:yr|year|hr|hour|h|mo|month|day)\b/i;
-// Company money, not the person's pay.
-const NOT_PAY = /\b(?:raised|funding|funded|series\s+[a-f]\b|valuation|valued|revenue|arr|investors?|investment|million|billion|customers|users|budget|stipends?\s+for|allowance|reimburse\w*|bonus\s+pool)\b|\d\s?(?:m|bn|b)\b/i;
+// The figure must belong to the pay wording: right after it ("salary of
+// $90k", "Base pay: £55k", "rate: $30"), or carry its own period ("$45/hr",
+// "52 000 EUR per year"). A pay word elsewhere in the sentence does not make an
+// unrelated amount pay ("competitive salary plus a $1,500 learning budget").
+const PAY_WORD = String.raw`(?:salary|salaries|pay|compensation|base(?:\s+(?:pay|salary))?|wages?|ote|on-target\s+earnings|(?:hourly|day)\s+rate|rate|stipend)`;
+const PAY_THEN_MONEY = new RegExp(
+  String.raw`\b${PAY_WORD}\b(?:\s+(?:range|band))?\s*(?::|=|–|—|-|\bis\b|\bof\b|\bfrom\b|\bbetween\b|\bup\s+to\b|\bstarting\s+(?:at|from)\b|\bat\b)?\s*(?:(?:approximately|about|around|roughly)\s+)?${MONEY}`,
+  "i",
+);
+const MONEY_PER_PERIOD = new RegExp(
+  String.raw`${MONEY}(?:\s*(?:-|–|—|to)\s*${MONEY})?\s*(?:\/\s?(?:yr|year|hr|hour|h|mo|month|day)\b|(?:per|a|an)\s+(?:year|annum|hour|month|day)\b|annually\b|p\.?a\.?(?=\s|$|[,.;]))`,
+  "i",
+);
+// Company money and perks, not the person's pay.
+const NOT_PAY = /\b(?:raised|funding|funded|series\s+[a-f]\b|valuation|valued|revenue|arr|investors?|investment|million|billion|customers|users|budget|allowance|reimburse\w*|bonus\s+pool)\b|\d\s?(?:m|bn|b)\b/i;
 
 /**
- * Whether a posting text states a pay figure: a currency amount in a sentence
- * that talks about pay, or a currency range, and not company money such as
- * funding or revenue.
+ * Whether a posting text states a pay figure: an amount tied to pay wording,
+ * an amount with its own pay period, or a currency range in a sentence that
+ * is not about company money or perks.
  * @param {string | null | undefined} text
  */
 export function statesPay(text) {
   for (const s of sentences(String(text ?? ""))) {
     if (!MONEY_RE.test(s)) continue;
+    if (PAY_THEN_MONEY.test(s) || MONEY_PER_PERIOD.test(s)) return true;
     const range = RANGE_RE.exec(s);
-    const rangeHasCurrency = range ? new RegExp(CURRENCY, "i").test(range[0]) : false;
-    if (PAY_CONTEXT.test(s) && !(NOT_PAY.test(s) && !/\b(?:salary|compensation|pay)\b/i.test(s))) return true;
-    if (rangeHasCurrency && !NOT_PAY.test(s)) return true;
+    if (range && new RegExp(CURRENCY, "i").test(range[0]) && !NOT_PAY.test(s)) return true;
   }
   return false;
 }
