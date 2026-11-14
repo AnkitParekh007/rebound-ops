@@ -1,5 +1,5 @@
 {
-  "status": "PROPOSED: the repository owner must agree these. No sponsorship stance flip is allowed by design, and sponsorship:refused precision must stay at 1 because a false refusal can block a job. The other floors sit at or just under the scores after the patterns were widened for the corpus misses (14 Nov 2026), so they catch regressions, not prove quality.",
+  "status": "AGREED by the repository owner (14 Nov 2026). No sponsorship stance flip is allowed by design, and sponsorship:refused precision must stay at 1 because a false refusal can block a job. The other floors sit at or just under the scores after the patterns were widened for the corpus misses (14 Nov 2026), so they catch regressions, not prove quality.",
   "minRows": 233,
   "maxStanceFlips": 0,
   "maxFalseAlarms": 3,
