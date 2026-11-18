@@ -27,8 +27,8 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 | M2 Job intelligence | ✅ Done | 0–5 rubric (`fit-2026.1`), eligibility confirmed/unconfirmed/ineligible, evidence, missing info |
 | M3 Resume & documents | ✅ Done | Import (.docx/.txt/.md/paste), verified-facts profile, tailoring, cover letter, PDF/DOCX + content checks |
 | M4 Application preparation | ✅ Done | Grounded screening answers (needs-input when ungrounded), checklist, official link, user-only posting verification, checklist summary on submit |
-| M5 Tracking & follow-ups | ⏳ Next | Recruiter contacts, reminders, follow-up drafts (no sending), history, analytics |
-| M6 AI providers (optional) | Pending | Provider interface; Ollama + opt-in cloud (Anthropic, OpenAI, Gemini, OpenRouter) with mocks; consent + keychain/env secrets |
+| M5 Tracking & follow-ups | ✅ Done | Contacts, reminders (auto 7-day follow-up on submit), follow-up drafts (copy/mailto only), weekly + response analytics with caveats (schema v3) |
+| M6 AI providers (optional) | ⏳ Next | Provider interface; Ollama + opt-in cloud (Anthropic, OpenAI, Gemini, OpenRouter) with mocks; consent + keychain/env secrets |
 | M7 UX completion | Pending | Settings page, AI/privacy controls, a11y pass, responsive, empty/loading/error states |
 | M8 Import from earlier version | Pending | Neutral export schema, staged read-only import, preview/dedupe, confirm |
 | M9 Security & originality | Partial | Loopback/Host/Origin/JSON guards, CSP, audit script, SBOM. Pending: CI workflow, security tests expansion |
@@ -40,7 +40,7 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 - `packages/contracts` — zod schemas for every API payload (profile, jobs, applications, assessment, resume import, drafts, export check).
 - `packages/core` — status workflow (`applied` requires explicit confirmation), dashboard derivation, defaults.
 - `packages/job-intelligence` — evidence-based extraction, URL canonicalisation, dedupe, grounding check, country detection, fit/eligibility assessment.
-- `packages/storage` — SQLite, append-only migrations (schema v2: `resume_files` BLOBs, `documents` drafts), corruption detection, 0700/0600 permissions.
+- `packages/storage` — SQLite, append-only migrations (schema v3: `resume_files` BLOBs, `documents` drafts/packages, `contacts`, `reminders`), corruption detection, 0700/0600 permissions.
 - `packages/documents` — ZIP reader/writer with zip-bomb limits, DOCX read/write, text-only PDF writer (Helvetica/WinAnsi), resume parser, deterministic tailoring, cover letter with `[[placeholders]]`, export content verification.
 - `packages/applications` — screening-answer drafting (saved answers → stated facts → needs input), application checklist.
 - `apps/api` — Fastify on loopback; endpoints listed in `apps/api/src/server.ts`.
@@ -48,8 +48,8 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 
 ## Test results (latest run)
 
-- Backend/API (Vitest): 93 passed.
-- Angular (Vitest/jsdom): 8 passed.
+- Backend/API (Vitest): 100 passed.
+- Angular (Vitest/jsdom): 9 passed.
 - Smoke restart: pass. Build: pass. Release audit: pass.
 - Independent export check: generated DOCX read by macOS `textutil`, generated PDF read by Apple PDFKit — all facts present (manual run, 2026-11-18).
 - E2E (Playwright): **not run in the development sandbox** (see blockers).
@@ -80,9 +80,9 @@ See `git log --oneline`. Milestone commits: M1 `4aeb082`, M2 `8ac4474`, M3 backe
 
 ## Next step
 
-Start **M5 — Tracking & follow-ups**:
-1. Contracts + storage (migration v3): `contacts` (recruiter/hiring contact per application: name, role, email, phone, notes, source) and `reminders` (due date, label, done, applicationId).
-2. Follow-up drafts: deterministic templates from application facts (role, employer, applied date, contact name); never sent — copy/mailto only.
-3. Dashboard: due/overdue reminders in next actions; analytics derived from records (applications per week, response rate = interviewing+offer+rejected after applied / applied, median days to first response) with sample-size caveats.
-4. UI: contacts + reminders on the application page; reminders list on overview; tracker filters by due.
-5. Tests, then M6.
+Start **M6 — Optional AI providers**:
+1. `packages/ai-providers`: `AiProvider` interface (`complete({system, prompt, maxTokens})`, `health()`), implementations for Ollama (`/api/chat`, loopback only), Anthropic Messages API, OpenAI Chat Completions, Gemini `generateContent`, OpenRouter (OpenAI-compatible). Injected `fetch` for tests; timeouts; no retries that could incur cost.
+2. Settings (kv): provider, model, base URL (Ollama), consent flag per cloud provider; API keys only from environment variables (never stored in SQLite, never logged, never returned by the API).
+3. AI use is assistive and verified: e.g. "suggest rewording" of a highlight / cover-letter paragraph; output passes a grounding check (no new numbers, employers, dates, skills not in profile) or is rejected. Job text is passed as quoted untrusted data.
+4. Privacy: cloud calls require explicit per-provider consent and show what will be sent; AI off = feature hidden, all flows still work.
+5. Tests with mocked fetch for every provider + AI on/off acceptance; then M7.

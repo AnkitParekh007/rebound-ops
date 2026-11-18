@@ -72,6 +72,27 @@ export const MIGRATIONS: readonly Migration[] = [
       ) STRICT;
     `,
   },
+  {
+    version: 3,
+    name: 'contacts_and_reminders',
+    sql: `
+      CREATE TABLE contacts (
+        id             TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL REFERENCES applications (id) ON DELETE CASCADE,
+        data           TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX contacts_application ON contacts (application_id);
+
+      CREATE TABLE reminders (
+        id             TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL REFERENCES applications (id) ON DELETE CASCADE,
+        due_on         TEXT NOT NULL,
+        done           INTEGER NOT NULL DEFAULT 0,
+        data           TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX reminders_due ON reminders (done, due_on);
+    `,
+  },
 ];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS.at(-1)?.version ?? 0;

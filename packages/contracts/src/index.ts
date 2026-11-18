@@ -307,7 +307,7 @@ export const NextAction = z.object({
 });
 export type NextAction = z.infer<typeof NextAction>;
 
-export const DashboardSummary = z.object({
+export const DashboardSummaryBase = z.object({
   total: z.number().int(),
   active: z.number().int(),
   submitted: z.number().int(),
@@ -316,7 +316,7 @@ export const DashboardSummary = z.object({
   recentActivity: z.array(ActivityEntry.extend({ jobTitle: z.string(), employer: z.string() })),
   generatedAt: isoDate,
 });
-export type DashboardSummary = z.infer<typeof DashboardSummary>;
+
 
 /* ------------------------------------------------------------------ */
 /* Errors and health                                                   */
@@ -353,6 +353,8 @@ export const ExportBundle = z.object({
   jobs: z.array(Job),
   applications: z.array(Application),
   activity: z.array(ActivityEntry),
+  contacts: z.array(z.lazy(() => Contact)).default([]),
+  reminders: z.array(z.lazy(() => Reminder)).default([]),
 });
 export type ExportBundle = z.infer<typeof ExportBundle>;
 
@@ -650,3 +652,75 @@ export const AnswerUpdate = z.object({
   saveToProfile: z.boolean().default(false),
 });
 export type AnswerUpdate = z.input<typeof AnswerUpdate>;
+
+/* ------------------------------------------------------------------ */
+/* Tracking & follow-ups (M5)                                          */
+/* ------------------------------------------------------------------ */
+
+export const IsoDay = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Use YYYY-MM-DD');
+
+export const Contact = z.object({
+  id: z.string(),
+  applicationId: z.string(),
+  name: shortText(120).min(1),
+  role: shortText(120).default(''),
+  email: z.union([z.literal(''), z.email().max(254)]).default(''),
+  phone: shortText(40).default(''),
+  notes: shortText(4000).default(''),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+export type Contact = z.infer<typeof Contact>;
+
+export const ContactInput = Contact.pick({ name: true, role: true, email: true, phone: true, notes: true });
+export type ContactInput = z.input<typeof ContactInput>;
+
+export const Reminder = z.object({
+  id: z.string(),
+  applicationId: z.string(),
+  dueOn: IsoDay,
+  label: shortText(200).min(1),
+  done: z.boolean(),
+  doneAt: isoDate.nullable(),
+  createdAt: isoDate,
+});
+export type Reminder = z.infer<typeof Reminder>;
+
+export const ReminderInput = z.object({ dueOn: IsoDay, label: shortText(200).min(1) });
+export type ReminderInput = z.infer<typeof ReminderInput>;
+export const ReminderUpdate = z.object({ done: z.boolean().optional(), dueOn: IsoDay.optional(), label: shortText(200).min(1).optional() });
+export type ReminderUpdate = z.infer<typeof ReminderUpdate>;
+
+export const FollowUpKind = z.enum(['after_applying', 'after_interview', 'thank_you', 'withdraw']);
+export type FollowUpKind = z.infer<typeof FollowUpKind>;
+
+export const FollowUpDraft = z.object({
+  kind: FollowUpKind,
+  to: z.string().nullable(),
+  subject: z.string(),
+  body: z.string(),
+  placeholders: z.number().int(),
+  /** mailto: link that opens the person's own mail app; nothing is sent by ReboundOps. */
+  mailto: z.string().nullable(),
+});
+export type FollowUpDraft = z.infer<typeof FollowUpDraft>;
+
+export const ReminderView = Reminder.extend({ jobTitle: z.string(), employer: z.string(), overdue: z.boolean() });
+export type ReminderView = z.infer<typeof ReminderView>;
+
+export const Analytics = z.object({
+  weekly: z.array(z.object({ weekStart: IsoDay, saved: z.number().int(), submitted: z.number().int() })),
+  submittedTotal: z.number().int(),
+  responded: z.number().int(),
+  /** Share of submitted applications with a recorded response (interview, offer or rejection); null when none submitted. */
+  responseRate: z.number().nullable(),
+  medianDaysToResponse: z.number().nullable(),
+  caveat: z.string().nullable(),
+});
+export type Analytics = z.infer<typeof Analytics>;
+
+export const DashboardSummary = DashboardSummaryBase.extend({
+  analytics: Analytics,
+  reminders: z.array(ReminderView),
+});
+export type DashboardSummary = z.infer<typeof DashboardSummary>;

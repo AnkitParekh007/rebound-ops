@@ -65,6 +65,38 @@ import { STATUS_LABEL, STATUS_ORDER } from '../labels';
           </section>
         </div>
 
+        <div class="grid two">
+          <section class="card" aria-labelledby="rem-heading">
+            <h2 id="rem-heading">Reminders</h2>
+            <ul class="next-list">
+              @for (r of d.reminders.slice(0, 8); track r.id) {
+                <li [class.overdue]="r.overdue">
+                  <a [routerLink]="['/tracker', r.applicationId]">{{ r.label }}</a>
+                  <span>{{ r.jobTitle }} · {{ r.employer }} — due {{ r.dueOn }}@if (r.overdue) { <strong class="overdue-tag"> (overdue)</strong> }</span>
+                </li>
+              } @empty { <li class="muted">No open reminders.</li> }
+            </ul>
+          </section>
+          <section class="card" aria-labelledby="ana-heading">
+            <h2 id="ana-heading">Outcomes</h2>
+            <dl class="mini-metrics">
+              <div><dt>Response rate</dt><dd>{{ d.analytics.responseRate === null ? '—' : (d.analytics.responseRate * 100).toFixed(0) + '%' }}</dd></div>
+              <div><dt>Responses</dt><dd>{{ d.analytics.responded }} of {{ d.analytics.submittedTotal }}</dd></div>
+              <div><dt>Median days to response</dt><dd>{{ d.analytics.medianDaysToResponse ?? '—' }}</dd></div>
+            </dl>
+            @if (d.analytics.caveat) { <p class="muted small">{{ d.analytics.caveat }}</p> }
+            <table class="weekly">
+              <caption class="sr-only">Applications saved and submitted per week</caption>
+              <thead><tr><th scope="col">Week of</th><th scope="col">Saved</th><th scope="col">Submitted</th></tr></thead>
+              <tbody>
+                @for (w of d.analytics.weekly; track w.weekStart) {
+                  <tr><th scope="row">{{ w.weekStart }}</th><td>{{ w.saved }}</td><td>{{ w.submitted }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        </div>
+
         <section class="card" aria-labelledby="recent-heading">
           <h2 id="recent-heading">Recent activity</h2>
           <ol class="timeline compact">

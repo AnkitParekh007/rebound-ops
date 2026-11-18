@@ -6,7 +6,14 @@ import type {
   ApplicationView,
   Assessment,
   AssessmentSummary,
+  Contact,
+  ContactInput,
   DashboardSummary,
+  FollowUpDraft,
+  FollowUpKind,
+  Reminder,
+  ReminderInput,
+  ReminderUpdate,
   PackageUpdate,
   PackageView,
   DocumentKind,
@@ -157,6 +164,37 @@ export class ApiService {
   }
   removeAnswer(id: string, answerId: string) {
     return this.call(this.http.delete<PackageView>(`${this.pkg(id)}/answers/${encodeURIComponent(answerId)}`));
+  }
+  contacts(id: string) {
+    return this.call(this.http.get<Contact[]>(`${this.app(id)}/contacts`));
+  }
+  saveContact(id: string, contact: ContactInput, contactId?: string) {
+    return contactId
+      ? this.call(this.http.put<Contact>(`${this.app(id)}/contacts/${encodeURIComponent(contactId)}`, contact))
+      : this.call(this.http.post<Contact>(`${this.app(id)}/contacts`, contact));
+  }
+  deleteContact(id: string, contactId: string) {
+    return this.call(this.http.delete<void>(`${this.app(id)}/contacts/${encodeURIComponent(contactId)}`));
+  }
+  reminders(id: string) {
+    return this.call(this.http.get<Reminder[]>(`${this.app(id)}/reminders`));
+  }
+  addReminder(id: string, r: ReminderInput) {
+    return this.call(this.http.post<Reminder>(`${this.app(id)}/reminders`, r));
+  }
+  updateReminder(id: string, reminderId: string, u: ReminderUpdate) {
+    return this.call(this.http.put<Reminder>(`${this.app(id)}/reminders/${encodeURIComponent(reminderId)}`, u));
+  }
+  deleteReminder(id: string, reminderId: string) {
+    return this.call(this.http.delete<void>(`${this.app(id)}/reminders/${encodeURIComponent(reminderId)}`));
+  }
+  followUp(id: string, kind: FollowUpKind, contactId?: string) {
+    const params: Record<string, string> = { kind };
+    if (contactId) params['contactId'] = contactId;
+    return this.call(this.http.get<FollowUpDraft>(`${this.app(id)}/follow-up`, { params }));
+  }
+  private app(id: string) {
+    return `${this.base}/applications/${encodeURIComponent(id)}`;
   }
   private pkg(id: string) {
     return `${this.base}/applications/${encodeURIComponent(id)}/package`;

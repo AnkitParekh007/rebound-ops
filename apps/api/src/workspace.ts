@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto';
 import {
   type ActivityEntry,
   type Assessment,
+  type Contact,
+  type FollowUpDraft,
+  type Reminder,
   type ApplicationPackage,
   type PackageView,
   type CoverLetterDraft,
@@ -23,7 +26,11 @@ import {
   type Profile,
   AddQuestionsRequest,
   AnswerUpdate,
+  ContactInput,
   CoverLetterUpdate,
+  FollowUpKind,
+  ReminderInput,
+  ReminderUpdate,
   PackageUpdate,
   GenerateDocumentsRequest,
   JobCreate,
@@ -37,6 +44,7 @@ import {
   StatusTransitionRequest,
 } from '@reboundops/contracts';
 import {
+  addDays,
   allowedTransitions,
   checkTransition,
   defaultOnboarding,
@@ -47,7 +55,7 @@ import {
 } from '@reboundops/core';
 import { assess, checkGrounding, dedupeKey, extractJob, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
 import type { Store } from '@reboundops/storage';
-import { checklist, draftAnswer, emptyPackage } from '@reboundops/applications';
+import { checklist, draftAnswer, emptyPackage, followUpDraft } from '@reboundops/applications';
 import {
   applyResumeUpdate,
   buildCoverLetter,
@@ -250,6 +258,9 @@ export class Workspace {
     this.store.transaction(() => {
       this.store.upsertApplication(next);
       this.store.addActivity(this.activity(id, 'status_changed', app.status, req.to, note, at));
+      if (req.to === 'applied' && !this.store.listReminders(id).some((r) => !r.done)) {
+        this.store.upsertReminder({ id: this.newId(), applicationId: id, dueOn: addDays(this.now(), 7), label: 'Follow up if you have not heard back', done: false, doneAt: null, createdAt: at });
+      }
     });
     return this.getApplication(id);
   }
@@ -472,6 +483,74 @@ export class Workspace {
     return this.getPackage(applicationId);
   }
 
+  /* ---------- contacts, reminders, follow-ups (M5) ---------- */
+
+  listContacts(applicationId: string): Contact[] {
+    this.getApplication(applicationId);
+    return this.store.listContacts(applicationId);
+  }
+
+  saveContact(applicationId: string, contactId: string | null, input: unknown): Contact {
+    this.getApplication(applicationId);
+    const c = ContactInput.parse(input);
+    const at = this.now().toISOString();
+    const existing = contactId ? this.store.listContacts(applicationId).find((x) => x.id === contactId) : undefined;
+    if (contactId && !existing) throw notFound('Contact');
+    return this.store.transaction(() => {
+      const saved = this.store.upsertContact({ ...c, id: existing?.id ?? this.newId(), applicationId, createdAt: existing?.createdAt ?? at, updatedAt: at });
+      if (!existing) this.store.addActivity(this.activity(applicationId, 'note', null, null, `Added contact ${saved.name}${saved.role ? ` (${saved.role})` : ''}.`, at));
+      return saved;
+    });
+  }
+
+  deleteContact(applicationId: string, contactId: string): void {
+    if (!this.store.listContacts(applicationId).some((c) => c.id === contactId)) throw notFound('Contact');
+    this.store.deleteContact(contactId);
+  }
+
+  listReminders(applicationId: string): Reminder[] {
+    this.getApplication(applicationId);
+    return this.store.listReminders(applicationId);
+  }
+
+  addReminder(applicationId: string, input: unknown): Reminder {
+    this.getApplication(applicationId);
+    const r = ReminderInput.parse(input);
+    return this.store.upsertReminder({ ...r, id: this.newId(), applicationId, done: false, doneAt: null, createdAt: this.now().toISOString() });
+  }
+
+  updateReminder(applicationId: string, reminderId: string, input: unknown): Reminder {
+    const u = ReminderUpdate.parse(input);
+    const r = this.store.listReminders(applicationId).find((x) => x.id === reminderId);
+    if (!r) throw notFound('Reminder');
+    const at = this.now().toISOString();
+    return this.store.transaction(() => {
+      const next = this.store.upsertReminder({
+        ...r,
+        dueOn: u.dueOn ?? r.dueOn,
+        label: u.label ?? r.label,
+        done: u.done ?? r.done,
+        doneAt: u.done === undefined ? r.doneAt : u.done ? at : null,
+      });
+      if (u.done && !r.done) this.store.addActivity(this.activity(applicationId, 'note', null, null, `Done: ${r.label}.`, at));
+      return next;
+    });
+  }
+
+  deleteReminder(applicationId: string, reminderId: string): void {
+    if (!this.store.listReminders(applicationId).some((r) => r.id === reminderId)) throw notFound('Reminder');
+    this.store.deleteReminder(reminderId);
+  }
+
+  followUp(applicationId: string, kindRaw: unknown, contactId: unknown): FollowUpDraft {
+    const kind = FollowUpKind.parse(kindRaw ?? 'after_applying');
+    const app = this.getApplication(applicationId);
+    const contacts = this.store.listContacts(applicationId);
+    const contact = typeof contactId === 'string' && contactId ? contacts.find((c) => c.id === contactId) ?? null : contacts[0] ?? null;
+    if (typeof contactId === 'string' && contactId && !contact) throw notFound('Contact');
+    return followUpDraft(kind, app, this.getProfile(), contact);
+  }
+
   /* ---------- assessment ---------- */
 
   /** Recomputed on demand from the saved job and the current profile (deterministic). */
@@ -506,7 +585,7 @@ export class Workspace {
   /* ---------- insight & export ---------- */
 
   dashboard(): DashboardSummary {
-    return summarize(this.listApplications(), this.now());
+    return summarize(this.listApplications(), this.now(), 10, this.store.listReminders());
   }
 
   exportAll(): ExportBundle {
@@ -520,6 +599,8 @@ export class Workspace {
       jobs: this.store.listJobs(),
       applications: this.store.listApplications(),
       activity: this.store.listActivity(),
+      contacts: this.store.listContacts(),
+      reminders: this.store.listReminders(),
     };
   }
 

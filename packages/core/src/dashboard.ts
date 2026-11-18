@@ -4,9 +4,11 @@ import type {
   ApplicationView,
   DashboardSummary,
   NextAction,
+  Reminder,
 } from '@reboundops/contracts';
 import { ApplicationStatus as StatusEnum } from '@reboundops/contracts';
 import { SUBMITTED_STATUSES, isActive } from './tracker.ts';
+import { analytics, reminderViews } from './analytics.ts';
 
 const DAY_MS = 86_400_000;
 export const FOLLOW_UP_AFTER_DAYS = 7;
@@ -42,6 +44,7 @@ export function summarize(
   apps: readonly ApplicationView[],
   now: Date,
   recentLimit = 10,
+  reminders: readonly Reminder[] = [],
 ): DashboardSummary {
   const byStatus = Object.fromEntries(StatusEnum.options.map((s) => [s, 0])) as Record<
     ApplicationStatus,
@@ -81,5 +84,7 @@ export function summarize(
     nextActions,
     recentActivity: recent.slice(0, recentLimit),
     generatedAt: now.toISOString(),
+    analytics: analytics(apps, now),
+    reminders: reminderViews(reminders, apps, now),
   };
 }

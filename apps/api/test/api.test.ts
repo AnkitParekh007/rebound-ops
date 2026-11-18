@@ -86,7 +86,7 @@ describe('request guards', () => {
 
 describe('health', () => {
   it('reports AI off by default', async () => {
-    expect((await send('GET', '/api/health')).json()).toMatchObject({ status: 'ok', schemaVersion: 2, aiMode: 'off' });
+    expect((await send('GET', '/api/health')).json()).toMatchObject({ status: 'ok', schemaVersion: 3, aiMode: 'off' });
   });
 });
 
@@ -370,5 +370,34 @@ describe('application preparation (M4)', () => {
   it('rejects unsafe official links', async () => {
     const { application } = await saveLabelledJob();
     expect((await send('PUT', `/api/applications/${application.id}/package`, { officialApplyUrl: 'javascript:alert(1)' })).statusCode).toBe(400);
+  });
+});
+
+describe('tracking and follow-ups (M5)', () => {
+  it('manages contacts and reminders, auto-adds a follow-up reminder, and drafts follow-ups', async () => {
+    const { application } = await saveLabelledJob();
+    const base = `/api/applications/${application.id}`;
+    const contact = (await send('POST', `${base}/contacts`, { name: 'Sam Recruiter', role: 'Recruiter', email: 'sam@example.test' })).json();
+    expect(contact.id).toBeTruthy();
+    expect((await send('POST', `${base}/contacts`, { name: 'Bad', email: 'not-an-email' })).statusCode).toBe(400);
+
+    await send('POST', `${base}/transitions`, { to: 'applied', confirmSubmitted: true });
+    const reminders = (await send('GET', `${base}/reminders`)).json();
+    expect(reminders).toEqual([expect.objectContaining({ dueOn: '2026-03-08', label: 'Follow up if you have not heard back', done: false })]);
+
+    clock = new Date('2026-03-10T09:00:00.000Z');
+    let dash = (await send('GET', '/api/dashboard')).json();
+    expect(dash.reminders[0]).toMatchObject({ overdue: true, employer: 'Brightwater Analytics' });
+    expect(dash.analytics).toMatchObject({ submittedTotal: 1, responded: 0, responseRate: 0 });
+
+    const draft = (await send('GET', `${base}/follow-up?kind=after_applying`)).json();
+    expect(draft).toMatchObject({ to: 'sam@example.test', subject: 'Following up: Senior Platform Engineer application' });
+    expect((await send('GET', `${base}/follow-up?kind=spam`)).statusCode).toBe(400);
+
+    await send('PUT', `${base}/reminders/${reminders[0].id}`, { done: true });
+    dash = (await send('GET', '/api/dashboard')).json();
+    expect(dash.reminders).toEqual([]);
+    expect((await send('DELETE', `${base}/contacts/${contact.id}`)).statusCode).toBe(204);
+    expect((await send('GET', '/api/export')).json().reminders).toHaveLength(1);
   });
 });

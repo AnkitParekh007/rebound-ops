@@ -38,7 +38,7 @@ const sampleJob = {
 describe('migrations', () => {
   it('applies all migrations once and is idempotent', () => {
     const db = new DatabaseSync(':memory:');
-    expect(migrate(db)).toEqual([1, 2]);
+    expect(migrate(db)).toEqual([1, 2, 3]);
     expect(migrate(db)).toEqual([]);
     db.close();
   });

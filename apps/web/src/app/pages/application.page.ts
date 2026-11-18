@@ -6,11 +6,12 @@ import { ApiProblem, ApiService } from '../api.service';
 import { AssessmentPanel } from '../assessment-panel';
 import { DocumentsPanel } from '../documents-panel';
 import { PreparePanel } from '../prepare-panel';
+import { TrackingPanel } from '../tracking-panel';
 import { STATUS_LABEL } from '../labels';
 
 @Component({
   selector: 'app-application-page',
-  imports: [FormsModule, RouterLink, AssessmentPanel, DocumentsPanel, PreparePanel],
+  imports: [FormsModule, RouterLink, AssessmentPanel, DocumentsPanel, PreparePanel, TrackingPanel],
   template: `
     <section class="page" aria-labelledby="app-heading">
       <p><a routerLink="/tracker" class="back-link">← All applications</a></p>
@@ -67,6 +68,8 @@ import { STATUS_LABEL } from '../labels';
             </section>
           </div>
 
+          <div class="stack">
+          <app-tracking-panel [applicationId]="a.id" />
           <section class="card" aria-labelledby="activity-heading">
             <h2 id="activity-heading">Activity</h2>
             <form class="stack" (ngSubmit)="addNote()">
@@ -90,6 +93,7 @@ import { STATUS_LABEL } from '../labels';
               }
             </ol>
           </section>
+          </div>
         </div>
 
         <dialog #confirm class="dialog" aria-labelledby="confirm-heading" (close)="onDialogClose()">
@@ -122,6 +126,7 @@ export class ApplicationPage {
 
   readonly id = input.required<string>();
   readonly prepare = viewChild(PreparePanel);
+  readonly tracking = viewChild(TrackingPanel);
   readonly pkg = signal<PackageView | null>(null);
   readonly openItems = computed(() => (this.pkg()?.checklist ?? []).filter((i) => !i.done && !i.optional));
   readonly labels = STATUS_LABEL;
@@ -160,6 +165,7 @@ export class ApplicationPage {
     if (dialog?.returnValue === 'confirm' && this.acknowledged) {
       await this.run(() => this.api.transition(this.id(), 'applied', true));
       await this.prepare()?.refresh();
+      await this.tracking()?.refresh();
     }
   }
 

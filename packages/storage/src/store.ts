@@ -6,10 +6,12 @@ import {
   ActivityEntry,
   Application,
   ApplicationPackage,
+  Contact,
   CoverLetterDraft,
   Job,
   OnboardingState,
   Profile,
+  Reminder,
   ResumeDraft,
   ResumeFile,
 } from '@reboundops/contracts';
@@ -262,6 +264,49 @@ export class Store {
          ON CONFLICT (application_id, kind) DO UPDATE SET updated_at = excluded.updated_at, data = excluded.data`,
       )
       .run(valid.applicationId, valid.kind, valid.updatedAt, JSON.stringify(valid));
+  }
+
+  /* ---------------- contacts & reminders ---------------- */
+
+  upsertContact(c: Contact): Contact {
+    const valid = Contact.parse(c);
+    this.db
+      .prepare('INSERT INTO contacts (id, application_id, data) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET data = excluded.data')
+      .run(valid.id, valid.applicationId, JSON.stringify(valid));
+    return valid;
+  }
+
+  listContacts(applicationId?: string): Contact[] {
+    const rows = applicationId
+      ? this.db.prepare('SELECT id, data FROM contacts WHERE application_id = ? ORDER BY rowid').all(applicationId)
+      : this.db.prepare('SELECT id, data FROM contacts ORDER BY rowid').all();
+    return (rows as Row[]).map((r) => parseRow(Contact, 'contacts', r));
+  }
+
+  deleteContact(id: string): boolean {
+    return Number(this.db.prepare('DELETE FROM contacts WHERE id = ?').run(id).changes) === 1;
+  }
+
+  upsertReminder(r: Reminder): Reminder {
+    const valid = Reminder.parse(r);
+    this.db
+      .prepare(
+        `INSERT INTO reminders (id, application_id, due_on, done, data) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (id) DO UPDATE SET due_on = excluded.due_on, done = excluded.done, data = excluded.data`,
+      )
+      .run(valid.id, valid.applicationId, valid.dueOn, valid.done ? 1 : 0, JSON.stringify(valid));
+    return valid;
+  }
+
+  listReminders(applicationId?: string): Reminder[] {
+    const rows = applicationId
+      ? this.db.prepare('SELECT id, data FROM reminders WHERE application_id = ? ORDER BY due_on').all(applicationId)
+      : this.db.prepare('SELECT id, data FROM reminders ORDER BY due_on').all();
+    return (rows as Row[]).map((r) => parseRow(Reminder, 'reminders', r));
+  }
+
+  deleteReminder(id: string): boolean {
+    return Number(this.db.prepare('DELETE FROM reminders WHERE id = ?').run(id).changes) === 1;
   }
 
   listActivity(applicationId?: string): ActivityEntry[] {
