@@ -1,0 +1,155 @@
+---
+import Base from '../layouts/Base.astro';
+import CodeBlock from '../components/CodeBlock.astro';
+import { CURRENT, docUrl, BOARDS } from '../data/product';
+import { href } from '../lib/site';
+import { breadcrumbLd } from '../lib/structured-data';
+
+const toc = [
+  { id: 'quick-start', label: 'Quick start' },
+  { id: 'configuration', label: 'Configuration' },
+  { id: 'first-run', label: 'First run' },
+  { id: 'discover', label: 'Discover' },
+  { id: 'ai', label: 'Optional AI' },
+  { id: 'backups', label: 'Backups and restore' },
+  { id: 'import', label: 'Importing data' },
+  { id: 'upgrading', label: 'Upgrading' },
+  { id: 'commands', label: 'Commands' },
+  { id: 'troubleshooting', label: 'Troubleshooting' },
+  { id: 'reference', label: 'Full reference' },
+];
+const env = [
+  ['REBOUND_DATA_DIR', '~/.reboundops', 'Where the database lives'],
+  ['REBOUND_API_PORT', '4175', 'Port'],
+  ['REBOUND_API_HOST', '127.0.0.1', 'Must be a loopback address'],
+  ['REBOUND_WEB_DIST', 'built app if present', 'Directory of the web build to serve; an empty string disables it'],
+  ['REBOUND_ALLOWED_ORIGINS', 'dev server and own origin', 'Exact-match CORS allow-list'],
+  ['REBOUND_LOG_LEVEL', 'warn', 'Log level; request bodies and URLs are never logged'],
+  ['ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY', 'unset', 'Only needed if you enable that cloud provider; never stored or displayed'],
+];
+const commands = [
+  ['npm start', 'Start ReboundOps (serves the web app on 127.0.0.1:4175)'],
+  ['npm run restore -- <file>', 'Check a backup; add --yes to restore it while ReboundOps is stopped. The current database is kept'],
+  ['npm run import:check -- <file>', 'Validate an import file and show what it would add; writes nothing'],
+];
+---
+<Base
+  title="Documentation"
+  description="Install, configure and run ReboundOps: environment variables, first run, Discover, optional AI with Ollama, backups and restore, importing data, upgrading and troubleshooting."
+  path="/docs/"
+  og="docs"
+  jsonLd={[breadcrumbLd(Astro.site, [{ name: 'Home', path: '/' }, { name: 'Documentation', path: '/docs/' }])]}
+>
+  <header class="page-hero wrap-wide">
+    <p class="eyebrow">Documentation · v{CURRENT.version}</p>
+    <h1>Using ReboundOps</h1>
+    <p class="lede">A practical guide to the released version. The repository’s <a href={docUrl('README.md')}>README</a> and <a href={docUrl('docs/INSTALL.md')}>INSTALL.md</a> remain the authoritative reference.</p>
+  </header>
+
+  <div class="wrap-wide layout">
+    <nav class="toc" aria-label="On this page">
+      <p class="toc-title">On this page</p>
+      <ol role="list">{toc.map((t) => <li><a href={`#${t.id}`}>{t.label}</a></li>)}</ol>
+    </nav>
+
+    <article class="prose doc">
+      <h2 id="quick-start">Quick start</h2>
+      <p>You need Node.js 24 or newer and npm 11. Download the <a href={href('/download/')}>release archive</a>, check it, then:</p>
+      <CodeBlock label="Install and start" lines={[`tar -xzf reboundops-${CURRENT.version}.tar.gz`, `cd reboundops-${CURRENT.version}`, 'npm ci --omit=dev --omit=optional --ignore-scripts', 'npm start']} />
+      <p>Open <code>http://127.0.0.1:4175</code>. Stop with <kbd>Ctrl</kbd>+<kbd>C</kbd>.</p>
+
+      <h2 id="configuration">Configuration</h2>
+      <p>Set these environment variables before <code>npm start</code>. All are optional.</p>
+      <div class="table-wrap">
+        <table>
+          <caption class="visually-hidden">Environment variables</caption>
+          <thead><tr><th scope="col">Variable</th><th scope="col">Default</th><th scope="col">Purpose</th></tr></thead>
+          <tbody>{env.map(([k, d, p]) => <tr><th scope="row"><code>{k}</code></th><td><code>{d}</code></td><td>{p}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p>Only one ReboundOps can use a data folder at a time; a second one refuses to start.</p>
+
+      <h2 id="first-run">First run</h2>
+      <ol>
+        <li><b>Welcome.</b> Set your search goals and choose AI off or local AI. You can skip and come back later.</li>
+        <li><b>Profile.</b> Add target roles, countries, remote and relocation preferences, work authorisation, skills and saved answers.</li>
+        <li><b>Resume.</b> Import PDF (selectable text only), DOCX, TXT or Markdown, or paste text. Review the proposed facts and mark the ones that are verified — drafts only use verified facts.</li>
+        <li><b>Add a job.</b> Paste a description and its URL. Check the extracted details against their evidence, then confirm the posting on the official site when you can.</li>
+      </ol>
+
+      <h2 id="discover">Discover</h2>
+      <p>Discover looks up one company’s public job board on {BOARDS.join(', ')}. You allow it before the first request, and it sends only the board name you type. Requests use an HTTPS allow-list, no cookies, a 15-second timeout, a 25 MB cap, at most one request per second per host and a 30-minute cache.</p>
+      <p>Workday is not supported because it has no documented public API. Workable support uses the public feed behind Workable-hosted careers pages, which is not an official API and could change. Lever and Ashby boards do not provide a company display name.</p>
+
+      <h2 id="ai">Optional AI</h2>
+      <p>AI is off by default. To use a local model, install <a href="https://ollama.com">Ollama</a>, pull a model yourself, and choose it in Settings. ReboundOps then offers seven assist tasks — job summaries, missing skills, tailoring wording, screening answers, cover letters, interview preparation and follow-ups. Suggestions that add facts not in your records are withheld, and nothing is saved automatically.</p>
+      <p>Cloud providers (Anthropic, OpenAI, Gemini, OpenRouter) need the matching API key in an environment variable and your consent on each request. They have been tested with mocked requests only.</p>
+
+      <h2 id="backups">Backups and restore</h2>
+      <ul>
+        <li><b>Settings → Backup and restore</b> downloads a complete backup, optionally password-protected (AES-256-GCM, key from scrypt). Keep the password: it cannot be recovered.</li>
+        <li><b>Restore in the app:</b> choose the file, enter the password if it has one, compare the record counts and type <code>RESTORE</code>. A recovery copy of your current data is written to <code>&lt;data folder&gt;/recovery-backups/</code> first.</li>
+        <li><b>Restore from the command line</b> with ReboundOps stopped:</li>
+      </ul>
+      <CodeBlock label="Restore a backup from the command line" lines={['npm run restore -- <backup-file>', '# add --yes to restore; protected backups ask for the password or read REBOUND_BACKUP_PASSWORD']} />
+      <p>If a restore is interrupted, the next start puts the previous database back automatically.</p>
+
+      <h2 id="import">Importing data</h2>
+      <p><b>Settings → Import data</b> accepts a ReboundOps export or a file in the documented <a href={docUrl('docs/IMPORT_FORMAT.md')}>neutral import format</a> (profile, resume, preferences, saved jobs, application states and history, contacts and reminders). The file is validated and previewed first; nothing is written until you confirm, existing profile values are never overwritten, duplicates are skipped, and the file you chose is never modified.</p>
+      <p>Imported experience and postings start as unverified. No automatic migration from other tools exists yet.</p>
+
+      <h2 id="upgrading">Upgrading</h2>
+      <p>Stop the old version, install the new one and start it with the same data folder. From 0.1.0 to 0.2.0 the database migrates from schema 3 to 4 on first start, adding only columns and tables. Backups from 0.1.0 restore in 0.2.0. Downloading a backup before upgrading is recommended.</p>
+
+      <h2 id="commands">Commands</h2>
+      <div class="table-wrap">
+        <table>
+          <caption class="visually-hidden">Useful commands</caption>
+          <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
+          <tbody>{commands.map(([c, d]) => <tr><th scope="row"><code>{c}</code></th><td>{d}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p>Building from source adds development scripts such as <code>npm test</code>, <code>npm run build</code> and <code>npm run test:e2e</code>; see the <a href={docUrl('README.md#scripts')}>README</a>.</p>
+
+      <h2 id="troubleshooting">Troubleshooting</h2>
+      <dl class="faqish">
+        <dt>A second ReboundOps refuses to start</dt>
+        <dd>Another instance is already using the same data folder (it holds a lock). Stop it, or point this one at a different folder with <code>REBOUND_DATA_DIR</code>.</dd>
+        <dt>The port is in use</dt>
+        <dd>Set <code>REBOUND_API_PORT</code> to another port and open that address instead.</dd>
+        <dt>Node reports an unknown module <code>node:sqlite</code> or a syntax error</dt>
+        <dd>Your Node.js is older than 24. Check with <code>node --version</code>.</dd>
+        <dt>My PDF imported as empty text</dt>
+        <dd>It is probably scanned. ReboundOps does not do OCR; paste or type the text instead. The original file is kept.</dd>
+        <dt>Discover finds nothing for a company</dt>
+        <dd>Check that the company uses one of the supported boards and that you typed its board name, not its display name.</dd>
+      </dl>
+
+      <h2 id="reference">Full reference</h2>
+      <ul>
+        <li><a href={docUrl('README.md')}>README</a> — features, configuration and project layout</li>
+        <li><a href={docUrl('docs/INSTALL.md')}>INSTALL.md</a> — installing, platforms, backups and building a release</li>
+        <li><a href={docUrl('docs/IMPORT_FORMAT.md')}>IMPORT_FORMAT.md</a> — the neutral import schema</li>
+        <li><a href={docUrl('docs/MIGRATION_SPEC.md')}>MIGRATION_SPEC.md</a> — migration specification</li>
+        <li><a href={docUrl('docs/RELEASE_READINESS.md')}>RELEASE_READINESS.md</a> — what was verified for each release, and known gaps</li>
+      </ul>
+    </article>
+  </div>
+</Base>
+
+<style>
+  .layout { display: grid; gap: var(--space-l); padding-bottom: var(--space-xl); }
+  @media (min-width: 980px) { .layout { grid-template-columns: 14rem minmax(0, 1fr); gap: var(--space-2xl); } .toc { position: sticky; top: 6rem; align-self: start; } }
+  .toc { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--space-s); background: var(--surface); }
+  .toc-title { font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--ink-2); margin-bottom: 0.4rem; }
+  .toc ol { list-style: none; padding: 0; display: grid; }
+  @media (max-width: 979.98px) { .toc ol { display: flex; flex-wrap: wrap; gap: 0 1rem; } }
+  .toc a { display: inline-flex; align-items: center; min-height: 40px; text-decoration: none; color: var(--ink-2); }
+  .toc a:hover { color: var(--accent-ink); text-decoration: underline; }
+  .doc { max-width: 72ch; }
+  .doc h2 { scroll-margin-top: 6rem; padding-top: var(--space-s); border-top: 1px solid var(--line); }
+  .doc h2:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
+  .faqish dt { font-weight: 650; margin-top: var(--space-s); }
+  .faqish dd { color: var(--ink-2); }
+  kbd { border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 0.3em; background: var(--surface); font-family: var(--font-mono); font-size: 0.85em; }
+</style>

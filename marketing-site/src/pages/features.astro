@@ -1,0 +1,92 @@
+---
+import Base from '../layouts/Base.astro';
+import FitDemo from '../components/demos/FitDemo.astro';
+import DocDemo from '../components/demos/DocDemo.astro';
+import TrackerDemo from '../components/demos/TrackerDemo.astro';
+import AiDemo from '../components/demos/AiDemo.astro';
+import { FEATURES, CURRENT, LIMITATIONS, BOARDS } from '../data/product';
+import { href } from '../lib/site';
+import { breadcrumbLd } from '../lib/structured-data';
+
+const areas = [...new Set(FEATURES.map((f) => f.area))];
+const demoAfter: Record<string, string> = { assessment: 'fit', documents: 'docs', tracking: 'tracker', ai: 'ai' };
+---
+<Base
+  title="Features"
+  description={`Everything ReboundOps ${CURRENT.version} can do: resume import, Discover on ${BOARDS.join(', ')}, explainable fit scores, grounded documents, tracking, backups and optional AI.`}
+  path="/features/"
+  og="features"
+  jsonLd={[breadcrumbLd(Astro.site, [{ name: 'Home', path: '/' }, { name: 'Features', path: '/features/' }])]}
+>
+  <header class="page-hero wrap-wide">
+    <p class="eyebrow">Version {CURRENT.version} · released {CURRENT.date}</p>
+    <h1>What ReboundOps does today</h1>
+    <p class="lede">Only what ships in v{CURRENT.version}. Each feature works without AI and without an account, and each one lists its limits.</p>
+    <nav class="area-nav" aria-label="Feature areas">
+      <ul role="list" class="cluster">
+        {areas.map((a) => <li><a class="chip" href={`#area-${a.toLowerCase()}`}>{a}</a></li>)}
+      </ul>
+    </nav>
+  </header>
+
+  <div class="wrap-wide">
+    {areas.map((area, ai) => (
+      <section class="area" id={`area-${area.toLowerCase()}`} aria-labelledby={`area-h-${ai}`}>
+        <div class="area-label">
+          <span class="num mono" aria-hidden="true">{String(ai + 1).padStart(2, '0')}</span>
+          <h2 id={`area-h-${ai}`}>{area}</h2>
+        </div>
+        <div class="area-items">
+          {FEATURES.filter((f) => f.area === area).map((f) => (
+            <>
+              <article class="feature" id={f.id} data-reveal>
+                <h3>{f.title}</h3>
+                <p class="body">{f.body}</p>
+                <ul class="points" role="list">{f.points.map((p) => <li>{p}</li>)}</ul>
+                {f.caveat && <p class="caveat small"><strong>Limits:</strong> {f.caveat}</p>}
+              </article>
+              {demoAfter[f.id] && (
+                <div class="demo" data-reveal>
+                  {demoAfter[f.id] === 'fit' && <FitDemo idPrefix="ft-fit" />}
+                  {demoAfter[f.id] === 'docs' && <DocDemo idPrefix="ft-doc" />}
+                  {demoAfter[f.id] === 'tracker' && <TrackerDemo />}
+                  {demoAfter[f.id] === 'ai' && <AiDemo idPrefix="ft-ai" />}
+                </div>
+              )}
+            </>
+          ))}
+        </div>
+      </section>
+    ))}
+
+    <section class="limits" aria-labelledby="limits-h" data-reveal>
+      <h2 id="limits-h">Known limitations in v{CURRENT.version}</h2>
+      <ul role="list">{LIMITATIONS.map((l) => <li>{l}</li>)}</ul>
+      <p class="small muted">Full details in the <a href={href('/changelog/')}>changelog</a> and the release-readiness report on GitHub.</p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .area-nav { margin-top: var(--space-l); }
+  .area-nav ul { list-style: none; padding: 0; --cluster: var(--space-2xs); }
+  .area-nav .chip { min-height: 40px; padding-inline: 1rem; text-decoration: none; font-size: var(--step--1); transition: background-color var(--dur-quick) var(--ease-out), color var(--dur-quick) var(--ease-out); }
+  .area-nav .chip:hover { background: var(--btn-bg); color: var(--btn-ink); }
+  .area { display: grid; gap: var(--space-m); padding-block: var(--space-xl); border-top: 1px solid var(--line); }
+  @media (min-width: 980px) { .area { grid-template-columns: 14rem 1fr; gap: var(--space-xl); } .area-label { position: sticky; top: 6rem; align-self: start; } }
+  .area-label { display: flex; gap: 0.8rem; align-items: baseline; }
+  .area-label h2 { font-size: var(--step-3); }
+  .num { color: var(--accent-ink); font-size: var(--step--1); font-weight: 600; }
+  .area-items { display: grid; gap: var(--space-l); }
+  .feature { display: grid; gap: var(--space-s); max-width: 52rem; }
+  .feature h3 { font-size: var(--step-3); }
+  .body { font-size: var(--step-1); color: var(--ink-2); line-height: 1.5; }
+  .points { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
+  .points li { padding-left: 1.4rem; position: relative; }
+  .points li::before { content: ''; position: absolute; left: 0; top: 0.62em; width: 0.6rem; height: 0.6rem; border-radius: 2px; background: var(--accent); transform: rotate(45deg) scale(0.7); }
+  .caveat { border-left: 3px solid var(--warn); padding: 0.5rem 0.9rem; background: var(--warn-soft); border-radius: 0 var(--r-xs) var(--r-xs) 0; max-width: 52rem; }
+  .demo { padding: clamp(1rem, 3vw, 2rem); background: var(--bg-sunk); border: 1px solid var(--line); border-radius: var(--r-xl); }
+  .limits { margin-block: var(--space-xl); padding: clamp(1.25rem, 3vw, 2.5rem); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); display: grid; gap: var(--space-s); }
+  .limits h2 { font-size: var(--step-3); }
+  .limits ul { padding-left: 1.2rem; display: grid; gap: 0.4rem; }
+</style>

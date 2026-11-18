@@ -1,0 +1,83 @@
+---
+/** AI off vs optional local Ollama. Shows that the workflow is identical and AI only suggests. CSS-only. */
+import { AI_TASKS } from '../../data/product';
+interface Props { idPrefix?: string }
+const { idPrefix = 'ai' } = Astro.props;
+---
+<div class="ai-demo">
+  <fieldset class="mode">
+    <legend class="visually-hidden">AI mode</legend>
+    <label><input type="radio" name={`${idPrefix}-mode`} value="off" checked /><span><b>AI off</b><small>The default</small></span></label>
+    <label><input type="radio" name={`${idPrefix}-mode`} value="local" /><span><b>Local AI (Ollama)</b><small>Optional</small></span></label>
+  </fieldset>
+  <span class="synthetic-label">Synthetic example · tailoring a highlight for Northwind Labs</span>
+
+  <div class="panes">
+    <div class="pane same">
+      <h4>Works the same either way</h4>
+      <ul role="list">
+        <li>Import, profile, intake and evidence</li>
+        <li>Fit rubric and eligibility</li>
+        <li>Grounded resume and cover-letter drafts</li>
+        <li>PDF and DOCX export with read-back checks</li>
+        <li>Tracker, reminders, follow-up drafts, backups</li>
+      </ul>
+    </div>
+
+    <div class="pane off">
+      <h4>Your verified highlight</h4>
+      <p class="quote">Built a self-service Kubernetes platform used by 14 product teams.</p>
+      <p class="small muted">With AI off, drafts select and order your verified highlights as written. You edit the wording yourself.</p>
+    </div>
+
+    <div class="pane local">
+      <h4>Suggestions from a model on your computer</h4>
+      <div class="sugg ok">
+        <span class="chip" data-tone="ok"><span class="dot" aria-hidden="true"></span>Passed grounding check</span>
+        <p class="quote">Created a self-service Kubernetes platform that 14 product teams use for their deployments.</p>
+        <p class="small muted">Same facts, different wording. Accept, edit or ignore — nothing is saved automatically.</p>
+      </div>
+      <div class="sugg held">
+        <span class="chip" data-tone="bad"><span class="dot" aria-hidden="true"></span>Withheld</span>
+        <p class="quote struck">Led a team of 8 to build a Kubernetes platform used by 14 product teams.</p>
+        <p class="small muted">Adds “led a team of 8”, which is not in your records, so ReboundOps does not show it as a suggestion.</p>
+      </div>
+      <details class="tasks">
+        <summary>Seven assist tasks</summary>
+        <ul role="list">{AI_TASKS.map((t) => <li>{t.label}</li>)}</ul>
+      </details>
+    </div>
+  </div>
+</div>
+
+<style>
+  .ai-demo { display: grid; gap: var(--space-s); }
+  .mode { border: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2xs); max-width: 34rem; }
+  .mode label { position: relative; }
+  .mode input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .mode span { display: grid; padding: 0.7rem 1rem; border: 1.5px solid var(--line); border-radius: var(--r-md); background: var(--surface); min-height: 56px; transition: border-color var(--dur-quick) var(--ease-out), background-color var(--dur-quick) var(--ease-out); }
+  .mode small { color: var(--ink-2); }
+  .mode input:checked + span { border-color: var(--ink); background: var(--surface-2); box-shadow: inset 0 -3px 0 var(--accent); }
+  .mode input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .panes { display: grid; gap: var(--space-s); }
+  @media (min-width: 860px) { .panes { grid-template-columns: 1fr 1.5fr; } }
+  .pane { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--space-m); display: grid; gap: var(--space-xs); align-content: start; }
+  .pane h4 { font-size: var(--step-0); }
+  .same ul { list-style: none; padding: 0; display: grid; gap: 0.45rem; font-size: var(--step--1); }
+  .same li { display: flex; gap: 0.5rem; align-items: baseline; }
+  .same li::before { content: '✓'; color: var(--ok); font-weight: 700; }
+  .quote { font-family: var(--font-mono); font-size: var(--step--1); background: var(--surface-2); border-left: 3px solid var(--tide); padding: 0.6rem 0.8rem; border-radius: 0 var(--r-xs) var(--r-xs) 0; }
+  .struck { text-decoration: line-through; text-decoration-color: var(--bad); border-left-color: var(--bad); color: var(--ink-2); }
+  .sugg { display: grid; gap: 0.45rem; justify-items: start; }
+  .sugg + .sugg { border-top: 1px dashed var(--line); padding-top: var(--space-s); }
+  .tasks summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+  .tasks ul { padding-left: 1.2rem; font-size: var(--step--1); }
+
+  .local { display: none; }
+  .ai-demo:has(input[value='local']:checked) .local { display: grid; animation: in var(--dur-slow) var(--ease-out); }
+  .ai-demo:has(input[value='local']:checked) .off { display: none; }
+  .ai-demo:has(input[value='off']:checked) .off { animation: in var(--dur-slow) var(--ease-out); }
+  @supports not selector(:has(*)) { .local { display: grid; } }
+  @keyframes in { from { opacity: 0; transform: translateY(10px); } }
+</style>

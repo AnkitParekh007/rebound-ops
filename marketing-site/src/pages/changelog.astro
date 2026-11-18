@@ -1,0 +1,54 @@
+---
+import Base from '../layouts/Base.astro';
+import { RELEASES, RELEASES_URL } from '../data/product';
+import { breadcrumbLd } from '../lib/structured-data';
+---
+<Base
+  title="Changelog"
+  description="Every ReboundOps release so far — 0.2.0 and 0.1.0, both pre-releases — with what changed, upgrade notes and known limitations, taken from the published release notes."
+  path="/changelog/"
+  og="changelog"
+  jsonLd={[breadcrumbLd(Astro.site, [{ name: 'Home', path: '/' }, { name: 'Changelog', path: '/changelog/' }])]}
+>
+  <header class="page-hero wrap">
+    <p class="eyebrow">Changelog</p>
+    <h1>Releases</h1>
+    <p class="lede">Published versions only, summarised from the <a href={RELEASES_URL}>GitHub release notes</a>. Both are pre-releases.</p>
+  </header>
+
+  <ol class="wrap releases" role="list">
+    {RELEASES.map((r, i) => (
+      <li class="release" data-reveal>
+        <div class="meta">
+          <p class="ver"><span class="v">v{r.version}</span></p>
+          <p class="small muted"><time datetime={r.date}>{r.date}</time></p>
+          <p><span class="chip" data-tone={i === 0 ? 'accent' : undefined}>{r.channel}{i === 0 ? ' · latest' : ''}</span></p>
+          <p class="small muted">Tag <code>{r.tag}</code> · commit <code>{r.commit}</code></p>
+        </div>
+        <div class="notes">
+          <h2>ReboundOps {r.version}</h2>
+          <p class="lede">{r.summary}</p>
+          {r.sections.map((s) => (
+            <section aria-label={`${s.title}, ${r.version}`}>
+              <h3>{s.title}</h3>
+              <ul>{s.items.map((it) => <li>{it}</li>)}</ul>
+            </section>
+          ))}
+          <p><a href={r.url}>Release page for v{r.version} on GitHub <span aria-hidden="true">→</span></a></p>
+        </div>
+      </li>
+    ))}
+  </ol>
+</Base>
+
+<style>
+  .releases { list-style: none; padding: 0 0 var(--space-xl); display: grid; gap: var(--space-xl); }
+  .release { display: grid; gap: var(--space-m); border-top: 1px solid var(--line); padding-top: var(--space-l); }
+  @media (min-width: 860px) { .release { grid-template-columns: 12rem 1fr; gap: var(--space-xl); } .meta { position: sticky; top: 6rem; align-self: start; } }
+  .meta { display: grid; gap: 0.4rem; align-content: start; }
+  .ver .v { font-family: var(--font-display); font-size: var(--step-4); font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+  .notes { display: grid; gap: var(--space-s); max-width: 68ch; }
+  .notes h2 { font-size: var(--step-3); }
+  .notes h3 { font-size: var(--step-1); margin-top: var(--space-s); }
+  .notes ul { padding-left: 1.2rem; display: grid; gap: 0.45rem; }
+</style>

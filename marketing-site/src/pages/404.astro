@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+import { href } from '../lib/site';
+---
+<Base title="Page not found" description="This page does not exist. Head back to the ReboundOps home page, features, download or documentation." path="/404/" noindex>
+  <section class="nf wrap">
+    <div class="art" aria-hidden="true">
+      <svg viewBox="0 0 320 160" width="320" height="160">
+        <path class="arc" d="M10 140 Q 70 10 130 140 Q 175 50 220 140 Q 250 95 280 140" />
+        <circle class="ball" cx="280" cy="132" r="8" />
+        <line x1="0" y1="148" x2="320" y2="148" class="ground" />
+      </svg>
+    </div>
+    <p class="eyebrow">Error 404</p>
+    <h1>This link didn’t land.</h1>
+    <p class="lede">The page you were looking for isn’t here. It may have moved, or the address may have a typo.</p>
+    <div class="cluster">
+      <a class="btn btn-primary" href={href('/')}>Go to the home page</a>
+      <a class="btn btn-ghost" href={href('/docs/')}>Documentation</a>
+      <a class="btn btn-ghost" href={href('/download/')}>Download</a>
+    </div>
+  </section>
+</Base>
+<style>
+  .nf { padding-block: var(--space-2xl); display: grid; gap: var(--space-m); justify-items: start; }
+  .nf h1 { font-size: var(--step-5); }
+  .art svg { width: min(320px, 80vw); height: auto; overflow: visible; }
+  .arc { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 600; stroke-dashoffset: 0; }
+  .ground { stroke: var(--line-strong); stroke-width: 2; }
+  .ball { fill: var(--signal); stroke: var(--ink); stroke-width: 2; }
+  :global(.motion-ok) .arc { animation: draw 1.6s var(--ease-out) both; }
+  :global(.motion-ok) .ball { animation: settle 1.6s var(--ease-out) both; transform-box: fill-box; transform-origin: center bottom; }
+  @keyframes draw { from { stroke-dashoffset: 600; } }
+  @keyframes settle { 0%, 80% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: none; } }
+</style>

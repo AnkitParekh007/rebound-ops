@@ -1,0 +1,92 @@
+---
+/** Resume / cover-letter preview with per-line provenance. CSS-only switching (radio + :has). */
+import { DOC_PREVIEW } from '../../data/demo';
+interface Props { idPrefix?: string }
+const { idPrefix = 'doc' } = Astro.props;
+const docs = [
+  { id: 'resume', label: 'Tailored resume', lines: DOC_PREVIEW.resume },
+  { id: 'letter', label: 'Cover letter', lines: DOC_PREVIEW.letter },
+] as const;
+---
+<div class="doc-demo">
+  <div class="controls">
+    <fieldset class="seg">
+      <legend class="visually-hidden">Choose a document</legend>
+      {docs.map((d, i) => (
+        <label><input type="radio" name={`${idPrefix}-doc`} value={d.id} checked={i === 0} /><span>{d.label}</span></label>
+      ))}
+    </fieldset>
+    <label class="toggle">
+      <input type="checkbox" class="prov-toggle" checked />
+      <span class="sw" aria-hidden="true"></span>
+      <span>Show where each line came from</span>
+    </label>
+  </div>
+  <span class="synthetic-label">Synthetic example · for the fictional Northwind Labs posting</span>
+
+  <div class="sheets">
+    {docs.map((d) => (
+      <article class="sheet" data-doc={d.id} aria-label={`${d.label} preview`}>
+        {d.lines.map((l) => (
+          <div class={`line k-${l.kind}`}>
+            <span class="txt">{l.text.split(/(\[\[[^\]]+\]\])/).map((part) => part.startsWith('[[') ? <mark class="ph">{part}</mark> : part)}</span>
+            {l.from && <span class="from">{l.from}</span>}
+          </div>
+        ))}
+      </article>
+    ))}
+  </div>
+  <ul class="facts small muted" role="list">
+    <li>Built only from facts marked verified in your profile</li>
+    <li>Missing information becomes a <code>[[placeholder]]</code>, never an invention</li>
+    <li>Every line stays editable before you export PDF or DOCX</li>
+  </ul>
+</div>
+
+<style>
+  .doc-demo { display: grid; gap: var(--space-s); }
+  .controls { display: flex; flex-wrap: wrap; gap: var(--space-s); align-items: center; justify-content: space-between; }
+  .seg { display: inline-flex; border: 0; padding: 4px; background: var(--surface-2); border-radius: var(--r-pill); border: 1px solid var(--line); }
+  .seg label { position: relative; }
+  .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .seg span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 1rem; border-radius: var(--r-pill); font-weight: 600; color: var(--ink-2); transition: background-color var(--dur-quick) var(--ease-out), color var(--dur-quick) var(--ease-out); }
+  .seg input:checked + span { background: var(--btn-bg); color: var(--btn-ink); }
+  .seg input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .toggle { display: inline-flex; align-items: center; gap: 0.6rem; min-height: 44px; cursor: pointer; font-size: var(--step--1); font-weight: 600; position: relative; }
+  .toggle input { position: absolute; opacity: 0; width: 44px; height: 26px; margin: 0; cursor: pointer; }
+  .sw { width: 44px; height: 26px; border-radius: 999px; background: var(--line-strong); position: relative; transition: background-color var(--dur-base) var(--ease-out); flex: none; }
+  .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-1); transition: transform var(--dur-base) var(--ease-bounce); }
+  .toggle input:checked + .sw { background: var(--tide); }
+  .toggle input:checked + .sw::after { transform: translateX(18px); }
+  .toggle input:focus-visible + .sw { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .sheets { position: relative; }
+  .sheet {
+    display: none; background: #fbf8f2; color: #1c1714; border-radius: var(--r-md); padding: clamp(1rem, 3vw, 2rem);
+    box-shadow: var(--shadow-3); border: 1px solid #e3d9cb; gap: 0.35rem; font-size: var(--step--1);
+  }
+  .doc-demo:has(input[value='resume']:checked) .sheet[data-doc='resume'],
+  .doc-demo:has(input[value='letter']:checked) .sheet[data-doc='letter'] { display: grid; animation: sheet var(--dur-slow) var(--ease-out); }
+  @supports not selector(:has(*)) { .sheet { display: grid; margin-bottom: 1rem; } }
+  @keyframes sheet { from { opacity: 0; transform: translateY(12px) rotate(-0.4deg); } }
+
+  .line { display: grid; grid-template-columns: 1fr; gap: 0.1rem 1rem; padding: 0.25rem 0.4rem; border-radius: 6px; transition: background-color var(--dur-quick) var(--ease-out); }
+  .line:hover { background: #f1e9dc; }
+  .k-h .txt { font-family: var(--font-display); font-size: 1.6em; font-weight: 700; letter-spacing: -0.02em; }
+  .k-meta .txt { color: #4a413a; }
+  .k-sh .txt { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78em; font-weight: 700; color: #a8380f; margin-top: 0.6rem; }
+  .k-role .txt { font-weight: 650; }
+  .k-li .txt::before { content: '•'; margin-right: 0.5rem; color: #685d54; }
+  .k-p .txt { line-height: 1.6; }
+  .ph { background: #fbecc9; color: #6e4200; font-family: var(--font-mono); font-size: 0.9em; padding: 0 0.3em; border-radius: 4px; }
+  .from { display: none; font-family: var(--font-mono); font-size: 0.72rem; color: #0b5f58; }
+  .doc-demo:has(.prov-toggle:checked) .from { display: block; animation: fadeIn var(--dur-base) var(--ease-out); }
+  @media (min-width: 760px) {
+    .doc-demo:has(.prov-toggle:checked) .line { grid-template-columns: 1fr 16rem; }
+    .from { text-align: right; align-self: center; }
+  }
+  @keyframes fadeIn { from { opacity: 0; } }
+  .facts { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; }
+  .facts li::before { content: '→ '; color: var(--accent-ink); }
+</style>

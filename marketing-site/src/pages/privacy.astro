@@ -1,0 +1,100 @@
+---
+import Base from '../layouts/Base.astro';
+import NetworkDemo from '../components/demos/NetworkDemo.astro';
+import AiDemo from '../components/demos/AiDemo.astro';
+import { LICENCE, REPO_URL, docUrl, CURRENT, assetUrl } from '../data/product';
+import { breadcrumbLd } from '../lib/structured-data';
+---
+<Base
+  title="Privacy and open source"
+  description="How ReboundOps keeps your job search private: a loopback-only local service, one SQLite file you control, consent before any network request, optional AI, and MIT-licensed source."
+  path="/privacy/"
+  og="privacy"
+  jsonLd={[breadcrumbLd(Astro.site, [{ name: 'Home', path: '/' }, { name: 'Privacy and open source', path: '/privacy/' }])]}
+>
+  <header class="page-hero wrap-wide">
+    <p class="eyebrow">Privacy and open source</p>
+    <h1>Private because there’s nowhere else for it to go</h1>
+    <p class="lede">ReboundOps has no server, no account and no analytics. It is a small program on your computer that keeps your search in a file you own. When something does need the internet, it asks first and tells you what it sends.</p>
+  </header>
+
+  <section class="wrap-wide section explorer" aria-labelledby="explore-h">
+    <div class="section-head">
+      <h2 id="explore-h">What leaves your computer?</h2>
+      <p class="lede">Pick an action. Most never touch the network; two can, and only when you choose.</p>
+    </div>
+    <NetworkDemo idPrefix="pv-net" />
+  </section>
+
+  <section class="wrap section" aria-labelledby="data-h">
+    <div class="prose">
+      <h2 id="data-h">Where your data lives</h2>
+      <p>Everything is stored in one SQLite database in a private folder — <code>~/.reboundops</code> unless you choose another with <code>REBOUND_DATA_DIR</code>. The folder is created with permissions <code>0700</code> and the database with <code>0600</code>, so other user accounts on the machine cannot read it. A lock makes sure only one ReboundOps uses the folder at a time.</p>
+      <p>Your original resume file is kept in the same place. Imported files and pasted postings are treated as untrusted input: they are validated, stored and shown as plain text, never executed.</p>
+      <h3>You can take it with you</h3>
+      <ul>
+        <li>Full backups, optionally protected with a password (key from scrypt, encrypted with AES-256-GCM). The password cannot be recovered, so keep it safe.</li>
+        <li>Restore in the app — you see the record counts and type <code>RESTORE</code> to confirm, and a recovery copy of your current data is written first — or from the command line while ReboundOps is stopped.</li>
+        <li>Readable JSON and CSV exports.</li>
+      </ul>
+      <h3>How the local service protects you</h3>
+      <ul>
+        <li>It listens only on a loopback address and answers only to loopback host names, which defends against DNS rebinding.</li>
+        <li>It rejects requests from unknown web origins, requires JSON for every change (so other sites cannot post forms to it) and limits request sizes.</li>
+        <li>The web app ships with a strict Content-Security-Policy and loads nothing from the internet.</li>
+        <li>Logs never include request bodies or URLs. The default log level is <code>warn</code>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="wrap-wide section" aria-labelledby="ai-h">
+    <div class="section-head">
+      <h2 id="ai-h">AI is optional — and kept on a short leash</h2>
+      <p class="lede">With AI off, nothing changes about what ReboundOps can do. If you turn it on, it suggests; you decide.</p>
+    </div>
+    <AiDemo idPrefix="pv-ai" />
+    <div class="ai-notes prose">
+      <ul>
+        <li><b>Local first:</b> Ollama runs on your machine and uses a model you have already pulled yourself.</li>
+        <li><b>Cloud only with consent:</b> Anthropic, OpenAI, Gemini and OpenRouter adapters ask for consent on every request and send only the text and verified profile entries that task needs. Cloud providers have been tested with mocked requests only.</li>
+        <li><b>Keys stay out of the database:</b> API keys are read from environment variables and are never stored or displayed.</li>
+        <li><b>Grounded:</b> job descriptions are passed to models as quoted data, and output that adds facts not in your records is withheld.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="oss section" aria-labelledby="oss-h">
+    <div class="wrap-wide oss-grid">
+      <div>
+        <p class="eyebrow">Open source</p>
+        <h2 id="oss-h">MIT-licensed, with receipts</h2>
+      </div>
+      <div class="prose">
+        <p>ReboundOps is released under the <a href={docUrl('LICENSE')}>{LICENCE.id} licence</a>, copyright {LICENCE.year} {LICENCE.holder}. You can read, run, change and redistribute it under those terms. Third-party packages keep their own licences.</p>
+        <ul>
+          <li>Each release includes <a href={assetUrl('THIRD_PARTY_NOTICES.txt')}><code>THIRD_PARTY_NOTICES.txt</code></a> with the licence text of every third-party package that ships, and a <a href={assetUrl(`reboundops-${CURRENT.version}.sbom.json`)}>software bill of materials</a>.</li>
+          <li>The release audit checks licences against an allow-list, scans for secrets and machine-specific paths, and runs <code>npm audit</code>. The v{CURRENT.version} runtime had no known advisories when it was released.</li>
+          <li>The release archive is built in CI and published with SHA-256 checksums.</li>
+          <li><a href={docUrl('docs/PROVENANCE.md')}>Provenance notes</a> describe how the code was written. They do not claim to prove legal originality.</li>
+        </ul>
+        <p><a class="btn btn-ghost" href={REPO_URL}>Browse the repository <span class="arrow" aria-hidden="true">→</span></a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap section" aria-labelledby="site-h">
+    <div class="prose">
+      <h2 id="site-h">About this website</h2>
+      <p>This site is static. It sets no cookies, runs no analytics or tracking scripts, and loads its fonts from its own files. The only thing it stores in your browser is your light or dark theme choice, if you make one. Example data on this site — people, employers and postings — is fictional.</p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .explorer .section-head, .section .section-head { margin-bottom: var(--space-l); }
+  .ai-notes { margin-top: var(--space-l); }
+  .oss { background: var(--surface-2); border-block: 1px solid var(--line); }
+  .oss-grid { display: grid; gap: var(--space-l); }
+  @media (min-width: 900px) { .oss-grid { grid-template-columns: 1fr 1.6fr; } }
+  .oss h2 { font-size: var(--step-4); margin-top: var(--space-2xs); }
+</style>

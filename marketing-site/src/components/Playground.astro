@@ -1,0 +1,98 @@
+---
+/** ARIA tabs hosting the demos. Without JS every panel is shown in sequence. */
+import FitDemo from './demos/FitDemo.astro';
+import DocDemo from './demos/DocDemo.astro';
+import TrackerDemo from './demos/TrackerDemo.astro';
+import NetworkDemo from './demos/NetworkDemo.astro';
+import AiDemo from './demos/AiDemo.astro';
+
+const tabs = [
+  { id: 'fit', label: 'Fit score', title: 'Pick a job, see the reasoning' },
+  { id: 'docs', label: 'Documents', title: 'Drafts that show their sources' },
+  { id: 'tracker', label: 'Tracker', title: 'Move an application along' },
+  { id: 'network', label: 'Network', title: 'What leaves your computer' },
+  { id: 'ai', label: 'AI on/off', title: 'AI is a choice, not a requirement' },
+];
+---
+<div class="playground" data-tabs>
+  <div class="tablist" role="tablist" aria-label="Interactive examples">
+    {tabs.map((t, i) => (
+      <button type="button" role="tab" id={`pg-tab-${t.id}`} aria-controls={`pg-panel-${t.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
+        <span class="n mono" aria-hidden="true">0{i + 1}</span>{t.label}
+      </button>
+    ))}
+    <span class="ink" aria-hidden="true"></span>
+  </div>
+  {tabs.map((t, i) => (
+    <section class="panel" role="tabpanel" id={`pg-panel-${t.id}`} aria-labelledby={`pg-tab-${t.id}`} tabindex="0" data-active={i === 0 ? 'true' : 'false'}>
+      <h3 class="panel-title">{t.title}</h3>
+      {t.id === 'fit' && <FitDemo idPrefix="pg-fit" />}
+      {t.id === 'docs' && <DocDemo idPrefix="pg-doc" />}
+      {t.id === 'tracker' && <TrackerDemo />}
+      {t.id === 'network' && <NetworkDemo idPrefix="pg-net" />}
+      {t.id === 'ai' && <AiDemo idPrefix="pg-ai" />}
+    </section>
+  ))}
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((root) => {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = tabs.map((t) => document.getElementById(t.getAttribute('aria-controls')!)!);
+    const ink = root.querySelector<HTMLElement>('.ink');
+    const moveInk = (tab: HTMLElement) => {
+      if (!ink) return;
+      ink.style.setProperty('--x', `${tab.offsetLeft}px`);
+      ink.style.setProperty('--w', `${tab.offsetWidth}px`);
+    };
+    const select = (i: number, focus = false) => {
+      tabs.forEach((t, j) => {
+        const on = i === j;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        panels[j]!.dataset.active = String(on);
+        panels[j]!.hidden = !on;
+      });
+      if (focus) tabs[i]!.focus();
+      moveInk(tabs[i]!);
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(i));
+      t.addEventListener('keydown', (e) => {
+        const k = e.key;
+        let n = -1;
+        if (k === 'ArrowRight') n = (i + 1) % tabs.length;
+        else if (k === 'ArrowLeft') n = (i - 1 + tabs.length) % tabs.length;
+        else if (k === 'Home') n = 0;
+        else if (k === 'End') n = tabs.length - 1;
+        if (n >= 0) { e.preventDefault(); select(n, true); }
+      });
+    });
+    root.classList.add('is-enhanced');
+    select(0);
+    new ResizeObserver(() => moveInk(tabs.find((t) => t.getAttribute('aria-selected') === 'true')!)).observe(root);
+  });
+</script>
+
+<style>
+  .playground { display: grid; gap: var(--space-m); }
+  .tablist { position: relative; display: flex; gap: 0.25rem; overflow-x: auto; scrollbar-width: none; padding: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-pill); justify-self: start; max-width: 100%; }
+  .tablist::-webkit-scrollbar { display: none; }
+  [role='tab'] {
+    position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap;
+    min-height: 44px; padding: 0 1.05rem; border: 0; border-radius: var(--r-pill); background: transparent;
+    font-weight: 600; color: var(--ink-2); transition: color var(--dur-base) var(--ease-out);
+  }
+  [role='tab']:hover { color: var(--ink); }
+  [role='tab'][aria-selected='true'] { color: var(--btn-ink); }
+  .n { font-size: 0.72em; opacity: 0.7; }
+  .ink { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 0; width: var(--w, 0); transform: translateX(var(--x, 0)); background: var(--btn-bg); border-radius: var(--r-pill); transition: transform var(--dur-slow) var(--ease-out), width var(--dur-slow) var(--ease-out); }
+  html:not(.js) .ink { display: none; }
+  html:not(.js) [role='tab'] { color: var(--ink-2); }
+  .panel { display: grid; gap: var(--space-m); padding: clamp(1rem, 3vw, 2.25rem); background: var(--bg-sunk); border: 1px solid var(--line); border-radius: var(--r-xl); }
+  .panel:focus-visible { outline-offset: 4px; }
+  :global(.js) .panel[data-active='false'] { display: none; }
+  .panel-title { font-size: var(--step-3); }
+  .is-enhanced .panel[data-active='true'] { animation: panelIn var(--dur-slow) var(--ease-out); }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(12px); } }
+</style>

@@ -1,0 +1,176 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import StoryScroll from '../components/StoryScroll.astro';
+import Playground from '../components/Playground.astro';
+import FaqList from '../components/FaqList.astro';
+import CodeBlock from '../components/CodeBlock.astro';
+import { href, absolute } from '../lib/site';
+import { CURRENT, FAQS, REPO_URL, LICENCE, assetUrl } from '../data/product';
+import { softwareApplication, organizationLd } from '../lib/structured-data';
+
+const site = Astro.site;
+const jsonLd = [softwareApplication(site), organizationLd(site), { '@context': 'https://schema.org', '@type': 'WebSite', name: 'ReboundOps', url: absolute('/', site) }];
+---
+<Base
+  title="ReboundOps — a local-first, private job-search workspace"
+  description="Track postings, assess fit with evidence, tailor documents from verified facts and follow up — all on your own computer. Free, open source, AI optional."
+  path="/"
+  og="home"
+  jsonLd={jsonLd}
+>
+  <Hero />
+
+  <section class="promises section" aria-labelledby="promise-title">
+    <div class="wrap-wide promise-grid">
+      <h2 id="promise-title" class="promise-h" data-reveal>Built around what it <em>won’t</em> do.</h2>
+      <div class="lists">
+        <div class="never" data-reveal style="--i:1">
+          <p class="eyebrow">ReboundOps never</p>
+          <ul role="list">
+            <li>submits an application or sends a message for you</li>
+            <li>marks a job Applied unless you confirm it</li>
+            <li>invents employers, dates, skills or numbers in your documents</li>
+            <li>needs an account, a cloud service or AI</li>
+          </ul>
+        </div>
+        <div class="always" data-reveal style="--i:2">
+          <p class="eyebrow">You can always</p>
+          <ul role="list">
+            <li>see the sentence behind every extracted detail</li>
+            <li>edit every draft before you export it</li>
+            <li>back up, export or restore your data</li>
+            <li>read the source — it is MIT-licensed on GitHub</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <StoryScroll />
+
+  <section class="section-lg" aria-labelledby="try-title">
+    <div class="wrap-wide">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Try it here</p>
+        <h2 id="try-title">Play with the ideas, using made-up data</h2>
+        <p class="lede">These examples run in your browser with fictional people and employers. They show how ReboundOps explains itself; they are not connected to the app.</p>
+      </div>
+      <div data-reveal style="--i:1"><Playground /></div>
+    </div>
+  </section>
+
+  <section class="privacy section" aria-labelledby="privacy-title">
+    <div class="wrap-wide priv-grid">
+      <div class="priv-copy" data-reveal>
+        <p class="eyebrow">Private by architecture</p>
+        <h2 id="privacy-title">Your job search is personal. It stays on your machine.</h2>
+        <p class="lede">ReboundOps is a small service that listens only on your own computer and stores everything in one SQLite file in a private folder. There is no ReboundOps server to send anything to.</p>
+        <a class="btn btn-ghost" href={href('/privacy/')}>How privacy works <span class="arrow" aria-hidden="true">→</span></a>
+      </div>
+      <dl class="mechanisms">
+        <div data-reveal style="--i:1"><dt>Loopback only</dt><dd>Binds to 127.0.0.1 and answers only to loopback host names, a defence against DNS rebinding.</dd></div>
+        <div data-reveal style="--i:2"><dt>Private files</dt><dd>Data folder 0700, database 0600, and a lock so only one instance uses it.</dd></div>
+        <div data-reveal style="--i:3"><dt>Nothing remote</dt><dd>The app ships a strict Content-Security-Policy and loads no remote fonts, scripts or analytics.</dd></div>
+        <div data-reveal style="--i:4"><dt>Quiet logs</dt><dd>Request bodies and URLs are never logged.</dd></div>
+        <div data-reveal style="--i:5"><dt>Consent first</dt><dd>Discover and cloud AI ask before they make a network request.</dd></div>
+        <div data-reveal style="--i:6"><dt>Keys stay out</dt><dd>Cloud API keys are read from environment variables and never stored or shown.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="oss section" aria-labelledby="oss-title">
+    <div class="wrap-wide oss-grid">
+      <div class="oss-card" data-reveal>
+        <p class="eyebrow">Open source</p>
+        <h2 id="oss-title">Read it, build it, check it.</h2>
+        <p>ReboundOps is {LICENCE.id}-licensed. Each release ships with checksums, a software bill of materials and the licences of every third-party package it includes.</p>
+        <ul class="assets" role="list">
+          {CURRENT.assets.map((a) => (
+            <li><a href={assetUrl(a.name)}><code>{a.name}</code></a><span class="muted small">{a.what}</span></li>
+          ))}
+        </ul>
+        <a class="btn btn-ghost" href={REPO_URL}>View the source on GitHub <span class="arrow" aria-hidden="true">→</span></a>
+      </div>
+      <div class="install" data-reveal style="--i:1">
+        <p class="eyebrow">Install in three commands</p>
+        <h2 class="install-h">Needs Node.js 24 and a terminal.</h2>
+        <CodeBlock
+          label="Install and start ReboundOps from the release archive"
+          lines={[
+            '# after downloading and checking the archive',
+            `tar -xzf reboundops-${CURRENT.version}.tar.gz && cd reboundops-${CURRENT.version}`,
+            'npm ci --omit=dev --omit=optional --ignore-scripts',
+            'npm start',
+          ]}
+        />
+        <p class="small muted">Then open <code>http://127.0.0.1:4175</code>. There is no native installer yet; ReboundOps runs as a local Node.js service in your browser.</p>
+        <div class="cluster">
+          <a class="btn btn-primary" href={href('/download/')}>Download and install <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn btn-ghost" href={href('/docs/')}>Read the docs</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="faq-title">
+    <div class="wrap faq-grid">
+      <div data-reveal>
+        <p class="eyebrow">Questions</p>
+        <h2 id="faq-title">The short answers</h2>
+        <p class="muted">More in the <a href={href('/faq/')}>full FAQ</a>.</p>
+      </div>
+      <div data-reveal style="--i:1"><FaqList items={FAQS.filter((f) => f.home)} /></div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .promise-grid { display: grid; gap: var(--space-xl); align-items: start; }
+  @media (min-width: 960px) { .promise-grid { grid-template-columns: 0.9fr 1.4fr; } }
+  .promise-h { font-size: var(--step-4); }
+  .promise-h em { font-style: normal; color: var(--accent-ink); }
+  .lists { display: grid; gap: var(--space-m); }
+  @media (min-width: 680px) { .lists { grid-template-columns: 1fr 1fr; } }
+  .lists > div { border-radius: var(--r-lg); padding: var(--space-m); display: grid; gap: var(--space-s); align-content: start; }
+  .never { background: var(--surface); border: 1px solid var(--line); }
+  .always { background: var(--tide-soft); }
+  .always .eyebrow { color: var(--tide); }
+  .lists ul { list-style: none; padding: 0; display: grid; gap: 0.7rem; font-size: var(--step-1); line-height: 1.4; }
+  .never li { padding-left: 1.6rem; position: relative; }
+  .never li::before { content: ''; position: absolute; left: 0; top: 0.55em; width: 0.9rem; height: 2px; background: var(--bad); transform: rotate(-45deg); }
+  .never li::after { content: ''; position: absolute; left: 0; top: 0.55em; width: 0.9rem; height: 2px; background: var(--bad); transform: rotate(45deg); }
+  .always li { padding-left: 1.6rem; position: relative; }
+  .always li::before { content: ''; position: absolute; left: 0.15rem; top: 0.25em; width: 0.4rem; height: 0.75rem; border: solid var(--tide); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+
+  .privacy { background: var(--surface-2); border-block: 1px solid var(--line); }
+  .priv-grid { display: grid; gap: var(--space-xl); }
+  @media (min-width: 980px) { .priv-grid { grid-template-columns: 1fr 1.2fr; align-items: center; } }
+  .priv-copy { display: grid; gap: var(--space-m); justify-items: start; }
+  .mechanisms { display: grid; gap: 0; border-top: 1px solid var(--line-strong); }
+  .mechanisms > div { display: grid; grid-template-columns: 9.5rem 1fr; gap: var(--space-s); padding: var(--space-s) 0; border-bottom: 1px solid var(--line); }
+  @media (max-width: 520px) { .mechanisms > div { grid-template-columns: 1fr; gap: 0.2rem; } }
+  .mechanisms dt { font-weight: 700; font-family: var(--font-display); font-size: var(--step-1); letter-spacing: -0.01em; }
+  .mechanisms dd { color: var(--ink-2); }
+
+  .oss-grid { display: grid; gap: var(--space-m); }
+  @media (min-width: 980px) { .oss-grid { grid-template-columns: 1fr 1.15fr; } }
+  .oss-card, .install { border-radius: var(--r-xl); padding: clamp(1.25rem, 3vw, 2.5rem); display: grid; gap: var(--space-m); align-content: start; justify-items: start; }
+  .oss-card { background: var(--signal); color: var(--signal-ink); }
+  .oss-card .eyebrow { color: var(--signal-ink); }
+  .oss-card .btn-ghost { border-color: var(--signal-ink); color: var(--signal-ink); }
+  .oss-card .btn-ghost:hover { background: rgb(0 0 0 / 0.06); }
+  .oss-card .muted { color: #3a3a1c; }
+  .oss-card code { background: rgb(255 255 255 / 0.5); border-color: rgb(0 0 0 / 0.15); }
+  .assets { list-style: none; padding: 0; display: grid; gap: 0.5rem; width: 100%; }
+  .assets li { display: grid; gap: 0.1rem; }
+  .assets a { text-decoration: none; }
+  .assets a:hover code { text-decoration: underline; }
+  .install { background: var(--surface); border: 1px solid var(--line); }
+  .install > :global(.code) { width: 100%; }
+  .install-h { font-size: var(--step-3); }
+
+  .faq-grid { display: grid; gap: var(--space-l); }
+  @media (min-width: 900px) { .faq-grid { grid-template-columns: 0.8fr 1.6fr; } }
+  .faq-grid h2 { font-size: var(--step-4); margin-block: var(--space-2xs) var(--space-s); }
+</style>

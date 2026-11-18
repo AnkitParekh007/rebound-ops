@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+import FaqList from '../components/FaqList.astro';
+import { FAQS, REPO_URL } from '../data/product';
+import { href } from '../lib/site';
+import { faqLd, breadcrumbLd } from '../lib/structured-data';
+---
+<Base
+  title="FAQ"
+  description="Answers about ReboundOps: whether it applies for you (it doesn't), whether AI is required (it isn't), where data is stored, network use, platforms, fit scores and importing data."
+  path="/faq/"
+  og="faq"
+  jsonLd={[faqLd(FAQS), breadcrumbLd(Astro.site, [{ name: 'Home', path: '/' }, { name: 'FAQ', path: '/faq/' }])]}
+>
+  <header class="page-hero wrap">
+    <p class="eyebrow">FAQ</p>
+    <h1>Frequently asked questions</h1>
+    <p class="lede">Straight answers, including the limits. If yours isn’t here, the <a href={href('/docs/')}>documentation</a> or the <a href={REPO_URL}>repository</a> may help.</p>
+  </header>
+  <section class="wrap" aria-label="Questions and answers">
+    <FaqList items={FAQS} />
+  </section>
+</Base>
+
+<style>
+  section { padding-bottom: var(--space-xl); max-width: 60rem; }
+</style>
