@@ -1,0 +1,31 @@
+# Dependabot version updates. Security updates are enabled separately in the repository settings.
+# Pull requests still have to pass the verify and e2e CI jobs, including the strict release audit
+# (licences, secrets, npm audit), before they can be merged.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "Deps"
+    groups:
+      angular:
+        patterns: ["@angular/*", "@angular-devkit/*"]
+      lint-and-types:
+        patterns: ["eslint", "@eslint/*", "typescript-eslint", "typescript", "@types/*", "globals", "prettier"]
+      test-tooling:
+        patterns: ["vitest", "@vitest/*", "@playwright/test", "jsdom", "axe-core"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "CI"

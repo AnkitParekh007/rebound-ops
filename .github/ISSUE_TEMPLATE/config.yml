@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (privately)
+    url: https://github.com/AnkitParekh007/rebound-ops/security/advisories/new
+    about: Please do not report vulnerabilities in public issues. Use private vulnerability reporting instead.
+  - name: Install and usage help
+    url: https://github.com/AnkitParekh007/rebound-ops/blob/main/SUPPORT.md
+    about: Read the support guide before opening an issue.

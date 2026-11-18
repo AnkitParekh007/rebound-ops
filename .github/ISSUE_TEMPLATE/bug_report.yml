@@ -1,0 +1,120 @@
+name: Bug report
+description: Something in ReboundOps does not work as documented.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        **Issues are public. Use fictional data only.** Do not paste your real resume, contact details, job postings, database files, backups or API keys. Redact paths that contain your name.
+
+        Security vulnerabilities must be reported privately; see SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: ReboundOps version
+      description: The release (for example 0.2.0) or the commit (`git rev-parse --short HEAD`).
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - Release archive (npm start)
+        - Source checkout, production build (npm run build && npm start)
+        - Source checkout, development servers (dev:api and dev:web)
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux
+        - Windows
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      description: Output of `node --version`.
+      placeholder: "v24.x.x"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Onboarding or profile
+        - Resume import
+        - Discover (job boards)
+        - Job intake
+        - Assessment (fit or eligibility)
+        - Documents (tailoring, PDF or DOCX)
+        - Preparation (screening answers)
+        - Tracking, contacts, reminders or follow-ups
+        - Overview
+        - Backup, restore, import or export
+        - AI (Ollama or cloud provider)
+        - Installation or start-up
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: ai
+    attributes:
+      label: AI mode
+      options:
+        - Local only (no AI)
+        - Ollama
+        - Cloud provider
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use fictional data. The fixtures in tests/fixtures/ are a good starting point.
+      placeholder: |
+        1. Go to …
+        2. Paste the fictional posting …
+        3. Click …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include any error message shown in the app or printed in the terminal. Remove any personal information first.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal output (optional)
+      description: ReboundOps does not log request bodies or URLs, but check the output for personal paths before pasting it.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues, including closed ones.
+          required: true
+        - label: This report contains no real personal data, keys, database files or backups.
+          required: true
