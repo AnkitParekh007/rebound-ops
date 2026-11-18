@@ -1,13 +1,27 @@
 # Release readiness — ReboundOps 0.2.0 (release candidate, not published)
 
-_Branch `feature/v0.2.0`, built from commit 7845367 on 2026-11-18. Nothing pushed, tagged or published._
+_Branch `feature/v0.2.0`, built from commit 0e06154 on 2026-11-18. The branch is pushed to GitHub; nothing is merged to `main`, tagged or published._
 
 ## Verdict
 
-**Ready for owner review as a 0.2.0 release candidate.** Every phase is implemented and every
-local gate passes. Two things are still open. The new browser tests (`tests/e2e/v020-features.spec.ts`)
-have not run yet, because Chrome cannot start in the development sandbox; they need a CI run after
-an approved push. Live cloud-AI requests are still untested (mocked only). The v0.1.0 pre-release is untouched.
+**Ready for owner approval to merge, tag and publish 0.2.0 as a pre-release.** Every phase is implemented,
+every local gate passes, and GitHub Actions CI is green for the branch (see below). Live cloud-AI requests
+are still untested (mocked only). The v0.1.0 pre-release is untouched.
+
+## CI verification (GitHub Actions, 2026-11-18)
+
+Run [44352872985](https://github.com/AnkitParekh007/rebound-ops/actions/runs/44352872985) on commit `0e06154`: **success**.
+
+- `verify` job: `npm ci`, lint, typecheck, `npm test`, smoke, build, `test:packaged`, `test:exports`,
+  `audit:release` (strict), `package:release` and `verify:release` (fresh install and real upgrade from the `v0.1.0` tag) all passed.
+- `e2e` job: all six browser tests passed twice, against the Angular dev server and against the production
+  build served by the API (`PW_PACKAGED=1`), including the five v0.2.0 tests.
+- Artifacts: `release-candidate` and `sbom`.
+
+The first CI run (44350531850 on `a5d179c`) failed two of the new browser tests. One was a test selector
+that matched two text boxes. The other was a real bug: the API rejected a body-less `DELETE` carrying
+`Content-Length: 0` with 415, so deleting (and undoing) contacts and reminders failed in the browser. Fixed in
+`0e06154` with an API regression test; no assertion was weakened.
 
 ## Local verification (actual results, 2026-11-18)
 
@@ -16,14 +30,14 @@ an approved push. Live cloud-AI requests are still untested (mocked only). The v
 | `npm ci` | pass |
 | `npm run lint` | pass (ESLint: no issues) |
 | `npm run typecheck` | pass |
-| `npm test` | pass — 215 backend/API/integration tests (24 files) and 33 Angular tests (10 files, including 12 axe accessibility checks and a negative control) |
+| `npm test` | pass — 216 backend/API/integration tests (24 files) and 33 Angular tests (10 files, including 12 axe accessibility checks and a negative control) |
 | `npm run test:smoke` | pass — data survives an API restart; packaged web app served |
 | `npm run build` | pass |
 | `npm run test:packaged` | pass — production build served with CSP/nosniff/frame headers; a second process is refused by the lock |
 | `npm run audit:release` | pass — runtime: 0 advisories; dev tooling: one reviewed, accepted advisory (picomatch GHSA-fc5q-39xc-vjpf, no fixed version exists) |
 | `npm run test:exports` | pass — DOCX via macOS textutil, PDF via Apple PDFKit |
-| `npm run test:e2e` | **not run locally**: Chrome cannot launch in the sandbox (`bootstrap_check_in … Permission denied`). Runs in CI in dev-server mode and against the packaged build |
-| `npm run package:release` | pass — 138 files, 414 KB; byte-identical when rebuilt from the same commit |
+| `npm run test:e2e` | **not run locally**: Chrome cannot launch in the sandbox (`bootstrap_check_in … Permission denied`). Passed in CI in dev-server mode and against the packaged build (see above) |
+| `npm run package:release` | pass — 138 files, 417 KB; byte-identical when rebuilt from the same commit |
 | `npm run verify:release` | pass — checksums; fresh production install (no dev/optional packages) serves the app, imports a PDF, shuts down cleanly; the real v0.1.0 from its tag runs on schema 3, creates records and a backup, upgrades in place to schema 4 keeping applications, the original submission date, contacts, reminders and profile; this release restores the v0.1.0 backup |
 
 Also checked live, with a locally installed Ollama model (`llama3.2:3b`, nothing downloaded, no cost):
@@ -34,9 +48,9 @@ suggested question that named a tool not in the records.
 
 | File | SHA-256 |
 | --- | --- |
-| `reboundops-0.2.0.tar.gz` | `790ea1b143009ba4dcf2ecbf03767b69a1e9d5d721911404be55a59c640d54fa` |
+| `reboundops-0.2.0.tar.gz` | `3f6d8049300b3ce1aa030766d6d524453d15f58c5cae2aeb33f33722c7557bd0` |
 | `THIRD_PARTY_NOTICES.txt` | `833e81f79d1b6988042afaade43497f1e5a7303401ce17559db91bc5f28476ce` |
-| `reboundops-0.2.0.sbom.json` | `24cd212ab7b5eeb4913af09a9304e35d6a601a9e13fecc104431aa263155998e` |
+| `reboundops-0.2.0.sbom.json` | `c216ff8cd98efac800a74d1f8335119a612e564421988e97f13214e4c28b18ab` |
 | `SHA256SUMS` | checksums of the three files above |
 
 The archive holds tracked source without tests or CI files, the prebuilt web app and `RELEASE-INFO.json`.
@@ -81,11 +95,11 @@ workflow artifact.
 
 ## Recommendation
 
-1. Owner review of this branch. Then approve a push of `feature/v0.2.0`, or a merge to `main` and a push,
-   so CI runs the new browser tests, the packaged E2E and release verification.
-2. If CI is green, tag `v0.2.0` and publish a GitHub pre-release with the CI-built `release-candidate` artifact
-   files attached (each step needs your approval).
-3. Next release: OCR-free improvements to PDF layout handling, more official sources where documented
+1. Done: `feature/v0.2.0` pushed and CI green (run 44352872985).
+2. Merge `feature/v0.2.0` into `main` (fast-forward), push `main` and confirm CI on `main`.
+3. Tag `v0.2.0` on that commit, push the tag, and publish a GitHub pre-release with the CI-built
+   `release-candidate` artifact files attached (each step needs owner approval).
+4. Next release: OCR-free improvements to PDF layout handling, more official sources where documented
    APIs exist, an optional per-provider discovery schedule, and a separate authorised legacy export session.
 
 ---
