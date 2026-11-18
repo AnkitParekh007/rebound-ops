@@ -28,7 +28,11 @@ test('Journey: first launch → onboarding → preferences → job intake → as
   await page.getByRole('button', { name: 'Read pasted text' }).click();
   await expect(page.getByRole('heading', { name: /Review what was found/ })).toBeVisible();
   await page.getByRole('button', { name: 'Add selected to profile' }).click();
-  for (const box of await page.getByRole('checkbox', { name: /I have checked this entry is accurate|^Verified$/ }).all()) await box.check();
+  // Wait for the imported entries to render: locator.all() does not wait.
+  const verifyBoxes = page.getByRole('checkbox', { name: /I have checked this entry is accurate|^Verified$/ });
+  await expect(page.getByRole('checkbox', { name: 'I have checked this entry is accurate' }).first()).toBeVisible();
+  for (const box of await verifyBoxes.all()) await box.check();
+  for (const box of await verifyBoxes.all()) await expect(box).toBeChecked();
   await page.getByLabel('Name', { exact: true }).fill('Alex Fictional');
   await page.getByLabel('Preferred countries').fill('Portugal, Spain');
   await page.getByRole('checkbox', { name: 'Hybrid' }).check();
