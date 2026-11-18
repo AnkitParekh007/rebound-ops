@@ -20,7 +20,7 @@ All rows were run from a **fresh `git clone` of the committed tree** (commit `ff
 | Clean install | `npm ci` | ✅ pass. npm 11 skipped 4 optional install scripts (`esbuild`, `lmdb`, `msgpackr-extract`, `@parcel/watcher`); the build works without them |
 | Lint | `npm run lint` | ✅ no issues (exit 0) |
 | Typecheck | `npm run typecheck` | ✅ pass (backend, Angular app, specs) |
-| Unit, API, security, integration tests | `npm test` | ✅ 138 backend tests, 18 Angular tests |
+| Unit, API, security, integration tests | `npm test` | ✅ 139 backend tests, 18 Angular tests |
 | 13-step journey, AI off and AI on | `tests/integration/journey.test.ts` | ✅ pass through the real HTTP API, an on-disk database and a restart |
 | Backup, restore, import rollback | `tests/integration/backup-restore.test.ts` | ✅ pass (full round trip, 6 kinds of bad backup refused, lock enforced, failed import leaves nothing behind) |
 | Persistence across restart, packaged serving | `npm run test:smoke` | ✅ pass |
@@ -55,6 +55,7 @@ Ordered by severity. "Fixed" means it was changed, tested and committed locally.
 | D7 | Low | Docs and UI called the JSON export "full". | **Fixed** `f63419a` and this update |
 | D8 | Low | The fictional resume used a realistic-looking phone number. | **Fixed** `4842e63` |
 | D9 | Low | There was no way to check a legacy export file without a database, and no written procedure. | **Fixed** `0401a20`: `npm run import:check` and [LEGACY_EXPORT_PROCEDURE.md](LEGACY_EXPORT_PROCEDURE.md) |
+| D10 | High | Duplicate detection missed the same posting saved again **without its URL**, from a **different site**, or with the location typed differently (found by the extended E2E in CI run 44286231135). | **Fixed**: several signals (same posting URL, same employer and title, same description), each reported with its reason; "Save anyway" stays available |
 | O1 | Medium | The extended E2E has not run. | **Open**: needs an approved push and a CI run |
 | O2 | Low | Dev-tooling `picomatch` advisory. | **Open, accepted** (no upstream fix, not shipped) |
 | O3 | Low | Backups are not encrypted. | **Open**, documented in Settings ("keep it somewhere private") |
@@ -68,7 +69,7 @@ Ordered by severity. "Fixed" means it was changed, tested and committed locally.
 | --- | --- | --- |
 | Onboarding, skip, back/next, AI mode | Integration journey, Angular tests, E2E (CI, earlier spec) | ✅ |
 | Resume import and fact verification | API tests, integration journey, E2E | ✅ |
-| Job intake, evidence, unverified label, duplicates | API tests (409 `duplicate_job`), importer tests; E2E duplicate step added | ✅ (E2E step pending CI) |
+| Job intake, evidence, unverified label, duplicates | API tests (URL, missing URL, other URL, edited location, same description, save anyway), importer tests; E2E duplicate step | ✅ (E2E step pending CI) |
 | Fit 0–5 rubric and eligibility statuses | Deterministic unit tests, integration journey, E2E | ✅ |
 | Tailored resume and cover letter, editing | API tests, integration journey; E2E edit step added | ✅ (E2E step pending CI) |
 | PDF and DOCX export with content checks | Unit tests, integration journey, independent macOS read-back, E2E PDF | ✅ |

@@ -90,3 +90,31 @@ export function checkGrounding(job: {
   check('salary', job.salary, job.provenance.salary);
   return problems;
 }
+
+export interface DuplicateMatch {
+  jobId: string;
+  reason: 'same_posting_url' | 'same_employer_and_title' | 'same_description';
+}
+
+/**
+ * Likely duplicates of a new job among saved ones. Uses several independent
+ * signals, because the same posting is often saved once with a URL and once
+ * without, from two different sites, or with the location typed differently.
+ * The caller lets the person save anyway: two openings can share a title.
+ */
+export function findDuplicates(
+  candidate: Pick<JobCreate, 'sourceUrl' | 'employer' | 'title' | 'location' | 'description'>,
+  saved: readonly { id: string; sourceUrl: string | null; employer: string; title: string; description: string }[],
+): DuplicateMatch[] {
+  const url = candidate.sourceUrl ? canonicalUrl(candidate.sourceUrl) : null;
+  const who = `${squash(candidate.employer)}|${squash(candidate.title)}`;
+  const text = squash(normalizeDescription(candidate.description ?? ''));
+  const matches: DuplicateMatch[] = [];
+  for (const job of saved) {
+    const jobUrl = job.sourceUrl ? canonicalUrl(job.sourceUrl) : null;
+    if (url && jobUrl && url === jobUrl) matches.push({ jobId: job.id, reason: 'same_posting_url' });
+    else if (squash(job.employer) && who === `${squash(job.employer)}|${squash(job.title)}`) matches.push({ jobId: job.id, reason: 'same_employer_and_title' });
+    else if (text.length >= 40 && text === squash(normalizeDescription(job.description))) matches.push({ jobId: job.id, reason: 'same_description' });
+  }
+  return matches;
+}

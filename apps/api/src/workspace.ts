@@ -66,7 +66,7 @@ import {
   normalizeList,
   summarize,
 } from '@reboundops/core';
-import { assess, checkGrounding, dedupeKey, extractJob, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
+import { assess, checkGrounding, dedupeKey, extractJob, findDuplicates, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
 import type { Store } from '@reboundops/storage';
 import { ImportFormatError, planImport, type ImportPlan } from '@reboundops/importer';
 import { checklist, draftAnswer, emptyPackage, followUpDraft } from '@reboundops/applications';
@@ -189,10 +189,11 @@ export class Workspace {
     }
 
     const key = dedupeKey(candidate);
-    const existing = this.store.findJobsByDedupeKey(key);
-    if (existing.length && !req.allowDuplicate) {
+    const matches = findDuplicates(candidate, this.store.listJobs());
+    if (matches.length && !req.allowDuplicate) {
       throw new AppError(409, 'duplicate_job', 'This job looks like one you already saved.', {
-        existingJobIds: existing.map((j) => j.id),
+        existingJobIds: [...new Set(matches.map((m) => m.jobId))],
+        matches,
       });
     }
 

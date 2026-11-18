@@ -33,7 +33,7 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 | M7 UX completion | ✅ Done | Settings page, focus + live-region on navigation, job edit (provenance → user), delete with confirmation, tracker sort, axe checks on 8 views (with negative control), contrast-safe tokens in both themes (audit) |
 | M8 Import from earlier version | ✅ Done (synthetic data only) | `reboundops-import` v1 + own export round-trip; strict validation, per-record rejection, staged preview token, confirmed single-transaction commit (rollback tested), no overwrites, unverified facts; `npm run import:check`; [LEGACY_EXPORT_PROCEDURE.md](LEGACY_EXPORT_PROCEDURE.md). Real legacy migration pending a separately authorised export |
 | M9 Security & originality | ✅ Done | Loopback/Host/Origin/JSON guards, cross-site request refusal (audit), body limits, error/log hygiene, header injection, traversal, CSP-safe build, data-folder lock, CI workflow, PROVENANCE.md |
-| M10 Comprehensive testing | ✅ Done (extended E2E pending CI) | 138 backend + 18 Angular tests; 13-step journey AI off/on; backup/restore, import rollback, AI timeouts/consent, a11y. Earlier Playwright journey green in CI; the extended journey has not run yet |
+| M10 Comprehensive testing | ✅ Done (extended E2E pending CI) | 139 backend + 18 Angular tests; 13-step journey AI off/on; backup/restore, import rollback, AI timeouts/consent, a11y. Earlier Playwright journey green in CI; the extended journey has not run yet |
 | M11 Packaging & release | ✅ Done locally | `npm ci && npm run build && npm start` on one port; fresh-clone install and production start validated; lossless backup + `npm run restore`; `docs/RELEASE_READINESS.md` |
 
 ## Completed features (by package)
@@ -51,7 +51,7 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 
 ## Test results (latest run, fresh clone of `ff979af`, 2026-11-18)
 
-- Backend/API/integration (Vitest): 138 passed (incl. security suite, 2 acceptance journeys, backup/restore and import rollback).
+- Backend/API/integration (Vitest): 139 passed (incl. security suite, 2 acceptance journeys, backup/restore and import rollback).
 - Angular (Vitest/jsdom): 18 passed (incl. 9 axe accessibility checks, one of them a negative control).
 - Smoke restart, build, release audit, independent export read-back: pass. Production start from the clone: pass.
 - One real local inference through `/api/ai/rewrite` with an installed Ollama model: accepted.
@@ -59,7 +59,7 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 
 ## Local commits (newest first)
 
-See `git log --oneline`. Post-milestone audit commits: `f63419a` backup/restore + lock, `e291254` AI errors, `0401a20` import check, `58366be` cross-site guard, `4842e63` fixture, `ff979af` contrast + tests, plus this docs update.
+See `git log --oneline`. Post-milestone audit commits: `f63419a` backup/restore + lock, `e291254` AI errors, `0401a20` import check, `58366be` cross-site guard, `4842e63` fixture, `ff979af` contrast + tests, `29d575d` E2E locator, multi-signal duplicate detection (found by the extended E2E), plus docs updates.
 
 ## Known defects / limitations
 

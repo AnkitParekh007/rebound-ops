@@ -164,6 +164,28 @@ describe('job intake', () => {
     });
     expect(dup.statusCode).toBe(409);
     expect(dup.json().error.details.existingJobIds).toHaveLength(1);
+    expect(dup.json().error.details.matches[0].reason).toBe('same_posting_url');
+  });
+
+  it('flags the same posting saved again without its URL, with another URL, or with an edited location', async () => {
+    const { job } = await saveLabelledJob();
+    const user = { origin: 'user', evidence: null };
+    const prov = { title: user, employer: user, location: user, salary: null };
+    const cases = [
+      { body: { title: job.title, employer: job.employer, description: fixture('labelled.txt') }, reason: 'same_employer_and_title' },
+      { body: { title: 'senior platform engineer ', employer: 'BRIGHTWATER ANALYTICS', location: 'Lisbon (hybrid)', sourceUrl: 'https://jobs.example.test/listing/9' }, reason: 'same_employer_and_title' },
+      { body: { title: 'Platform Engineer II', employer: 'Brightwater', description: fixture('labelled.txt') }, reason: 'same_description' },
+    ];
+    for (const { body, reason } of cases) {
+      const res = await send('POST', '/api/jobs', { ...body, provenance: prov });
+      expect(res.statusCode, JSON.stringify(body)).toBe(409);
+      expect(res.json().error.details).toMatchObject({ existingJobIds: [job.id], matches: [{ jobId: job.id, reason }] });
+    }
+    // Different employer, title and description: not a duplicate.
+    const other = await send('POST', '/api/jobs', { title: 'Data Analyst', employer: 'Fictional Co', description: 'Analyse data for a fictional company.', provenance: prov });
+    expect(other.statusCode).toBe(201);
+    // Saving anyway is always possible.
+    expect((await send('POST', '/api/jobs', { ...cases[0]!.body, provenance: prov, allowDuplicate: true })).statusCode).toBe(201);
   });
 });
 
