@@ -93,6 +93,44 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX reminders_due ON reminders (done, due_on);
     `,
   },
+  {
+    version: 4,
+    name: 'soft_delete_interviews_discovery',
+    sql: `
+      -- Deleted contacts and reminders are kept for a while so they can be restored (Undo).
+      ALTER TABLE contacts ADD COLUMN deleted_at TEXT;
+      ALTER TABLE reminders ADD COLUMN deleted_at TEXT;
+
+      -- Interview notes and preparation records.
+      CREATE TABLE interview_notes (
+        id             TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL REFERENCES applications (id) ON DELETE CASCADE,
+        at             TEXT NOT NULL,
+        data           TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX interview_notes_application ON interview_notes (application_id, at);
+
+      -- Postings found through official job-board interfaces, before the person saves any.
+      CREATE TABLE discovered_jobs (
+        id          TEXT PRIMARY KEY,
+        source      TEXT NOT NULL,
+        board       TEXT NOT NULL,
+        posting_id  TEXT NOT NULL,
+        fetched_at  TEXT NOT NULL,
+        data        TEXT NOT NULL,
+        UNIQUE (source, board, posting_id)
+      ) STRICT;
+      CREATE INDEX discovered_jobs_fetched ON discovered_jobs (fetched_at);
+
+      -- Responsible caching of official job-board responses.
+      CREATE TABLE source_cache (
+        key         TEXT PRIMARY KEY,
+        fetched_at  TEXT NOT NULL,
+        expires_at  TEXT NOT NULL,
+        data        TEXT NOT NULL
+      ) STRICT;
+    `,
+  },
 ];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS.at(-1)?.version ?? 0;

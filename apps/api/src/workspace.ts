@@ -10,6 +10,7 @@ import {
   type ImportResult,
   type RewriteResult,
   type Contact,
+  type DeletedItem,
   type FollowUpDraft,
   type Reminder,
   type ApplicationPackage,
@@ -60,6 +61,8 @@ import {
   addDays,
   allowedTransitions,
   checkTransition,
+  isReopen,
+  STATUS_LABELS,
   defaultOnboarding,
   defaultProfile,
   mergeOnboarding,
@@ -94,6 +97,9 @@ import {
   ZipError,
 } from '@reboundops/documents';
 import { AppError, notFound } from './errors.ts';
+
+/** How long deleted contacts and reminders stay restorable. */
+export const UNDO_DAYS = 30;
 
 export interface WorkspaceOptions {
   now?: () => Date;
@@ -279,7 +285,7 @@ export class Workspace {
     return this.store.listApplications().flatMap((app) => {
       const job = jobs.get(app.jobId);
       return job
-        ? [{ ...app, job, activity: activity.get(app.id) ?? [], allowedNext: [...allowedTransitions(app.status)] }]
+        ? [{ ...app, job, activity: activity.get(app.id) ?? [], allowedNext: [...allowedTransitions(app.status, { previouslySubmitted: app.appliedConfirmedAt !== null })] }]
         : [];
     });
   }
@@ -289,7 +295,7 @@ export class Workspace {
     if (!app) throw notFound('Application');
     const job = this.store.getJob(app.jobId);
     if (!job) throw notFound('Job');
-    return { ...app, job, activity: this.store.listActivity(id), allowedNext: [...allowedTransitions(app.status)] };
+    return { ...app, job, activity: this.store.listActivity(id), allowedNext: [...allowedTransitions(app.status, { previouslySubmitted: app.appliedConfirmedAt !== null })] };
   }
 
   transition(id: string, input: unknown): ApplicationView {
@@ -297,7 +303,8 @@ export class Workspace {
     const app = this.store.getApplication(id);
     if (!app) throw notFound('Application');
 
-    const check = checkTransition(app.status, req.to, req.confirmSubmitted);
+    const previouslySubmitted = app.appliedConfirmedAt !== null;
+    const check = checkTransition(app.status, req.to, req.confirmSubmitted, { previouslySubmitted });
     if (!check.ok) {
       const status = check.code === 'confirmation_required' ? 428 : 409;
       throw new AppError(status, check.code, check.message);
@@ -309,10 +316,17 @@ export class Workspace {
       status: req.to,
       updatedAt: at,
       statusChangedAt: at,
-      appliedConfirmedAt: req.to === 'applied' ? at : app.appliedConfirmedAt,
+      // The first confirmed submission time is kept for good; later moves never overwrite it.
+      appliedConfirmedAt: app.appliedConfirmedAt ?? (req.to === 'applied' ? at : null),
     };
     let note = req.note;
-    if (req.to === 'applied') {
+    const reopened = isReopen(app.status, req.to);
+    if (reopened) {
+      note = [note, `Reopened from ${STATUS_LABELS[app.status]}. Earlier history is kept.`].filter(Boolean).join(' ');
+    }
+    if (req.to === 'applied' && previouslySubmitted) {
+      note = [note, `Original submission date kept (${app.appliedConfirmedAt!.slice(0, 10)}).`].filter(Boolean).join(' ');
+    } else if (req.to === 'applied') {
       const view = this.getPackage(id);
       const required = view.checklist.filter((i) => !i.optional);
       const done = required.filter((i) => i.done).length;
@@ -320,8 +334,8 @@ export class Workspace {
     }
     this.store.transaction(() => {
       this.store.upsertApplication(next);
-      this.store.addActivity(this.activity(id, 'status_changed', app.status, req.to, note, at));
-      if (req.to === 'applied' && !this.store.listReminders(id).some((r) => !r.done)) {
+      this.store.addActivity(this.activity(id, reopened ? 'reopened' : 'status_changed', app.status, req.to, note, at));
+      if (req.to === 'applied' && !previouslySubmitted && !this.store.listReminders(id).some((r) => !r.done)) {
         this.store.upsertReminder({ id: this.newId(), applicationId: id, dueOn: addDays(this.now(), 7), label: 'Follow up if you have not heard back', done: false, doneAt: null, createdAt: at });
       }
     });
@@ -561,14 +575,43 @@ export class Workspace {
     if (contactId && !existing) throw notFound('Contact');
     return this.store.transaction(() => {
       const saved = this.store.upsertContact({ ...c, id: existing?.id ?? this.newId(), applicationId, createdAt: existing?.createdAt ?? at, updatedAt: at });
-      if (!existing) this.store.addActivity(this.activity(applicationId, 'note', null, null, `Added contact ${saved.name}${saved.role ? ` (${saved.role})` : ''}.`, at));
+      this.store.addActivity(
+        this.activity(applicationId, 'contact', null, null, existing ? `Updated contact ${saved.name}.` : `Added contact ${saved.name}${saved.role ? ` (${saved.role})` : ''}.`, at),
+      );
       return saved;
     });
   }
 
-  deleteContact(applicationId: string, contactId: string): void {
-    if (!this.store.listContacts(applicationId).some((c) => c.id === contactId)) throw notFound('Contact');
-    this.store.deleteContact(contactId);
+  /** Soft-deletes a contact; it can be restored for UNDO_DAYS. */
+  deleteContact(applicationId: string, contactId: string): DeletedItem {
+    const c = this.store.listContacts(applicationId).find((x) => x.id === contactId);
+    if (!c) throw notFound('Contact');
+    const at = this.now().toISOString();
+    this.store.transaction(() => {
+      this.store.deleteContact(contactId, at);
+      this.store.addActivity(this.activity(applicationId, 'contact', null, null, `Removed contact ${c.name}.`, at));
+    });
+    return { id: contactId, kind: 'contact', label: c.name, deletedAt: at, undoUntil: this.undoUntil(at) };
+  }
+
+  restoreContact(applicationId: string, contactId: string): Contact {
+    const d = this.store.getDeletedContact(contactId);
+    if (!d || d.contact.applicationId !== applicationId) throw notFound('Deleted contact');
+    const at = this.now().toISOString();
+    return this.store.transaction(() => {
+      const c = this.store.restoreContact(contactId)!;
+      this.store.addActivity(this.activity(applicationId, 'contact', null, null, `Restored contact ${c.name}.`, at));
+      return c;
+    });
+  }
+
+  private undoUntil(at: string): string {
+    return new Date(Date.parse(at) + UNDO_DAYS * 86_400_000).toISOString();
+  }
+
+  /** Permanently removes items deleted longer than UNDO_DAYS ago. */
+  purgeExpiredDeletes(): number {
+    return this.store.purgeDeleted(new Date(this.now().getTime() - UNDO_DAYS * 86_400_000).toISOString());
   }
 
   listReminders(applicationId: string): Reminder[] {
@@ -579,7 +622,12 @@ export class Workspace {
   addReminder(applicationId: string, input: unknown): Reminder {
     this.getApplication(applicationId);
     const r = ReminderInput.parse(input);
-    return this.store.upsertReminder({ ...r, id: this.newId(), applicationId, done: false, doneAt: null, createdAt: this.now().toISOString() });
+    const at = this.now().toISOString();
+    return this.store.transaction(() => {
+      const saved = this.store.upsertReminder({ ...r, priority: r.priority ?? 'normal', notes: r.notes ?? '', id: this.newId(), applicationId, done: false, doneAt: null, createdAt: at });
+      this.store.addActivity(this.activity(applicationId, 'reminder', null, null, `Reminder set for ${saved.dueOn}: ${saved.label}.`, at));
+      return saved;
+    });
   }
 
   updateReminder(applicationId: string, reminderId: string, input: unknown): Reminder {
@@ -592,17 +640,38 @@ export class Workspace {
         ...r,
         dueOn: u.dueOn ?? r.dueOn,
         label: u.label ?? r.label,
+        priority: u.priority ?? r.priority,
+        notes: u.notes ?? r.notes,
         done: u.done ?? r.done,
         doneAt: u.done === undefined ? r.doneAt : u.done ? at : null,
       });
-      if (u.done && !r.done) this.store.addActivity(this.activity(applicationId, 'note', null, null, `Done: ${r.label}.`, at));
+      if (u.done && !r.done) this.store.addActivity(this.activity(applicationId, 'reminder', null, null, `Done: ${r.label}.`, at));
+      else if (u.done === false && r.done) this.store.addActivity(this.activity(applicationId, 'reminder', null, null, `Reopened reminder: ${r.label}.`, at));
+      else if (u.dueOn && u.dueOn !== r.dueOn) this.store.addActivity(this.activity(applicationId, 'reminder', null, null, `Reminder moved from ${r.dueOn} to ${u.dueOn}: ${next.label}.`, at));
       return next;
     });
   }
 
-  deleteReminder(applicationId: string, reminderId: string): void {
-    if (!this.store.listReminders(applicationId).some((r) => r.id === reminderId)) throw notFound('Reminder');
-    this.store.deleteReminder(reminderId);
+  deleteReminder(applicationId: string, reminderId: string): DeletedItem {
+    const r = this.store.listReminders(applicationId).find((x) => x.id === reminderId);
+    if (!r) throw notFound('Reminder');
+    const at = this.now().toISOString();
+    this.store.transaction(() => {
+      this.store.deleteReminder(reminderId, at);
+      this.store.addActivity(this.activity(applicationId, 'reminder', null, null, `Removed reminder: ${r.label}.`, at));
+    });
+    return { id: reminderId, kind: 'reminder', label: r.label, deletedAt: at, undoUntil: this.undoUntil(at) };
+  }
+
+  restoreReminder(applicationId: string, reminderId: string): Reminder {
+    const d = this.store.getDeletedReminder(reminderId);
+    if (!d || d.reminder.applicationId !== applicationId) throw notFound('Deleted reminder');
+    const at = this.now().toISOString();
+    return this.store.transaction(() => {
+      const r = this.store.restoreReminder(reminderId)!;
+      this.store.addActivity(this.activity(applicationId, 'reminder', null, null, `Restored reminder: ${r.label}.`, at));
+      return r;
+    });
   }
 
   followUp(applicationId: string, kindRaw: unknown, contactId: unknown): FollowUpDraft {

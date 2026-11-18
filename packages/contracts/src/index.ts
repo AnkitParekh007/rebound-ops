@@ -246,7 +246,17 @@ export const ApplicationStatus = z.enum([
 ]);
 export type ApplicationStatus = z.infer<typeof ApplicationStatus>;
 
-export const ActivityKind = z.enum(['created', 'status_changed', 'note']);
+export const ActivityKind = z.enum([
+  'created',
+  'status_changed',
+  'note',
+  // v0.2.0: every meaningful change is recorded with its own kind.
+  'reopened',
+  'contact',
+  'reminder',
+  'interview',
+  'document',
+]);
 export type ActivityKind = z.infer<typeof ActivityKind>;
 
 export const ActivityEntry = z.object({
@@ -675,6 +685,13 @@ export type Contact = z.infer<typeof Contact>;
 export const ContactInput = Contact.pick({ name: true, role: true, email: true, phone: true, notes: true });
 export type ContactInput = z.input<typeof ContactInput>;
 
+export const ReminderPriority = z.enum(['high', 'normal', 'low']);
+export type ReminderPriority = z.infer<typeof ReminderPriority>;
+
+/** Returned by a delete so the client can offer Undo. */
+export const DeletedItem = z.object({ id: z.string(), kind: z.enum(['contact', 'reminder']), label: z.string(), deletedAt: isoDate, undoUntil: isoDate });
+export type DeletedItem = z.infer<typeof DeletedItem>;
+
 export const Reminder = z.object({
   id: z.string(),
   applicationId: z.string(),
@@ -683,12 +700,28 @@ export const Reminder = z.object({
   done: z.boolean(),
   doneAt: isoDate.nullable(),
   createdAt: isoDate,
+  /** v0.2.0 (absent in older data, defaults apply). */
+  priority: ReminderPriority.default('normal'),
+  notes: shortText(2000).default(''),
 });
 export type Reminder = z.infer<typeof Reminder>;
+/** A reminder as written (priority and notes may be omitted). */
+export type ReminderRecordInput = z.input<typeof Reminder>;
 
-export const ReminderInput = z.object({ dueOn: IsoDay, label: shortText(200).min(1) });
+export const ReminderInput = z.object({
+  dueOn: IsoDay,
+  label: shortText(200).min(1),
+  priority: ReminderPriority.optional(),
+  notes: shortText(2000).optional(),
+});
 export type ReminderInput = z.infer<typeof ReminderInput>;
-export const ReminderUpdate = z.object({ done: z.boolean().optional(), dueOn: IsoDay.optional(), label: shortText(200).min(1).optional() });
+export const ReminderUpdate = z.object({
+  done: z.boolean().optional(),
+  dueOn: IsoDay.optional(),
+  label: shortText(200).min(1).optional(),
+  priority: ReminderPriority.optional(),
+  notes: shortText(2000).optional(),
+});
 export type ReminderUpdate = z.infer<typeof ReminderUpdate>;
 
 export const FollowUpKind = z.enum(['after_applying', 'after_interview', 'thank_you', 'withdraw']);

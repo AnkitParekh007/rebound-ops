@@ -34,6 +34,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     .map((o) => o.trim())
     .filter(Boolean);
   const builtWeb = fileURLToPath(new URL('../../web/dist/browser', import.meta.url));
-  const webDist = env['REBOUND_WEB_DIST'] === '' ? null : (env['REBOUND_WEB_DIST'] ?? (existsSync(join(builtWeb, 'index.html')) ? builtWeb : null));
+  const webDist = env['REBOUND_WEB_DIST'] === '' ? null : env['REBOUND_WEB_DIST'] ? resolve(env['REBOUND_WEB_DIST']) : ((existsSync(join(builtWeb, 'index.html')) ? builtWeb : null));
   return { host, port, dataDir, allowedOrigins, logLevel: env['REBOUND_LOG_LEVEL'] ?? 'warn', webDist };
 }

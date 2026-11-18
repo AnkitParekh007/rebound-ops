@@ -13,6 +13,7 @@ import {
   OnboardingState,
   Profile,
   Reminder,
+  type ReminderRecordInput,
   ResumeDraft,
   ResumeFile,
 } from '@reboundops/contracts';
@@ -294,16 +295,29 @@ export class Store {
 
   listContacts(applicationId?: string): Contact[] {
     const rows = applicationId
-      ? this.db.prepare('SELECT id, data FROM contacts WHERE application_id = ? ORDER BY rowid').all(applicationId)
-      : this.db.prepare('SELECT id, data FROM contacts ORDER BY rowid').all();
+      ? this.db.prepare('SELECT id, data FROM contacts WHERE application_id = ? AND deleted_at IS NULL ORDER BY rowid').all(applicationId)
+      : this.db.prepare('SELECT id, data FROM contacts WHERE deleted_at IS NULL ORDER BY rowid').all();
     return (rows as Row[]).map((r) => parseRow(Contact, 'contacts', r));
   }
 
-  deleteContact(id: string): boolean {
-    return Number(this.db.prepare('DELETE FROM contacts WHERE id = ?').run(id).changes) === 1;
+  /** Soft delete: hidden from lists, restorable until purged. */
+  deleteContact(id: string, at: string = new Date().toISOString()): boolean {
+    return Number(this.db.prepare('UPDATE contacts SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL').run(at, id).changes) === 1;
   }
 
-  upsertReminder(r: Reminder): Reminder {
+  restoreContact(id: string): Contact | null {
+    if (Number(this.db.prepare('UPDATE contacts SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL').run(id).changes) !== 1) return null;
+    const row = this.db.prepare('SELECT id, data FROM contacts WHERE id = ?').get(id) as Row | undefined;
+    return row ? parseRow(Contact, 'contacts', row) : null;
+  }
+
+  /** A soft-deleted contact (for Undo), or null. */
+  getDeletedContact(id: string): { contact: Contact; deletedAt: string } | null {
+    const row = this.db.prepare('SELECT id, data, deleted_at FROM contacts WHERE id = ? AND deleted_at IS NOT NULL').get(id) as Row | undefined;
+    return row ? { contact: parseRow(Contact, 'contacts', row), deletedAt: String(row['deleted_at']) } : null;
+  }
+
+  upsertReminder(r: ReminderRecordInput): Reminder {
     const valid = Reminder.parse(r);
     this.db
       .prepare(
@@ -316,13 +330,32 @@ export class Store {
 
   listReminders(applicationId?: string): Reminder[] {
     const rows = applicationId
-      ? this.db.prepare('SELECT id, data FROM reminders WHERE application_id = ? ORDER BY due_on').all(applicationId)
-      : this.db.prepare('SELECT id, data FROM reminders ORDER BY due_on').all();
+      ? this.db.prepare('SELECT id, data FROM reminders WHERE application_id = ? AND deleted_at IS NULL ORDER BY due_on').all(applicationId)
+      : this.db.prepare('SELECT id, data FROM reminders WHERE deleted_at IS NULL ORDER BY due_on').all();
     return (rows as Row[]).map((r) => parseRow(Reminder, 'reminders', r));
   }
 
-  deleteReminder(id: string): boolean {
-    return Number(this.db.prepare('DELETE FROM reminders WHERE id = ?').run(id).changes) === 1;
+  /** Soft delete: hidden from lists, restorable until purged. */
+  deleteReminder(id: string, at: string = new Date().toISOString()): boolean {
+    return Number(this.db.prepare('UPDATE reminders SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL').run(at, id).changes) === 1;
+  }
+
+  restoreReminder(id: string): Reminder | null {
+    if (Number(this.db.prepare('UPDATE reminders SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL').run(id).changes) !== 1) return null;
+    const row = this.db.prepare('SELECT id, data FROM reminders WHERE id = ?').get(id) as Row | undefined;
+    return row ? parseRow(Reminder, 'reminders', row) : null;
+  }
+
+  getDeletedReminder(id: string): { reminder: Reminder; deletedAt: string } | null {
+    const row = this.db.prepare('SELECT id, data, deleted_at FROM reminders WHERE id = ? AND deleted_at IS NOT NULL').get(id) as Row | undefined;
+    return row ? { reminder: parseRow(Reminder, 'reminders', row), deletedAt: String(row['deleted_at']) } : null;
+  }
+
+  /** Permanently removes contacts and reminders soft-deleted before `before` (ISO time). Returns rows removed. */
+  purgeDeleted(before: string): number {
+    const a = Number(this.db.prepare('DELETE FROM contacts WHERE deleted_at IS NOT NULL AND deleted_at < ?').run(before).changes);
+    const b = Number(this.db.prepare('DELETE FROM reminders WHERE deleted_at IS NOT NULL AND deleted_at < ?').run(before).changes);
+    return a + b;
   }
 
   /* ---------------- backup ---------------- */

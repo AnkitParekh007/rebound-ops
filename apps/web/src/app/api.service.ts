@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, type Observable } from 'rxjs';
 import type {
+  DeletedItem,
   AiSettingsUpdate,
   AiSettingsView,
   ApplicationStatus,
@@ -182,7 +183,10 @@ export class ApiService {
       : this.call(this.http.post<Contact>(`${this.app(id)}/contacts`, contact));
   }
   deleteContact(id: string, contactId: string) {
-    return this.call(this.http.delete<void>(`${this.app(id)}/contacts/${encodeURIComponent(contactId)}`));
+    return this.call(this.http.delete<DeletedItem>(`${this.app(id)}/contacts/${encodeURIComponent(contactId)}`));
+  }
+  restoreContact(id: string, contactId: string) {
+    return this.call(this.http.post<Contact>(`${this.app(id)}/contacts/${encodeURIComponent(contactId)}/restore`, {}));
   }
   reminders(id: string) {
     return this.call(this.http.get<Reminder[]>(`${this.app(id)}/reminders`));
@@ -194,7 +198,10 @@ export class ApiService {
     return this.call(this.http.put<Reminder>(`${this.app(id)}/reminders/${encodeURIComponent(reminderId)}`, u));
   }
   deleteReminder(id: string, reminderId: string) {
-    return this.call(this.http.delete<void>(`${this.app(id)}/reminders/${encodeURIComponent(reminderId)}`));
+    return this.call(this.http.delete<DeletedItem>(`${this.app(id)}/reminders/${encodeURIComponent(reminderId)}`));
+  }
+  restoreReminder(id: string, reminderId: string) {
+    return this.call(this.http.post<Reminder>(`${this.app(id)}/reminders/${encodeURIComponent(reminderId)}/restore`, {}));
   }
   followUp(id: string, kind: FollowUpKind, contactId?: string) {
     const params: Record<string, string> = { kind };

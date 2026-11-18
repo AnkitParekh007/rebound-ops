@@ -38,7 +38,7 @@ const sampleJob = {
 describe('migrations', () => {
   it('applies all migrations once and is idempotent', () => {
     const db = new DatabaseSync(':memory:');
-    expect(migrate(db)).toEqual([1, 2, 3]);
+    expect(migrate(db)).toEqual([1, 2, 3, 4]);
     expect(migrate(db)).toEqual([]);
     db.close();
   });
@@ -149,5 +149,33 @@ describe('Store', () => {
     s.db.prepare("INSERT INTO jobs (id, dedupe_key, captured_at, data) VALUES ('bad', 'k', 'x', '{\"title\":1}')").run();
     expect(() => s.getJob('bad')).toThrow(CorruptRecordError);
     s.close();
+  });
+});
+
+describe('v0.1.0 compatibility', () => {
+  it('upgrades a schema-3 (v0.1.0) database with contacts and reminders to the current schema without loss', () => {
+    const dir = tempDir();
+    const db = new DatabaseSync(join(dir, DATABASE_FILE));
+    migrate(db, MIGRATIONS.slice(0, 3));
+    const at = '2026-01-01T00:00:00.000Z';
+    db.prepare('INSERT INTO jobs (id, dedupe_key, captured_at, data) VALUES (?, ?, ?, ?)').run('j1', 'k', at, '{}');
+    db.prepare('INSERT INTO applications (id, job_id, status, updated_at, data) VALUES (?, ?, ?, ?, ?)').run('a1', 'j1', 'applied', at, '{}');
+    // Records exactly as v0.1.0 wrote them (no priority, notes or deleted_at).
+    db.prepare('INSERT INTO contacts (id, application_id, data) VALUES (?, ?, ?)').run('c1', 'a1', JSON.stringify({ id: 'c1', applicationId: 'a1', name: 'Old Contact', role: '', email: '', phone: '', notes: '', createdAt: at, updatedAt: at }));
+    db.prepare('INSERT INTO reminders (id, application_id, due_on, done, data) VALUES (?, ?, ?, ?, ?)').run('r1', 'a1', '2026-02-01', 0, JSON.stringify({ id: 'r1', applicationId: 'a1', dueOn: '2026-02-01', label: 'Old reminder', done: false, doneAt: null, createdAt: at }));
+    db.close();
+
+    const store = openStore({ dataDir: dir });
+    expect(store.schemaVersion).toBe(LATEST_SCHEMA_VERSION);
+    expect(store.listContacts('a1').map((c) => c.name)).toEqual(['Old Contact']);
+    expect(store.listReminders('a1')).toEqual([expect.objectContaining({ label: 'Old reminder', priority: 'normal', notes: '' })]);
+    expect(store.deleteReminder('r1')).toBe(true);
+    expect(store.listReminders('a1')).toEqual([]);
+    expect(store.restoreReminder('r1')?.label).toBe('Old reminder');
+    expect(store.purgeDeleted('2099-01-01T00:00:00.000Z')).toBe(0);
+    store.deleteContact('c1', '2026-01-02T00:00:00.000Z');
+    expect(store.purgeDeleted('2026-01-03T00:00:00.000Z')).toBe(1);
+    expect(store.getDeletedContact('c1')).toBeNull();
+    store.close();
   });
 });

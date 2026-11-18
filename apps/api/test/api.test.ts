@@ -86,7 +86,7 @@ describe('request guards', () => {
 
 describe('health', () => {
   it('reports AI off by default', async () => {
-    expect((await send('GET', '/api/health')).json()).toMatchObject({ status: 'ok', schemaVersion: 3, aiMode: 'off' });
+    expect((await send('GET', '/api/health')).json()).toMatchObject({ status: 'ok', schemaVersion: 4, aiMode: 'off' });
   });
 });
 
@@ -228,6 +228,60 @@ describe('tracker workflow', () => {
     const res = await send('GET', '/api/export');
     expect(res.headers['content-disposition']).toMatch(/attachment; filename="reboundops-export-2026-03-01.json"/);
     expect(res.json()).toMatchObject({ format: 'reboundops-export', formatVersion: 1, jobs: [{ employer: 'Brightwater Analytics' }] });
+  });
+});
+
+describe('application lifecycle (v0.2.0)', () => {
+  it('keeps the original submission date, reopens without losing history, and records every move', async () => {
+    const { application } = await saveLabelledJob();
+    const url = `/api/applications/${application.id}/transitions`;
+    const first = (await send('POST', url, { to: 'applied', confirmSubmitted: true })).json<ApplicationView>();
+    const submittedAt = first.appliedConfirmedAt;
+    expect(submittedAt).not.toBeNull();
+    await send('POST', url, { to: 'rejected' });
+    let view = (await send('GET', `/api/applications/${application.id}`)).json<ApplicationView>();
+    expect(view.allowedNext).toEqual(expect.arrayContaining(['shortlisted', 'interviewing']));
+
+    // A mistaken rejection: reopen straight to interviewing.
+    const reopen = await send('POST', url, { to: 'interviewing', note: 'They called back.' });
+    expect(reopen.statusCode).toBe(200);
+    view = reopen.json<ApplicationView>();
+    expect(view.status).toBe('interviewing');
+    expect(view.appliedConfirmedAt).toBe(submittedAt);
+    expect(view.activity[0]).toMatchObject({ kind: 'reopened', from: 'rejected', to: 'interviewing' });
+    expect(view.activity[0]!.note).toMatch(/They called back\. Reopened from Rejected/);
+
+    await send('POST', url, { to: 'withdrawn' });
+    view = (await send('POST', url, { to: 'applied' })).json<ApplicationView>();
+    expect(view.appliedConfirmedAt).toBe(submittedAt);
+    expect(view.activity[0]!.note).toMatch(/Original submission date kept/);
+    const moves = view.activity.filter((a) => a.kind === 'status_changed' || a.kind === 'reopened').map((a) => `${a.from}>${a.to}`);
+    expect(moves.reverse()).toEqual(['discovered>applied', 'applied>rejected', 'rejected>interviewing', 'interviewing>withdrawn', 'withdrawn>applied']);
+    // Only one automatic follow-up reminder: re-entering applied does not add another.
+    expect((await send('GET', `/api/applications/${application.id}/reminders`)).json()).toHaveLength(1);
+  });
+
+  it('a never-submitted closed application cannot jump to interviewing', async () => {
+    const { application } = await saveLabelledJob();
+    const url = `/api/applications/${application.id}/transitions`;
+    await send('POST', url, { to: 'withdrawn' });
+    expect((await send('POST', url, { to: 'interviewing' })).statusCode).toBe(409);
+    expect((await send('POST', url, { to: 'preparing' })).json<ApplicationView>().activity[0]!.kind).toBe('reopened');
+  });
+
+  it('reminder deletion can be undone and is recorded', async () => {
+    const { application } = await saveLabelledJob();
+    const base = `/api/applications/${application.id}`;
+    const r = (await send('POST', `${base}/reminders`, { label: 'Prepare questions', dueOn: '2026-12-01', priority: 'high', notes: 'Ask about team size' })).json();
+    expect(r).toMatchObject({ priority: 'high', notes: 'Ask about team size' });
+    const del = (await send('DELETE', `${base}/reminders/${r.id}`)).json();
+    expect(del).toMatchObject({ kind: 'reminder', label: 'Prepare questions' });
+    expect(Date.parse(del.undoUntil) - Date.parse(del.deletedAt)).toBe(30 * 86_400_000);
+    expect((await send('GET', `${base}/reminders`)).json()).toEqual([]);
+    expect((await send('POST', `${base}/reminders/${r.id}/restore`, {})).json()).toMatchObject({ id: r.id, priority: 'high' });
+    expect((await send('GET', `${base}/reminders`)).json()).toHaveLength(1);
+    const notes = (await send('GET', base)).json<ApplicationView>().activity.filter((a) => a.kind === 'reminder').map((a) => a.note);
+    expect(notes).toEqual(expect.arrayContaining(['Removed reminder: Prepare questions.', 'Restored reminder: Prepare questions.']));
   });
 });
 
@@ -419,7 +473,16 @@ describe('tracking and follow-ups (M5)', () => {
     await send('PUT', `${base}/reminders/${reminders[0].id}`, { done: true });
     dash = (await send('GET', '/api/dashboard')).json();
     expect(dash.reminders).toEqual([]);
-    expect((await send('DELETE', `${base}/contacts/${contact.id}`)).statusCode).toBe(204);
+    const removed = await send('DELETE', `${base}/contacts/${contact.id}`);
+    expect(removed.statusCode).toBe(200);
+    expect(removed.json()).toMatchObject({ id: contact.id, kind: 'contact', label: 'Sam Recruiter' });
+    expect((await send('GET', `${base}/contacts`)).json()).toEqual([]);
+    // Undo brings it back, unchanged, and both steps are on the activity trail.
+    expect((await send('POST', `${base}/contacts/${contact.id}/restore`, {})).json()).toMatchObject({ id: contact.id, name: 'Sam Recruiter' });
+    expect((await send('GET', `${base}/contacts`)).json()).toHaveLength(1);
+    expect((await send('POST', `${base}/contacts/${contact.id}/restore`, {})).statusCode).toBe(404);
+    const trail = (await send('GET', base)).json().activity.map((a: { note: string }) => a.note);
+    expect(trail).toEqual(expect.arrayContaining(['Removed contact Sam Recruiter.', 'Restored contact Sam Recruiter.']));
     expect((await send('GET', '/api/export')).json().reminders).toHaveLength(1);
   });
 });

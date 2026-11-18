@@ -29,7 +29,8 @@
     "start": "node apps/api/src/main.ts",
     "test:exports": "node scripts/verify-exports.ts",
     "restore": "node scripts/restore-backup.ts",
-    "import:check": "node scripts/check-import.ts"
+    "import:check": "node scripts/check-import.ts",
+    "test:packaged": "node scripts/smoke-packaged.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -95,3 +95,19 @@ describe('onboarding helpers', () => {
     expect(normalizeList(['  Data  Analyst ', 'data analyst', '', 'BI'])).toEqual(['Data Analyst', 'BI']);
   });
 });
+
+describe('reopening closed applications (v0.2.0)', () => {
+  it('reopens a never-submitted application only to pre-submission stages', () => {
+    expect(allowedTransitions('rejected')).toEqual(['shortlisted', 'preparing', 'ready_for_review']);
+    expect(checkTransition('withdrawn', 'interviewing', false)).toMatchObject({ ok: false, code: 'not_allowed' });
+  });
+
+  it('lets a previously submitted application return to its submitted stages without re-confirming', () => {
+    const ctx = { previouslySubmitted: true };
+    expect(allowedTransitions('rejected', ctx)).toEqual(expect.arrayContaining(['applied', 'interviewing', 'offer']));
+    expect(checkTransition('rejected', 'interviewing', false, ctx)).toEqual({ ok: true, requiresConfirmation: false });
+    expect(checkTransition('withdrawn', 'applied', false, ctx)).toEqual({ ok: true, requiresConfirmation: false });
+    // A first submission still needs explicit confirmation.
+    expect(checkTransition('ready_for_review', 'applied', false, {})).toMatchObject({ ok: false, code: 'confirmation_required' });
+  });
+});

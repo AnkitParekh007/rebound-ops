@@ -39,9 +39,9 @@ describe('analytics', () => {
     const apps = [base('a', '2026-06-01T00:00:00.000Z', null)];
     const views = reminderViews(
       [
-        { id: 'r1', applicationId: 'a', dueOn: '2026-06-20', label: 'Later', done: false, doneAt: null, createdAt: '2026-06-01T00:00:00.000Z' },
-        { id: 'r2', applicationId: 'a', dueOn: '2026-06-10', label: 'Late', done: false, doneAt: null, createdAt: '2026-06-01T00:00:00.000Z' },
-        { id: 'r3', applicationId: 'a', dueOn: '2026-06-01', label: 'Done', done: true, doneAt: null, createdAt: '2026-06-01T00:00:00.000Z' },
+        { id: 'r1', applicationId: 'a', dueOn: '2026-06-20', label: 'Later', done: false, doneAt: null, createdAt: '2026-06-01T00:00:00.000Z', priority: 'normal', notes: '' },
+        { id: 'r2', applicationId: 'a', dueOn: '2026-06-10', label: 'Late', done: false, doneAt: null, createdAt: '2026-06-01T00:00:00.000Z', priority: 'normal', notes: '' },
+        { id: 'r3', applicationId: 'a', dueOn: '2026-06-01', label: 'Done', done: true, doneAt: null, createdAt: '2026-06-01T00:00:00.000Z', priority: 'normal', notes: '' },
       ],
       apps,
       NOW,

@@ -1,0 +1,7 @@
+{
+  "https://github.com/advisories/GHSA-fc5q-39xc-vjpf": {
+    "package": "picomatch",
+    "reason": "ReDoS via crafted extglob patterns. Reached only through build/test tooling (Angular CLI/build, Vite, Vitest, typescript-eslint) that matches patterns written in this repository; not installed with --omit=dev and not in the served app. The advisory range covers every published version, so no upgrade fixes it yet.",
+    "reviewed": "2026-11-18"
+  }
+}

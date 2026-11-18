@@ -25,8 +25,13 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:smoke
+      # Build the production web app before anything that serves or inspects it.
       - run: npm run build
+      - run: npm run test:packaged
+      - run: npm run test:exports
       - run: npm run audit:release
+        env:
+          REBOUND_AUDIT_STRICT: '1'
       - uses: actions/upload-artifact@v4
         with:
           name: sbom
@@ -50,6 +55,12 @@ jobs:
       - run: npm run test:e2e
         env:
           PW_CHANNEL: chromium
+      # The same journey against the production build served by the API.
+      - run: npm run build
+      - run: npm run test:e2e
+        env:
+          PW_CHANNEL: chromium
+          PW_PACKAGED: '1'
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

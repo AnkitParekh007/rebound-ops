@@ -14,6 +14,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
+/** In CI (or with REBOUND_AUDIT_STRICT=1) an unchecked build or an unavailable audit service fails the gate. */
+const strict = process.env['CI'] === 'true' || process.env['REBOUND_AUDIT_STRICT'] === '1';
 const failures: string[] = [];
 const notes: string[] = [];
 const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
@@ -62,6 +64,8 @@ if (existsSync(builtIndex)) {
   const html = readFileSync(builtIndex, 'utf8');
   if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(html)) failures.push('Built index.html contains an inline <script>, which the CSP blocks.');
   if (/\son[a-z]+\s*=/i.test(html)) failures.push('Built index.html contains an inline event handler, which the CSP blocks.');
+} else if (strict) {
+  failures.push('Web build not present: run npm run build before npm run audit:release (required in CI).');
 } else {
   notes.push('Web build not present; CSP compatibility of the build was not checked (run npm run build first).');
 }
@@ -123,26 +127,74 @@ writeFileSync(
 );
 
 /* 6. vulnerabilities: runtime high/critical fail the gate; dev-only advisories are reported. */
-function auditJson(args: string[]): Record<string, number> | null {
+type AuditOutcome =
+  | { kind: 'ok'; counts: Record<string, number>; advisories: { name: string; severity: string; roots: string[] }[] }
+  | { kind: 'unavailable'; reason: string };
+
+/** Runs `npm audit`; an error payload or unparsable output is "unavailable", never "no vulnerabilities". */
+function runAudit(args: string[]): AuditOutcome {
   let out: string | undefined;
+  let stderr = '';
   try {
     out = execFileSync('npm', ['audit', '--json', ...args], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   } catch (err) {
+    // npm audit exits non-zero when advisories exist; stdout still holds the report.
     out = (err as { stdout?: string }).stdout;
+    stderr = String((err as { stderr?: string }).stderr ?? '');
   }
-  if (!out?.trim().startsWith('{')) return null;
-  return (JSON.parse(out) as { metadata?: { vulnerabilities?: Record<string, number> } }).metadata?.vulnerabilities ?? {};
+  if (!out?.trim().startsWith('{')) return { kind: 'unavailable', reason: stderr.split('\n').find((l) => l.trim()) ?? 'no report returned' };
+  let report: { error?: { code?: string; summary?: string }; metadata?: { vulnerabilities?: Record<string, number> }; vulnerabilities?: Record<string, { severity: string; via: unknown[] }> };
+  try {
+    report = JSON.parse(out);
+  } catch {
+    return { kind: 'unavailable', reason: 'unparsable report' };
+  }
+  if (report.error) { const e = report.error as Record<string, unknown>; return { kind: 'unavailable', reason: String(e['code'] ?? e['summary'] ?? e['message'] ?? e['detail'] ?? 'npm audit error').split('\n')[0]! }; }
+  if (!report.metadata?.vulnerabilities) return { kind: 'unavailable', reason: 'report has no vulnerability metadata' };
+  const vulns = report.vulnerabilities ?? {};
+  // Resolve each package to the advisories at the root of its chain (a package is often flagged only through a dependency).
+  const rootsOf = (name: string, seen = new Set<string>()): string[] => {
+    if (seen.has(name)) return [];
+    seen.add(name);
+    return (vulns[name]?.via ?? []).flatMap((x) =>
+      typeof x === 'string' ? rootsOf(x, seen) : [String((x as { url?: string }).url ?? (x as { source?: unknown }).source)],
+    );
+  };
+  const advisories = Object.entries(vulns).map(([name, v]) => ({ name, severity: v.severity, roots: [...new Set(rootsOf(name))] }));
+  return { kind: 'ok', counts: report.metadata.vulnerabilities, advisories };
 }
+
+/** Reviewed, accepted dev-only advisories (advisory URL -> reason). Runtime advisories can never be accepted here. */
+const allowFile = join(root, 'scripts/audit-accepted.json');
+const accepted: Record<string, { package: string; reason: string; reviewed: string }> = existsSync(allowFile) ? JSON.parse(readFileSync(allowFile, 'utf8')) : {};
+
 const fmt = (v: Record<string, number>) => Object.entries(v).map(([k, n]) => `${k}=${n}`).join(' ');
-const runtimeVulns = auditJson(['--omit=dev']);
-const allVulns = auditJson([]);
-let vulnSummary = 'unknown (npm audit could not run — offline?)';
-if (runtimeVulns && allVulns) {
-  vulnSummary = `runtime: ${fmt(runtimeVulns)} | including dev tooling: ${fmt(allVulns)}`;
-  if ((runtimeVulns['high'] ?? 0) + (runtimeVulns['critical'] ?? 0) > 0) failures.push(`Runtime dependencies have high/critical advisories: ${fmt(runtimeVulns)}`);
-  if ((allVulns['high'] ?? 0) + (allVulns['critical'] ?? 0) > 0) notes.push('Dev-tooling advisories present; review `npm audit` (not shipped in the app bundle).');
+const runtimeAudit = runAudit(['--omit=dev']);
+const fullAudit = runAudit([]);
+let vulnSummary: string;
+let auditStatus: 'checked' | 'UNAVAILABLE';
+if (runtimeAudit.kind === 'ok' && fullAudit.kind === 'ok') {
+  auditStatus = 'checked';
+  vulnSummary = `runtime: ${fmt(runtimeAudit.counts)} | including dev tooling: ${fmt(fullAudit.counts)}`;
+  if ((runtimeAudit.counts['high'] ?? 0) + (runtimeAudit.counts['critical'] ?? 0) > 0) failures.push(`Runtime dependencies have high/critical advisories: ${fmt(runtimeAudit.counts)}`);
+  const runtimeNames = new Set(runtimeAudit.advisories.map((a) => a.name));
+  const acceptedUsed = new Set<string>();
+  let devFlagged = 0;
+  for (const a of fullAudit.advisories) {
+    if (runtimeNames.has(a.name)) continue;
+    devFlagged++;
+    const unaccepted = a.roots.filter((r) => !accepted[r]);
+    a.roots.filter((r) => accepted[r]).forEach((r) => acceptedUsed.add(r));
+    if (unaccepted.length === 0 && a.roots.length > 0) continue;
+    if (a.severity === 'high' || a.severity === 'critical') failures.push(`Unreviewed dev-tooling advisory via ${a.name} (${a.severity}): ${unaccepted.join(', ')}. Fix it or record a reviewed reason in scripts/audit-accepted.json.`);
+    else notes.push(`Dev-tooling advisory via ${a.name} (${a.severity}); not shipped in the app bundle.`);
+  }
+  for (const r of acceptedUsed) notes.push(`Accepted dev-only advisory ${r} (${accepted[r]!.package}): ${accepted[r]!.reason} [reviewed ${accepted[r]!.reviewed}]; ${devFlagged} dev packages flagged through it.`);
 } else {
-  notes.push('npm audit could not run — vulnerability status unknown.');
+  auditStatus = 'UNAVAILABLE';
+  const why = [runtimeAudit, fullAudit].map((a) => (a.kind === 'unavailable' ? a.reason : 'ok')).join(' / ');
+  vulnSummary = `UNAVAILABLE — the audit service could not be reached or returned an error (${why}). This is NOT a clean result.`;
+  if (strict) failures.push('Vulnerability audit unavailable; CI requires a completed audit.');
 }
 
 /* report */
@@ -155,5 +207,5 @@ if (failures.length) {
   for (const f of failures) console.error(`FAIL: ${f}`);
   process.exitCode = 1;
 } else {
-  console.log('audit:release PASS');
+  console.log(auditStatus === 'checked' ? 'audit:release PASS' : 'audit:release PASS (local checks only — vulnerability audit UNAVAILABLE, re-run when online)');
 }

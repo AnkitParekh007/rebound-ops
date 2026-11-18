@@ -1,6 +1,6 @@
 import { Component, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { Contact, FollowUpDraft, FollowUpKind, Reminder } from '@reboundops/contracts';
+import type { Contact, DeletedItem, FollowUpDraft, FollowUpKind, Reminder, ReminderPriority } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from './api.service';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -13,12 +13,20 @@ const today = () => new Date().toISOString().slice(0, 10);
     <section class="card stack" aria-labelledby="track-heading">
       <h2 id="track-heading">Contacts and follow-ups</h2>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+      @if (lastDeleted(); as d) {
+        <div class="undo-bar" role="status">
+          <span>Deleted {{ d.kind }} “{{ d.label }}”.</span>
+          <button type="button" class="btn ghost" (click)="undo()">Undo</button>
+          <button type="button" class="btn link" (click)="lastDeleted.set(null)" aria-label="Dismiss">Dismiss</button>
+        </div>
+      }
 
       <h3 class="sub">Reminders</h3>
       <ul class="reminder-list">
         @for (r of reminders(); track r.id) {
           <li [class.done]="r.done" [class.overdue]="!r.done && r.dueOn < todayIso">
             <label class="check"><input type="checkbox" [checked]="r.done" (change)="toggle(r)" [name]="'rd' + r.id" /> {{ r.label }}</label>
+            @if (r.priority === 'high') { <span class="badge warn small">High priority</span> }
             <span class="muted small">due {{ r.dueOn }}@if (!r.done && r.dueOn < todayIso) { · overdue }</span>
             <button type="button" class="btn link danger" (click)="removeReminder(r)" [attr.aria-label]="'Delete reminder ' + r.label">Delete</button>
           </li>
@@ -29,6 +37,12 @@ const today = () => new Date().toISOString().slice(0, 10);
         <input id="rlabel" name="rlabel" [(ngModel)]="reminderLabel" placeholder="e.g. Prepare for phone screen" />
         <label class="sr-only" for="rdue">Due date</label>
         <input id="rdue" name="rdue" type="date" [(ngModel)]="reminderDue" style="max-width: 11rem" />
+        <label class="sr-only" for="rprio">Priority</label>
+        <select id="rprio" name="rprio" [(ngModel)]="reminderPriority" style="max-width: 9rem">
+          <option ngValue="high">High</option>
+          <option ngValue="normal">Normal</option>
+          <option ngValue="low">Low</option>
+        </select>
         <button type="submit" class="btn ghost" [disabled]="!reminderLabel.trim() || !reminderDue">Add reminder</button>
       </form>
 
@@ -93,6 +107,9 @@ export class TrackingPanel {
   readonly todayIso = today();
   reminderLabel = '';
   reminderDue = '';
+  reminderPriority: ReminderPriority = 'normal';
+  /** The most recent deletion, offered for Undo (kept restorable on the server for 30 days). */
+  readonly lastDeleted = signal<DeletedItem | null>(null);
   kind: FollowUpKind = 'after_applying';
   contact = { name: '', role: '', email: '', phone: '', notes: '' };
 
@@ -123,7 +140,7 @@ export class TrackingPanel {
 
   addReminder() {
     return this.safe(async () => {
-      const r = await this.api.addReminder(this.applicationId(), { label: this.reminderLabel.trim(), dueOn: this.reminderDue });
+      const r = await this.api.addReminder(this.applicationId(), { label: this.reminderLabel.trim(), dueOn: this.reminderDue, priority: this.reminderPriority });
       this.reminders.update((l) => [...l, r].sort((a, b) => a.dueOn.localeCompare(b.dueOn)));
       this.reminderLabel = '';
     });
@@ -136,7 +153,7 @@ export class TrackingPanel {
   }
   removeReminder(r: Reminder) {
     return this.safe(async () => {
-      await this.api.deleteReminder(this.applicationId(), r.id);
+      this.lastDeleted.set(await this.api.deleteReminder(this.applicationId(), r.id));
       this.reminders.update((l) => l.filter((x) => x.id !== r.id));
     });
   }
@@ -149,8 +166,22 @@ export class TrackingPanel {
   }
   removeContact(c: Contact) {
     return this.safe(async () => {
-      await this.api.deleteContact(this.applicationId(), c.id);
+      this.lastDeleted.set(await this.api.deleteContact(this.applicationId(), c.id));
       this.contacts.update((l) => l.filter((x) => x.id !== c.id));
+    });
+  }
+  undo() {
+    const d = this.lastDeleted();
+    if (!d) return Promise.resolve();
+    return this.safe(async () => {
+      if (d.kind === 'contact') {
+        const c = await this.api.restoreContact(this.applicationId(), d.id);
+        this.contacts.update((l) => [...l, c]);
+      } else {
+        const r = await this.api.restoreReminder(this.applicationId(), d.id);
+        this.reminders.update((l) => [...l, r].sort((a, b) => a.dueOn.localeCompare(b.dueOn)));
+      }
+      this.lastDeleted.set(null);
     });
   }
   draftFollowUp() {

@@ -198,17 +198,14 @@ export function buildServer(options: ServerOptions): FastifyInstance {
   app.get<IdParams>('/api/applications/:id/contacts', async (req) => workspace.listContacts(req.params.id));
   app.post<IdParams>('/api/applications/:id/contacts', async (req, reply) => reply.code(201).send(workspace.saveContact(req.params.id, null, req.body)));
   app.put<ChildParams>('/api/applications/:id/contacts/:childId', async (req) => workspace.saveContact(req.params.id, req.params.childId, req.body));
-  app.delete<ChildParams>('/api/applications/:id/contacts/:childId', async (req, reply) => {
-    workspace.deleteContact(req.params.id, req.params.childId);
-    return reply.code(204).send();
-  });
+  // Deletes are soft: the response carries what is needed to offer Undo.
+  app.delete<ChildParams>('/api/applications/:id/contacts/:childId', async (req) => workspace.deleteContact(req.params.id, req.params.childId));
+  app.post<ChildParams>('/api/applications/:id/contacts/:childId/restore', async (req) => workspace.restoreContact(req.params.id, req.params.childId));
   app.get<IdParams>('/api/applications/:id/reminders', async (req) => workspace.listReminders(req.params.id));
   app.post<IdParams>('/api/applications/:id/reminders', async (req, reply) => reply.code(201).send(workspace.addReminder(req.params.id, req.body)));
   app.put<ChildParams>('/api/applications/:id/reminders/:childId', async (req) => workspace.updateReminder(req.params.id, req.params.childId, req.body));
-  app.delete<ChildParams>('/api/applications/:id/reminders/:childId', async (req, reply) => {
-    workspace.deleteReminder(req.params.id, req.params.childId);
-    return reply.code(204).send();
-  });
+  app.delete<ChildParams>('/api/applications/:id/reminders/:childId', async (req) => workspace.deleteReminder(req.params.id, req.params.childId));
+  app.post<ChildParams>('/api/applications/:id/reminders/:childId/restore', async (req) => workspace.restoreReminder(req.params.id, req.params.childId));
   app.get<{ Params: { id: string }; Querystring: { kind?: string; contactId?: string } }>('/api/applications/:id/follow-up', async (req) =>
     workspace.followUp(req.params.id, req.query.kind, req.query.contactId),
   );

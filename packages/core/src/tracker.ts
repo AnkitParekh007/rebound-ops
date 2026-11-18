@@ -15,9 +15,28 @@ const TRANSITIONS: Readonly<Record<ApplicationStatus, readonly ApplicationStatus
   applied: ['interviewing', 'offer', 'rejected', 'withdrawn'],
   interviewing: ['offer', 'rejected', 'withdrawn'],
   offer: ['withdrawn', 'rejected'],
-  rejected: ['shortlisted'],
-  withdrawn: ['shortlisted'],
+  // Closed applications reopen through reopenTargets(); history is never removed.
+  rejected: [],
+  withdrawn: [],
 };
+
+/** Context the workflow needs beyond the current status. */
+export interface TransitionContext {
+  /** The person confirmed a submission at some point (appliedConfirmedAt is set). */
+  previouslySubmitted?: boolean;
+}
+
+const REOPEN_BEFORE_SUBMISSION: readonly ApplicationStatus[] = ['shortlisted', 'preparing', 'ready_for_review'];
+const REOPEN_AFTER_SUBMISSION: readonly ApplicationStatus[] = ['applied', 'interviewing', 'offer'];
+
+/**
+ * Where a rejected or withdrawn application may go when reopened. A previously
+ * submitted application can return to its submitted stages (for example a
+ * mistaken rejection); one never submitted cannot jump to them.
+ */
+export function reopenTargets(ctx: TransitionContext = {}): readonly ApplicationStatus[] {
+  return ctx.previouslySubmitted ? [...REOPEN_BEFORE_SUBMISSION, ...REOPEN_AFTER_SUBMISSION] : REOPEN_BEFORE_SUBMISSION;
+}
 
 export const STATUS_LABELS: Readonly<Record<ApplicationStatus, string>> = {
   discovered: 'Discovered',
@@ -40,8 +59,12 @@ export const SUBMITTED_STATUSES: readonly ApplicationStatus[] = [
 
 export const CLOSED_STATUSES: readonly ApplicationStatus[] = ['rejected', 'withdrawn'];
 
-export function allowedTransitions(from: ApplicationStatus): readonly ApplicationStatus[] {
-  return TRANSITIONS[from];
+export function allowedTransitions(from: ApplicationStatus, ctx: TransitionContext = {}): readonly ApplicationStatus[] {
+  return CLOSED_STATUSES.includes(from) ? reopenTargets(ctx) : TRANSITIONS[from];
+}
+
+export function isReopen(from: ApplicationStatus, to: ApplicationStatus): boolean {
+  return CLOSED_STATUSES.includes(from) && !CLOSED_STATUSES.includes(to);
 }
 
 export type TransitionCheck =
@@ -52,18 +75,20 @@ export function checkTransition(
   from: ApplicationStatus,
   to: ApplicationStatus,
   confirmSubmitted: boolean,
+  ctx: TransitionContext = {},
 ): TransitionCheck {
   if (from === to) {
     return { ok: false, code: 'same_status', message: `Already ${STATUS_LABELS[to]}.` };
   }
-  if (!TRANSITIONS[from].includes(to)) {
+  if (!allowedTransitions(from, ctx).includes(to)) {
     return {
       ok: false,
       code: 'not_allowed',
       message: `Cannot move from ${STATUS_LABELS[from]} to ${STATUS_LABELS[to]}.`,
     };
   }
-  if (to === 'applied' && !confirmSubmitted) {
+  // Re-entering "applied" after an earlier confirmed submission does not need a second confirmation.
+  if (to === 'applied' && !confirmSubmitted && !ctx.previouslySubmitted) {
     return {
       ok: false,
       code: 'confirmation_required',
@@ -71,7 +96,7 @@ export function checkTransition(
         'Marking as applied requires your confirmation that you submitted the application yourself.',
     };
   }
-  return { ok: true, requiresConfirmation: to === 'applied' };
+  return { ok: true, requiresConfirmation: to === 'applied' && !ctx.previouslySubmitted };
 }
 
 export function isActive(status: ApplicationStatus): boolean {
