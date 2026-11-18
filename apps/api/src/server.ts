@@ -268,6 +268,7 @@ export function buildServer(options: ServerOptions): FastifyInstance {
   app.put('/api/settings/ai', async (req) => workspace.updateAiSettings(req.body));
   app.post('/api/settings/ai/test', async () => workspace.testAi());
   app.post('/api/ai/rewrite', async (req) => workspace.rewrite(req.body));
+  app.post<IdParams>('/api/applications/:id/assist', async (req) => workspace.assist(req.params.id, req.body));
 
   app.get('/api/dashboard', async () => workspace.dashboard());
 

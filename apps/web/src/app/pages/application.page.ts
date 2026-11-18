@@ -8,11 +8,12 @@ import { DocumentsPanel } from '../documents-panel';
 import { PreparePanel } from '../prepare-panel';
 import { TrackingPanel } from '../tracking-panel';
 import { InterviewPanel } from '../interview-panel';
+import { AiAssistPanel } from '../ai-assist-panel';
 import { STATUS_LABEL } from '../labels';
 
 @Component({
   selector: 'app-application-page',
-  imports: [FormsModule, RouterLink, AssessmentPanel, DocumentsPanel, PreparePanel, TrackingPanel, InterviewPanel],
+  imports: [FormsModule, RouterLink, AssessmentPanel, DocumentsPanel, PreparePanel, TrackingPanel, InterviewPanel, AiAssistPanel],
   template: `
     <section class="page" aria-labelledby="app-heading">
       <p><a routerLink="/tracker" class="back-link">← All applications</a></p>
@@ -97,6 +98,7 @@ import { STATUS_LABEL } from '../labels';
           <div class="stack">
           <app-tracking-panel [applicationId]="a.id" />
           <app-interview-panel [applicationId]="a.id" />
+          <app-ai-assist-panel [applicationId]="a.id" />
           <section class="card" aria-labelledby="activity-heading">
             <h2 id="activity-heading">Activity</h2>
             <form class="stack" (ngSubmit)="addNote()">

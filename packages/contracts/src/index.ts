@@ -1060,6 +1060,34 @@ export const RewriteResult = z.object({
 });
 export type RewriteResult = z.infer<typeof RewriteResult>;
 
+export const AssistTask = z.enum(['summarize_job', 'missing_skills', 'tailoring', 'screening_answer', 'cover_letter', 'interview_prep', 'follow_up']);
+export type AssistTask = z.infer<typeof AssistTask>;
+
+export const AssistRequest = z.object({
+  task: AssistTask,
+  /** A screening question, a cover letter to improve, or a note for a follow-up. */
+  input: shortText(6000).optional(),
+  confirmSend: z.boolean().default(false),
+});
+export type AssistRequest = z.input<typeof AssistRequest>;
+
+export const AssistResult = z.object({
+  task: AssistTask,
+  text: z.string(),
+  items: z.array(z.string()),
+  /** False when the output added unsupported facts and was withheld. */
+  accepted: z.boolean(),
+  problems: z.array(z.string()),
+  /** What was sent to the provider, by name (never the contents). */
+  sent: z.array(z.string()),
+  provider: ProviderId,
+  model: z.string(),
+  local: z.boolean(),
+  /** The deterministic, non-AI result for the same task, when one exists. */
+  baseline: z.array(z.string()),
+});
+export type AssistResult = z.infer<typeof AssistResult>;
+
 /* ------------------------------------------------------------------ */
 /* Job edits (M7)                                                      */
 /* ------------------------------------------------------------------ */

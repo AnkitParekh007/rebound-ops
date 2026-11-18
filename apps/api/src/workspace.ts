@@ -12,6 +12,8 @@ import {
   type RewriteResult,
   type Contact,
   type DeletedItem,
+  AssistRequest,
+  type AssistResult,
   FollowUpTemplate,
   type FollowUpSuggestion,
   InterviewNote,
@@ -89,6 +91,7 @@ import {
   ollamaBaseUrl,
   PROVIDERS,
   suggestRewrite,
+  runAssist,
   type AiProvider,
   type FetchLike,
 } from '@reboundops/ai-providers';
@@ -1019,6 +1022,57 @@ export class Workspace {
       return { ...r, provider: provider.id, model: provider.model, local: provider.local };
     } catch (err) {
       if (err instanceof AiProviderError) throw new AppError(502, 'ai_failed', `${err.message} Your text was not changed.`);
+      throw err;
+    }
+  }
+
+  /**
+   * Optional AI help for one application. Sends only what the task needs,
+   * checks the output against the records, and returns a suggestion to review.
+   */
+  async assist(applicationId: string, input: unknown): Promise<AssistResult> {
+    const req = AssistRequest.parse(input);
+    const app = this.getApplication(applicationId);
+    const provider = this.provider();
+    if (!provider.local && !req.confirmSend) {
+      throw new AppError(428, 'confirm_send', `Confirm that this application's details may be sent to ${PROVIDERS[provider.id].label}.`);
+    }
+    if ((req.task === 'screening_answer' || req.task === 'cover_letter') && !req.input?.trim()) {
+      throw new AppError(400, 'input_required', req.task === 'screening_answer' ? 'Enter the screening question.' : 'Paste the cover letter text to improve.');
+    }
+    const profile = this.getProfile();
+    const verified = [
+      ...profile.experience.filter((e) => e.verified).map((e) => `${e.title} at ${e.employer} (${e.start} – ${e.end ?? 'present'}). ${e.summary} ${e.highlights.join(' ')}`.trim()),
+      ...profile.education.filter((e) => e.verified).map((e) => `${e.qualification} ${e.field}, ${e.institution}`.trim()),
+      ...profile.certifications.filter((c) => c.verified).map((c) => `${c.name}${c.issuer ? `, ${c.issuer}` : ''}`),
+      ...profile.skillExperience.map((x) => `${x.years} years with ${x.skill}`),
+    ];
+    const needsProfile = ['missing_skills', 'tailoring', 'screening_answer'].includes(req.task);
+    const contact = this.store.listContacts(applicationId)[0];
+    const ctx = {
+      jobTitle: app.job.title,
+      employer: app.job.employer,
+      jobDescription: app.job.description,
+      profileFacts: needsProfile ? verified : [],
+      profileSkills: needsProfile ? profile.skills : [],
+      ...(req.input ? { input: req.input } : {}),
+      extraAllowed: [profile.displayName, contact?.name ?? '', app.appliedConfirmedAt?.slice(0, 10) ?? ''].filter(Boolean),
+    };
+    const sent = ['job title, employer and description', ...(needsProfile ? ['your skills and verified profile entries'] : []), ...(req.input ? ['the text you entered'] : [])];
+    const assessment = this.assessApplication(applicationId);
+    const baseline =
+      req.task === 'missing_skills'
+        ? assessment.missingQualifications
+        : req.task === 'interview_prep'
+          ? interviewPrepPrompts(assessment)
+          : req.task === 'screening_answer' && req.input
+            ? [draftAnswer(req.input, profile, app.job, this.now()).answer].filter(Boolean)
+            : [];
+    try {
+      const out = await runAssist(provider, req.task, ctx);
+      return { task: req.task, ...out, sent, provider: provider.id, model: provider.model, local: provider.local, baseline };
+    } catch (err) {
+      if (err instanceof AiProviderError) throw new AppError(502, 'ai_failed', `${err.message} Nothing was changed; the non-AI tools still work.`);
       throw err;
     }
   }

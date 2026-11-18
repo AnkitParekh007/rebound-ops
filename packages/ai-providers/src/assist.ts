@@ -32,7 +32,8 @@ function properNouns(s: string): string[] {
   for (const sentence of s.split(/(?<=[.!?])\s+|\n+/)) {
     const words = sentence.split(/\s+/).filter(Boolean);
     words.forEach((w, i) => {
-      const clean = w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}+#.]+$/gu, '');
+      // Keep inner dots (Node.js) but not a sentence-ending one ("PostgreSQL.").
+      const clean = w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}+#.]+$/gu, '').replace(/\.+$/, '');
       if (i > 0 && /^\p{Lu}/u.test(clean) && clean.length > 1) out.push(clean);
       if (/^[A-Z0-9]{2,}$/.test(clean) || /[a-z][A-Z]/.test(clean)) out.push(clean); // acronyms, camelCase products
     });

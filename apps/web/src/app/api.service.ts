@@ -2,6 +2,8 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, throwError, type Observable } from 'rxjs';
 import type {
+  AssistRequest,
+  AssistResult,
   DeletedItem,
   FollowUpTemplate,
   InterviewNote,
@@ -304,6 +306,9 @@ export class ApiService {
     const params: Record<string, string> = { templateId };
     if (contactId) params['contactId'] = contactId;
     return this.call(this.http.get<FollowUpDraft>(`${this.app(id)}/follow-up`, { params }));
+  }
+  assist(id: string, req: AssistRequest) {
+    return this.call(this.http.post<AssistResult>(`${this.app(id)}/assist`, req));
   }
   fitWeights() {
     return this.call(this.http.get<FitWeights>(`${this.base}/assessment/weights`));

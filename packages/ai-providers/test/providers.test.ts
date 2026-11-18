@@ -113,3 +113,12 @@ describe('grounded rewrite', () => {
     expect(prompt).toContain(`<original>\n${original}\n</original>`);
   });
 });
+
+describe('assist task grounding (v0.2.0)', () => {
+  it('treats a sentence-ending period as punctuation, not part of a name', async () => {
+    const { checkAssist } = await import('../src/index.ts');
+    const c = { jobTitle: 'Engineer', employer: 'Fictional Co', jobDescription: 'We use PostgreSQL and Node.js daily.', profileFacts: [], profileSkills: [] };
+    expect(checkAssist('summarize_job', 'The team uses Node.js and PostgreSQL.', c, false)).toMatchObject({ accepted: true, problems: [] });
+    expect(checkAssist('summarize_job', 'The team uses Node.js and MongoDB.', c, false).problems[0]).toMatch(/MongoDB/);
+  });
+});
