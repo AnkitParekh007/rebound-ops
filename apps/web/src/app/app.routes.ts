@@ -8,5 +8,6 @@ export const routes: Routes = [
   { path: 'jobs/new', loadComponent: () => import('./pages/intake.page').then((m) => m.IntakePage), title: 'Add a job · ReboundOps' },
   { path: 'tracker', loadComponent: () => import('./pages/tracker.page').then((m) => m.TrackerPage), title: 'Tracker · ReboundOps' },
   { path: 'tracker/:id', loadComponent: () => import('./pages/application.page').then((m) => m.ApplicationPage), title: 'Application · ReboundOps' },
+  { path: 'settings', loadComponent: () => import('./pages/settings.page').then((m) => m.SettingsPage), title: 'Settings · ReboundOps' },
   { path: '**', redirectTo: '' },
 ];

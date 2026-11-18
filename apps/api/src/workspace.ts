@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import {
   type ActivityEntry,
+  type AiSettings,
+  type AiSettingsView,
   type Assessment,
+  type RewriteResult,
   type Contact,
   type FollowUpDraft,
   type Reminder,
@@ -25,6 +28,9 @@ import {
   type OnboardingState,
   type Profile,
   AddQuestionsRequest,
+  AiSettingsUpdate,
+  ProviderId,
+  RewriteRequest,
   AnswerUpdate,
   ContactInput,
   CoverLetterUpdate,
@@ -57,6 +63,17 @@ import { assess, checkGrounding, dedupeKey, extractJob, normalizeDescription, RU
 import type { Store } from '@reboundops/storage';
 import { checklist, draftAnswer, emptyPackage, followUpDraft } from '@reboundops/applications';
 import {
+  AiConfigError,
+  AiProviderError,
+  createProvider,
+  keyFor,
+  ollamaBaseUrl,
+  PROVIDERS,
+  suggestRewrite,
+  type AiProvider,
+  type FetchLike,
+} from '@reboundops/ai-providers';
+import {
   applyResumeUpdate,
   buildCoverLetter,
   buildResumeDraft,
@@ -73,6 +90,10 @@ import { AppError, notFound } from './errors.ts';
 export interface WorkspaceOptions {
   now?: () => Date;
   newId?: () => string;
+  /** Environment used for provider API keys (defaults to process.env). */
+  env?: Record<string, string | undefined>;
+  /** Transport for AI providers (tests inject a mock; nothing is sent otherwise). */
+  aiFetch?: FetchLike;
 }
 
 /**
@@ -84,9 +105,13 @@ export class Workspace {
   private readonly now: () => Date;
   private readonly newId: () => string;
   private readonly store: Store;
+  private readonly env: Record<string, string | undefined>;
+  private readonly aiFetch: FetchLike | undefined;
 
   constructor(store: Store, options: WorkspaceOptions = {}) {
     this.store = store;
+    this.env = options.env ?? process.env;
+    this.aiFetch = options.aiFetch;
     this.now = options.now ?? (() => new Date());
     this.newId = options.newId ?? randomUUID;
   }
@@ -549,6 +574,96 @@ export class Workspace {
     const contact = typeof contactId === 'string' && contactId ? contacts.find((c) => c.id === contactId) ?? null : contacts[0] ?? null;
     if (typeof contactId === 'string' && contactId && !contact) throw notFound('Contact');
     return followUpDraft(kind, app, this.getProfile(), contact);
+  }
+
+  /* ---------- optional AI (M6) ---------- */
+
+  private aiSettings(): AiSettings {
+    return this.store.getAiSettings() ?? { provider: null, model: '', baseUrl: '', consent: {} };
+  }
+
+  getAiSettings(): AiSettingsView {
+    const settings = this.aiSettings();
+    const aiMode = this.getOnboarding().aiMode;
+    const providers = ProviderId.options.map((id) => ({
+      id,
+      label: PROVIDERS[id].label,
+      local: PROVIDERS[id].local,
+      keyConfigured: PROVIDERS[id].local || keyFor(id, this.env) !== null,
+      keyEnvVar: PROVIDERS[id].keyEnv[0] ?? null,
+      defaultModel: PROVIDERS[id].defaultModel,
+    }));
+    const { active, reason } = this.aiStatus(settings, aiMode);
+    return { settings, aiMode, active, reason, providers };
+  }
+
+  private aiStatus(s: AiSettings, aiMode: string): { active: boolean; reason: string } {
+    if (aiMode === 'off') return { active: false, reason: 'AI is turned off. Everything works without it.' };
+    if (!s.provider) return { active: false, reason: 'No provider chosen.' };
+    const meta = PROVIDERS[s.provider];
+    if (aiMode === 'local' && !meta.local) return { active: false, reason: 'Local-only mode allows only a model on this computer.' };
+    if (!meta.local && !s.consent[s.provider]) return { active: false, reason: `You have not agreed to send text to ${meta.label}.` };
+    if (!meta.local && !keyFor(s.provider, this.env)) return { active: false, reason: `${meta.keyEnv[0]} is not set.` };
+    if (!s.model && !meta.defaultModel) return { active: false, reason: 'Choose a model.' };
+    return { active: true, reason: `Using ${meta.label}.` };
+  }
+
+  updateAiSettings(input: unknown): AiSettingsView {
+    const u = AiSettingsUpdate.parse(input);
+    const current = this.aiSettings();
+    const at = this.now().toISOString();
+    if (u.provider === 'ollama') {
+      try {
+        ollamaBaseUrl(u.baseUrl);
+      } catch (err) {
+        throw new AppError(422, 'invalid_ai_settings', (err as Error).message);
+      }
+    }
+    const consent = { ...current.consent };
+    if (u.provider && !PROVIDERS[u.provider].local) {
+      if (u.consentToCloud) consent[u.provider] = consent[u.provider] ?? at;
+      else delete consent[u.provider];
+    }
+    this.store.saveAiSettings({ provider: u.provider, model: u.model, baseUrl: u.baseUrl, consent }, at);
+    return this.getAiSettings();
+  }
+
+  private provider(): AiProvider {
+    const s = this.aiSettings();
+    const status = this.aiStatus(s, this.getOnboarding().aiMode);
+    if (!status.active || !s.provider) throw new AppError(409, 'ai_unavailable', status.reason);
+    try {
+      return createProvider({ provider: s.provider, model: s.model, baseUrl: s.baseUrl }, this.env, this.aiFetch);
+    } catch (err) {
+      if (err instanceof AiConfigError) throw new AppError(409, 'ai_unavailable', err.message);
+      throw err;
+    }
+  }
+
+  async testAi(): Promise<{ ok: boolean; detail: string }> {
+    return this.provider().health();
+  }
+
+  async rewrite(input: unknown): Promise<RewriteResult> {
+    const req = RewriteRequest.parse(input);
+    const provider = this.provider();
+    if (!provider.local && !req.confirmSend) {
+      throw new AppError(428, 'confirm_send', `Confirm that this text may be sent to ${PROVIDERS[provider.id].label}.`);
+    }
+    const profile = this.getProfile();
+    const allowedTerms = [
+      ...profile.skills,
+      ...profile.experience.flatMap((e) => [e.employer, e.title]),
+      ...profile.education.map((e) => e.institution),
+      ...profile.certifications.map((c) => c.name),
+    ];
+    try {
+      const r = await suggestRewrite(provider, { text: req.text, purpose: req.purpose, ...(req.jobTitle ? { jobTitle: req.jobTitle } : {}), allowedTerms });
+      return { ...r, provider: provider.id, model: provider.model, local: provider.local };
+    } catch (err) {
+      if (err instanceof AiProviderError) throw new AppError(502, 'ai_failed', `${err.message} Your text was not changed.`);
+      throw err;
+    }
   }
 
   /* ---------- assessment ---------- */

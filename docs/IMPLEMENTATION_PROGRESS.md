@@ -28,8 +28,8 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 | M3 Resume & documents | ✅ Done | Import (.docx/.txt/.md/paste), verified-facts profile, tailoring, cover letter, PDF/DOCX + content checks |
 | M4 Application preparation | ✅ Done | Grounded screening answers (needs-input when ungrounded), checklist, official link, user-only posting verification, checklist summary on submit |
 | M5 Tracking & follow-ups | ✅ Done | Contacts, reminders (auto 7-day follow-up on submit), follow-up drafts (copy/mailto only), weekly + response analytics with caveats (schema v3) |
-| M6 AI providers (optional) | ⏳ Next | Provider interface; Ollama + opt-in cloud (Anthropic, OpenAI, Gemini, OpenRouter) with mocks; consent + keychain/env secrets |
-| M7 UX completion | Pending | Settings page, AI/privacy controls, a11y pass, responsive, empty/loading/error states |
+| M6 AI providers (optional) | ✅ Done | Ollama (loopback only), Anthropic (official SDK, pinned base URL), OpenAI, Gemini, OpenRouter; env-only keys; per-provider consent + per-request confirmation; grounded rewrite gate. Live calls unverified (mocked transport) |
+| M7 UX completion | ⏳ Next (Settings page done) | Settings page, AI/privacy controls, a11y pass, responsive, empty/loading/error states |
 | M8 Import from earlier version | Pending | Neutral export schema, staged read-only import, preview/dedupe, confirm |
 | M9 Security & originality | Partial | Loopback/Host/Origin/JSON guards, CSP, audit script, SBOM. Pending: CI workflow, security tests expansion |
 | M10 Comprehensive testing | Partial | 90+ automated tests. Pending: a11y checks, failure-recovery, AI on/off acceptance |
@@ -43,12 +43,13 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 - `packages/storage` — SQLite, append-only migrations (schema v3: `resume_files` BLOBs, `documents` drafts/packages, `contacts`, `reminders`), corruption detection, 0700/0600 permissions.
 - `packages/documents` — ZIP reader/writer with zip-bomb limits, DOCX read/write, text-only PDF writer (Helvetica/WinAnsi), resume parser, deterministic tailoring, cover letter with `[[placeholders]]`, export content verification.
 - `packages/applications` — screening-answer drafting (saved answers → stated facts → needs input), application checklist.
+- `packages/ai-providers` — optional provider adapters behind `AiProvider`; `suggestRewrite` withholds suggestions that add numbers/names/terms.
 - `apps/api` — Fastify on loopback; endpoints listed in `apps/api/src/server.ts`.
 - `apps/web` — Angular UI: welcome, profile (with resume import review), job intake, tracker, application detail (assessment + documents), overview.
 
 ## Test results (latest run)
 
-- Backend/API (Vitest): 100 passed.
+- Backend/API (Vitest): 112 passed.
 - Angular (Vitest/jsdom): 9 passed.
 - Smoke restart: pass. Build: pass. Release audit: pass.
 - Independent export check: generated DOCX read by macOS `textutil`, generated PDF read by Apple PDFKit — all facts present (manual run, 2026-11-18).
@@ -67,7 +68,7 @@ See `git log --oneline`. Milestone commits: M1 `4aeb082`, M2 `8ac4474`, M3 backe
 
 ## Security & licensing
 
-- Runtime dependencies: `fastify`, `zod`, Angular, `rxjs`, `tslib` (all MIT/Apache-2.0/ISC). No new deps for documents (built on `node:zlib`).
+- Runtime dependencies: `fastify`, `zod`, `@anthropic-ai/sdk` (Apache-2.0, used only when the person enables Anthropic), Angular, `rxjs`, `tslib`. No new deps for documents (built on `node:zlib`).
 - Dev-only advisories: picomatch ReDoS chain (no upstream fix); not shipped.
 - Dev-only MPL-2.0: `lightningcss` (Angular build tool), not redistributed.
 
@@ -80,9 +81,7 @@ See `git log --oneline`. Milestone commits: M1 `4aeb082`, M2 `8ac4474`, M3 backe
 
 ## Next step
 
-Start **M6 — Optional AI providers**:
-1. `packages/ai-providers`: `AiProvider` interface (`complete({system, prompt, maxTokens})`, `health()`), implementations for Ollama (`/api/chat`, loopback only), Anthropic Messages API, OpenAI Chat Completions, Gemini `generateContent`, OpenRouter (OpenAI-compatible). Injected `fetch` for tests; timeouts; no retries that could incur cost.
-2. Settings (kv): provider, model, base URL (Ollama), consent flag per cloud provider; API keys only from environment variables (never stored in SQLite, never logged, never returned by the API).
-3. AI use is assistive and verified: e.g. "suggest rewording" of a highlight / cover-letter paragraph; output passes a grounding check (no new numbers, employers, dates, skills not in profile) or is rejected. Job text is passed as quoted untrusted data.
-4. Privacy: cloud calls require explicit per-provider consent and show what will be sent; AI off = feature hidden, all flows still work.
-5. Tests with mocked fetch for every provider + AI on/off acceptance; then M7.
+Continue **M7 — UX completion** then **M8**:
+1. M7: keyboard/screen-reader pass (focus management on route change, live regions), responsive check of every page, empty/loading/error states, edit job details, delete application (with confirmation), tracker sort.
+2. M8: `packages/storage` import of a neutral `reboundops-legacy-import` v1 JSON schema (documented in `docs/IMPORT_FORMAT.md`): validate, stage, preview with dedupe, confirm, write in one transaction, never modify input. Synthetic fixtures only. Also re-import of ReboundOps' own export bundle.
+3. Then M9–M11 (CI workflow, security tests, packaging: API serves built web on one port, `npm start`, release-readiness report).

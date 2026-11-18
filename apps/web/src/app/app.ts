@@ -20,6 +20,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
             <li><a routerLink="/jobs/new" routerLinkActive="active" ariaCurrentWhenActive="page">Add a job</a></li>
             <li><a routerLink="/tracker" routerLinkActive="active" ariaCurrentWhenActive="page">Tracker</a></li>
             <li><a routerLink="/profile" routerLinkActive="active" ariaCurrentWhenActive="page">Profile</a></li>
+            <li><a routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">Settings</a></li>
             <li><a routerLink="/welcome" routerLinkActive="active" ariaCurrentWhenActive="page">Setup</a></li>
           </ul>
         </nav>

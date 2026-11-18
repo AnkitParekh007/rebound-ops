@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import type { z } from 'zod';
 import {
   ActivityEntry,
+  AiSettings,
   Application,
   ApplicationPackage,
   Contact,
@@ -118,6 +119,16 @@ export class Store {
   saveOnboarding(state: OnboardingState): OnboardingState {
     const valid = OnboardingState.parse(state);
     this.putKv('onboarding', valid, valid.updatedAt ?? new Date().toISOString());
+    return valid;
+  }
+
+  getAiSettings(): AiSettings | null {
+    return this.getKv('ai_settings', AiSettings);
+  }
+
+  saveAiSettings(settings: AiSettings, at: string): AiSettings {
+    const valid = AiSettings.parse(settings);
+    this.putKv('ai_settings', valid, at);
     return valid;
   }
 

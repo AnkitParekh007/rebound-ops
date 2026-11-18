@@ -724,3 +724,70 @@ export const DashboardSummary = DashboardSummaryBase.extend({
   reminders: z.array(ReminderView),
 });
 export type DashboardSummary = z.infer<typeof DashboardSummary>;
+
+/* ------------------------------------------------------------------ */
+/* Optional AI (M6)                                                    */
+/* ------------------------------------------------------------------ */
+
+export const ProviderId = z.enum(['ollama', 'anthropic', 'openai', 'gemini', 'openrouter']);
+export type ProviderId = z.infer<typeof ProviderId>;
+
+export const AiSettings = z.object({
+  provider: ProviderId.nullable(),
+  model: shortText(200).default(''),
+  /** Ollama only; must be a loopback address. */
+  baseUrl: shortText(300).default(''),
+  /** When the person agreed to send selected text to each cloud provider. */
+  consent: z.partialRecord(ProviderId, isoDate).default({}),
+});
+export type AiSettings = z.infer<typeof AiSettings>;
+
+export const AiSettingsUpdate = z.object({
+  provider: ProviderId.nullable(),
+  model: shortText(200).default(''),
+  baseUrl: shortText(300).default(''),
+  /** Must be true to enable a cloud provider. */
+  consentToCloud: z.boolean().default(false),
+});
+export type AiSettingsUpdate = z.input<typeof AiSettingsUpdate>;
+
+export const AiProviderInfo = z.object({
+  id: ProviderId,
+  label: z.string(),
+  local: z.boolean(),
+  /** Whether the API key environment variable is set (the key itself is never exposed). */
+  keyConfigured: z.boolean(),
+  keyEnvVar: z.string().nullable(),
+  defaultModel: z.string().nullable(),
+});
+export type AiProviderInfo = z.infer<typeof AiProviderInfo>;
+
+export const AiSettingsView = z.object({
+  settings: AiSettings,
+  aiMode: AiMode,
+  /** True when AI features can be used right now. */
+  active: z.boolean(),
+  reason: z.string(),
+  providers: z.array(AiProviderInfo),
+});
+export type AiSettingsView = z.infer<typeof AiSettingsView>;
+
+export const RewriteRequest = z.object({
+  text: shortText(1500).min(1),
+  purpose: z.enum(['highlight', 'paragraph']),
+  jobTitle: shortText(200).optional(),
+  /** The person confirmed sending this text to the configured provider. */
+  confirmSend: z.boolean().default(false),
+});
+export type RewriteRequest = z.input<typeof RewriteRequest>;
+
+export const RewriteResult = z.object({
+  suggestion: z.string(),
+  /** False when the suggestion added facts and was withheld. */
+  accepted: z.boolean(),
+  problems: z.array(z.string()),
+  provider: ProviderId,
+  model: z.string(),
+  local: z.boolean(),
+});
+export type RewriteResult = z.infer<typeof RewriteResult>;

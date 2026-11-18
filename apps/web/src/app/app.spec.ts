@@ -29,6 +29,7 @@ describe('App shell', () => {
       'Add a job',
       'Tracker',
       'Profile',
+      'Settings',
       'Setup',
     ]);
     expect(el.textContent).toContain('Your data stays on this computer.');

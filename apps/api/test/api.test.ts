@@ -401,3 +401,93 @@ describe('tracking and follow-ups (M5)', () => {
     expect((await send('GET', '/api/export')).json().reminders).toHaveLength(1);
   });
 });
+
+describe('optional AI (M6)', () => {
+  const calls: { url: string; body: unknown }[] = [];
+  let reply = 'Reduced CI pipeline time by 35% through caching PostgreSQL test fixtures';
+  const aiFetch = async (input: string | URL | Request, init?: RequestInit) => {
+    const url = String(input);
+    calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : null });
+    if (url.endsWith('/api/tags')) return new Response('{"models":[]}', { status: 200 });
+    if (url.includes('anthropic.com')) {
+      return new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-opus-5-5', content: [{ type: 'text', text: reply }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ message: { content: reply } }), { status: 200 });
+  };
+  let aiStore: Store;
+  let ai: FastifyInstance;
+  const call = (method: 'GET' | 'POST' | 'PUT', url: string, body?: unknown) =>
+    ai.inject({ method, url, headers: { host: '127.0.0.1', ...(body === undefined ? {} : { 'content-type': 'application/json' }) }, ...(body === undefined ? {} : { payload: JSON.stringify(body) }) });
+
+  beforeEach(() => {
+    calls.length = 0;
+    reply = 'Reduced CI pipeline time by 35% through caching PostgreSQL test fixtures';
+    aiStore = openStore({ memory: true });
+    ai = buildServer({ workspace: new Workspace(aiStore, { now: () => clock, env: { ANTHROPIC_API_KEY: 'test-key' }, aiFetch }), allowedOrigins: [ORIGIN], logLevel: 'silent' });
+  });
+  afterEach(async () => {
+    await ai.close();
+    aiStore.close();
+  });
+  const text = 'Cut CI pipeline time by 35% by caching PostgreSQL test fixtures';
+
+  it('is off by default: no provider is contacted and the API explains why', async () => {
+    const view = (await call('GET', '/api/settings/ai')).json();
+    expect(view).toMatchObject({ aiMode: 'off', active: false });
+    expect(view.providers.find((p: { id: string }) => p.id === 'anthropic')).toMatchObject({ keyConfigured: true, keyEnvVar: 'ANTHROPIC_API_KEY' });
+    expect(JSON.stringify(view)).not.toContain('test-key');
+    expect((await call('POST', '/api/ai/rewrite', { text, purpose: 'highlight' })).statusCode).toBe(409);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('local mode: only a loopback Ollama is allowed, and rewrites are grounded', async () => {
+    await call('PUT', '/api/onboarding', { aiMode: 'local' });
+    expect((await call('PUT', '/api/settings/ai', { provider: 'ollama', model: 'm', baseUrl: 'http://10.0.0.5:11434' })).statusCode).toBe(422);
+    await call('PUT', '/api/settings/ai', { provider: 'ollama', model: 'm', baseUrl: 'http://127.0.0.1:11434' });
+    expect((await call('POST', '/api/settings/ai/test', {})).json()).toEqual({ ok: true, detail: 'Connected.' });
+    const ok = (await call('POST', '/api/ai/rewrite', { text, purpose: 'highlight' })).json();
+    expect(ok).toMatchObject({ accepted: true, local: true, provider: 'ollama' });
+
+    reply = 'Cut CI time by 60% at Initech by caching PostgreSQL fixtures';
+    const bad = (await call('POST', '/api/ai/rewrite', { text, purpose: 'highlight' })).json();
+    expect(bad.accepted).toBe(false);
+    expect(bad.suggestion).toBe('');
+
+    // A cloud provider is refused in local-only mode.
+    await call('PUT', '/api/settings/ai', { provider: 'anthropic', model: '', consentToCloud: true });
+    expect((await call('GET', '/api/settings/ai')).json()).toMatchObject({ active: false, reason: expect.stringMatching(/Local-only/) });
+  });
+
+  it('cloud mode: needs recorded consent and a per-request confirmation', async () => {
+    await call('PUT', '/api/onboarding', { aiMode: 'cloud' });
+    await call('PUT', '/api/settings/ai', { provider: 'anthropic', model: '' });
+    expect((await call('GET', '/api/settings/ai')).json()).toMatchObject({ active: false, reason: expect.stringMatching(/not agreed/) });
+    const view = (await call('PUT', '/api/settings/ai', { provider: 'anthropic', model: '', consentToCloud: true })).json();
+    expect(view).toMatchObject({ active: true });
+    expect(view.settings.consent.anthropic).toBe(clock.toISOString());
+
+    expect((await call('POST', '/api/ai/rewrite', { text, purpose: 'highlight' })).statusCode).toBe(428);
+    expect(calls).toHaveLength(0);
+    const r = (await call('POST', '/api/ai/rewrite', { text, purpose: 'highlight', confirmSend: true })).json();
+    expect(r).toMatchObject({ accepted: true, provider: 'anthropic', model: 'claude-opus-5-5', local: false });
+    expect(calls[0]!.url).toMatch(/^https:\/\/api\.anthropic\.com\//);
+    // Only the selected text is sent — no profile or job description.
+    expect(JSON.stringify(calls[0]!.body)).toContain(text);
+    expect(JSON.stringify(calls[0]!.body)).not.toContain('Brightwater');
+  });
+
+  it('reports provider failure without breaking anything', async () => {
+    const failing = buildServer({
+      workspace: new Workspace(aiStore, { now: () => clock, env: {}, aiFetch: async () => { throw new Error('connection refused'); } }),
+      allowedOrigins: [ORIGIN],
+      logLevel: 'silent',
+    });
+    await failing.inject({ method: 'PUT', url: '/api/onboarding', headers: { host: 'localhost', 'content-type': 'application/json' }, payload: JSON.stringify({ aiMode: 'local' }) });
+    await failing.inject({ method: 'PUT', url: '/api/settings/ai', headers: { host: 'localhost', 'content-type': 'application/json' }, payload: JSON.stringify({ provider: 'ollama', model: 'm' }) });
+    const res = await failing.inject({ method: 'POST', url: '/api/ai/rewrite', headers: { host: 'localhost', 'content-type': 'application/json' }, payload: JSON.stringify({ text, purpose: 'highlight' }) });
+    expect(res.statusCode).toBe(502);
+    expect(res.json().error.message).toMatch(/Your text was not changed/);
+    expect((await failing.inject({ method: 'GET', url: '/api/dashboard', headers: { host: 'localhost' } })).statusCode).toBe(200);
+    await failing.close();
+  });
+});

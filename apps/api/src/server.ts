@@ -194,6 +194,11 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     workspace.followUp(req.params.id, req.query.kind, req.query.contactId),
   );
 
+  app.get('/api/settings/ai', async () => workspace.getAiSettings());
+  app.put('/api/settings/ai', async (req) => workspace.updateAiSettings(req.body));
+  app.post('/api/settings/ai/test', async () => workspace.testAi());
+  app.post('/api/ai/rewrite', async (req) => workspace.rewrite(req.body));
+
   app.get('/api/dashboard', async () => workspace.dashboard());
 
   app.get('/api/export', async (_req, reply) => {

@@ -295,3 +295,7 @@ fieldset.subcard > legend { padding: 0 0.3rem; font-weight: 600; }
 .weekly { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
 .weekly th, .weekly td { text-align: left; padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--line); }
 .weekly td { text-align: right; }
+
+.suggestion { margin: 0 0 0.5rem 1.75rem; padding: 0.5rem 0.75rem; border-left: 3px solid var(--accent); background: var(--paper); border-radius: var(--radius-sm); }
+.suggestion p { margin: 0; }
+code { font-family: var(--font-mono); font-size: 0.9em; background: var(--paper-2); padding: 0.05rem 0.3rem; border-radius: 4px; }

@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import type { DocumentKind, DocumentsBundle, ExportFormat, ResumeDraft } from '@reboundops/contracts';
+import type { AiSettingsView, DocumentKind, DocumentsBundle, DraftHighlight, ExportFormat, ResumeDraft, RewriteResult } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from './api.service';
 
 /** Tailored resume and cover-letter drafts: generate, edit, and export with content checks. */
@@ -52,12 +52,26 @@ import { ApiProblem, ApiService } from './api.service';
                   <div class="highlight-row">
                     <input type="checkbox" [(ngModel)]="h.include" [name]="'hi' + h.id" [attr.aria-label]="'Include highlight: ' + h.originalText" />
                     <input class="grow" [(ngModel)]="h.text" [name]="'ht' + h.id" [attr.aria-label]="'Highlight text'" />
+                    @if (ai()?.active) {
+                      <button type="button" class="btn link" (click)="suggest(h)" [disabled]="busy()" [attr.aria-label]="'Suggest rewording for: ' + h.originalText">Suggest</button>
+                    }
                     @if (h.text !== h.originalText) {
                       <button type="button" class="btn link" (click)="h.text = h.originalText" [attr.aria-label]="'Revert to: ' + h.originalText">Revert</button>
                     } @else if (h.relevance > 0) {
                       <span class="tag found" title="Mentions terms from the posting">Relevant</span>
                     }
                   </div>
+                  @if (suggestions()[h.id]; as sug) {
+                    <div class="suggestion" role="status">
+                      @if (sug.accepted) {
+                        <p><span class="tag found">Suggestion</span> {{ sug.suggestion }}</p>
+                        <div class="actions"><button type="button" class="btn link" (click)="h.text = sug.suggestion; dismiss(h)">Use it</button><button type="button" class="btn link" (click)="dismiss(h)">Dismiss</button></div>
+                      } @else {
+                        <p class="muted small">Suggestion withheld: {{ sug.problems.join(' ') }}</p>
+                        <button type="button" class="btn link" (click)="dismiss(h)">Dismiss</button>
+                      }
+                    </div>
+                  }
                 }
               </fieldset>
             }
@@ -116,6 +130,8 @@ export class DocumentsPanel {
   private readonly letterText = signal('');
   readonly placeholders = computed(() => (this.letterText().match(/\[\[[^\]]*\]\]/g) ?? []).length);
   summary = '';
+  readonly ai = signal<AiSettingsView | null>(null);
+  readonly suggestions = signal<Record<string, RewriteResult>>({});
 
   get letter() {
     return this.letterText();
@@ -128,6 +144,36 @@ export class DocumentsPanel {
     effect(() => {
       const id = this.applicationId();
       void this.run(() => this.api.documents(id));
+    });
+    this.api.aiSettings().then(
+      (v) => this.ai.set(v),
+      () => this.ai.set(null),
+    );
+  }
+
+  /** Optional AI rewording. Cloud providers require an explicit confirmation naming what is sent. */
+  async suggest(h: DraftHighlight) {
+    const v = this.ai();
+    if (!v?.active) return;
+    const provider = v.providers.find((p) => p.id === v.settings.provider);
+    const confirmSend = !!provider && !provider.local;
+    if (confirmSend && !globalThis.confirm(`Send this text to ${provider!.label}?\n\n"${h.text}"`)) return;
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const r = await this.api.rewrite({ text: h.text, purpose: 'highlight', confirmSend });
+      this.suggestions.update((m) => ({ ...m, [h.id]: r }));
+    } catch (e) {
+      this.error.set(e instanceof ApiProblem ? e.message : 'Suggestion failed. Your text was not changed.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  dismiss(h: DraftHighlight) {
+    this.suggestions.update((m) => {
+      const { [h.id]: _gone, ...rest } = m;
+      return rest;
     });
   }
 

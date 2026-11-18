@@ -2,6 +2,8 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, type Observable } from 'rxjs';
 import type {
+  AiSettingsUpdate,
+  AiSettingsView,
   ApplicationStatus,
   ApplicationView,
   Assessment,
@@ -20,6 +22,8 @@ import type {
   DocumentsBundle,
   ExportFormat,
   ResumeDraftUpdate,
+  RewriteRequest,
+  RewriteResult,
   ResumeImportRequest,
   ResumeImportResult,
   Health,
@@ -201,6 +205,18 @@ export class ApiService {
   }
   private docs(id: string) {
     return `${this.base}/applications/${encodeURIComponent(id)}/documents`;
+  }
+  aiSettings() {
+    return this.call(this.http.get<AiSettingsView>(`${this.base}/settings/ai`));
+  }
+  updateAiSettings(u: AiSettingsUpdate) {
+    return this.call(this.http.put<AiSettingsView>(`${this.base}/settings/ai`, u));
+  }
+  testAi() {
+    return this.call(this.http.post<{ ok: boolean; detail: string }>(`${this.base}/settings/ai/test`, {}));
+  }
+  rewrite(req: RewriteRequest) {
+    return this.call(this.http.post<RewriteResult>(`${this.base}/ai/rewrite`, req));
   }
   dashboard() {
     return this.call(this.http.get<DashboardSummary>(`${this.base}/dashboard`));
