@@ -3,11 +3,12 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import type { ApplicationStatus, ApplicationView } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from '../api.service';
+import { AssessmentPanel } from '../assessment-panel';
 import { STATUS_LABEL } from '../labels';
 
 @Component({
   selector: 'app-application-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, AssessmentPanel],
   template: `
     <section class="page" aria-labelledby="app-heading">
       <p><a routerLink="/tracker" class="back-link">← All applications</a></p>
@@ -44,6 +45,8 @@ import { STATUS_LABEL } from '../labels';
               }
               @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
             </section>
+
+            <app-assessment-panel [applicationId]="a.id" />
 
             <section class="card" aria-labelledby="source-heading">
               <h2 id="source-heading">Posting</h2>

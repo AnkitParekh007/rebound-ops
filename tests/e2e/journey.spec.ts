@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 
 const posting = readFileSync(new URL('../fixtures/jobs/labelled.txt', import.meta.url), 'utf8');
 
-test('M1 journey: first launch → onboarding → preferences → job intake → tracker → overview', async ({ page }) => {
+test('Journey: first launch → onboarding → preferences → job intake → assessment → tracker → overview', async ({ page }) => {
   // First launch lands on the welcome flow.
   await page.goto('/');
   await expect(page).toHaveURL(/\/welcome$/);
@@ -46,6 +46,13 @@ test('M1 journey: first launch → onboarding → preferences → job intake →
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Senior Platform Engineer');
   await expect(page.locator('.status.large')).toHaveText('Discovered');
   await expect(page.getByRole('link', { name: /official posting/ })).toHaveAttribute('href', 'https://careers.example.test/brightwater/77');
+  // M2: grounded assessment with evidence and an honest eligibility status.
+  const fit = page.getByRole('region', { name: 'Fit and eligibility' });
+  await expect(fit.getByText('Role alignment')).toBeVisible();
+  await expect(fit.locator('.score-value')).not.toHaveText('—');
+  await expect(fit.locator('.eligibility').first()).toHaveText('Eligibility unconfirmed');
+  await expect(fit).toContainText('Countries where you are authorised to work');
+
   await page.getByRole('button', { name: 'Shortlisted' }).click();
   await expect(page.locator('.status.large')).toHaveText('Shortlisted');
 

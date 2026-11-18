@@ -4,6 +4,8 @@ import { firstValueFrom, type Observable } from 'rxjs';
 import type {
   ApplicationStatus,
   ApplicationView,
+  Assessment,
+  AssessmentSummary,
   DashboardSummary,
   Health,
   JobCreate,
@@ -90,6 +92,12 @@ export class ApiService {
     return this.call(
       this.http.post<ApplicationView>(`${this.base}/applications/${encodeURIComponent(id)}/notes`, { note }),
     );
+  }
+  assessment(id: string) {
+    return this.call(this.http.get<Assessment>(`${this.base}/applications/${encodeURIComponent(id)}/assessment`));
+  }
+  assessments() {
+    return this.call(this.http.get<AssessmentSummary[]>(`${this.base}/assessments`));
   }
   dashboard() {
     return this.call(this.http.get<DashboardSummary>(`${this.base}/dashboard`));

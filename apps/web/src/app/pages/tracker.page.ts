@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import type { ApplicationStatus, ApplicationView } from '@reboundops/contracts';
+import type { ApplicationStatus, ApplicationView, AssessmentSummary } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from '../api.service';
 import { STATUS_LABEL, STATUS_ORDER } from '../labels';
+import { ELIGIBILITY_LABEL } from '../assessment-panel';
 
 @Component({
   selector: 'app-tracker-page',
@@ -52,6 +53,12 @@ import { STATUS_LABEL, STATUS_ORDER } from '../labels';
                 <a class="app-title" [routerLink]="['/tracker', a.id]">{{ a.job.title }}</a>
                 <span class="app-employer">{{ a.job.employer }}@if (a.job.location) { · {{ a.job.location }} }</span>
               </div>
+              <span class="fit-cell">
+                @if (fit()[a.id]; as f) {
+                  <span class="fit-pill" [attr.aria-label]="f.overall === null ? 'Fit not scored' : 'Fit ' + f.overall + ' out of 5'">{{ f.overall ?? '—' }}<span class="muted">/5</span></span>
+                  <span class="eligibility small" [attr.data-eligibility]="f.eligibility">{{ eligibilityLabel[f.eligibility] }}</span>
+                }
+              </span>
               <span class="status" [attr.data-status]="a.status">{{ labels[a.status] }}</span>
               <time class="muted small" [attr.datetime]="a.updatedAt">Updated {{ a.updatedAt.slice(0, 10) }}</time>
             </li>
@@ -67,6 +74,8 @@ export class TrackerPage {
   private readonly api = inject(ApiService);
 
   readonly labels = STATUS_LABEL;
+  readonly eligibilityLabel = ELIGIBILITY_LABEL;
+  readonly fit = signal<Record<string, AssessmentSummary>>({});
   readonly order = STATUS_ORDER;
   readonly apps = signal<ApplicationView[]>([]);
   readonly loading = signal(true);
@@ -90,7 +99,9 @@ export class TrackerPage {
 
   private async load() {
     try {
-      this.apps.set(await this.api.applications());
+      const [apps, fit] = await Promise.all([this.api.applications(), this.api.assessments().catch(() => [])]);
+      this.apps.set(apps);
+      this.fit.set(Object.fromEntries(fit.map((f) => [f.applicationId, f])));
     } catch (e) {
       this.error.set(e instanceof ApiProblem ? e.message : 'Could not load applications.');
     } finally {

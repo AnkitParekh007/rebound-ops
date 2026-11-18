@@ -193,7 +193,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--accent); width
 
 /* ---------- tracker ---------- */
 .app-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
-.app-row { display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center; padding: 0.9rem 1.1rem; }
+.app-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem; align-items: center; padding: 0.9rem 1.1rem; }
 @media (max-width: 600px) { .app-row { grid-template-columns: 1fr; gap: 0.4rem; } }
 .app-main { display: grid; min-width: 0; }
 .app-title { font-weight: 600; color: var(--ink); text-decoration: none; }
@@ -242,3 +242,27 @@ details summary { cursor: pointer; font-weight: 600; margin-bottom: 0.5rem; }
 .next-list li { display: grid; gap: 0.1rem; }
 .next-list a { font-weight: 600; text-decoration: none; color: var(--ink); }
 .next-list span:last-child { color: var(--ink-2); font-size: 0.9rem; }
+
+/* ---------- assessment ---------- */
+.assessment { display: grid; gap: 0.9rem; }
+.assessment h3.sub { font-size: 1rem; margin: 0.5rem 0 0; }
+.score-row { display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap; }
+.score { display: flex; align-items: baseline; gap: 0.25rem; padding: 0.6rem 1rem; border-radius: var(--radius); background: var(--paper); border: 1px solid var(--line); }
+.score-value { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; line-height: 1; }
+.score-scale { color: var(--ink-3); }
+.eligibility { --e: var(--ink-3); display: inline-block; font-weight: 600; color: var(--e); margin: 0 0 0.2rem; text-transform: none; }
+.eligibility.small { font-size: 0.8rem; padding: 0.1rem 0.5rem; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--e) 40%, transparent); margin: 0; white-space: nowrap; }
+[data-eligibility='confirmed'] { --e: var(--accent); }
+[data-eligibility='unconfirmed'] { --e: var(--warn); }
+[data-eligibility='ineligible'] { --e: var(--danger); }
+.criteria { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.8rem; }
+.criteria > li { border-top: 1px solid var(--line); padding-top: 0.7rem; display: grid; gap: 0.3rem; }
+.criteria p { margin: 0; color: var(--ink-2); }
+.criterion-head { display: flex; justify-content: space-between; gap: 1rem; font-weight: 600; }
+.crit-score { font-variant-numeric: tabular-nums; }
+.crit-score.unscored { color: var(--ink-3); font-weight: 500; }
+.evidence { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; font-size: 0.85rem; color: var(--ink-3); }
+.evidence q { font-style: italic; }
+.notice ul { margin: 0 0 0.5rem; padding-left: 1.2rem; }
+.fit-cell { display: inline-flex; gap: 0.5rem; align-items: center; }
+.fit-pill { font-weight: 700; font-variant-numeric: tabular-nums; }
