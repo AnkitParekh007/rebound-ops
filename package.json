@@ -1,0 +1,41 @@
+{
+  "name": "reboundops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first, privacy-oriented job search workspace.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "npm@11.20.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "REBOUND_DATA_DIR=./.local-data npm run start -w @reboundops/api",
+    "dev:web": "npm run start -w @reboundops/web",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck -w @reboundops/web",
+    "lint": "eslint .",
+    "test": "npm run test:unit && npm run test:web",
+    "test:unit": "vitest run",
+    "test:web": "npm run test -w @reboundops/web",
+    "test:smoke": "node scripts/smoke-restart.ts",
+    "test:e2e": "playwright test",
+    "build": "npm run typecheck && npm run build -w @reboundops/web",
+    "audit:release": "node scripts/audit-release.ts",
+    "check": "npm run lint && npm run typecheck && npm test && npm run test:smoke"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.1",
+    "@types/node": "26.6.6",
+    "eslint": "10.15.0",
+    "globals": "17.14.0",
+    "prettier": "3.8.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0",
+    "vitest": "5.1.0"
+  }
+}

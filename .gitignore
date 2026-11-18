@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.angular/
+coverage/
+.local-data/
+*.sqlite
+*.sqlite-*
+*.db
+.env
+.env.*
+!.env.example
+test-results/
+playwright-report/
+reports/
+.DS_Store
+*.log
+.e2e-tmp/
