@@ -31,9 +31,9 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 | M6 AI providers (optional) | ✅ Done | Ollama (loopback only), Anthropic (official SDK, pinned base URL), OpenAI, Gemini, OpenRouter; env-only keys; per-provider consent + per-request confirmation; grounded rewrite gate. Live calls unverified (mocked transport) |
 | M7 UX completion | ✅ Done | Settings page, focus + live-region on navigation, job edit (provenance → user), delete with confirmation, tracker sort, axe a11y checks on 6 views (with negative control) | Settings page, AI/privacy controls, a11y pass, responsive, empty/loading/error states |
 | M8 Import from earlier version | ✅ Done (synthetic data only) | `reboundops-import` v1 + own export round-trip; strict validation, per-record rejection, staged preview token, confirmed single-transaction commit, no overwrites, unverified facts. Real legacy migration pending a separately authorised export | Neutral export schema, staged read-only import, preview/dedupe, confirm |
-| M9 Security & originality | ⏳ Next | Loopback/Host/Origin/JSON guards, CSP, audit script, SBOM. Pending: CI workflow, security tests expansion |
-| M10 Comprehensive testing | Partial | 90+ automated tests. Pending: a11y checks, failure-recovery, AI on/off acceptance |
-| M11 Packaging & release | Pending | Single-command start (API serves built web), install docs, release-readiness report |
+| M9 Security & originality | ✅ Done | Security tests (body limits, CORS, error/log hygiene, header injection, traversal), CSP-safe build check, CI workflow (not yet run), PROVENANCE.md | Loopback/Host/Origin/JSON guards, CSP, audit script, SBOM. Pending: CI workflow, security tests expansion |
+| M10 Comprehensive testing | ✅ Done (except browser E2E run) | 131 backend + 16 Angular tests; 13-step journey AI off/on; migration, restart, failure recovery, a11y. Playwright spec written, not run in sandbox |
+| M11 Packaging & release | ✅ Done locally | `npm ci && npm run build && npm start` on one port; fresh-clone install validated; `docs/RELEASE_READINESS.md` |
 
 ## Completed features (by package)
 
@@ -50,11 +50,12 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 
 ## Test results (latest run)
 
-- Backend/API (Vitest): 114 passed.
+- Backend/API (Vitest): 131 passed (incl. security suite and 2 end-to-end acceptance journeys).
 - Angular (Vitest/jsdom): 16 passed (incl. 7 axe accessibility checks).
 - Smoke restart: pass. Build: pass. Release audit: pass.
 - Independent export check: generated DOCX read by macOS `textutil`, generated PDF read by Apple PDFKit — all facts present (manual run, 2026-11-18).
 - E2E (Playwright): **not run in the development sandbox** (see blockers).
+- Fresh clone → `npm ci` → test → build → smoke → audit: all pass (2026-11-18).
 
 ## Local commits (newest first)
 
@@ -82,8 +83,11 @@ See `git log --oneline`. Milestone commits: M1 `4aeb082`, M2 `8ac4474`, M3 backe
 
 ## Next step
 
-Start **M9 — Security, originality & reliability**, then **M10/M11**:
-1. Security tests: oversized bodies (413), path traversal in ids/filenames, CORS preflight, rate of error responses never leaking stack traces/personal data, logs free of bodies; secret scan also over `docs/`.
-2. `.github/workflows/ci.yml` (lint, typecheck, unit/API/web tests, smoke, build, audit) — committed but CI not claimed until it runs after an approved push.
-3. Provenance doc `docs/PROVENANCE.md` (first-party authorship statement, third-party inventory pointer, what the audit checks, what it cannot prove).
-4. M11 packaging: API serves the built web app on one port (`npm start` → http://127.0.0.1:4175), install/start docs, `scripts/verify-exports.ts` (independent DOCX/PDF read via macOS tools when available), fresh-install smoke, `docs/RELEASE_READINESS.md`.
+All MVP milestones (M0–M11) are implemented and verified locally, except for the items under
+*External dependencies & blockers*. Remaining work requires owner action or decisions:
+
+1. Owner runs `npm run test:e2e` outside the sandbox; fix anything it finds.
+2. Owner approves the push; then confirm GitHub Actions CI runs green (Gate C).
+3. Optional enhancements (P1/P2). `CLAUDE.md` does not enumerate them beyond "more ATS integrations and AI agents after the MVP passes". Candidates, all needing scope decisions: live posting fetch from official/permitted endpoints only (rate-limited, robots-aware); PDF resume import; an encrypted backup option; and per-skill experience tracking to answer "years with X" questions.
+
+If a session resumes with no new instructions: run the verification commands, then pick up item 1 or 3 as directed.
