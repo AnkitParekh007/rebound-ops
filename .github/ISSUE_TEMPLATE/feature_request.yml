@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest an improvement or a new capability.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Please check ROADMAP.md first: it lists what is planned and what is deliberately **not** planned, such as automatic submission, sending messages for you, scraping behind logins, or telemetry.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way? Describe the problem before the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Fit with the project's principles
+      description: Tick each one the proposal keeps.
+      options:
+        - label: It works without an account and keeps data on the user's machine.
+        - label: It does not need AI (AI can be an optional extra).
+        - label: It never invents facts, and it never submits or sends anything for the user.
+        - label: Any network use is opt-in and uses only documented, permitted endpoints.
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you like to work on this?
+      options:
+        - "Yes, I would like to open a pull request"
+        - "Maybe, with guidance"
+        - "No"
+    validations:
+      required: true
