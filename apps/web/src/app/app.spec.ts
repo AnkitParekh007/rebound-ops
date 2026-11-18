@@ -27,6 +27,7 @@ describe('App shell', () => {
     expect([...el.querySelectorAll('.nav a')].map((a) => a.textContent?.trim())).toEqual([
       'Overview',
       'Add a job',
+      'Discover',
       'Tracker',
       'Profile',
       'Settings',

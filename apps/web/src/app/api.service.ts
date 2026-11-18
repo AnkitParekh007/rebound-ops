@@ -3,6 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, type Observable } from 'rxjs';
 import type {
   DeletedItem,
+  DiscoveredPostingView,
+  DiscoveryRequest,
+  DiscoveryResult,
+  JobSourceInfo,
   FitWeights,
   AiSettingsUpdate,
   AiSettingsView,
@@ -203,6 +207,24 @@ export class ApiService {
   }
   restoreReminder(id: string, reminderId: string) {
     return this.call(this.http.post<Reminder>(`${this.app(id)}/reminders/${encodeURIComponent(reminderId)}/restore`, {}));
+  }
+  jobSources() {
+    return this.call(this.http.get<{ sources: JobSourceInfo[]; consent: boolean }>(`${this.base}/discovery/sources`));
+  }
+  setDiscoveryConsent(granted: boolean) {
+    return this.call(this.http.put<{ consent: boolean }>(`${this.base}/discovery/consent`, { granted }));
+  }
+  discover(req: DiscoveryRequest) {
+    return this.call(this.http.post<DiscoveryResult>(`${this.base}/discovery/search`, req));
+  }
+  recentDiscovered(params: Record<string, string> = {}) {
+    return this.call(this.http.get<DiscoveredPostingView[]>(`${this.base}/discovery/recent`, { params }));
+  }
+  saveDiscovered(id: string, body: { employer?: string; allowDuplicate?: boolean } = {}) {
+    return this.call(this.http.post<JobCreateResult>(`${this.base}/discovery/${encodeURIComponent(id)}/save`, body));
+  }
+  checkPosting(jobId: string) {
+    return this.call(this.http.post<Job>(`${this.base}/jobs/${encodeURIComponent(jobId)}/check-posting`, {}));
   }
   fitWeights() {
     return this.call(this.http.get<FitWeights>(`${this.base}/assessment/weights`));

@@ -320,3 +320,13 @@ code { font-family: var(--font-mono); font-size: 0.9em; background: var(--paper-
 .confidence[data-confidence='low'] { color: var(--warn); }
 .uncertainty { margin: 0.25rem 0 0; padding-left: 1.1rem; }
 .requirements li[data-kind='preferred'] .tag { background: var(--paper-2); color: var(--ink-2); }
+
+/* v0.2.0: Discover */
+.postings { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.posting { display: grid; gap: 0.35rem; }
+.posting-title { margin: 0; font-size: 1.05rem; }
+.posting p { margin: 0; }
+.posting[data-availability='not_listed'] { opacity: 0.8; border-style: dashed; }
+.freshness { color: var(--ink-3); font-size: 0.85rem; }
+.freshness[data-availability='not_listed'] { color: var(--danger); }
+.freshness[data-cached='true'] { color: var(--warn); }

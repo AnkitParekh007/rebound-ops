@@ -71,6 +71,16 @@ import { STATUS_LABEL } from '../labels';
               } @else {
                 <p><button type="button" class="btn link" (click)="startEdit(a)">Edit job details</button></p>
               }
+              @if (a.job.source; as src) {
+                <p class="small freshness" [attr.data-availability]="src.availability">
+                  @switch (src.availability) {
+                    @case ('listed') { Listed on the official board when last checked ({{ src.lastCheckedAt?.slice(0, 16)?.replace('T', ' ') }} UTC). }
+                    @case ('not_listed') { No longer listed on the official board as of {{ src.lastCheckedAt?.slice(0, 10) }}. }
+                    @default { Board listing not checked. }
+                  }
+                  <button type="button" class="btn link" (click)="checkPosting(a)" [disabled]="busy()">Check now</button>
+                </p>
+              }
               @if (a.job.sourceUrl) {
                 <p><a [href]="a.job.sourceUrl" target="_blank" rel="noopener noreferrer external">Open the official posting ↗</a></p>
               } @else {
@@ -101,6 +111,11 @@ import { STATUS_LABEL } from '../labels';
                   @switch (e.kind) {
                     @case ('status_changed') { <strong>{{ labels[e.from!] }} → {{ labels[e.to!] }}</strong> }
                     @case ('created') { <strong>Saved as {{ labels[e.to!] }}</strong> }
+                    @case ('reopened') { <strong>Reopened: {{ labels[e.from!] }} → {{ labels[e.to!] }}</strong> }
+                    @case ('contact') { <strong>Contact</strong> }
+                    @case ('reminder') { <strong>Reminder</strong> }
+                    @case ('interview') { <strong>Interview</strong> }
+                    @case ('document') { <strong>Document</strong> }
                     @default { <strong>Note</strong> }
                   }
                   @if (e.note) { <p>{{ e.note }}</p> }
@@ -219,6 +234,14 @@ export class ApplicationPage {
       await this.prepare()?.refresh();
       await this.tracking()?.refresh();
     }
+  }
+
+  /** Asks the job board whether the posting is still listed (needs Discover consent). */
+  async checkPosting(a: ApplicationView) {
+    await this.run(async () => {
+      await this.api.checkPosting(a.jobId);
+      return this.api.application(a.id);
+    });
   }
 
   async addNote() {

@@ -20,6 +20,7 @@ import { filter } from 'rxjs';
           <ul class="nav">
             <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Overview</a></li>
             <li><a routerLink="/jobs/new" routerLinkActive="active" ariaCurrentWhenActive="page">Add a job</a></li>
+            <li><a routerLink="/discover" routerLinkActive="active" ariaCurrentWhenActive="page">Discover</a></li>
             <li><a routerLink="/tracker" routerLinkActive="active" ariaCurrentWhenActive="page">Tracker</a></li>
             <li><a routerLink="/profile" routerLinkActive="active" ariaCurrentWhenActive="page">Profile</a></li>
             <li><a routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">Settings</a></li>

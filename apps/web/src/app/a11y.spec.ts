@@ -12,6 +12,8 @@ import { ProfilePage } from './pages/profile.page';
 import { SettingsPage } from './pages/settings.page';
 import { TrackerPage } from './pages/tracker.page';
 import { WelcomePage } from './pages/welcome.page';
+import { DiscoverPage } from './pages/discover.page';
+import { DISCOVERED_FIXTURE, SOURCES_FIXTURE } from './discover.fixtures';
 
 /**
  * Automated accessibility smoke checks (WCAG 2.1 A/AA rules that axe can
@@ -22,6 +24,7 @@ const profile = {
   displayName: '', headline: '', targetRoles: [], preferredCountries: [], workArrangements: [], openToRelocation: 'unknown', workAuthorizedCountries: [], requiresSponsorship: 'unknown',
   skills: [], experience: [{ id: 'e1', employer: 'Example', title: 'Analyst', start: '2020-01', end: null, summary: '', highlights: ['Did a thing'], verified: false }],
   contact: { email: '', phone: '', location: '', links: [] }, education: [{ id: 'd1', institution: 'Uni', qualification: '', field: '', start: null, end: null, verified: false }], certifications: [], answers: [], updatedAt: null,
+  skillExperience: [{ skill: 'SQL', years: 3, lastUsed: null }], seniorityLevels: ['mid'], salaryExpectation: null,
 };
 const onboarding = { status: 'in_progress', step: 2, aiMode: 'off', goals: { targetRoles: [], timeline: null, weeklyApplicationTarget: null, notes: '' }, updatedAt: null };
 const at = '2026-03-02T10:00:00.000Z';
@@ -60,7 +63,11 @@ describe('accessibility (axe)', () => {
   it('profile with experience and education rows', async () => expect(await audit(ProfilePage, { '/api/profile': profile })).toEqual([]));
   it('job intake', async () => expect(await audit(IntakePage, {})).toEqual([]));
   it('tracker (empty state)', async () => expect(await audit(TrackerPage, { '/api/applications': [], '/api/assessments': [] })).toEqual([]));
-  it('settings', async () => expect(await audit(SettingsPage, { '/api/settings/ai': ai })).toEqual([]));
+  it('settings', async () => expect(await audit(SettingsPage, { '/api/settings/ai': ai, '/api/assessment/weights': { role: 1, skills: 1, experience: 1, location: 1, seniority: 1, salary: 1 } }, {}, 'What matters in a fit score')).toEqual([]));
+  it('discover with consent given and stored postings', async () =>
+    expect(await audit(DiscoverPage, { '/api/discovery/sources': { sources: SOURCES_FIXTURE, consent: true }, '/api/discovery/recent': DISCOVERED_FIXTURE }, {}, 'Listed on the board when checked')).toEqual([]));
+  it('discover before consent', async () =>
+    expect(await audit(DiscoverPage, { '/api/discovery/sources': { sources: SOURCES_FIXTURE, consent: false }, '/api/discovery/recent': [] }, {}, 'Allow ReboundOps to contact job boards?')).toEqual([]));
   it('overview with metrics, next actions and reminders', async () => expect(await audit(DashboardPage, { '/api/dashboard': dashboard }, {}, 'Prepare documents')).toEqual([]));
   it('contacts, reminders and follow-ups panel', async () =>
     expect(
