@@ -113,7 +113,7 @@ export const ELIGIBILITY_COPY: Record<Eligibility, { label: string; tone: string
 export const DOC_PREVIEW = {
   resume: [
     { kind: 'h', text: 'Sam Rivera', from: 'Profile · name' },
-    { kind: 'meta', text: 'Lisbon, Portugal · sam.rivera@example.test · linkedin.com/in/sam-rivera-example', from: 'Profile · contact and links' },
+    { kind: 'meta', text: 'Lisbon, Portugal · sam.rivera@example.test · sam-rivera.example.test', from: 'Profile · contact and links' },
     { kind: 'sh', text: 'Experience', from: null },
     { kind: 'role', text: 'Senior Engineer — Tidewater Systems (fictional) · Mar 2022 – Present', from: 'Verified experience #1' },
     { kind: 'li', text: 'Built a self-service Kubernetes platform used by 14 product teams.', from: 'Verified highlight · chosen for “internal developer platform”' },
@@ -121,7 +121,7 @@ export const DOC_PREVIEW = {
     { kind: 'role', text: 'Infrastructure Engineer — Larkspur Cloud (fictional) · Jan 2019 – Feb 2022', from: 'Verified experience #2' },
     { kind: 'li', text: 'Ran the on-call rotation for the payments platform.', from: 'Verified highlight' },
     { kind: 'sh', text: 'Education', from: null },
-    { kind: 'role', text: 'BSc Computer Science — University of Coimbra (fictional entry) · 2018', from: 'Verified education' },
+    { kind: 'role', text: 'BSc Computer Science — Northshore Institute (fictional) · 2018', from: 'Verified education' },
   ],
   letter: [
     { kind: 'meta', text: 'To the hiring team at Northwind Labs', from: 'Posting · employer' },
