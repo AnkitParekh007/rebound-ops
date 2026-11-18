@@ -1,0 +1,11 @@
+Job Title: Senior Platform Engineer
+Company: Brightwater Analytics
+Location: Lisbon, Portugal (Hybrid)
+Salary: €68,000 - €82,000 per year
+
+About the role
+You will design and operate internal developer platforms.
+
+Requirements
+- 5+ years with distributed systems
+- Experience with TypeScript and PostgreSQL
