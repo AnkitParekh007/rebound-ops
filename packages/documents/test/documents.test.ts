@@ -59,7 +59,7 @@ describe('resume parsing', () => {
     expect(proposal.displayName).toBe('Jordan Fictional');
     expect(proposal.headline).toBe('Platform engineer focused on reliable developer tooling');
     expect(proposal.contact.email).toBe('jordan.fictional@example.test');
-    expect(proposal.contact.phone).toBe('+351 912 345 678');
+    expect(proposal.contact.phone).toBe('+351 000 000 000');
     expect(proposal.contact.location).toBe('Lisbon, Portugal');
     expect(proposal.contact.links.map((l) => l.label)).toEqual(['LinkedIn', 'GitHub']);
 
