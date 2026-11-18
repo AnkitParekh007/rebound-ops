@@ -81,6 +81,7 @@ async function postJson(fetchImpl: FetchLike, url: string, headers: Record<strin
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (err) {
+    if ((err as Error).name === 'TimeoutError') throw new AiProviderError(`The provider did not answer within ${TIMEOUT_MS / 1000} seconds.`);
     throw new AiProviderError(`Could not reach the provider: ${(err as Error).message}`);
   }
   const text = await res.text();
@@ -243,6 +244,8 @@ class AnthropicProvider implements AiProvider {
     } catch (err) {
       if (err instanceof Anthropic.AuthenticationError) throw new AiProviderError('Anthropic rejected the API key.', 401);
       if (err instanceof Anthropic.RateLimitError) throw new AiProviderError('Anthropic rate limit reached; try again later.', 429);
+      if (err instanceof Anthropic.APIConnectionTimeoutError) throw new AiProviderError(`Anthropic did not answer within ${TIMEOUT_MS / 1000} seconds.`);
+      if (err instanceof Anthropic.APIConnectionError) throw new AiProviderError('Could not reach Anthropic. Check your internet connection.');
       if (err instanceof Anthropic.APIError) throw new AiProviderError(`Anthropic error ${err.status ?? ''}`.trim() + '.', err.status ?? null);
       throw new AiProviderError(`Could not reach Anthropic: ${(err as Error).message}`);
     }

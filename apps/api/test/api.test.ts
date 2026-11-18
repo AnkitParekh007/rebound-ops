@@ -490,6 +490,48 @@ describe('optional AI (M6)', () => {
     expect((await failing.inject({ method: 'GET', url: '/api/dashboard', headers: { host: 'localhost' } })).statusCode).toBe(200);
     await failing.close();
   });
+
+  it('reports a provider timeout clearly and passes an abort signal to every request', async () => {
+    let signal: AbortSignal | undefined;
+    const slow = buildServer({
+      workspace: new Workspace(aiStore, {
+        now: () => clock,
+        env: {},
+        aiFetch: async (_url, init) => {
+          signal = init?.signal ?? undefined;
+          throw new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+        },
+      }),
+      allowedOrigins: [ORIGIN],
+      logLevel: 'silent',
+    });
+    const h = { host: 'localhost', 'content-type': 'application/json' };
+    await slow.inject({ method: 'PUT', url: '/api/onboarding', headers: h, payload: JSON.stringify({ aiMode: 'local' }) });
+    await slow.inject({ method: 'PUT', url: '/api/settings/ai', headers: h, payload: JSON.stringify({ provider: 'ollama', model: 'm' }) });
+    const res = await slow.inject({ method: 'POST', url: '/api/ai/rewrite', headers: h, payload: JSON.stringify({ text, purpose: 'highlight' }) });
+    expect(res.statusCode).toBe(502);
+    expect(res.json().error.message).toBe('The provider did not answer within 60 seconds. Your text was not changed.');
+    expect(signal).toBeInstanceOf(AbortSignal);
+    await slow.close();
+  });
+
+  it('withdrawing consent or turning AI off stops all provider calls', async () => {
+    await call('PUT', '/api/onboarding', { aiMode: 'cloud' });
+    await call('PUT', '/api/settings/ai', { provider: 'anthropic', model: '', consentToCloud: true });
+    expect((await call('GET', '/api/settings/ai')).json().active).toBe(true);
+
+    const withdrawn = (await call('PUT', '/api/settings/ai', { provider: 'anthropic', model: '', consentToCloud: false })).json();
+    expect(withdrawn).toMatchObject({ active: false, reason: expect.stringMatching(/not agreed/) });
+    expect(withdrawn.settings.consent.anthropic).toBeUndefined();
+    expect((await call('POST', '/api/ai/rewrite', { text, purpose: 'highlight', confirmSend: true })).statusCode).toBe(409);
+
+    await call('PUT', '/api/settings/ai', { provider: 'anthropic', model: '', consentToCloud: true });
+    await call('PUT', '/api/onboarding', { aiMode: 'off' });
+    expect((await call('GET', '/api/settings/ai')).json()).toMatchObject({ active: false, reason: expect.stringMatching(/turned off/) });
+    expect((await call('POST', '/api/ai/rewrite', { text, purpose: 'highlight', confirmSend: true })).statusCode).toBe(409);
+    expect((await call('POST', '/api/settings/ai/test', {})).statusCode).toBe(409);
+    expect(calls).toHaveLength(0);
+  });
 });
 
 describe('job edits and deletion (M7)', () => {

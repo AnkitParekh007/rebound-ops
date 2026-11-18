@@ -51,6 +51,11 @@ describe('provider adapters (mocked transport)', () => {
 
     const denied = mockFetch(() => ({ status: 401, json: { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } } }));
     await expect(createProvider({ provider: 'anthropic', model: '' }, env, denied.fetch).complete(req)).rejects.toThrow('Anthropic rejected the API key.');
+
+    const offline: FetchLike = async () => {
+      throw new TypeError('fetch failed');
+    };
+    await expect(createProvider({ provider: 'anthropic', model: '' }, env, offline).complete(req)).rejects.toThrow('Could not reach Anthropic. Check your internet connection.');
   });
 
   it('OpenAI and OpenRouter: chat completions with bearer auth', async () => {
