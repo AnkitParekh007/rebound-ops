@@ -1,6 +1,6 @@
 {
   "name": "reboundops",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Local-first, privacy-oriented job search workspace.",
   "license": "MIT",
@@ -30,7 +30,9 @@
     "test:exports": "node scripts/verify-exports.ts",
     "restore": "node scripts/restore-backup.ts",
     "import:check": "node scripts/check-import.ts",
-    "test:packaged": "node scripts/smoke-packaged.ts"
+    "test:packaged": "node scripts/smoke-packaged.ts",
+    "package:release": "node scripts/package-release.ts",
+    "verify:release": "node scripts/verify-release.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

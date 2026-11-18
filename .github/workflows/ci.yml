@@ -11,9 +11,12 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Tags are needed for the upgrade-from-v0.1.0 check.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -32,6 +35,15 @@ jobs:
       - run: npm run audit:release
         env:
           REBOUND_AUDIT_STRICT: '1'
+      # Build the release archive (nothing is published) and verify a fresh install and the v0.1.0 upgrade.
+      - run: npm run package:release -- --skip-build
+      - run: npm run verify:release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate
+          path: release/
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: sbom
