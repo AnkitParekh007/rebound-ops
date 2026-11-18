@@ -93,6 +93,12 @@ function fromExport(bundle: ExportBundle): unknown {
         appliedAt: app?.appliedConfirmedAt ?? null,
         history: activity.filter((a) => a.kind === 'status_changed' && a.to).map((a) => ({ at: a.at, status: a.to!, ...(a.note ? { note: a.note } : {}) })),
         notes: activity.filter((a) => a.kind === 'note' && a.note).map((a) => ({ at: a.at, text: a.note })),
+        ...(app
+          ? {
+              contacts: (bundle.contacts ?? []).filter((c) => c.applicationId === app.id).map((c) => ({ name: c.name, role: c.role, email: c.email, phone: c.phone, notes: c.notes })),
+              reminders: (bundle.reminders ?? []).filter((r) => r.applicationId === app.id).map((r) => ({ dueOn: r.dueOn, label: r.label, done: r.done, priority: r.priority })),
+            }
+          : {}),
       };
     }),
   };

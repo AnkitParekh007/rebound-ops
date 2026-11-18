@@ -1164,6 +1164,26 @@ export const ImportJob = z
     appliedAt: isoDate.nullable().optional(),
     history: z.array(z.object({ at: isoDate, status: ApplicationStatus, note: importText(2000).optional() }).strict()).max(200).optional(),
     notes: z.array(z.object({ at: isoDate, text: importText(4000).min(1) }).strict()).max(200).optional(),
+    /** v0.2.0 (additive, optional): people connected to this application. */
+    contacts: z
+      .array(
+        z
+          .object({
+            name: shortText(120).min(1),
+            role: shortText(120).optional(),
+            email: z.union([z.literal(''), z.email().max(254)]).optional(),
+            phone: shortText(40).optional(),
+            notes: importText(4000).optional(),
+          })
+          .strict(),
+      )
+      .max(50)
+      .optional(),
+    /** v0.2.0 (additive, optional): reminders. */
+    reminders: z
+      .array(z.object({ dueOn: IsoDay, label: shortText(200).min(1), done: z.boolean().optional(), priority: z.enum(['high', 'normal', 'low']).optional() }).strict())
+      .max(100)
+      .optional(),
   })
   .strict();
 export type ImportJob = z.infer<typeof ImportJob>;

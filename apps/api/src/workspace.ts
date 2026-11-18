@@ -929,6 +929,12 @@ export class Workspace {
         }
         if (prev !== status) this.store.addActivity(this.activity(appId, 'status_changed', prev, status, 'Status at import.', at));
         for (const n of j.notes ?? []) this.store.addActivity(this.activity(appId, 'note', null, null, n.text, n.at));
+        for (const c of j.contacts ?? []) {
+          this.store.upsertContact({ id: this.newId(), applicationId: appId, name: c.name, role: c.role ?? '', email: c.email ?? '', phone: c.phone ?? '', notes: c.notes ?? '', createdAt: at, updatedAt: at });
+        }
+        for (const r of j.reminders ?? []) {
+          this.store.upsertReminder({ id: this.newId(), applicationId: appId, dueOn: r.dueOn, label: r.label, done: r.done ?? false, doneAt: r.done ? at : null, createdAt: at, priority: r.priority ?? 'normal', notes: '' });
+        }
         jobsAdded++;
       }
       return profileChanged;

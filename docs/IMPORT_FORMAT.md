@@ -55,12 +55,16 @@ All dates are ISO 8601 with a time zone offset (`2026-04-03T09:00:00.000Z`). Mon
             | "interviewing" | "offer" | "rejected" | "withdrawn",
     "appliedAt": "…" | null,             // when you submitted, if you did
     "history": [{ "at": "…", "status": "…", "note": "" }],
-    "notes": [{ "at": "…", "text": "" }]
+    "notes": [{ "at": "…", "text": "" }],
+    // v0.2.0, optional and additive (older files without them still import):
+    "contacts": [{ "name": "", "role": "", "email": "", "phone": "", "notes": "" }],   // up to 50
+    "reminders": [{ "dueOn": "YYYY-MM-DD", "label": "", "done": false,
+                    "priority": "high" | "normal" | "low" }]                        // up to 100
   }]
 }
 ```
 
-A complete fictional example is in `tests/fixtures/import/synthetic-v1.json`.
+A complete fictional example is in `tests/fixtures/import/synthetic-v1.json`; contacts and reminders are shown in `tests/fixtures/import/synthetic-v1-tracking.json`. A job with any malformed field (for example an invalid contact email) is rejected on its own and listed in the preview; the rest of the file still imports.
 
 ## Status of real legacy-data migration
 

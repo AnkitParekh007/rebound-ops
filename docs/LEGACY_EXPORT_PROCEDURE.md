@@ -12,7 +12,7 @@ synthetic files.
 - Do this in a separate session that you authorise for the purpose. That session
   needs read access to the earlier version's data. ReboundOps' own development
   sessions are not given that access.
-- Take a ReboundOps backup first (**Settings → Your data → Download a backup**),
+- Take a ReboundOps backup first (**Settings → Backup and restore**; a password-protected backup is recommended because it holds personal data),
   so you can return to where you were.
 - Work in a new staging folder outside both projects, for example
   `~/reboundops-migration/`. Do not put it in a Git repository. It will hold

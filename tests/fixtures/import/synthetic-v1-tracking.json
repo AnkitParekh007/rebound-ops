@@ -1,0 +1,26 @@
+{
+  "format": "reboundops-import",
+  "formatVersion": 1,
+  "source": "Synthetic fixture (fictional people and companies)",
+  "jobs": [
+    {
+      "externalId": "legacy-1",
+      "title": "Product Analyst",
+      "employer": "Imaginary Retail SA",
+      "status": "interviewing",
+      "appliedAt": "2026-03-02T10:00:00.000Z",
+      "history": [
+        { "at": "2026-03-01T09:00:00.000Z", "status": "shortlisted" },
+        { "at": "2026-03-02T10:00:00.000Z", "status": "applied" },
+        { "at": "2026-03-09T15:00:00.000Z", "status": "interviewing", "note": "Phone screen booked" }
+      ],
+      "contacts": [{ "name": "Robin Placeholder", "role": "Recruiter", "email": "robin@example.test" }],
+      "reminders": [{ "dueOn": "2026-03-16", "label": "Send thank-you note", "priority": "high" }, { "dueOn": "2026-03-01", "label": "Old task", "done": true }]
+    },
+    {
+      "title": "Bad Contact Role",
+      "employer": "Nowhere Ltd",
+      "contacts": [{ "name": "Has Bad Email", "email": "not-an-email" }]
+    }
+  ]
+}

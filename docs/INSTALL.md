@@ -18,7 +18,7 @@ and it stores everything in one private database folder.
 
 | Platform | Status |
 | --- | --- |
-| macOS 14+ on Apple Silicon | Primary target. Fresh install, upgrade from v0.1.0, PDF import and restore are verified by `npm run verify:release`. |
+| macOS on Apple Silicon | Primary target; verified on a current macOS release on the development machine (older versions not tested). Fresh install, upgrade from v0.1.0, PDF import and restore are verified by `npm run verify:release`. |
 | macOS on Intel | Expected to work (no native code is required); not separately tested. |
 | Linux (x64) | Tested in CI (Ubuntu): unit, API, packaged-serving, release verification and browser journey. |
 | Windows 11 | Not tested. Node-only, so it may work; file-permission hardening (0600/0700) is best effort on Windows. |

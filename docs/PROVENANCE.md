@@ -24,7 +24,34 @@ writes the licences of bundled packages to `apps/web/dist/3rdpartylicenses.txt`.
 with any distribution of the web build.
 
 Runtime dependencies: `fastify`, `zod`, `@anthropic-ai/sdk` (loaded only when the Anthropic
-provider is enabled), and Angular with `rxjs` and `tslib` in the browser bundle.
+provider is enabled), `pdfjs-dist` (Mozilla pdf.js, Apache-2.0, used only to read text from PDF
+resumes locally; added in v0.2.0), and Angular with `rxjs` and `tslib` compiled into the browser
+bundle. `npm run package:release` writes `THIRD_PARTY_NOTICES.txt` with the licence text of every
+third-party package that ships, and a CycloneDX SBOM of exactly those packages.
+
+## v0.2.0 additions
+
+All v0.2.0 code was written in this repository in the same way as v0.1.0, without access to the
+earlier implementation (the development sandbox continued to deny reads of its directories):
+
+| Area | New first-party modules |
+| --- | --- |
+| Storage safety | `packages/storage/src/backup.ts` (journalled restore, O_EXCL lock), `backup-crypto.ts` (scrypt + AES-256-GCM via Node's `crypto`; no custom cryptography) |
+| PDF import | `packages/documents/src/pdf-import.ts` (line assembly, confidence, scanned/encrypted detection) on top of pdf.js |
+| Job sources | `packages/job-sources/` (HTTP client, adapters for Greenhouse, Lever, Ashby and Workable public interfaces; Workday documented as unsupported) |
+| Intelligence | `packages/job-intelligence/src/requirements.ts`, `fit-extra.ts`; rubric `fit-2026.2` |
+| Tracking | `packages/core/src/followups.ts`, `packages/applications/src/templates.ts`, interview notes |
+| AI assistance | `packages/ai-providers/src/tasks.ts` (task prompts and grounding gates) |
+| API and UI | `apps/api/src/discovery.ts`, `restore.ts`; Angular Discover page, backup/restore, weights, templates, interview and AI panels |
+| Release | `scripts/package-release.ts` (deterministic tar writer), `verify-release.ts`, `smoke-packaged.ts` |
+
+External interfaces are used only as their providers document or publish them for public,
+unauthenticated reading of job postings: the Greenhouse Job Board API, the Lever Postings API,
+the Ashby public job posting API, and the jobs feed behind Workable-hosted careers pages. Provider
+names appear only to describe these integrations; no provider branding or assets are included.
+Workday was not integrated because no documented public job-posting API was found. Response shapes
+were confirmed by reading public job boards of large employers once during development; the test
+fixtures are synthetic and name only fictional companies.
 
 ## What the automated checks do — and do not — prove
 
