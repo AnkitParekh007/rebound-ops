@@ -1,0 +1,105 @@
+# Marketing website (marketing-site/). Independent of the app's CI (ci.yml): it only runs when the
+# site changes, uses the site's own lockfile, and nothing in the app's build or release depends on it.
+name: Marketing site
+
+on:
+  push:
+    branches: [main, 'feature/**']
+    paths: ['marketing-site/**', '.github/workflows/marketing-site.yml']
+  pull_request:
+    paths: ['marketing-site/**', '.github/workflows/marketing-site.yml']
+  workflow_dispatch:
+    inputs:
+      capture_app_screenshots:
+        description: 'Also capture product screenshots from the v0.2.0 app (uploaded as an artifact, never committed)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketing-site-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: marketing-site
+
+env:
+  ASTRO_TELEMETRY_DISABLED: '1'
+  # Placeholder origin: the production domain is not decided. Preview builds are noindex.
+  SITE_URL: https://marketing-preview.invalid
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: marketing-site/package-lock.json
+      - run: npm ci
+      - name: Type check and build
+        run: npm run build
+      - name: Static checks (SEO, links, sitemap, axe in jsdom, contrast, screenshots, OG)
+        run: npm test
+      - name: Production-mode build checks
+        run: SITE_ENV=production SITE_URL=https://www.example.org npx astro build && SITE_ENV=production SITE_URL=https://www.example.org npm test
+      - name: Rebuild the preview site for browser tests
+        run: npx astro build
+      - run: npx playwright install --with-deps chromium
+      - name: Browser tests (Playwright + axe, desktop and mobile)
+        run: npm run test:e2e
+      - name: Site screenshots for review
+        if: always()
+        run: npm run screenshots:site
+      - name: Lighthouse
+        if: always()
+        continue-on-error: true
+        run: npm run lighthouse
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: marketing-site-reports
+          path: |
+            marketing-site/reports/
+            marketing-site/playwright-report/
+            marketing-site/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  capture-app-screenshots:
+    if: github.event_name == 'workflow_dispatch' && inputs.capture_app_screenshots
+    needs: build-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: marketing-site/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Capture the real v0.2.0 app with fictional fixtures
+        run: npm run screenshots:app
+        env:
+          CAPTURE_TAG: v0.2.0
+          NG_CLI_ANALYTICS: 'false'
+      - name: Verify the captured set
+        run: npx astro build && npm test
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: app-screenshots-v0.2.0
+          path: |
+            marketing-site/public/screenshots/
+            marketing-site/src/data/screenshots.json
+          retention-days: 30
