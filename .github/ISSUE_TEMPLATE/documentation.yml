@@ -1,0 +1,38 @@
+name: Documentation
+description: Something in the docs is missing, unclear or wrong.
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Where?
+      description: A file path (for example docs/INSTALL.md) or a link.
+      placeholder: docs/INSTALL.md
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of problem?
+      options:
+        - Incorrect or out of date
+        - Missing information
+        - Unclear or hard to follow
+        - Broken link or image
+        - Typo or wording
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What does it say now, and what should it say? If a command did not work, include the command and its output, with personal paths removed.
+    validations:
+      required: true
+  - type: checkboxes
+    id: pr
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to open a pull request for this.
