@@ -41,7 +41,7 @@ The app's UI (`apps/web/src/styles.css`) uses a different identity: paper and in
 
 | File | Size | Use |
 | --- | --- | --- |
-| `docs/assets/brand/social-preview.png` | 1280×640, ~106 KB | Repository social preview (upload in Settings) |
+| `docs/assets/brand/social-preview.png` | 1280×640, ~109 KB | Repository social preview (upload in Settings) |
 | `docs/assets/brand/social-preview.svg` | source | Edit this, then regenerate the PNG |
 | `docs/assets/brand/readme-banner-light.svg` / `-dark.svg` | 840×220 | README header through `<picture>` |
 | `docs/assets/brand/mark.svg` | 32×32 viewBox | Avatar, favicon, small placements |

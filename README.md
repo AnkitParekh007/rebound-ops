@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/github/license/AnkitParekh007/rebound-ops?color=1d6b52"></a>
-  <a href="https://github.com/AnkitParekh007/rebound-ops/releases/tag/v0.2.0"><img alt="Latest release (pre-release)" src="https://img.shields.io/github/v/release/AnkitParekh007/rebound-ops?include_prereleases&amp;label=release&amp;color=1d6b52"></a>
+  <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/github/license/AnkitParekh007/rebound-ops?color=a8380f"></a>
+  <a href="https://github.com/AnkitParekh007/rebound-ops/releases/tag/v0.2.0"><img alt="Latest release (pre-release)" src="https://img.shields.io/github/v/release/AnkitParekh007/rebound-ops?include_prereleases&amp;label=release&amp;color=a8380f"></a>
   <a href="https://github.com/AnkitParekh007/rebound-ops/actions/workflows/ci.yml?query=branch%3Amain"><img alt="CI status on main" src="https://github.com/AnkitParekh007/rebound-ops/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <img alt="Node.js 24 or newer" src="https://img.shields.io/badge/node-%E2%89%A5%2024-1e2430">
 </p>

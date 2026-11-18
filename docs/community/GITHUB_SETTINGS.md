@@ -48,7 +48,7 @@ gh repo edit AnkitParekh007/rebound-ops --homepage "https://<confirmed-domain>"
 
 ### Social preview
 
-Upload [`docs/assets/brand/social-preview.png`](../assets/brand/social-preview.png) (1280×640 PNG, about 108 KB; GitHub requires under 1 MB). There is no API for this. Use **Settings → General → Social preview → Edit → Upload an image**. GitHub currently shows its auto-generated card.
+Upload [`docs/assets/brand/social-preview.png`](../assets/brand/social-preview.png) (1280×640 PNG, about 109 KB; GitHub requires under 1 MB). There is no API for this. Use **Settings → General → Social preview → Edit → Upload an image**. GitHub currently shows its auto-generated card.
 
 ## 2. Features
 
