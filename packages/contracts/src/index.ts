@@ -577,3 +577,76 @@ export const ExportCheck = z.object({
   problems: z.array(z.string()),
 });
 export type ExportCheck = z.infer<typeof ExportCheck>;
+
+/* ------------------------------------------------------------------ */
+/* Application preparation (M4)                                        */
+/* ------------------------------------------------------------------ */
+
+export const AnswerStatus = z.enum(['drafted', 'needs_input', 'reviewed']);
+export type AnswerStatus = z.infer<typeof AnswerStatus>;
+
+export const AnswerSource = z.object({
+  kind: z.enum(['saved_answer', 'profile', 'experience', 'none', 'user']),
+  detail: z.string(),
+});
+export type AnswerSource = z.infer<typeof AnswerSource>;
+
+export const ScreeningAnswer = z.object({
+  id: z.string(),
+  question: shortText(500).min(1),
+  answer: shortText(4000),
+  status: AnswerStatus,
+  source: AnswerSource,
+  /** Why the answer needs input, or what to double-check. */
+  note: z.string(),
+});
+export type ScreeningAnswer = z.infer<typeof ScreeningAnswer>;
+
+export const ApplicationPackage = z.object({
+  kind: z.literal('package'),
+  applicationId: z.string(),
+  updatedAt: isoDate,
+  officialApplyUrl: z.url({ protocol: /^https?$/ }).max(2048).nullable(),
+  eligibilityAcknowledged: z.boolean(),
+  answers: z.array(ScreeningAnswer).max(100),
+  exports: z.object({ resume: isoDate.nullable(), cover_letter: isoDate.nullable() }),
+});
+export type ApplicationPackage = z.infer<typeof ApplicationPackage>;
+
+export const ChecklistItem = z.object({
+  key: z.enum(['resume', 'cover_letter', 'eligibility', 'answers', 'official_link', 'posting_checked']),
+  label: z.string(),
+  done: z.boolean(),
+  detail: z.string(),
+  optional: z.boolean(),
+});
+export type ChecklistItem = z.infer<typeof ChecklistItem>;
+
+export const PackageView = z.object({
+  package: ApplicationPackage,
+  checklist: z.array(ChecklistItem),
+  /** Where to apply: the link you set, else the posting URL you saved. */
+  applyUrl: z.string().nullable(),
+  ready: z.boolean(),
+});
+export type PackageView = z.infer<typeof PackageView>;
+
+export const PackageUpdate = z.object({
+  officialApplyUrl: z.url({ protocol: /^https?$/ }).max(2048).nullable().optional(),
+  eligibilityAcknowledged: z.boolean().optional(),
+  /** The person states they checked the posting on the official site. */
+  postingCheckedByUser: z.boolean().optional(),
+});
+export type PackageUpdate = z.infer<typeof PackageUpdate>;
+
+export const AddQuestionsRequest = z.object({ questions: z.array(shortText(500).min(1)).min(1).max(50) });
+export type AddQuestionsRequest = z.infer<typeof AddQuestionsRequest>;
+
+export const AnswerUpdate = z.object({
+  answer: shortText(4000),
+  /** Mark as reviewed by the person. */
+  reviewed: z.boolean().default(true),
+  /** Also save this question/answer to the profile for reuse. */
+  saveToProfile: z.boolean().default(false),
+});
+export type AnswerUpdate = z.input<typeof AnswerUpdate>;

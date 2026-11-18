@@ -26,8 +26,8 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 | M1 First vertical slice | ✅ Done | Onboarding, profile, manual job intake, tracker, overview, export, restart smoke |
 | M2 Job intelligence | ✅ Done | 0–5 rubric (`fit-2026.1`), eligibility confirmed/unconfirmed/ineligible, evidence, missing info |
 | M3 Resume & documents | ✅ Done | Import (.docx/.txt/.md/paste), verified-facts profile, tailoring, cover letter, PDF/DOCX + content checks |
-| M4 Application preparation | ⏳ Next | Screening answers from verified facts, review checklist, official link, submission confirmation |
-| M5 Tracking & follow-ups | Pending | Recruiter contacts, reminders, follow-up drafts (no sending), history, analytics |
+| M4 Application preparation | ✅ Done | Grounded screening answers (needs-input when ungrounded), checklist, official link, user-only posting verification, checklist summary on submit |
+| M5 Tracking & follow-ups | ⏳ Next | Recruiter contacts, reminders, follow-up drafts (no sending), history, analytics |
 | M6 AI providers (optional) | Pending | Provider interface; Ollama + opt-in cloud (Anthropic, OpenAI, Gemini, OpenRouter) with mocks; consent + keychain/env secrets |
 | M7 UX completion | Pending | Settings page, AI/privacy controls, a11y pass, responsive, empty/loading/error states |
 | M8 Import from earlier version | Pending | Neutral export schema, staged read-only import, preview/dedupe, confirm |
@@ -42,13 +42,14 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 - `packages/job-intelligence` — evidence-based extraction, URL canonicalisation, dedupe, grounding check, country detection, fit/eligibility assessment.
 - `packages/storage` — SQLite, append-only migrations (schema v2: `resume_files` BLOBs, `documents` drafts), corruption detection, 0700/0600 permissions.
 - `packages/documents` — ZIP reader/writer with zip-bomb limits, DOCX read/write, text-only PDF writer (Helvetica/WinAnsi), resume parser, deterministic tailoring, cover letter with `[[placeholders]]`, export content verification.
+- `packages/applications` — screening-answer drafting (saved answers → stated facts → needs input), application checklist.
 - `apps/api` — Fastify on loopback; endpoints listed in `apps/api/src/server.ts`.
 - `apps/web` — Angular UI: welcome, profile (with resume import review), job intake, tracker, application detail (assessment + documents), overview.
 
 ## Test results (latest run)
 
-- Backend/API (Vitest): 83 passed.
-- Angular (Vitest/jsdom): 7 passed.
+- Backend/API (Vitest): 93 passed.
+- Angular (Vitest/jsdom): 8 passed.
 - Smoke restart: pass. Build: pass. Release audit: pass.
 - Independent export check: generated DOCX read by macOS `textutil`, generated PDF read by Apple PDFKit — all facts present (manual run, 2026-11-18).
 - E2E (Playwright): **not run in the development sandbox** (see blockers).
@@ -79,8 +80,9 @@ See `git log --oneline`. Milestone commits: M1 `4aeb082`, M2 `8ac4474`, M3 backe
 
 ## Next step
 
-Start **M4 — Application preparation**:
-1. `packages/applications`: screening-question drafting from saved answers + verified facts (answer only when grounded; otherwise mark "needs your answer"), review checklist (documents exported, eligibility reviewed, answers reviewed, official link known).
-2. API: `/api/applications/:id/package` (get/update), checklist status; `applied` transition requires checklist acknowledgement + confirmation.
-3. UI: "Prepare" section on the application page; official link prominence; confirmation dialog shows checklist.
-4. Tests, then M5.
+Start **M5 — Tracking & follow-ups**:
+1. Contracts + storage (migration v3): `contacts` (recruiter/hiring contact per application: name, role, email, phone, notes, source) and `reminders` (due date, label, done, applicationId).
+2. Follow-up drafts: deterministic templates from application facts (role, employer, applied date, contact name); never sent — copy/mailto only.
+3. Dashboard: due/overdue reminders in next actions; analytics derived from records (applications per week, response rate = interviewing+offer+rejected after applied / applied, median days to first response) with sample-size caveats.
+4. UI: contacts + reminders on the application page; reminders list on overview; tracker filters by due.
+5. Tests, then M6.

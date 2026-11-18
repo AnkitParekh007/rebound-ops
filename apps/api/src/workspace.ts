@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import {
   type ActivityEntry,
   type Assessment,
+  type ApplicationPackage,
+  type PackageView,
   type CoverLetterDraft,
   type DocumentKind,
   type DocumentsBundle,
@@ -19,7 +21,10 @@ import {
   type JobExtraction,
   type OnboardingState,
   type Profile,
+  AddQuestionsRequest,
+  AnswerUpdate,
   CoverLetterUpdate,
+  PackageUpdate,
   GenerateDocumentsRequest,
   JobCreate,
   MAX_RESUME_BYTES,
@@ -42,6 +47,7 @@ import {
 } from '@reboundops/core';
 import { assess, checkGrounding, dedupeKey, extractJob, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
 import type { Store } from '@reboundops/storage';
+import { checklist, draftAnswer, emptyPackage } from '@reboundops/applications';
 import {
   applyResumeUpdate,
   buildCoverLetter,
@@ -234,8 +240,13 @@ export class Workspace {
       statusChangedAt: at,
       appliedConfirmedAt: req.to === 'applied' ? at : app.appliedConfirmedAt,
     };
-    const note =
-      req.note || (req.to === 'applied' ? 'You confirmed you submitted this application.' : '');
+    let note = req.note;
+    if (req.to === 'applied') {
+      const view = this.getPackage(id);
+      const required = view.checklist.filter((i) => !i.optional);
+      const done = required.filter((i) => i.done).length;
+      note = [note, `You confirmed you submitted this application. Checklist: ${done} of ${required.length} required items complete.`].filter(Boolean).join(' ');
+    }
     this.store.transaction(() => {
       this.store.upsertApplication(next);
       this.store.addActivity(this.activity(id, 'status_changed', app.status, req.to, note, at));
@@ -367,10 +378,98 @@ export class Workspace {
       profile: this.getProfile(),
       employer: app.job.employer,
     });
-    if (!result.check.ok) {
+    if (result.check.ok) {
+      const pkg = this.packageOf(applicationId);
+      this.store.putDocument({ ...pkg, exports: { ...pkg.exports, [kind]: this.now().toISOString() }, updatedAt: this.now().toISOString() });
+    } else {
       throw new AppError(422, 'export_check_failed', [...result.check.problems, ...result.check.missing.map((m) => `Missing from export: ${m}`)].join(' '), result.check);
     }
     return result;
+  }
+
+  /* ---------- application package (M4) ---------- */
+
+  private packageOf(applicationId: string): ApplicationPackage {
+    return this.store.getPackage(applicationId) ?? emptyPackage(applicationId, this.now());
+  }
+
+  getPackage(applicationId: string): PackageView {
+    const app = this.getApplication(applicationId);
+    const pkg = this.packageOf(applicationId);
+    const eligibility = this.assessApplication(applicationId).eligibility.status;
+    const c = checklist({ pkg, job: app.job, resume: this.store.getResumeDraft(applicationId), coverLetter: this.store.getCoverLetterDraft(applicationId), eligibility });
+    return { package: pkg, checklist: c.items, applyUrl: c.applyUrl, ready: c.ready };
+  }
+
+  updatePackage(applicationId: string, input: unknown): PackageView {
+    const u = PackageUpdate.parse(input);
+    const app = this.getApplication(applicationId);
+    const at = this.now().toISOString();
+    const pkg = this.packageOf(applicationId);
+    this.store.transaction(() => {
+      this.store.putDocument({
+        ...pkg,
+        officialApplyUrl: u.officialApplyUrl === undefined ? pkg.officialApplyUrl : u.officialApplyUrl,
+        eligibilityAcknowledged: u.eligibilityAcknowledged ?? pkg.eligibilityAcknowledged,
+        updatedAt: at,
+      });
+      if (u.postingCheckedByUser !== undefined && u.postingCheckedByUser !== (app.job.verification.status === 'verified')) {
+        this.store.updateJob({
+          ...app.job,
+          verification: u.postingCheckedByUser
+            ? { status: 'verified', checkedAt: at, note: 'You confirmed the details on the official posting.' }
+            : { status: 'unverified', checkedAt: null, note: 'Entered manually; not checked against the live posting.' },
+        });
+        this.store.addActivity(this.activity(applicationId, 'note', null, null, u.postingCheckedByUser ? 'You confirmed the posting details on the official site.' : 'Posting marked as not verified.', at));
+      }
+    });
+    return this.getPackage(applicationId);
+  }
+
+  addQuestions(applicationId: string, input: unknown): PackageView {
+    const { questions } = AddQuestionsRequest.parse(input);
+    const app = this.getApplication(applicationId);
+    const profile = this.getProfile();
+    const pkg = this.packageOf(applicationId);
+    const now = this.now();
+    const added = questions.map((q) => ({ id: this.newId(), question: q.trim(), ...draftAnswer(q, profile, app.job, now) }));
+    if (pkg.answers.length + added.length > 100) throw new AppError(422, 'too_many_questions', 'An application can hold up to 100 questions.');
+    this.store.putDocument({ ...pkg, answers: [...pkg.answers, ...added], updatedAt: now.toISOString() });
+    return this.getPackage(applicationId);
+  }
+
+  updateAnswer(applicationId: string, answerId: string, input: unknown): PackageView {
+    const u = AnswerUpdate.parse(input);
+    const pkg = this.packageOf(applicationId);
+    const current = pkg.answers.find((a) => a.id === answerId);
+    if (!current) throw notFound('Answer');
+    if (u.reviewed && !u.answer.trim()) throw new AppError(422, 'empty_answer', 'Write an answer before marking it reviewed.');
+    const changed = u.answer !== current.answer;
+    const next = {
+      ...current,
+      answer: u.answer,
+      status: u.reviewed ? ('reviewed' as const) : u.answer.trim() ? ('drafted' as const) : ('needs_input' as const),
+      source: changed ? { kind: 'user' as const, detail: 'Written or edited by you' } : current.source,
+    };
+    this.store.transaction(() => {
+      this.store.putDocument({ ...pkg, answers: pkg.answers.map((a) => (a.id === answerId ? next : a)), updatedAt: this.now().toISOString() });
+      if (u.saveToProfile && u.answer.trim()) {
+        const profile = this.getProfile();
+        const same = profile.answers.find((a) => a.question.trim().toLowerCase() === current.question.trim().toLowerCase());
+        const answers = same
+          ? profile.answers.map((a) => (a.id === same.id ? { ...a, answer: u.answer } : a))
+          : [...profile.answers, { id: this.newId(), question: current.question, answer: u.answer }];
+        this.store.saveProfile({ ...profile, answers, updatedAt: this.now().toISOString() });
+      }
+    });
+    return this.getPackage(applicationId);
+  }
+
+  removeAnswer(applicationId: string, answerId: string): PackageView {
+    const pkg = this.packageOf(applicationId);
+    if (!pkg.answers.some((a) => a.id === answerId)) throw notFound('Answer');
+    this.store.putDocument({ ...pkg, answers: pkg.answers.filter((a) => a.id !== answerId), updatedAt: this.now().toISOString() });
+    return this.getPackage(applicationId);
   }
 
   /* ---------- assessment ---------- */

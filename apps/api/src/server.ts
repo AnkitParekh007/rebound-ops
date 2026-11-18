@@ -56,14 +56,15 @@ export function buildServer(options: ServerOptions): FastifyInstance {
 
     if (req.method === 'OPTIONS') {
       reply
-        .header('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS')
+        .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
         .header('Access-Control-Allow-Headers', 'Content-Type')
         .header('Access-Control-Max-Age', '600');
       return reply.code(204).send();
     }
 
     // Forms can POST cross-site without preflight; JSON cannot. Require JSON.
-    if (MUTATING.has(req.method)) {
+    // DELETE carries no body and always needs a CORS preflight, so it is exempt.
+    if (MUTATING.has(req.method) && !(req.method === 'DELETE' && !req.headers['content-length'])) {
       const type = req.headers['content-type'] ?? '';
       if (!type.toLowerCase().startsWith('application/json')) {
         return sendError(reply, 415, 'unsupported_media_type', 'Send JSON (application/json).');
@@ -161,6 +162,17 @@ export function buildServer(options: ServerOptions): FastifyInstance {
         .header('X-Content-Check', `passed; ${result.check.checked.length} items verified`)
         .send(result.data);
     },
+  );
+
+  type AnswerParams = { Params: { id: string; answerId: string } };
+  app.get<IdParams>('/api/applications/:id/package', async (req) => workspace.getPackage(req.params.id));
+  app.put<IdParams>('/api/applications/:id/package', async (req) => workspace.updatePackage(req.params.id, req.body));
+  app.post<IdParams>('/api/applications/:id/package/questions', async (req) => workspace.addQuestions(req.params.id, req.body));
+  app.put<AnswerParams>('/api/applications/:id/package/answers/:answerId', async (req) =>
+    workspace.updateAnswer(req.params.id, req.params.answerId, req.body),
+  );
+  app.delete<AnswerParams>('/api/applications/:id/package/answers/:answerId', async (req) =>
+    workspace.removeAnswer(req.params.id, req.params.answerId),
   );
 
   app.get('/api/dashboard', async () => workspace.dashboard());

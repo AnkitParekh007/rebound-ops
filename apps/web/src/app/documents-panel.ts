@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import type { DocumentKind, DocumentsBundle, ExportFormat, ResumeDraft } from '@reboundops/contracts';
@@ -107,6 +107,7 @@ import { ApiProblem, ApiService } from './api.service';
 export class DocumentsPanel {
   private readonly api = inject(ApiService);
   readonly applicationId = input.required<string>();
+  readonly exported = output<void>();
   readonly bundle = signal<DocumentsBundle | null>(null);
   readonly resume = signal<ResumeDraft | null>(null);
   readonly busy = signal(false);
@@ -196,6 +197,7 @@ export class DocumentsPanel {
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       this.status.set(`${filename} downloaded — content check passed.`);
+      this.exported.emit();
     } catch (e) {
       this.error.set(e instanceof ApiProblem ? `Export blocked: ${e.message}` : 'Export failed.');
     } finally {

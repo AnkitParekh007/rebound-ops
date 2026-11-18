@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import type { ApplicationView, Assessment, AssessmentSummary, DashboardSummary, JobCreateResult, JobExtraction } from '@reboundops/contracts';
+import type { ApplicationView, Assessment, AssessmentSummary, PackageView, DashboardSummary, JobCreateResult, JobExtraction } from '@reboundops/contracts';
 import { openStore, type Store } from '@reboundops/storage';
 import { buildServer, Workspace } from '../src/index.ts';
 
@@ -23,7 +23,7 @@ afterEach(async () => {
   store.close();
 });
 
-const send = (method: 'GET' | 'POST' | 'PUT', url: string, body?: unknown, headers: Record<string, string> = {}) =>
+const send = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, body?: unknown, headers: Record<string, string> = {}) =>
   app.inject({
     method,
     url,
@@ -324,5 +324,51 @@ describe('resume import and documents (M3)', () => {
     clock = new Date(clock.getTime() + 60_000);
     await send('PUT', '/api/profile', { ...(await send('GET', '/api/profile')).json<Record<string, unknown>>(), headline: 'Changed' });
     expect((await send('GET', `/api/applications/${application.id}/documents`)).json().profileChangedSinceDraft).toBe(true);
+  });
+});
+
+describe('application preparation (M4)', () => {
+  it('drafts grounded answers, tracks review, and builds the checklist', async () => {
+    await send('PUT', '/api/profile', {
+      displayName: 'Robin Example',
+      contact: { email: 'robin@example.test', links: [{ label: 'LinkedIn', url: 'https://www.linkedin.com/in/robin-example' }] },
+      workAuthorizedCountries: ['Portugal'],
+      requiresSponsorship: 'no',
+    });
+    const { application } = await saveLabelledJob();
+    const base = `/api/applications/${application.id}/package`;
+
+    let view = (await send('GET', base)).json<PackageView>();
+    expect(view.ready).toBe(false);
+    expect(view.applyUrl).toBe('https://careers.example.test/jobs/77');
+
+    view = (await send('POST', `${base}/questions`, { questions: ['Are you authorized to work in Portugal?', 'What are your salary expectations?', 'LinkedIn URL'] })).json<PackageView>();
+    const [auth, salary, linkedin] = view.package.answers;
+    expect(auth).toMatchObject({ status: 'drafted', answer: 'Yes — I am authorised to work in Portugal.' });
+    expect(salary).toMatchObject({ status: 'needs_input', answer: '' });
+    expect(linkedin!.answer).toBe('https://www.linkedin.com/in/robin-example');
+
+    expect((await send('PUT', `${base}/answers/${salary!.id}`, { answer: '', reviewed: true })).statusCode).toBe(422);
+    await send('PUT', `${base}/answers/${salary!.id}`, { answer: 'Open to discussing within the posted range.', reviewed: true, saveToProfile: true });
+    await send('PUT', `${base}/answers/${auth!.id}`, { answer: auth!.answer, reviewed: true });
+    view = (await send('DELETE', `${base}/answers/${linkedin!.id}`)).json<PackageView>();
+    expect(view.package.answers.map((a) => a.status)).toEqual(['reviewed', 'reviewed']);
+    expect(view.package.answers[1]!.source.kind).toBe('user');
+    expect((await send('GET', '/api/profile')).json().answers[0].question).toBe('What are your salary expectations?');
+
+    // Only the person can mark the posting verified.
+    view = (await send('PUT', base, { eligibilityAcknowledged: true, postingCheckedByUser: true })).json<PackageView>();
+    expect((await send('GET', `/api/jobs/${application.jobId}`)).json().verification).toMatchObject({ status: 'verified', checkedAt: clock.toISOString() });
+    expect(view.checklist.find((i) => i.key === 'resume')!.done).toBe(false);
+    expect(view.ready).toBe(false);
+
+    // Submission confirmation records checklist completeness.
+    const applied = (await send('POST', `/api/applications/${application.id}/transitions`, { to: 'applied', confirmSubmitted: true })).json<ApplicationView>();
+    expect(applied.activity[0]!.note).toMatch(/Checklist: 4 of 5 required items complete/);
+  });
+
+  it('rejects unsafe official links', async () => {
+    const { application } = await saveLabelledJob();
+    expect((await send('PUT', `/api/applications/${application.id}/package`, { officialApplyUrl: 'javascript:alert(1)' })).statusCode).toBe(400);
   });
 });

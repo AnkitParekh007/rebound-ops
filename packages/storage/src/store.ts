@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import {
   ActivityEntry,
   Application,
+  ApplicationPackage,
   CoverLetterDraft,
   Job,
   OnboardingState,
@@ -138,6 +139,13 @@ export class Store {
     return valid;
   }
 
+  updateJob(job: Job): Job {
+    const valid = Job.parse(job);
+    const r = this.db.prepare('UPDATE jobs SET dedupe_key = ?, data = ? WHERE id = ?').run(valid.dedupeKey, JSON.stringify(valid), valid.id);
+    if (Number(r.changes) !== 1) throw new Error(`Job ${valid.id} not found.`);
+    return valid;
+  }
+
   getJob(id: string): Job | null {
     const row = this.db.prepare('SELECT id, data FROM jobs WHERE id = ?').get(id) as Row | undefined;
     return row ? parseRow(Job, 'jobs', row) : null;
@@ -241,8 +249,13 @@ export class Store {
     return row ? parseRow(CoverLetterDraft, 'documents', row) : null;
   }
 
-  putDocument(doc: ResumeDraft | CoverLetterDraft): void {
-    const valid = doc.kind === 'resume' ? ResumeDraft.parse(doc) : CoverLetterDraft.parse(doc);
+  getPackage(applicationId: string): ApplicationPackage | null {
+    const row = this.db.prepare("SELECT application_id AS id, data FROM documents WHERE application_id = ? AND kind = 'package'").get(applicationId) as Row | undefined;
+    return row ? parseRow(ApplicationPackage, 'documents', row) : null;
+  }
+
+  putDocument(doc: ResumeDraft | CoverLetterDraft | ApplicationPackage): void {
+    const valid = doc.kind === 'resume' ? ResumeDraft.parse(doc) : doc.kind === 'cover_letter' ? CoverLetterDraft.parse(doc) : ApplicationPackage.parse(doc);
     this.db
       .prepare(
         `INSERT INTO documents (application_id, kind, updated_at, data) VALUES (?, ?, ?, ?)

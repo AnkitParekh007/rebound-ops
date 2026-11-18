@@ -7,6 +7,8 @@ import type {
   Assessment,
   AssessmentSummary,
   DashboardSummary,
+  PackageUpdate,
+  PackageView,
   DocumentKind,
   DocumentsBundle,
   ExportFormat,
@@ -140,6 +142,24 @@ export class ApiService {
       }
       throw new ApiProblem(err instanceof HttpErrorResponse ? err.status : 0, 'export_failed', 'Export failed.');
     }
+  }
+  package(id: string) {
+    return this.call(this.http.get<PackageView>(`${this.pkg(id)}`));
+  }
+  updatePackage(id: string, update: PackageUpdate) {
+    return this.call(this.http.put<PackageView>(`${this.pkg(id)}`, update));
+  }
+  addQuestions(id: string, questions: string[]) {
+    return this.call(this.http.post<PackageView>(`${this.pkg(id)}/questions`, { questions }));
+  }
+  updateAnswer(id: string, answerId: string, answer: string, reviewed: boolean, saveToProfile = false) {
+    return this.call(this.http.put<PackageView>(`${this.pkg(id)}/answers/${encodeURIComponent(answerId)}`, { answer, reviewed, saveToProfile }));
+  }
+  removeAnswer(id: string, answerId: string) {
+    return this.call(this.http.delete<PackageView>(`${this.pkg(id)}/answers/${encodeURIComponent(answerId)}`));
+  }
+  private pkg(id: string) {
+    return `${this.base}/applications/${encodeURIComponent(id)}/package`;
   }
   private docs(id: string) {
     return `${this.base}/applications/${encodeURIComponent(id)}/documents`;

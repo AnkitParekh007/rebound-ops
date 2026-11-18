@@ -274,3 +274,12 @@ details summary { cursor: pointer; font-weight: 600; margin-bottom: 0.5rem; }
 .chip-check.matched { border-color: var(--accent); background: var(--accent-soft); }
 .review { border-top: 1px solid var(--line); padding-top: 1rem; }
 fieldset.subcard > legend { padding: 0 0.3rem; font-weight: 600; }
+
+/* ---------- prepare ---------- */
+.checklist-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.checklist-items li { display: grid; grid-template-columns: 1.5rem 1fr; gap: 0.4rem; }
+.checklist-items .mark { font-weight: 700; color: var(--ink-3); }
+.checklist-items li.done .mark { color: var(--accent); }
+.answer-status { font-size: 0.8rem; font-weight: 600; white-space: nowrap; color: var(--warn); }
+.answer-status[data-answer='reviewed'] { color: var(--accent); }
+.answer-status[data-answer='drafted'] { color: var(--s-shortlisted); }

@@ -1,15 +1,16 @@
-import { Component, ElementRef, effect, inject, input, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, input, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import type { ApplicationStatus, ApplicationView } from '@reboundops/contracts';
+import type { ApplicationStatus, ApplicationView, PackageView } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from '../api.service';
 import { AssessmentPanel } from '../assessment-panel';
 import { DocumentsPanel } from '../documents-panel';
+import { PreparePanel } from '../prepare-panel';
 import { STATUS_LABEL } from '../labels';
 
 @Component({
   selector: 'app-application-page',
-  imports: [FormsModule, RouterLink, AssessmentPanel, DocumentsPanel],
+  imports: [FormsModule, RouterLink, AssessmentPanel, DocumentsPanel, PreparePanel],
   template: `
     <section class="page" aria-labelledby="app-heading">
       <p><a routerLink="/tracker" class="back-link">← All applications</a></p>
@@ -48,7 +49,8 @@ import { STATUS_LABEL } from '../labels';
             </section>
 
             <app-assessment-panel [applicationId]="a.id" />
-            <app-documents-panel [applicationId]="a.id" />
+            <app-documents-panel [applicationId]="a.id" (exported)="prepare()?.refresh()" />
+            <app-prepare-panel [applicationId]="a.id" (changed)="pkg.set($event)" />
 
             <section class="card" aria-labelledby="source-heading">
               <h2 id="source-heading">Posting</h2>
@@ -94,6 +96,12 @@ import { STATUS_LABEL } from '../labels';
           <form method="dialog" class="stack">
             <h2 id="confirm-heading">Confirm you applied</h2>
             <p>ReboundOps never submits applications. Only mark this as applied if you submitted it yourself on the employer's site.</p>
+            @if (openItems().length) {
+              <div class="notice">
+                <p><strong>Not finished in your checklist:</strong></p>
+                <ul>@for (i of openItems(); track i.key) { <li>{{ i.label }}</li> }</ul>
+              </div>
+            }
             <label class="check"><input type="checkbox" name="ack" [(ngModel)]="acknowledged" /> I submitted this application myself</label>
             <div class="actions">
               <button value="cancel" class="btn ghost">Cancel</button>
@@ -113,6 +121,9 @@ export class ApplicationPage {
   private readonly confirmDialog = viewChild<ElementRef<HTMLDialogElement>>('confirm');
 
   readonly id = input.required<string>();
+  readonly prepare = viewChild(PreparePanel);
+  readonly pkg = signal<PackageView | null>(null);
+  readonly openItems = computed(() => (this.pkg()?.checklist ?? []).filter((i) => !i.done && !i.optional));
   readonly labels = STATUS_LABEL;
   readonly app = signal<ApplicationView | null>(null);
   readonly busy = signal(false);
@@ -148,6 +159,7 @@ export class ApplicationPage {
     const dialog = this.confirmDialog()?.nativeElement;
     if (dialog?.returnValue === 'confirm' && this.acknowledged) {
       await this.run(() => this.api.transition(this.id(), 'applied', true));
+      await this.prepare()?.refresh();
     }
   }
 
