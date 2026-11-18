@@ -29,6 +29,19 @@ describe('request hardening', () => {
     expect(res.statusCode).toBe(413);
   });
 
+  it('refuses API requests that another website started, even simple downloads', async () => {
+    const { app } = server();
+    for (const url of ['/api/export', '/api/profile', '/api/resume/files']) {
+      const res = await app.inject({ method: 'GET', url, headers: { host: '127.0.0.1', 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'navigate' } });
+      expect(res.statusCode, url).toBe(403);
+      expect(res.json().error.code).toBe('cross_site');
+    }
+    for (const site of ['same-origin', 'same-site', 'none']) {
+      const res = await app.inject({ method: 'GET', url: '/api/profile', headers: { host: '127.0.0.1', 'sec-fetch-site': site } });
+      expect(res.statusCode, site).toBe(200);
+    }
+  });
+
   it('answers CORS preflight only for the allowed origin', async () => {
     const { app } = server();
     const ok = await app.inject({ method: 'OPTIONS', url: '/api/profile', headers: { host: 'localhost', origin: ORIGIN, 'access-control-request-method': 'PUT' } });

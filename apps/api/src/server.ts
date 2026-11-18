@@ -51,6 +51,12 @@ export function buildServer(options: ServerOptions): FastifyInstance {
       return sendError(reply, 421, 'bad_host', 'Requests must target a loopback host.');
     }
 
+    // Browsers label requests another website starts (links, forms, images, scripts).
+    // The API never serves those, so another site cannot even trigger a download of an export or backup.
+    if (req.headers['sec-fetch-site'] === 'cross-site' && req.url.startsWith('/api/')) {
+      return sendError(reply, 403, 'cross_site', 'Requests started by another website are not allowed.');
+    }
+
     const origin = req.headers.origin;
     if (origin !== undefined) {
       // When this server also serves the web app, its own (loopback) origin is same-origin.
