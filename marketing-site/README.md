@@ -29,7 +29,7 @@ Build settings (environment variables):
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SITE_URL` | `http://localhost:4321` | Absolute origin for canonicals, sitemap, OG and robots. **Set it for every deployed build.** |
+| `SITE_URL` | `https://rebound-ops.org` | Absolute origin for canonicals, sitemap, OG and robots. Override only for another host |
 | `BASE_PATH` | `/` | Sub-path when served from a folder, e.g. `/rebound-ops` on GitHub project pages |
 | `SITE_ENV` | `preview` | `production` allows indexing; anything else emits `noindex` and a disallow-all `robots.txt` |
 
@@ -98,8 +98,8 @@ Skip link, landmarks, one `h1` per page with ordered headings, visible focus rin
 
 ## Deployment
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Nothing is deployed automatically, and the production
-domain is still to be confirmed by the owner.
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Nothing is deployed automatically. The production
+domain is `rebound-ops.org`.
 
 ## Licences
 

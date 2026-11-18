@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev --port 4321",
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro check && ASTRO_TELEMETRY_DISABLED=1 astro build",
-    "build:preview": "ASTRO_TELEMETRY_DISABLED=1 SITE_URL=${SITE_URL:-http://localhost:4321} astro build",
+    "build:preview": "ASTRO_TELEMETRY_DISABLED=1 SITE_ENV=preview astro build",
     "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview --port 4321",
     "check": "ASTRO_TELEMETRY_DISABLED=1 astro check",
     "test": "node --test tests/unit/*.test.mjs",

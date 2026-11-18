@@ -9,7 +9,7 @@ Branch `feature/marketing-site-v1`, cut from `main` at `fc049c1`. Not pushed, no
 | Type check | `astro check` (in `npm run build`) | 0 errors, 0 warnings, 0 hints (34 files) |
 | Build | `npm run build` | 10 pages + robots.txt + sitemap |
 | Static test suite | `npm test` | 36 tests: 34 pass, 0 fail, 2 skipped by design (`CHECK_EXTERNAL=1` network link check; `REQUIRE_SCREENSHOTS=1` release gate) |
-| Production mode | `SITE_ENV=production SITE_URL=https://www.example.org` build + test | 34 pass, 0 fail |
+| Production mode | `SITE_ENV=production` build + test (SITE_URL `https://rebound-ops.org`) | see the latest run below |
 | Sub-path mode | `SITE_ENV=production SITE_URL=https://owner.github.io BASE_PATH=/rebound-ops` build + test | 34 pass, 0 fail |
 | Accessibility (jsdom) | axe-core 4.14.1, WCAG 2.0/2.1/2.2 A+AA and best-practice, every page | 0 violations on all 10 pages (contrast excluded: jsdom has no rendering) |
 | Contrast | token pairs, both themes + fixed colours | all text ≥ 4.5:1, focus ring ≥ 3:1 |
@@ -50,5 +50,5 @@ runners once the branch is pushed (needs owner approval).
    `src/data/screenshots.json`, then `npm run build && npm test` and commit.
 3. Fix anything the browser run reports, review the site screenshots in both themes and with reduced
    motion, and repeat.
-4. Owner decides the domain (`rebound-orgs.org` vs `rebound-ops.org`) and host (recommendation:
-   GitHub Pages, see `DEPLOYMENT.md`).
+4. Domain decided: `https://rebound-ops.org/` (2026-11-19, now the default `SITE_URL`). Still to do
+   with approval: choose the host (recommendation: GitHub Pages, see `DEPLOYMENT.md`), deploy, DNS.

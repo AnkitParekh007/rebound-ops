@@ -62,12 +62,13 @@ Sources: `README.md` (R), `docs/INSTALL.md` (I), `docs/RELEASE_READINESS.md` (RR
 
 Testimonials, user counts, GitHub stars, download counts, hiring/placement or success rates,
 "auto-applies", "sends messages for you", "AI required", native installers (`.dmg`, `.exe`,
-App Store), "MIT" for anything other than first-party code, a production domain as decided.
+App Store), "MIT" for anything other than first-party code, any domain other than rebound-ops.org.
 
-## Open question
+## Domain
 
-The production domain is unresolved (`rebound-orgs.org` in the site brief vs `rebound-ops.org` in
-earlier notes). The site reads `SITE_URL` at build time and does not hard-code either.
+The production domain is `https://rebound-ops.org/` (confirmed by the owner on 2026-11-19; it was
+previously unresolved between `rebound-orgs.org` in the site brief and `rebound-ops.org` in
+earlier notes). It is the default `SITE_URL`.
 
 ## Notes on repository documentation
 

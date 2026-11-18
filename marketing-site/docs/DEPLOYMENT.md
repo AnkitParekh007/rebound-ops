@@ -3,12 +3,11 @@
 Nothing here has been run. The site is not deployed, no DNS has changed, and no deploy workflow is
 active. Every step below needs the owner's go-ahead.
 
-## Open question: the domain
+## Domain
 
-Two names appear in project notes: `rebound-orgs.org` (site brief) and `rebound-ops.org` (earlier
-documentation). Neither has been confirmed, and the site hard-codes neither. Once the owner decides,
-set `SITE_URL` to `https://<chosen domain>` (or `https://www.<chosen domain>`) for production builds.
-Also confirm the domain is registered to the owner before pointing DNS at a host.
+The production site is **https://rebound-ops.org/** (apex, confirmed by the owner on 2026-11-19).
+It is the default `SITE_URL`, so canonicals, the sitemap, Open Graph URLs and `robots.txt` all use
+it. Redirect `www.rebound-ops.org` to the apex at the host (see below). DNS has not been changed.
 
 ## Hosting: GitHub Pages vs Cloudflare Pages
 
@@ -33,7 +32,7 @@ Pages instead if per-pull-request previews or custom security headers become imp
 | --- | --- | --- |
 | Local preview | `npm run build && npm run preview` | `noindex`, robots disallow all |
 | Shareable preview | `SITE_URL=https://<preview host> npm run build` | `noindex`, robots disallow all |
-| Production | `SITE_ENV=production SITE_URL=https://<domain> npm run build` | indexable, robots points at the sitemap |
+| Production | `SITE_ENV=production npm run build` (SITE_URL defaults to `https://rebound-ops.org`) | indexable, robots points at the sitemap |
 | GitHub project page (no custom domain) | `SITE_ENV=production SITE_URL=https://<owner>.github.io BASE_PATH=/rebound-ops npm run build` | indexable under the sub-path |
 
 Always run `npm test` after the build with the same environment variables; the tests check that
@@ -61,7 +60,7 @@ canonicals, the sitemap and robots match `SITE_URL` and `SITE_ENV`.
        env:
          ASTRO_TELEMETRY_DISABLED: '1'
          SITE_ENV: production
-         SITE_URL: https://<confirmed domain>
+         SITE_URL: https://rebound-ops.org
        steps:
          - uses: actions/checkout@v7.0.1
          - uses: actions/setup-node@v7.1.0
@@ -82,17 +81,17 @@ canonicals, the sitemap and robots match `SITE_URL` and `SITE_ENV`.
    Check the current major versions of `upload-pages-artifact` and `deploy-pages` before adding it.
 3. Run it from the **Actions** tab and check the deployed URL.
 
-## Custom domain and HTTPS (after the domain is confirmed)
+## Custom domain and HTTPS for rebound-ops.org
 
-1. Settings → Pages → Custom domain: enter the domain. Verify the domain for the account
+1. Settings → Pages → Custom domain: enter `rebound-ops.org`. Verify the domain for the account
    (Settings → Pages → *Verified domains*) to prevent takeovers.
 2. DNS at the registrar:
    - apex: `A` records to GitHub Pages' published IPs (and `AAAA` for IPv6), as listed in GitHub's
      documentation at the time;
-   - `www`: `CNAME` to `<owner>.github.io`.
+   - `www`: `CNAME` to `<owner>.github.io` (GitHub Pages then redirects `www` to the apex).
 3. Wait for the certificate, then tick **Enforce HTTPS**.
-4. Rebuild with `SITE_URL` set to the final origin, and submit `<origin>/sitemap-index.xml` to search
-   consoles if wanted.
+4. Production builds already use `https://rebound-ops.org`; submit
+   `https://rebound-ops.org/sitemap-index.xml` to search consoles if wanted.
 
 ## Rollback
 

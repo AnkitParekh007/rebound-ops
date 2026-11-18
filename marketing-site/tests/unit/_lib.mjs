@@ -6,7 +6,7 @@ import { JSDOM } from 'jsdom';
 
 export const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const dist = join(root, 'dist');
-export const SITE_URL = (process.env.SITE_URL || 'http://localhost:4321').replace(/\/+$/, '');
+export const SITE_URL = (process.env.SITE_URL || 'https://rebound-ops.org').replace(/\/+$/, '');
 export const BASE = (process.env.BASE_PATH || '/').replace(/\/?$/, '/');
 export const PRODUCTION = process.env.SITE_ENV === 'production';
 

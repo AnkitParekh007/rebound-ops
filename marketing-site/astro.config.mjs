@@ -4,11 +4,11 @@ import sitemap from '@astrojs/sitemap';
 
 /**
  * SITE_URL is the absolute origin the site is served from (no trailing slash), for example
- * https://www.example.org. It feeds canonicals, the sitemap, Open Graph tags and robots.txt.
- * The production domain is not decided yet, so nothing is hard-coded here.
+ * https://rebound-ops.org. It feeds canonicals, the sitemap, Open Graph tags and robots.txt.
+ * Defaults to the production domain chosen by the owner; override it for other hosts.
  * BASE_PATH is the sub-path when the site is served from a folder (GitHub project pages: /rebound-ops).
  */
-const SITE_URL = (process.env.SITE_URL || 'http://localhost:4321').replace(/\/+$/, '');
+const SITE_URL = (process.env.SITE_URL || 'https://rebound-ops.org').replace(/\/+$/, '');
 const BASE_PATH = process.env.BASE_PATH || '/';
 
 export default defineConfig({

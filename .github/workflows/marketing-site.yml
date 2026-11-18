@@ -28,8 +28,8 @@ defaults:
 
 env:
   ASTRO_TELEMETRY_DISABLED: '1'
-  # Placeholder origin: the production domain is not decided. Preview builds are noindex.
-  SITE_URL: https://marketing-preview.invalid
+  # Production origin chosen by the owner. CI builds stay noindex unless SITE_ENV=production.
+  SITE_URL: https://rebound-ops.org
 
 jobs:
   build-test:
@@ -48,7 +48,7 @@ jobs:
       - name: Static checks (SEO, links, sitemap, axe in jsdom, contrast, screenshots, OG)
         run: npm test
       - name: Production-mode build checks
-        run: SITE_ENV=production SITE_URL=https://www.example.org npx astro build && SITE_ENV=production SITE_URL=https://www.example.org npm test
+        run: SITE_ENV=production npx astro build && SITE_ENV=production npm test
       - name: Rebuild the preview site for browser tests
         run: npx astro build
       - run: npx playwright install --with-deps chromium

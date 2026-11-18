@@ -94,7 +94,7 @@ test('no invented claims or misleading promises in page copy', () => {
     [/\.(dmg|exe|msi|pkg|deb|rpm|appimage)\b|App Store|Microsoft Store|Homebrew/i, 'native installer'],
     [/AI[- ]powered|powered by AI|requires? (an )?AI\b/i, 'AI required'],
     [/guarantee|land your dream|get hired faster|\d+% (more|faster|higher)/i, 'success claim'],
-    [/rebound-orgs?\.org|rebound-ops\.org/i, 'unconfirmed production domain'],
+    [/rebound-orgs\.org/i, 'wrong domain (the site lives at rebound-ops.org)'],
   ];
   for (const { file, doc } of pages()) {
     const text = doc.body.textContent.replace(/\s+/g, ' ');
