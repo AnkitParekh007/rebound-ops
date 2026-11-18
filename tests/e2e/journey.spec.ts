@@ -127,7 +127,7 @@ test('Journey: first launch → onboarding → preferences → job intake → as
   await contactForm.getByRole('button', { name: 'Save contact' }).click();
   await expect(track.getByText('Sam Example')).toBeVisible();
   await track.getByRole('button', { name: 'Draft', exact: true }).click();
-  await expect(track.getByLabel('Message')).toHaveValue(/Sam/);
+  await expect(track.getByLabel('Message', { exact: true })).toHaveValue(/Sam/);
   await expect(track.getByText('ReboundOps does not send messages.')).toBeVisible();
 
   // Everything above survives a reload.
