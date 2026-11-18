@@ -82,7 +82,6 @@ export function renderPdf(blocks: readonly Block[], meta: { title: string }): Pd
         continue;
       }
       if (line.length) lines.push(line);
-      line = [];
       // Hard-break words longer than a line (e.g. long URLs).
       while (widthOf(w, size, bold) > maxWidth) {
         let cut = w.length - 1;
