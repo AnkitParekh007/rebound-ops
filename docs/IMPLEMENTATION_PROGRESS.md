@@ -90,7 +90,7 @@ All MVP milestones (M0–M11) are implemented, and the post-milestone audit is c
 `docs/RELEASE_READINESS.md` for the defect backlog and verdict). Remaining work:
 
 1. ✅ Audit commits pushed; CI green on `f8b1f2d` (run 44298999802), including the extended E2E. Verdict: GO for a 0.1.0 pre-release.
-2. Owner decides on tagging/release, live cloud AI testing, and a separate legacy-export session.
+2. ✅ Tagged `v0.1.0` and published as a GitHub pre-release. Still to decide: live cloud AI testing and a separate legacy-export session.
 3. Optional enhancements (P1/P2) only after 1: live posting fetch from official/permitted endpoints, PDF resume import, encrypted backups, in-app restore, per-skill experience.
 
 If a session resumes with no new instructions: run the verification commands, then pick up item 2.

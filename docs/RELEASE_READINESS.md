@@ -7,8 +7,9 @@ approve a release. Any push, tag or publication needs the owner's approval.
 ## Verdict
 
 **GO for a 0.1.0 pre-release.** The local gates pass, and GitHub Actions CI run 44298999802 on
-`f8b1f2d` is green (verify and e2e jobs), including the extended browser E2E journey. No tag or
-release has been created; that needs the owner's approval. The limitations below stay as documented.
+`f8b1f2d` is green (verify and e2e jobs), including the extended browser E2E journey; run
+44299686574 on `d47d3a3` is also green. With the owner's approval, `d47d3a3` is tagged `v0.1.0` and
+published as a GitHub pre-release. The limitations below stay as documented.
 
 ## Gate A — local verification
 
@@ -28,7 +29,7 @@ All rows were run from a **fresh `git clone` of the committed tree** (commit `ff
 | Release audit | `npm run audit:release` | ✅ pass (notes below) |
 | Production start | `npm start` from the fresh clone | ✅ health OK, web app served with a strict CSP, data folder 0700, database 0600, lock released on shutdown |
 | Accessibility (automated) | axe-core on 8 views + a negative control | ✅ no violations. Colour contrast is checked separately against the design tokens (all text pairs ≥ 4.5:1 in both themes) |
-| **Browser E2E** | `npm run test:e2e` | ⚠️ The earlier spec passed in GitHub Actions (run 44278913105 on `07821f8`). The **extended** spec (`ff979af`) has **not run**: Chrome cannot start in the development sandbox, and the commit is not pushed |
+| **Browser E2E** | `npm run test:e2e` | ✅ The extended spec passed in GitHub Actions (run 44298999802 on `f8b1f2d`, run 44299686574 on `d47d3a3`). It runs only in CI, because Chrome cannot start in the development sandbox |
 | Real local AI | one rewrite through the API with an already-installed Ollama model (`llama3.2:3b`) | ✅ grounded suggestion returned and accepted (manual run, 2026-11-18) |
 
 ### Audit notes
@@ -105,6 +106,6 @@ first-party code. No ownership of third-party components is claimed.
 
 ## Gate B / Gate C — owner actions
 
-1. Approve pushing the local audit commits (`f63419a` to the latest), then confirm GitHub Actions is green on the **latest** commit, including the extended E2E.
-2. Decide on tagging or a release.
+1. ✅ Audit commits pushed with approval; GitHub Actions green on the latest commit, including the extended E2E.
+2. ✅ Tagged `v0.1.0` (on `d47d3a3`) and published as a GitHub pre-release with approval.
 3. Optionally authorise live cloud AI testing with your own keys, and a separate session for exporting real legacy data.
