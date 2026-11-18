@@ -90,6 +90,19 @@ try {
   assert(apps[0]!.activity.length === 2, 'activity trail persisted');
   assert(apps[0]!.job.verification.status === 'unverified', 'job remains unverified');
   assert(dash.total === 1 && dash.byStatus['shortlisted'] === 1, 'dashboard derived from stored data');
+  // Packaged mode: the same process serves the built web app on its own origin.
+  const page = await fetch(`${api.base}/tracker`);
+  const html = await page.text();
+  if (html.includes('<app-root')) {
+    assert(page.headers.get('content-security-policy')?.includes("script-src 'self'"), 'CSP header on app shell');
+    const asset = /src="(main-[A-Z0-9]+\.js)"/.exec(html)?.[1];
+    assert(asset && (await fetch(`${api.base}/${asset}`)).ok, 'main bundle is served');
+    const write = await fetch(`${api.base}/api/profile`, { method: 'PUT', headers: { 'content-type': 'application/json', origin: api.base }, body: JSON.stringify({ displayName: 'Sam Fictional' }) });
+    assert(write.ok, 'same-origin browser write accepted');
+    console.log('smoke-restart: packaged web app served on the API origin');
+  } else {
+    console.log('smoke-restart: web build not present — packaged mode not checked (run npm run build)');
+  }
   console.log('smoke-restart: PASS — data survived an API restart');
 } catch (err) {
   console.error('smoke-restart: FAIL —', (err as Error).message);

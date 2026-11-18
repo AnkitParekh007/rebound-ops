@@ -12,7 +12,7 @@ export { loadConfig } from './config.ts';
 export async function startApi(config: ApiConfig = loadConfig()) {
   const store = openStore({ dataDir: config.dataDir });
   const workspace = new Workspace(store);
-  const app = buildServer({ workspace, allowedOrigins: config.allowedOrigins, logLevel: config.logLevel });
+  const app = buildServer({ workspace, allowedOrigins: config.allowedOrigins, logLevel: config.logLevel, webDist: config.webDist });
   app.addHook('onClose', async () => store.close());
   const address = await app.listen({ host: config.host, port: config.port });
   return { app, address, store, close: () => app.close() };

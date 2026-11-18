@@ -56,6 +56,16 @@ for (const f of files) {
   for (const [name, re] of secretPatterns) if (re.test(text)) failures.push(`Possible ${name} in ${f}`);
 }
 
+/* 3b. built web app must satisfy the CSP (no inline scripts or event handlers) */
+const builtIndex = join(root, 'apps/web/dist/browser/index.html');
+if (existsSync(builtIndex)) {
+  const html = readFileSync(builtIndex, 'utf8');
+  if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(html)) failures.push('Built index.html contains an inline <script>, which the CSP blocks.');
+  if (/\son[a-z]+\s*=/i.test(html)) failures.push('Built index.html contains an inline event handler, which the CSP blocks.');
+} else {
+  notes.push('Web build not present; CSP compatibility of the build was not checked (run npm run build first).');
+}
+
 /* 4. submodules */
 if (existsSync(join(root, '.gitmodules'))) failures.push('.gitmodules present: submodules are not allowed.');
 

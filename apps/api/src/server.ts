@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import { DocumentKind, ExportFormat } from '@reboundops/contracts';
 import { AppError } from './errors.ts';
 import type { Workspace } from './workspace.ts';
+import { registerStatic } from './static.ts';
 
 export const API_VERSION = '0.1.0';
 const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
@@ -13,6 +14,10 @@ export interface ServerOptions {
   /** Browser origins allowed to call the API (exact match). */
   allowedOrigins: readonly string[];
   logLevel?: string;
+  /** Directory of the built web app to serve on the same origin (optional). */
+  webDist?: string | null;
+  /** Log destination (tests capture it to prove personal data is not logged). */
+  logStream?: NodeJS.WritableStream;
 }
 
 function hostnameOf(hostHeader: string | undefined): string {
@@ -33,6 +38,7 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     logger: {
       level: options.logLevel ?? 'warn',
       redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-api-key"]'],
+      ...(options.logStream ? { stream: options.logStream } : {}),
     },
     // No per-request log lines: URLs and bodies can carry personal data.
     logController: new LogController({ disableRequestLogging: true }),
@@ -47,7 +53,9 @@ export function buildServer(options: ServerOptions): FastifyInstance {
 
     const origin = req.headers.origin;
     if (origin !== undefined) {
-      if (!allowed.has(origin)) {
+      // When this server also serves the web app, its own (loopback) origin is same-origin.
+      const sameOrigin = !!options.webDist && origin === `http://${req.headers.host}`;
+      if (!allowed.has(origin) && !sameOrigin) {
         return sendError(reply, 403, 'origin_not_allowed', 'Origin not allowed.');
       }
       reply.header('Access-Control-Allow-Origin', origin);
@@ -76,7 +84,7 @@ export function buildServer(options: ServerOptions): FastifyInstance {
   app.addHook('onSend', async (_req, reply, payload) => {
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Referrer-Policy', 'no-referrer');
-    reply.header('Cache-Control', 'no-store');
+    if (!reply.hasHeader('Cache-Control')) reply.header('Cache-Control', 'no-store');
     reply.header('Cross-Origin-Resource-Policy', 'same-origin');
     return payload;
   });
@@ -216,6 +224,8 @@ export function buildServer(options: ServerOptions): FastifyInstance {
       .header('Content-Disposition', `attachment; filename="reboundops-export-${stamp}.json"`)
       .send(bundle);
   });
+
+  if (options.webDist) registerStatic(app, options.webDist);
 
   return app;
 }
