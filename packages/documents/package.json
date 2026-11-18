@@ -4,6 +4,12 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": { "@reboundops/contracts": "0.1.0", "@reboundops/job-intelligence": "0.1.0" }
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@reboundops/contracts": "0.1.0",
+    "@reboundops/job-intelligence": "0.1.0",
+    "pdfjs-dist": "6.5.438"
+  }
 }

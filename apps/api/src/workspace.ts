@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
@@ -88,8 +88,10 @@ import {
   applyResumeUpdate,
   buildCoverLetter,
   buildResumeDraft,
-  decodeResumeFile,
+  decodeResumeFileAsync,
+  type DecodedResumeWithExtraction,
   DraftUpdateError,
+  PdfImportError,
   exportDocument,
   parseResumeText,
   type ExportResult,
@@ -357,27 +359,45 @@ export class Workspace {
   /* ---------- resume import ---------- */
 
   /** Stores the original (deduplicated by hash) and returns an unverified proposal for review. */
-  importResume(input: unknown): ResumeImportResult {
+  async importResume(input: unknown): Promise<ResumeImportResult> {
     const req = ResumeImportRequest.parse(input);
     let filename: string;
     let bytes: Buffer;
+    let manualText: string | undefined;
     if ('text' in req) {
       filename = 'pasted-resume.txt';
       bytes = Buffer.from(req.text, 'utf8');
     } else {
       filename = req.filename.replace(/[\\/]/g, '_');
       bytes = Buffer.from(req.contentBase64, 'base64');
+      manualText = req.manualText;
     }
     if (!bytes.length) throw new AppError(422, 'empty_file', 'The file is empty.');
     if (bytes.length > MAX_RESUME_BYTES) throw new AppError(413, 'file_too_large', 'Resume files must be 5 MB or smaller.');
 
-    let decoded;
+    let decoded: DecodedResumeWithExtraction;
+    const extraWarnings: string[] = [];
     try {
-      decoded = decodeResumeFile(filename, bytes);
+      decoded = await decodeResumeFileAsync(filename, bytes);
     } catch (err) {
-      if (err instanceof UnsupportedResumeError) throw new AppError(415, 'unsupported_resume', err.message);
-      if (err instanceof ZipError) throw new AppError(422, 'invalid_document', `Could not read this document: ${err.message}`);
-      throw new AppError(422, 'invalid_document', 'Could not read this document.');
+      if (err instanceof PdfImportError) {
+        // The text could not be read, but the person typed it: keep the original and use their text.
+        if (manualText && err.problem !== 'too_large') {
+          decoded = {
+            mediaType: 'application/pdf',
+            text: manualText,
+            sha256: createHash('sha256').update(bytes).digest('hex'),
+            size: bytes.length,
+            extraction: { method: 'pdf_text', confidence: 'high', pages: null, links: [] },
+            warnings: [],
+          };
+          extraWarnings.push('Text was entered by you because the PDF text could not be read; the original PDF is kept.');
+        } else {
+          throw new AppError(422, `pdf_${err.problem}`, err.message);
+        }
+      } else if (err instanceof UnsupportedResumeError) throw new AppError(415, 'unsupported_resume', err.message);
+      else if (err instanceof ZipError) throw new AppError(422, 'invalid_document', `Could not read this document: ${err.message}`);
+      else throw new AppError(422, 'invalid_document', 'Could not read this document.');
     }
     const existing = this.store.findResumeFileBySha(decoded.sha256);
     const file: ResumeFile =
@@ -387,8 +407,17 @@ export class Workspace {
         bytes,
       );
     const { proposal, warnings } = parseResumeText(decoded.text);
+    warnings.unshift(...decoded.warnings, ...extraWarnings);
     if (existing) warnings.unshift('This exact file was imported before; the stored original was reused.');
-    return { file, text: decoded.text, proposal, warnings };
+    const method = 'text' in req ? 'pasted' : extraWarnings.length ? 'manual_entry' : decoded.extraction.method;
+    let confidence = decoded.extraction.confidence;
+    // Few recognised sections means the structure was probably not recovered.
+    const found = proposal.experience.length + proposal.education.length + proposal.skills.length;
+    if (found === 0 && confidence === 'high') {
+      confidence = 'low';
+      warnings.push('No experience, education or skills sections were recognised. Add them by hand in your profile.');
+    }
+    return { file, text: decoded.text, proposal, warnings, extraction: { ...decoded.extraction, method, confidence } };
   }
 
   listResumeFiles(): ResumeFile[] {

@@ -31,6 +31,7 @@ describe('ProfilePage resume import', () => {
       file: { id: 'f1', filename: 'pasted-resume.txt', mediaType: 'text/plain', sha256: 'x', size: 6, importedAt: '2026-01-01T00:00:00.000Z' },
       text: 'resume',
       warnings: [],
+      extraction: { method: 'docx', confidence: 'high', pages: null, links: [] },
       proposal: {
         displayName: 'Imported Name', headline: 'Imported headline',
         contact: { email: 'imported@example.test', phone: '+1 555 0100', location: 'Porto, Portugal', links: [] },
@@ -52,6 +53,44 @@ describe('ProfilePage resume import', () => {
     expect(page.headline).toBe('Imported headline');
     expect(page.skills).toBe('SQL, Python');
     expect(page.experience().map((e) => [e.employer, e.verified])).toEqual([['Kept Co', true], ['New Co', false]]);
+    http.verify();
+  });
+});
+
+describe('ProfilePage PDF import', () => {
+  it('offers manual text entry for a scanned PDF and sends it with the original file', async () => {
+    const http = setup();
+    const fixture = TestBed.createComponent(ProfilePage);
+    http.expectOne('/api/profile').flush(emptyProfile);
+    await fixture.whenStable();
+    const page = fixture.componentInstance;
+
+    const first = page['runImport']({ filename: 'scan.pdf', contentBase64: 'JVBERi0=' });
+    http.expectOne('/api/resume/import').flush(
+      { error: { code: 'pdf_scanned', message: 'This PDF has no selectable text — it looks like a scan.' } },
+      { status: 422, statusText: 'Unprocessable' },
+    );
+    await first;
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain('no selectable text');
+    expect(el.querySelector('#manual-heading')?.textContent).toContain('scan.pdf');
+
+    page.manualText = 'Jordan Fictional';
+    page.importManual();
+    const req = http.expectOne('/api/resume/import');
+    expect(req.request.body).toEqual({ filename: 'scan.pdf', contentBase64: 'JVBERi0=', manualText: 'Jordan Fictional' });
+    req.flush({
+      file: { id: 'f1', filename: 'scan.pdf', mediaType: 'application/pdf', sha256: 'x', size: 5, importedAt: '2026-01-01T00:00:00.000Z' },
+      text: 'Jordan Fictional', warnings: ['Text was entered by you because the PDF text could not be read; the original PDF is kept.'],
+      extraction: { method: 'manual_entry', confidence: 'low', pages: null, links: [] },
+      proposal: { displayName: 'Jordan Fictional', headline: '', contact: { email: '', phone: '', location: '', links: [] }, experience: [], education: [], certifications: [], skills: [] },
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(page.manualFor()).toBeNull();
+    expect(el.querySelector('.extraction')?.textContent).toContain('Extraction confidence: low');
+    expect(el.querySelector('.extraction')?.textContent).toContain('Check every entry');
     http.verify();
   });
 });

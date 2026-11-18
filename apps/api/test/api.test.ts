@@ -4,6 +4,8 @@ import type { FastifyInstance } from 'fastify';
 import type { ApplicationView, Assessment, AssessmentSummary, PackageView, DashboardSummary, JobCreateResult, JobExtraction } from '@reboundops/contracts';
 import { openStore, type Store } from '@reboundops/storage';
 import { buildServer, Workspace } from '../src/index.ts';
+import { renderPdf } from '@reboundops/documents';
+import { imageOnlyPdf } from '../../../tests/helpers/pdf-fixtures.ts';
 
 const ORIGIN = 'http://localhost:4174';
 const fixture = (name: string) =>
@@ -352,9 +354,40 @@ describe('resume import and documents (M3)', () => {
     expect((await send('GET', '/api/resume/files')).json()).toHaveLength(1);
   });
 
-  it('rejects PDFs and oversized files with clear errors', async () => {
-    const pdf = await send('POST', '/api/resume/import', { filename: 'cv.pdf', contentBase64: Buffer.from('%PDF-1.7 ...').toString('base64') });
-    expect(pdf.statusCode).toBe(415);
+  it('imports a selectable-text PDF, keeps the original, and reports extraction confidence', async () => {
+    const bytes = renderPdf(resumeText.split('\n').filter((l) => l.trim()).map((text) => ({ type: 'para' as const, text })), { title: 'CV' }).pdf;
+    const res = await send('POST', '/api/resume/import', { filename: 'jordan.pdf', contentBase64: bytes.toString('base64') });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.extraction).toMatchObject({ method: 'pdf_text', confidence: 'high', pages: 1 });
+    expect(body.file).toMatchObject({ mediaType: 'application/pdf', size: bytes.length });
+    expect(body.proposal.experience.map((e: { employer: string }) => e.employer)).toContain('Lumenfield Systems');
+    expect(body.proposal.experience.every((e: { verified: boolean }) => !e.verified)).toBe(true);
+    const original = await send('GET', `/api/resume/files/${body.file.id}/original`);
+    expect(original.rawPayload.equals(bytes)).toBe(true);
+    // Nothing was added to the profile: facts wait for review.
+    expect((await send('GET', '/api/profile')).json()?.experience ?? []).toEqual([]);
+  });
+
+  it('explains scanned, encrypted and damaged PDFs, and accepts typed text for a scan while keeping the original', async () => {
+    const scan = imageOnlyPdf();
+    const res = await send('POST', '/api/resume/import', { filename: 'scan.pdf', contentBase64: scan.toString('base64') });
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error).toMatchObject({ code: 'pdf_scanned' });
+    expect((await send('GET', '/api/resume/files')).json()).toHaveLength(0);
+
+    const typed = await send('POST', '/api/resume/import', { filename: 'scan.pdf', contentBase64: scan.toString('base64'), manualText: resumeText });
+    expect(typed.statusCode).toBe(200);
+    expect(typed.json().extraction.method).toBe('manual_entry');
+    expect(typed.json().warnings[0]).toMatch(/entered by you/);
+    expect((await send('GET', '/api/resume/files')).json()).toEqual([expect.objectContaining({ filename: 'scan.pdf', mediaType: 'application/pdf' })]);
+
+    const broken = await send('POST', '/api/resume/import', { filename: 'cv.pdf', contentBase64: Buffer.from('%PDF-1.7 ...').toString('base64') });
+    expect(broken.statusCode).toBe(422);
+    expect(broken.json().error.code).toMatch(/^pdf_(corrupt|unsupported)$/);
+  });
+
+  it('rejects oversized files with clear errors', async () => {
     const big = await send('POST', '/api/resume/import', { filename: 'cv.txt', contentBase64: Buffer.alloc(6 * 1024 * 1024, 65).toString('base64') });
     expect([400, 413]).toContain(big.statusCode);
   });

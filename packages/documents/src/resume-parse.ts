@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { CertificationEntry, EducationEntry, ExperienceEntry, ResumeProposal } from '@reboundops/contracts';
 import { docxToText } from './docx.ts';
+import { extractPdfText } from './pdf-import.ts';
 
 /**
  * Turns a master resume into a *proposal* of profile facts. Nothing here is
@@ -24,12 +25,39 @@ export interface DecodedResume {
 
 const MAX_TEXT = 200_000;
 
+export function isPdf(filename: string, bytes: Buffer): boolean {
+  return bytes.subarray(0, 5).toString('latin1') === '%PDF-' || filename.toLowerCase().endsWith('.pdf');
+}
+
+export interface DecodedResumeWithExtraction extends DecodedResume {
+  extraction: { method: 'pdf_text' | 'docx' | 'text'; confidence: 'high' | 'medium' | 'low'; pages: number | null; links: string[] };
+  warnings: string[];
+}
+
+/** Decodes any supported resume file, including selectable-text PDFs (read locally with pdf.js). */
+export async function decodeResumeFileAsync(filename: string, bytes: Buffer): Promise<DecodedResumeWithExtraction> {
+  if (isPdf(filename, bytes)) {
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    const pdf = await extractPdfText(bytes);
+    return {
+      mediaType: 'application/pdf',
+      text: pdf.text.slice(0, MAX_TEXT),
+      sha256,
+      size: bytes.length,
+      extraction: { method: 'pdf_text', confidence: pdf.confidence, pages: pdf.pages, links: pdf.links },
+      warnings: pdf.warnings,
+    };
+  }
+  const d = decodeResumeFile(filename, bytes);
+  return { ...d, extraction: { method: d.mediaType.includes('wordprocessingml') ? 'docx' : 'text', confidence: 'high', pages: null, links: [] }, warnings: [] };
+}
+
 export function decodeResumeFile(filename: string, bytes: Buffer): DecodedResume {
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const ext = filename.toLowerCase().split('.').pop() ?? '';
   const isZip = bytes.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
-  if (bytes.subarray(0, 5).toString('latin1') === '%PDF-' || ext === 'pdf') {
-    throw new UnsupportedResumeError('PDF import is not supported yet. Save your resume as .docx or .txt, or paste its text.');
+  if (isPdf(filename, bytes)) {
+    throw new UnsupportedResumeError('PDF files are read with decodeResumeFileAsync.');
   }
   if (ext === 'docx' || isZip) {
     if (!isZip) throw new UnsupportedResumeError('This .docx file is not a valid Word document.');

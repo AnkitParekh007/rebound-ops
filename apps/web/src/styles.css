@@ -314,3 +314,5 @@ code { font-family: var(--font-mono); font-size: 0.9em; background: var(--paper-
 /* v0.2.0: undo after delete */
 .undo-bar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; background: var(--warn-soft); color: var(--warn); padding: 0.5rem 0.8rem; border-radius: var(--radius-sm); }
 .undo-bar span { flex: 1 1 auto; }
+.extraction { margin: 0; padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border-left: 4px solid var(--warn); background: var(--warn-soft); }
+.extraction[data-confidence='high'] { border-left-color: var(--accent); background: transparent; }

@@ -443,7 +443,12 @@ export type AssessmentSummary = z.infer<typeof AssessmentSummary>;
 export const MAX_RESUME_BYTES = 5 * 1024 * 1024;
 
 export const ResumeImportRequest = z.union([
-  z.object({ filename: shortText(255).min(1), contentBase64: z.string().min(1).max(Math.ceil((MAX_RESUME_BYTES * 4) / 3) + 8) }),
+  z.object({
+    filename: shortText(255).min(1),
+    contentBase64: z.string().min(1).max(Math.ceil((MAX_RESUME_BYTES * 4) / 3) + 8),
+    /** Text the person typed or pasted for a file whose text could not be extracted (e.g. a scanned PDF). The original file is still kept. */
+    manualText: z.string().min(1).max(200_000).optional(),
+  }),
   z.object({ text: z.string().min(1).max(200_000) }),
 ]);
 export type ResumeImportRequest = z.infer<typeof ResumeImportRequest>;
@@ -469,11 +474,21 @@ export const ResumeProposal = z.object({
 });
 export type ResumeProposal = z.infer<typeof ResumeProposal>;
 
+export const ResumeExtraction = z.object({
+  method: z.enum(['pdf_text', 'docx', 'text', 'pasted', 'manual_entry']),
+  /** How reliable the text extraction was (not how good the resume is). */
+  confidence: z.enum(['high', 'medium', 'low']),
+  pages: z.number().int().nullable(),
+  links: z.array(z.string()),
+});
+export type ResumeExtraction = z.infer<typeof ResumeExtraction>;
+
 export const ResumeImportResult = z.object({
   file: ResumeFile,
   text: z.string(),
   proposal: ResumeProposal,
   warnings: z.array(z.string()),
+  extraction: ResumeExtraction,
 });
 export type ResumeImportResult = z.infer<typeof ResumeImportResult>;
 

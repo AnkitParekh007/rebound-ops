@@ -48,11 +48,11 @@ const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
 
       <section class="card stack" aria-labelledby="import-heading">
         <h2 id="import-heading">Import a master resume</h2>
-        <p class="hint">Accepts .docx, .txt or .md (PDF import isn't supported yet). The original file is stored privately on this computer. Nothing is added to your profile until you review it.</p>
+        <p class="hint">Accepts .pdf (with selectable text), .docx, .txt or .md. Files are read on this computer; the original is stored privately here. Nothing is added to your profile until you review it.</p>
         <div class="grid two">
           <div class="field">
             <label for="resume-file">Resume file</label>
-            <input id="resume-file" type="file" accept=".docx,.txt,.md,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" (change)="onFile($event)" />
+            <input id="resume-file" type="file" accept=".pdf,.docx,.txt,.md,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" (change)="onFile($event)" />
           </div>
           <div class="field">
             <label for="resume-text">…or paste resume text</label>
@@ -62,10 +62,28 @@ const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
         </div>
         @if (importing()) { <p class="muted" role="status">Reading resume…</p> }
         @if (importError()) { <p class="error" role="alert">{{ importError() }}</p> }
+        @if (manualFor(); as m) {
+          <div class="subcard stack" aria-labelledby="manual-heading">
+            <h3 id="manual-heading">Type or paste the text of {{ m.filename }}</h3>
+            <p class="hint">The original file will still be kept privately. Only what you enter here is read.</p>
+            <label class="sr-only" for="manual-text">Resume text</label>
+            <textarea id="manual-text" name="manualText" rows="8" [(ngModel)]="manualText"></textarea>
+            <div class="actions">
+              <button type="button" class="btn link" (click)="manualFor.set(null)">Cancel</button>
+              <span class="spacer"></span>
+              <button type="button" class="btn" (click)="importManual()" [disabled]="importing() || !manualText.trim()">Read my text</button>
+            </div>
+          </div>
+        }
 
         @if (review(); as r) {
           <div class="review stack" aria-labelledby="review-heading">
             <h3 id="review-heading">Review what was found in {{ r.file.filename }}</h3>
+            <p class="extraction" [attr.data-confidence]="r.extraction.confidence">
+              <strong>Extraction confidence: {{ r.extraction.confidence }}</strong>
+              <span class="muted small"> · {{ extractionLabel(r.extraction.method) }}@if (r.extraction.pages) { · {{ r.extraction.pages }} page(s) }</span>
+              @if (r.extraction.confidence !== 'high') { <br /><span class="small">Check every entry against your original before adding it.</span> }
+            </p>
             <ul class="warnings">@for (w of r.warnings; track w) { <li>{{ w }}</li> }</ul>
             <fieldset class="subcard">
               <legend>Experience</legend>
@@ -354,25 +372,46 @@ export class ProfilePage {
     const bytes = new Uint8Array(await file.arrayBuffer());
     let binary = '';
     for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    await this.runImport({ filename: file.name, contentBase64: btoa(binary) });
+    const req = { filename: file.name, contentBase64: btoa(binary) };
+    await this.runImport(req);
     input.value = '';
+  }
+
+  /** Offered when a file's text cannot be extracted (scanned, protected or unreadable PDF). */
+  readonly manualFor = signal<{ filename: string; contentBase64: string } | null>(null);
+  manualText = '';
+
+  importManual() {
+    const m = this.manualFor();
+    if (!m) return;
+    void this.runImport({ ...m, manualText: this.manualText });
+  }
+
+  extractionLabel(method: string): string {
+    return ({ pdf_text: 'text read from PDF', docx: 'read from Word document', text: 'plain text file', pasted: 'pasted text', manual_entry: 'text you entered' } as Record<string, string>)[method] ?? method;
   }
 
   importPasted() {
     void this.runImport({ text: this.pasted });
   }
 
-  private async runImport(req: { filename: string; contentBase64: string } | { text: string }) {
+  private async runImport(req: { filename: string; contentBase64: string; manualText?: string } | { text: string }) {
     this.importing.set(true);
     this.importError.set(null);
     try {
       const r = await this.api.importResume(req);
+      this.manualFor.set(null);
+      this.manualText = '';
       this.review.set(r);
       this.reviewExperience.set(r.proposal.experience.map((item) => ({ item, selected: !this.hasExperience(item) })));
       this.reviewEducation.set(r.proposal.education.map((item) => ({ item, selected: !this.education().some((e) => sameText(e.institution, item.institution)) })));
       this.reviewCerts.set(r.proposal.certifications.map((item) => ({ item, selected: !this.certifications().some((c) => sameText(c.name, item.name)) })));
     } catch (e) {
       this.importError.set(e instanceof ApiProblem ? e.message : 'Could not read the resume.');
+      // A scanned or unreadable PDF: offer manual entry while keeping the original.
+      if (e instanceof ApiProblem && /^pdf_(scanned|unsupported|encrypted|corrupt)$/.test(e.code) && 'contentBase64' in req) {
+        this.manualFor.set({ filename: req.filename, contentBase64: req.contentBase64 });
+      }
     } finally {
       this.importing.set(false);
     }
