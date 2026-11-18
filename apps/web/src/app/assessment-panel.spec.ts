@@ -14,10 +14,16 @@ const assessment: Assessment = {
     scoredCriteria: 1,
     totalCriteria: 4,
     criteria: [
-      { key: 'role', label: 'Role alignment', weight: 0.3, score: 5, rationale: 'The title matches your target role "Analyst".', evidence: [{ source: 'job', text: 'Title: Analyst' }], missing: [] },
-      { key: 'skills', label: 'Skills mentioned', weight: 0.3, score: null, rationale: 'No skills in your profile to compare with.', evidence: [], missing: ['Skills'] },
+      { key: 'role', label: 'Role alignment', weight: 0.3, score: 5, rationale: 'The title matches your target role "Analyst".', evidence: [{ source: 'job', text: 'Title: Analyst' }], missing: [], confidence: 'medium' },
+      { key: 'skills', label: 'Skills mentioned', weight: 0.3, score: null, rationale: 'No skills in your profile to compare with.', evidence: [], missing: ['Skills'], confidence: 'low' },
     ],
+    confidence: 'low',
+    uncertainty: ['Not scored for lack of information: Skills mentioned.'],
   },
+  requirements: [
+    { text: '3+ years with SQL', kind: 'required', basis: 'under “Requirements”', matchedSkills: [], missingSkills: ['SQL'], years: { skill: 'SQL', required: 3, stated: null, status: 'unknown' } },
+  ],
+  missingQualifications: ['SQL (required)'],
   eligibility: {
     status: 'ineligible',
     checks: [
@@ -56,6 +62,11 @@ describe('AssessmentPanel', () => {
     expect(el.textContent).toContain('unable to offer visa sponsorship');
     expect(el.querySelector('.notice li')?.textContent).toBe('Skills');
     expect(el.textContent).toContain('Not scored');
+    // v0.2.0: confidence, missing required qualifications and required/preferred lines are shown.
+    expect(el.querySelector('.confidence')?.textContent).toContain('Confidence: low');
+    expect(el.textContent).toContain('Required qualifications your profile does not show');
+    expect(el.textContent).toContain('SQL (required)');
+    expect(el.querySelector('.requirements li')?.textContent).toMatch(/3\+ years with SQL[\s\S]*Required[\s\S]*your years not entered/);
     http.verify();
   });
 });

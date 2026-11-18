@@ -33,15 +33,28 @@ export const ELIGIBILITY_LABEL: Record<EligibilityStatus, string> = {
             <p class="muted small">
               @if (a.fit.overall === null) { Not enough information to score fit — {{ a.fit.scoredCriteria }} of {{ a.fit.totalCriteria }} criteria could be assessed. }
               @else { Based on {{ a.fit.scoredCriteria }} of {{ a.fit.totalCriteria }} criteria. }
+              <span class="confidence" [attr.data-confidence]="a.fit.confidence">Confidence: {{ a.fit.confidence }}</span>
             </p>
           </div>
         </div>
+        @if (a.fit.uncertainty.length) {
+          <ul class="muted small uncertainty" aria-label="What limits this assessment">@for (u of a.fit.uncertainty; track u) { <li>{{ u }}</li> }</ul>
+        }
+
 
         @if (a.missingInfo.length) {
           <div class="notice">
             <p><strong>Add to your profile to improve this assessment:</strong></p>
             <ul>@for (m of a.missingInfo; track m) { <li>{{ m }}</li> }</ul>
             <a routerLink="/profile">Update profile</a>
+          </div>
+        }
+
+        @if (a.missingQualifications.length) {
+          <div class="notice">
+            <p><strong>Required qualifications your profile does not show:</strong></p>
+            <ul>@for (m of a.missingQualifications; track m) { <li>{{ m }}</li> }</ul>
+            <p class="small muted">If you have them, add them to your profile. This is a gap in what you recorded, not a judgement.</p>
           </div>
         }
 
@@ -66,7 +79,7 @@ export const ELIGIBILITY_LABEL: Record<EligibilityStatus, string> = {
           @for (c of a.fit.criteria; track c.key) {
             <li>
               <div class="criterion-head">
-                <span>{{ c.label }} <span class="muted small">· weight {{ c.weight * 100 }}%</span></span>
+                <span>{{ c.label }} <span class="muted small">· weight {{ pct(c.weight) }}% · {{ c.confidence }} confidence</span></span>
                 <span class="crit-score" [class.unscored]="c.score === null">{{ c.score === null ? 'Not scored' : c.score + ' / 5' }}</span>
               </div>
               <p>{{ c.rationale }}</p>
@@ -76,7 +89,23 @@ export const ELIGIBILITY_LABEL: Record<EligibilityStatus, string> = {
             </li>
           }
         </ul>
-        <p class="muted small">{{ a.disclaimer }} Rubric {{ a.rubricVersion }}.</p>
+        @if (a.requirements.length) {
+          <h3 class="sub">Posting qualifications</h3>
+          <ul class="criteria requirements">
+            @for (r of a.requirements; track $index) {
+              <li [attr.data-kind]="r.kind">
+                <div class="criterion-head"><span>{{ r.text }}</span><span class="tag">{{ r.kind === 'required' ? 'Required' : 'Preferred' }}</span></div>
+                <p class="small muted">
+                  {{ r.basis }}
+                  @if (r.matchedSkills.length) { · you list {{ r.matchedSkills.join(', ') }} }
+                  @if (r.missingSkills.length) { · not in your profile: {{ r.missingSkills.join(', ') }} }
+                  @if (r.years; as y) { · {{ y.required }}+ years@if (y.skill) { with {{ y.skill }} }: @switch (y.status) { @case ('met') { you entered {{ y.stated }} } @case ('short') { you entered {{ y.stated }} } @default { your years not entered } } }
+                </p>
+              </li>
+            }
+          </ul>
+        }
+        <p class="muted small">{{ a.disclaimer }} Rubric {{ a.rubricVersion }}. <a routerLink="/settings" fragment="fit-weights">Adjust what matters to you</a>.</p>
       } @else {
         <p class="muted" role="status">Assessing…</p>
       }
@@ -84,6 +113,9 @@ export const ELIGIBILITY_LABEL: Record<EligibilityStatus, string> = {
   `,
 })
 export class AssessmentPanel {
+  pct(w: number) {
+    return Math.round(w * 100);
+  }
   private readonly api = inject(ApiService);
   readonly applicationId = input.required<string>();
   readonly eligibilityLabel = ELIGIBILITY_LABEL;

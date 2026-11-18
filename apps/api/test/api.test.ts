@@ -309,15 +309,27 @@ describe('assessment', () => {
     expect(after.eligibility.status).toBe('confirmed');
     expect(after.fit.criteria.find((c) => c.key === 'role')?.score).toBe(5);
     expect(after.fit.overall).not.toBeNull();
-    expect(after.rubricVersion).toBe('fit-2026.1');
+    expect(after.rubricVersion).toBe('fit-2026.2');
 
     const summaries = (await send('GET', '/api/assessments')).json<AssessmentSummary[]>();
     expect(summaries).toEqual([{ applicationId: application.id, overall: after.fit.overall, eligibility: 'confirmed' }]);
   });
 
+  it('applies the person’s own criterion weights, stored locally', async () => {
+    expect((await send('GET', '/api/assessment/weights')).json()).toEqual({ role: 1, skills: 1, experience: 1, location: 1, seniority: 1, salary: 1 });
+    const w = (await send('PUT', '/api/assessment/weights', { salary: 0, skills: 3 })).json();
+    expect(w).toMatchObject({ salary: 0, skills: 3, role: 1 });
+    expect((await send('PUT', '/api/assessment/weights', { role: 0, skills: 0, experience: 0, location: 0, seniority: 0, salary: 0 })).statusCode).toBe(400);
+    expect((await send('PUT', '/api/assessment/weights', { skills: 9 })).statusCode).toBe(400);
+    const { application } = await saveLabelledJob();
+    const a = (await send('GET', `/api/applications/${application.id}/assessment`)).json<Assessment>();
+    expect(a.fit.criteria.find((c) => c.key === 'salary')!.weight).toBe(0);
+    expect(a.fit.criteria.find((c) => c.key === 'skills')!.weight).toBe(0.75);
+  });
+
   it('exposes the rubric definition and 404s for unknown applications', async () => {
     const rubric = (await send('GET', '/api/rubric')).json();
-    expect(rubric.criteria.map((c: { key: string }) => c.key)).toEqual(['role', 'skills', 'experience', 'location']);
+    expect(rubric.criteria.map((c: { key: string }) => c.key)).toEqual(['role', 'skills', 'experience', 'location', 'seniority', 'salary']);
     expect((await send('GET', '/api/applications/nope/assessment')).statusCode).toBe(404);
   });
 });

@@ -12,6 +12,7 @@ import {
   type RewriteResult,
   type Contact,
   type DeletedItem,
+  FitWeights,
   type FollowUpDraft,
   type Reminder,
   type ApplicationPackage,
@@ -70,7 +71,7 @@ import {
   normalizeList,
   summarize,
 } from '@reboundops/core';
-import { assess, checkGrounding, dedupeKey, extractJob, findDuplicates, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
+import { assess, checkGrounding, DEFAULT_FIT_WEIGHTS, dedupeKey, extractJob, findDuplicates, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
 import type { Store } from '@reboundops/storage';
 import { ImportFormatError, planImport, type ImportPlan } from '@reboundops/importer';
 import { checklist, draftAnswer, emptyPackage, followUpDraft } from '@reboundops/applications';
@@ -145,6 +146,7 @@ export class Workspace {
       fetch: options.sourceFetch,
       getProfile: () => this.getProfile(),
       getOnboarding: () => this.getOnboarding(),
+      getWeights: () => this.getFitWeights(),
     });
     this.now = options.now ?? (() => new Date());
     this.newId = options.newId ?? randomUUID;
@@ -964,6 +966,18 @@ export class Workspace {
 
   /* ---------- assessment ---------- */
 
+  /** The person's importance weights for fit criteria (1 = normal, 0 = ignore). */
+  getFitWeights(): FitWeights {
+    return { ...DEFAULT_FIT_WEIGHTS, ...(this.store.getSetting('fit_weights', FitWeights) ?? {}) };
+  }
+
+  setFitWeights(input: unknown): FitWeights {
+    const w = FitWeights.parse({ ...this.getFitWeights(), ...(input as object) });
+    if (Object.values(w).every((v) => v === 0)) throw new AppError(400, 'invalid_weights', 'At least one criterion must count.');
+    this.store.putSetting('fit_weights', w, this.now().toISOString());
+    return w;
+  }
+
   /** Recomputed on demand from the saved job and the current profile (deterministic). */
   assessApplication(id: string): Assessment {
     const app = this.getApplication(id);
@@ -973,6 +987,7 @@ export class Workspace {
       profile: this.getProfile(),
       goalRoles: this.getOnboarding().goals.targetRoles,
       now: this.now(),
+      weights: this.getFitWeights(),
     });
   }
 
@@ -980,8 +995,9 @@ export class Workspace {
     const profile = this.getProfile();
     const goalRoles = this.getOnboarding().goals.targetRoles;
     const now = this.now();
+    const weights = this.getFitWeights();
     return this.listApplications().map((app) => {
-      const a = assess({ applicationId: app.id, job: app.job, profile, goalRoles, now });
+      const a = assess({ applicationId: app.id, job: app.job, profile, goalRoles, now, weights });
       return { applicationId: app.id, overall: a.fit.overall, eligibility: a.eligibility.status };
     });
   }

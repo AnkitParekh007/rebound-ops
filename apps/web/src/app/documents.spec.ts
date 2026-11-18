@@ -15,6 +15,7 @@ const emptyProfile = {
   workAuthorizedCountries: [], requiresSponsorship: 'unknown', skills: ['SQL'],
   experience: [{ id: 'e0', employer: 'Kept Co', title: 'Analyst', start: '2020-01', end: null, summary: '', highlights: [], verified: true }],
   contact: { email: 'kept@example.test', phone: '', location: '', links: [] }, education: [], certifications: [], answers: [], updatedAt: null,
+  skillExperience: [], seniorityLevels: [], salaryExpectation: null,
 };
 
 describe('ProfilePage resume import', () => {

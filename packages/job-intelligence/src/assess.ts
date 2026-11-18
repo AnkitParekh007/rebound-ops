@@ -4,13 +4,16 @@ import type {
   EligibilityCheck,
   EligibilityStatus,
   Evidence,
+  RequirementMatch,
   FitCriterion,
+  FitWeights,
   Job,
   Profile,
   WorkArrangement,
 } from '@reboundops/contracts';
 import { canonicalCountries, detectCountries } from './countries.ts';
 import { normalizeDescription } from './extract.ts';
+import { matchRequirements, parsePay, seniorityDistance, SENIORITY_ORDER, titleSeniority } from './fit-extra.ts';
 
 /**
  * Transparent, deterministic fit and eligibility assessment.
@@ -21,14 +24,19 @@ import { normalizeDescription } from './extract.ts';
  * separately and is only "ineligible" when a stated job requirement
  * contradicts something the person stated about themselves.
  */
-export const RUBRIC_VERSION = 'fit-2026.1';
+export const RUBRIC_VERSION = 'fit-2026.2';
 
 export const RUBRIC: Readonly<Record<CriterionKey, { label: string; weight: number; guide: string }>> = {
-  role: { label: 'Role alignment', weight: 0.3, guide: '5 = title matches a target role; 3 = partial overlap; 1 = unrelated.' },
-  skills: { label: 'Skills mentioned', weight: 0.3, guide: '5 = five or more of your skills appear; 1 = none appear.' },
-  experience: { label: 'Experience level', weight: 0.2, guide: '5 = you meet the stated years; 1 = under half.' },
-  location: { label: 'Location & arrangement', weight: 0.2, guide: '5 = in a preferred country or remote you accept; 1 = would require a move you ruled out.' },
+  role: { label: 'Role alignment', weight: 0.25, guide: '5 = title matches a target role; 3 = partial overlap; 1 = unrelated.' },
+  skills: { label: 'Required skills', weight: 0.25, guide: '5 = you list at least 80% of the skills the posting requires; 1 = none. Preferred skills are reported but do not lower the score.' },
+  experience: { label: 'Experience', weight: 0.15, guide: '5 = you meet the stated years (overall and any per-skill years you entered); 1 = under half.' },
+  location: { label: 'Location & arrangement', weight: 0.15, guide: '5 = in a preferred country or remote you accept; 1 = would require a move you ruled out.' },
+  seniority: { label: 'Seniority', weight: 0.1, guide: '5 = the title names a level you target; 3 = one level away; 1 = further.' },
+  salary: { label: 'Published pay', weight: 0.1, guide: '5 = published pay meets your minimum; 1 = clearly below it. Unscored when no pay is published or currencies differ.' },
 };
+
+/** Default user weights (1 = normal importance, 0 = ignore, up to 5 = much more important). */
+export const DEFAULT_FIT_WEIGHTS: FitWeights = { role: 1, skills: 1, experience: 1, location: 1, seniority: 1, salary: 1 };
 
 export const DISCLAIMER =
   'A rule-based estimate from the text you saved and your own profile. It is not a prediction of hiring outcomes; check requirements on the official posting.';
@@ -40,6 +48,8 @@ export interface AssessInput {
   /** Extra target roles (e.g. from onboarding goals). */
   goalRoles?: readonly string[];
   now: Date;
+  /** The person's own importance weights (defaults to equal importance). */
+  weights?: Partial<FitWeights>;
 }
 
 /* ---------------- helpers ---------------- */
@@ -81,8 +91,9 @@ function criterion(
   rationale: string,
   evidence: Evidence[] = [],
   missing: string[] = [],
+  confidence: FitCriterion['confidence'] = score === null ? 'low' : 'medium',
 ): FitCriterion {
-  return { key, label: RUBRIC[key].label, weight: RUBRIC[key].weight, score, rationale, evidence, missing };
+  return { key, label: RUBRIC[key].label, weight: RUBRIC[key].weight, score, rationale, evidence, missing, confidence };
 }
 
 /* ---------------- criteria ---------------- */
@@ -116,9 +127,30 @@ function scoreRole(job: Job, targets: string[]): FitCriterion {
   return criterion('role', best.score, rationale, [jobEv(`Title: ${job.title}`), profileEv(`Target roles: ${targets.join(', ')}`)]);
 }
 
-function scoreSkills(lines: string[], skills: readonly string[]): FitCriterion {
+function scoreRequiredSkills(lines: string[], skills: readonly string[], reqs: RequirementMatch[]): FitCriterion {
   if (!skills.length) return criterion('skills', null, 'No skills in your profile to compare with.', [], ['Skills']);
   if (!lines.length) return criterion('skills', null, 'No job description saved to compare skills against.');
+  const required = reqs.filter((r) => r.kind === 'required');
+  const wanted = dedupe(required.flatMap((r) => [...r.matchedSkills, ...r.missingSkills]));
+  if (wanted.length >= 2) {
+    const have = dedupe(required.flatMap((r) => r.matchedSkills));
+    const missing = wanted.filter((w) => !have.some((h) => h.toLowerCase() === w.toLowerCase()));
+    const ratio = have.length / wanted.length;
+    const score = ratio >= 0.8 ? 5 : ratio >= 0.6 ? 4 : ratio >= 0.4 ? 3 : ratio > 0 ? 2 : 1;
+    const preferredHave = dedupe(reqs.filter((r) => r.kind === 'preferred').flatMap((r) => r.matchedSkills));
+    const rationale =
+      `You list ${have.length} of the ${wanted.length} skills named in the required qualifications` +
+      (have.length ? ` (${have.join(', ')})` : '') +
+      (missing.length ? `; not in your profile: ${missing.join(', ')}` : '') +
+      '.' +
+      (preferredHave.length ? ` Preferred skills you list: ${preferredHave.join(', ')}.` : '');
+    const evidence = required.filter((r) => r.matchedSkills.length || r.missingSkills.length).slice(0, 6).map((r) => jobEv(r.text));
+    return criterion('skills', score, rationale, evidence, [], wanted.length >= 4 ? 'high' : 'medium');
+  }
+  return scoreSkills(lines, skills);
+}
+
+function scoreSkills(lines: string[], skills: readonly string[]): FitCriterion {
   const matched: { skill: string; line: string }[] = [];
   for (const skill of skills) {
     const re = termRegex(skill);
@@ -132,7 +164,8 @@ function scoreSkills(lines: string[], skills: readonly string[]): FitCriterion {
       ? `None of your ${skills.length} listed skills appear in the posting.`
       : `${n} of your ${skills.length} listed skills appear in the posting: ${matched.map((m) => m.skill).join(', ')}.`;
   const evidence = dedupe(matched.map((m) => m.line)).slice(0, 5).map(jobEv);
-  return criterion('skills', score, rationale, evidence);
+  // No required-qualifications section was recognised, so required and preferred cannot be told apart.
+  return criterion('skills', score, `${rationale} (The posting has no recognisable requirements section, so required and preferred skills are not separated.)`, evidence, [], 'low');
 }
 
 const YEARS_RE = /(\d{1,2})\s*\+?\s*(?:(?:-|–|to)\s*\d{1,2}\s*\+?\s*)?(?:years?|yrs?)\b/i;
@@ -177,7 +210,32 @@ export function experienceYears(profile: Profile, now: Date): { years: number; i
   return { years: total / 12, includesUnverified: profile.experience.some((e) => !e.verified) };
 }
 
-function scoreExperience(lines: string[], profile: Profile, now: Date): FitCriterion {
+function scoreExperience(lines: string[], profile: Profile, now: Date, reqs: RequirementMatch[]): FitCriterion {
+  const base = scoreOverallExperience(lines, profile, now);
+  const perSkill = reqs.filter((r) => r.kind === 'required' && r.years?.skill);
+  if (!perSkill.length) return base;
+  const notes: string[] = [];
+  const missing: string[] = [];
+  let worst: number | null = null;
+  for (const r of perSkill) {
+    const y = r.years!;
+    if (y.status === 'unknown') {
+      notes.push(`asks for ${y.required}+ years with ${y.skill}; you have not entered your years with ${y.skill}`);
+      missing.push(`Years of experience with ${y.skill}`);
+    } else {
+      const ratio = y.stated! / y.required;
+      const s = ratio >= 1 ? 5 : ratio >= 0.75 ? 3 : ratio >= 0.5 ? 2 : 1;
+      worst = worst === null ? s : Math.min(worst, s);
+      notes.push(`asks for ${y.required}+ years with ${y.skill}; you entered ${y.stated}`);
+    }
+  }
+  const score = base.score === null ? worst : worst === null ? base.score : Math.min(base.score, worst);
+  const rationale = `${base.score === null ? '' : `${base.rationale} `}Per skill: the posting ${notes.join('; ')}.`.trim();
+  const ev = [...base.evidence, ...perSkill.map((r) => jobEv(r.text))].slice(0, 6);
+  return criterion('experience', score, rationale, ev, dedupe([...base.missing, ...missing]), missing.length ? 'medium' : base.confidence);
+}
+
+function scoreOverallExperience(lines: string[], profile: Profile, now: Date): FitCriterion {
   const req = requiredYears(lines);
   if (!req) return criterion('experience', null, 'The posting does not state a number of years of experience.');
   if (!profile.experience.length) {
@@ -193,6 +251,8 @@ function scoreExperience(lines: string[], profile: Profile, now: Date): FitCrite
     score,
     `The posting asks for about ${req.years} years; your entries cover about ${have} years.${caveat}`,
     [jobEv(req.line), profileEv(`${profile.experience.length} experience entr${profile.experience.length === 1 ? 'y' : 'ies'}, about ${have} years`)],
+    [],
+    includesUnverified ? 'medium' : 'high',
   );
 }
 
@@ -263,6 +323,43 @@ function scoreLocation(job: Job, lines: string[], profile: Profile): FitCriterio
     default:
       return criterion('location', 2, `The role is in ${countries.join(', ')}, outside your preferred countries.`, ev, ['Relocation preference']);
   }
+}
+
+function scoreSeniority(job: Job, profile: Profile): FitCriterion {
+  const named = titleSeniority(job.title);
+  if (!named) return criterion('seniority', null, 'The title does not name a seniority level, so none is assumed.', [jobEv(`Title: ${job.title}`)]);
+  if (!profile.seniorityLevels.length) {
+    return criterion('seniority', null, `The title says “${named.word}”; your target seniority is not set.`, [jobEv(`Title: ${job.title}`)], ['Target seniority']);
+  }
+  const d = seniorityDistance(named.levels, profile.seniorityLevels);
+  const score = d === 0 ? 5 : d === 1 ? 3 : 1;
+  const ordered = [...profile.seniorityLevels].sort((a, b) => SENIORITY_ORDER.indexOf(a) - SENIORITY_ORDER.indexOf(b));
+  const rationale =
+    d === 0 ? `The title says “${named.word}”, a level you target.` : d === 1 ? `The title says “${named.word}”, one level from what you target (${ordered.join(', ')}).` : `The title says “${named.word}”, well away from what you target (${ordered.join(', ')}).`;
+  return criterion('seniority', score, rationale, [jobEv(`Title: ${job.title}`), profileEv(`Target seniority: ${ordered.join(', ')}`)], [], 'high');
+}
+
+function scoreSalary(job: Job, profile: Profile): FitCriterion {
+  if (!job.salary) return criterion('salary', null, 'The posting does not publish pay. Nothing is estimated.');
+  const pay = parsePay(job.salary);
+  const ev = [jobEv(`Published pay: ${job.salary}`)];
+  if (!pay) return criterion('salary', null, 'The published pay could not be read unambiguously, so it is not compared.', ev);
+  const exp = profile.salaryExpectation;
+  if (!exp) return criterion('salary', null, 'Pay is published; set the minimum you would accept to compare it.', ev, ['Minimum pay you would accept']);
+  ev.push(profileEv(`Your minimum: ${exp.currency} ${exp.minimum.toLocaleString('en-US')} per ${exp.period}`));
+  if (!pay.currency) return criterion('salary', null, 'The published pay has no clear currency, so it is not compared.', ev);
+  if (pay.currency !== exp.currency) return criterion('salary', null, `The pay is in ${pay.currency} and your minimum is in ${exp.currency}; ReboundOps does not convert currencies.`, ev);
+  const period = pay.period ?? (pay.max >= 10_000 ? null : null);
+  if (!period) return criterion('salary', null, 'The published pay does not say whether it is per year, month or hour, so it is not compared.', ev);
+  let factor: number | null = 1;
+  if (period !== exp.period) factor = period === 'year' && exp.period === 'month' ? 1 / 12 : period === 'month' && exp.period === 'year' ? 12 : null;
+  if (factor === null) return criterion('salary', null, `The pay is per ${period} and your minimum is per ${exp.period}; hours are not converted because working hours are not stated.`, ev);
+  const min = pay.min * factor;
+  const max = pay.max * factor;
+  const score = min >= exp.minimum ? 5 : max >= exp.minimum ? 4 : max >= exp.minimum * 0.9 ? 2 : 1;
+  const rationale =
+    score === 5 ? 'The whole published range meets your minimum.' : score === 4 ? 'The top of the published range meets your minimum; the bottom does not.' : score === 2 ? 'The published range is just under your minimum.' : 'The published range is clearly below your minimum.';
+  return criterion('salary', score, rationale, ev, [], job.provenance.salary?.origin === 'user' ? 'medium' : 'high');
 }
 
 /* ---------------- eligibility ---------------- */
@@ -345,14 +442,29 @@ function workAuthorization(job: Job, lines: string[], profile: Profile): Eligibi
   return check('unconfirmed', `Not yet confirmed that you can work in ${where}.`, ['Whether you need visa sponsorship']);
 }
 
-function credentials(lines: string[]): EligibilityCheck | null {
+function credentials(lines: string[], profile: Profile): EligibilityCheck | null {
   const found = lines.filter((l) => CREDENTIAL_LINE.test(l)).slice(0, 3);
   if (!found.length) return null;
+  const certs = profile.certifications.filter((c) => c.name.trim().length >= 3);
+  const held = found.map((l) => certs.find((c) => l.toLowerCase().includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(l.toLowerCase().replace(/.*(?:hold|have|possess)\s+(?:an?\s+)?/, '').slice(0, 40))));
+  if (held.every(Boolean)) {
+    const all = held as NonNullable<(typeof held)[number]>[];
+    return {
+      key: 'credentials',
+      label: 'Required credentials',
+      status: all.every((c) => c.verified) ? 'confirmed' : 'unconfirmed',
+      reason: all.every((c) => c.verified)
+        ? `Your profile lists ${all.map((c) => c.name).join(', ')}, which the posting requires.`
+        : `Your profile lists ${all.map((c) => c.name).join(', ')}, but not all are marked verified.`,
+      evidence: [...found.map(jobEv), ...all.map((c) => profileEv(`Certification: ${c.name}`))],
+      missing: all.filter((c) => !c.verified).map((c) => `Verify your certification: ${c.name}`),
+    };
+  }
   return {
     key: 'credentials',
     label: 'Required credentials',
     status: 'unconfirmed',
-    reason: 'The posting lists a required licence, certification or clearance. ReboundOps does not track credentials yet, so confirm you hold it.',
+    reason: 'The posting lists a required licence, certification or clearance that is not in your profile. Confirm you hold it (missing information, not a disqualifier).',
     evidence: found.map(jobEv),
     missing: found.map((l) => `Confirm you hold: "${l.slice(0, 120)}"`),
   };
@@ -367,26 +479,46 @@ export function assess(input: AssessInput): Assessment {
   const lines = linesOf(job.description);
   const targets = dedupe([...profile.targetRoles, ...(input.goalRoles ?? [])]);
 
+  const reqs = matchRequirements(job.description, profile);
+  const userWeights = { ...DEFAULT_FIT_WEIGHTS, ...(input.weights ?? {}) };
   const criteria = [
     scoreRole(job, targets),
-    scoreSkills(lines, profile.skills),
-    scoreExperience(lines, profile, now),
+    scoreRequiredSkills(lines, profile.skills, reqs),
+    scoreExperience(lines, profile, now, reqs),
     scoreLocation(job, lines, profile),
-  ];
-  const scored = criteria.filter((c): c is FitCriterion & { score: number } => c.score !== null);
+    scoreSeniority(job, profile),
+    scoreSalary(job, profile),
+  ].map((c) => ({ ...c, weight: Math.round(RUBRIC[c.key].weight * userWeights[c.key] * 1000) / 1000 }));
+  const scored = criteria.filter((c): c is FitCriterion & { score: number } => c.score !== null && c.weight > 0);
   const weight = scored.reduce((s, c) => s + c.weight, 0);
   const overall = scored.length >= 2 && weight > 0 ? Math.round((scored.reduce((s, c) => s + c.score * c.weight, 0) / weight) * 2) / 2 : null;
 
-  const checks = [workAuthorization(job, lines, profile), credentials(lines)].filter((c): c is EligibilityCheck => c !== null);
+  const checks = [workAuthorization(job, lines, profile), credentials(lines, profile)].filter((c): c is EligibilityCheck => c !== null);
   const status = checks.reduce<EligibilityStatus>((worst, c) => (RANK[c.status] > RANK[worst] ? c.status : worst), 'confirmed');
+
+  const uncertainty: string[] = [];
+  const unscored = criteria.filter((c) => c.score === null && c.weight > 0).map((c) => c.label);
+  if (unscored.length) uncertainty.push(`Not scored for lack of information: ${unscored.join(', ')}.`);
+  if (profile.experience.some((e) => !e.verified)) uncertainty.push('Some experience entries are not marked verified.');
+  if (job.verification.status !== 'verified' && !job.source) uncertainty.push('The posting text has not been checked against the live posting.');
+  const lowConf = scored.filter((c) => c.confidence === 'low').map((c) => c.label);
+  if (lowConf.length) uncertainty.push(`Low-confidence parts: ${lowConf.join(', ')}.`);
+  const confidence = overall === null || scored.length < 3 ? 'low' : scored.length >= 4 && !lowConf.length && !profile.experience.some((e) => !e.verified) ? 'high' : 'medium';
+
+  const missingQualifications = dedupe([
+    ...reqs.filter((r) => r.kind === 'required').flatMap((r) => r.missingSkills.map((m) => `${m} (required)`)),
+    ...reqs.filter((r) => r.kind === 'required' && r.years?.status === 'short').map((r) => `${r.years!.required}+ years with ${r.years!.skill} (you entered ${r.years!.stated})`),
+  ]);
 
   return {
     applicationId: input.applicationId,
     rubricVersion: RUBRIC_VERSION,
     assessedAt: now.toISOString(),
-    fit: { overall, scoredCriteria: scored.length, totalCriteria: criteria.length, criteria },
+    fit: { overall, scoredCriteria: scored.length, totalCriteria: criteria.filter((c) => c.weight > 0).length, criteria, confidence, uncertainty },
     eligibility: { status, checks },
-    missingInfo: dedupe([...criteria.flatMap((c) => c.missing), ...checks.flatMap((c) => c.missing)]),
+    requirements: reqs,
+    missingQualifications,
+    missingInfo: dedupe([...criteria.filter((c) => c.weight > 0).flatMap((c) => c.missing), ...checks.flatMap((c) => c.missing)]),
     disclaimer: DISCLAIMER,
   };
 }

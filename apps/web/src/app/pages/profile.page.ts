@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type {
+  SeniorityLevel,
   CertificationEntry,
   EducationEntry,
   ExperienceEntry,
@@ -171,6 +172,30 @@ const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
           <fieldset class="card">
             <legend>Skills</legend>
             <div class="field"><label for="skills">Skills you can evidence</label><textarea id="skills" name="skills" rows="3" [(ngModel)]="skills" aria-describedby="comma-hint"></textarea></div>
+            <div class="field">
+              <label for="skill-years">Years with specific skills (optional)</label>
+              <textarea id="skill-years" name="skillYears" rows="3" [(ngModel)]="skillYears" placeholder="TypeScript: 6&#10;PostgreSQL: 4" aria-describedby="skill-years-hint"></textarea>
+              <p class="hint" id="skill-years-hint">One per line as “Skill: years”. Used only to compare with postings that ask for years with a skill. ReboundOps never works out these years for you.</p>
+              @if (skillYearsError()) { <p class="error small" role="alert">{{ skillYearsError() }}</p> }
+            </div>
+          </fieldset>
+
+          <fieldset class="card">
+            <legend>Level and pay</legend>
+            <div class="field">
+              <span class="label" id="seniority-label">Seniority you are targeting</span>
+              <div class="inline-options" role="group" aria-labelledby="seniority-label">
+                @for (l of seniorityOptions; track l) {
+                  <label class="check"><input type="checkbox" [checked]="seniority().includes(l)" (change)="toggleSeniority(l)" [name]="'sen-' + l" /> {{ l }}</label>
+                }
+              </div>
+            </div>
+            <div class="grid two">
+              <div class="field"><label for="pay-min">Minimum pay you would accept</label><input id="pay-min" name="payMin" type="number" min="0" [(ngModel)]="payMinimum" /></div>
+              <div class="field"><label for="pay-cur">Currency</label><input id="pay-cur" name="payCur" maxlength="3" [(ngModel)]="payCurrency" placeholder="EUR" /></div>
+              <div class="field"><label for="pay-per">Per</label><select id="pay-per" name="payPer" [(ngModel)]="payPeriod"><option ngValue="year">year</option><option ngValue="month">month</option><option ngValue="hour">hour</option></select></div>
+            </div>
+            <p class="hint">Compared only with pay a posting publishes, in the same currency. Leave blank to skip.</p>
           </fieldset>
 
           <fieldset class="card">
@@ -304,6 +329,13 @@ export class ProfilePage {
   countries = '';
   authorized = '';
   skills = '';
+  skillYears = '';
+  readonly skillYearsError = signal<string | null>(null);
+  readonly seniorityOptions: SeniorityLevel[] = ['intern', 'junior', 'mid', 'senior', 'staff', 'principal', 'manager', 'director', 'executive'];
+  readonly seniority = signal<SeniorityLevel[]>([]);
+  payMinimum: number | null = null;
+  payCurrency = '';
+  payPeriod: 'year' | 'month' | 'hour' = 'year';
   pasted = '';
   relocation: TriState = 'unknown';
   sponsorship: TriState = 'unknown';
@@ -333,6 +365,11 @@ export class ProfilePage {
     this.countries = joinList(p.preferredCountries);
     this.authorized = joinList(p.workAuthorizedCountries);
     this.skills = joinList(p.skills);
+    this.skillYears = p.skillExperience.map((x) => `${x.skill}: ${x.years}`).join('\n');
+    this.seniority.set([...p.seniorityLevels]);
+    this.payMinimum = p.salaryExpectation?.minimum ?? null;
+    this.payCurrency = p.salaryExpectation?.currency ?? '';
+    this.payPeriod = p.salaryExpectation?.period ?? 'year';
     this.relocation = p.openToRelocation;
     this.sponsorship = p.requiresSponsorship;
     this.arrangements.set([...p.workArrangements]);
@@ -443,7 +480,35 @@ export class ProfilePage {
 
   /* ---------- save ---------- */
 
+  toggleSeniority(l: SeniorityLevel) {
+    this.seniority.update((list) => (list.includes(l) ? list.filter((x) => x !== l) : [...list, l]));
+  }
+
+  /** "Skill: years" lines → entries. Returns null (and shows why) on an unreadable line. */
+  parseSkillYears(): { skill: string; years: number }[] | null {
+    const out: { skill: string; years: number }[] = [];
+    for (const raw of this.skillYears.split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+      const m = /^(.+?)\s*[:=\-–]\s*(\d+(?:\.\d+)?)\s*(?:y(?:ea)?rs?)?$/i.exec(line);
+      if (!m) {
+        this.skillYearsError.set(`Could not read “${line}”. Use “Skill: years”, for example “Python: 5”.`);
+        return null;
+      }
+      out.push({ skill: m[1]!.trim(), years: Number(m[2]) });
+    }
+    this.skillYearsError.set(null);
+    return out;
+  }
+
   async save() {
+    const skillExperience = this.parseSkillYears();
+    if (!skillExperience) return;
+    const cur = this.payCurrency.trim().toUpperCase();
+    if (this.payMinimum !== null && this.payMinimum > 0 && !/^[A-Z]{3}$/.test(cur)) {
+      this.error.set('Enter the pay currency as a three-letter code, for example EUR or USD.');
+      return;
+    }
     this.busy.set(true);
     this.error.set(null);
     this.status.set('');
@@ -467,6 +532,9 @@ export class ProfilePage {
         education: this.education().map((e) => ({ ...e, start: e.start || null, end: e.end || null })),
         certifications: this.certifications().map((c) => ({ ...c, date: c.date || null })),
         answers: this.answers().filter((a) => a.question.trim()),
+        skillExperience,
+        seniorityLevels: this.seniority(),
+        salaryExpectation: this.payMinimum !== null && this.payMinimum > 0 ? { minimum: this.payMinimum, currency: cur, period: this.payPeriod } : null,
       });
       this.fill(saved);
       this.status.set('Profile saved.');

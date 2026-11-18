@@ -3,6 +3,7 @@ import {
   type DiscoveredPosting,
   type DiscoveredPostingView,
   type DiscoveryResult,
+  type FitWeights,
   type Job,
   type JobSourceInfo,
   type OnboardingState,
@@ -29,6 +30,7 @@ export interface DiscoveryDeps {
   fetch?: FetchLike;
   getProfile: () => Profile;
   getOnboarding: () => OnboardingState;
+  getWeights?: () => Partial<FitWeights>;
 }
 
 function sourceError(err: unknown): never {
@@ -170,7 +172,7 @@ export class DiscoveryService {
     const hasProfile = Boolean(profile.skills.length || profile.experience.length || profile.targetRoles.length || goalRoles.length);
     return list.map((p) => {
       const job = this.asJob(p);
-      const a = hasProfile ? assess({ applicationId: job.id, job, profile, goalRoles, now }) : null;
+      const a = hasProfile ? assess({ applicationId: job.id, job, profile, goalRoles, now, weights: this.deps.getWeights?.() }) : null;
       const dups = findDuplicates({ ...job, description: job.description }, saved).filter((m) => m.jobId !== p.savedJobId);
       return {
         ...p,

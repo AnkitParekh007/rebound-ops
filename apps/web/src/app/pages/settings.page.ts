@@ -2,10 +2,11 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { AiMode, AiSettingsView, ImportPreview, ImportResult, ProviderId } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from '../api.service';
+import { FitWeightsPanel } from '../fit-weights-panel';
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule],
+  imports: [FormsModule, FitWeightsPanel],
   template: `
     <section class="page narrow" aria-labelledby="settings-heading">
       <header class="page-head">
@@ -68,6 +69,8 @@ import { ApiProblem, ApiService } from '../api.service';
             <button type="button" class="btn primary" (click)="save()" [disabled]="busy()">Save</button>
           </div>
         </section>
+
+        <app-fit-weights-panel />
 
         <section class="card stack" aria-labelledby="data-heading">
           <h2 id="data-heading">Your data</h2>

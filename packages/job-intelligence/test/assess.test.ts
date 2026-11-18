@@ -45,14 +45,18 @@ describe('assess — fit rubric', () => {
     const a = run(job(), fullProfile);
     const by = Object.fromEntries(a.fit.criteria.map((c) => [c.key, c]));
     expect(by['role']!.score).toBe(5);
-    // TypeScript, PostgreSQL, distributed systems — "Go" must not match ordinary text.
-    expect(by['skills']!.score).toBe(4);
-    expect(by['skills']!.rationale).toContain('3 of your 4');
+    // v2: all three skills in the required qualifications are listed; "Go" must not match ordinary text.
+    expect(by['skills']!.score).toBe(5);
+    expect(by['skills']!.rationale).toContain('3 of the 3 skills named in the required qualifications');
+    expect(by['skills']!.rationale).not.toMatch(/\bGo\b/);
     expect(by['experience']!.score).toBe(5);
     expect(by['location']!.score).toBe(5);
-    expect(a.fit.overall).toBe(4.5);
+    expect(a.fit.overall).toBe(5);
     expect(a.fit.scoredCriteria).toBe(4);
-    for (const c of a.fit.criteria) expect(c.evidence.length).toBeGreaterThan(0);
+    // Seniority (not set) and pay (not published) are left unscored rather than guessed.
+    expect(by['seniority']!.score).toBeNull();
+    expect(by['salary']!.score).toBeNull();
+    for (const c of a.fit.criteria.filter((c) => c.score !== null)) expect(c.evidence.length).toBeGreaterThan(0);
     // Every job evidence string is verbatim from the description or a stored field.
     for (const e of a.fit.criteria.flatMap((c) => c.evidence).filter((e) => e.source === 'job')) {
       expect(labelled.includes(e.text) || /^(Title|Location|Work arrangement): /.test(e.text)).toBe(true);
@@ -162,5 +166,99 @@ describe('helpers', () => {
     ] });
     expect(experienceYears(p, NOW).years).toBe(3);
     expect(experienceYears(p, NOW).includesUnverified).toBe(true);
+  });
+});
+
+describe('assess — v0.2.0 intelligence', () => {
+  const posting = [
+    'Staff Data Engineer',
+    'Requirements',
+    '- 6+ years of experience with Python',
+    '- Strong SQL and Airflow',
+    '- Experience with Snowflake',
+    'Nice to have',
+    '- dbt',
+    '- Terraform is a plus',
+    'Location: Remote (Portugal)',
+  ].join('\n');
+  const base = Profile.parse({
+    targetRoles: ['Data Engineer'], preferredCountries: ['Portugal'], workArrangements: ['remote'], workAuthorizedCountries: ['Portugal'], requiresSponsorship: 'no',
+    skills: ['Python', 'SQL', 'dbt'],
+    experience: [{ id: 'e1', employer: 'Fictional', title: 'Data Engineer', start: '2016-01', end: null, verified: true }],
+  });
+  const j = job({ title: 'Staff Data Engineer', description: posting, location: 'Remote (Portugal)', workArrangement: 'remote' });
+
+  it('separates required from preferred skills and names missing required qualifications', () => {
+    const a = run(j, base);
+    const skills = a.fit.criteria.find((c) => c.key === 'skills')!;
+    expect(skills.rationale).toMatch(/You list 2 of the 4 skills named in the required qualifications \(Python, SQL\); not in your profile: Airflow, Snowflake\. Preferred skills you list: dbt\./);
+    expect(skills.score).toBe(3);
+    expect(a.requirements.filter((r) => r.kind === 'preferred').map((r) => r.text)).toEqual(['dbt', 'Terraform is a plus']);
+    expect(a.missingQualifications).toEqual(['Airflow (required)', 'Snowflake (required)']);
+    // Terraform is preferred, so it is not a missing *required* qualification.
+    expect(a.missingQualifications.join(' ')).not.toContain('Terraform');
+  });
+
+  it('never infers per-skill years from a listed skill; uses only years the person entered', () => {
+    let a = run(j, base);
+    const req = a.requirements.find((r) => r.years)!;
+    expect(req.years).toEqual({ skill: 'Python', required: 6, stated: null, status: 'unknown' });
+    expect(a.missingInfo).toContain('Years of experience with Python');
+    a = run(j, Profile.parse({ ...base, skillExperience: [{ skill: 'Python', years: 4 }] }));
+    expect(a.requirements.find((r) => r.years)!.years).toMatchObject({ stated: 4, status: 'short' });
+    expect(a.fit.criteria.find((c) => c.key === 'experience')!.score).toBe(2);
+    expect(a.missingQualifications).toContain('6+ years with Python (you entered 4)');
+  });
+
+  it('scores seniority only from levels named in the title and in the profile', () => {
+    expect(run(j, base).fit.criteria.find((c) => c.key === 'seniority')).toMatchObject({ score: null, missing: ['Target seniority'] });
+    expect(run(j, Profile.parse({ ...base, seniorityLevels: ['staff'] })).fit.criteria.find((c) => c.key === 'seniority')!.score).toBe(5);
+    expect(run(j, Profile.parse({ ...base, seniorityLevels: ['senior'] })).fit.criteria.find((c) => c.key === 'seniority')!.score).toBe(3);
+    expect(run(j, Profile.parse({ ...base, seniorityLevels: ['junior'] })).fit.criteria.find((c) => c.key === 'seniority')!.score).toBe(1);
+    expect(run(job({ title: 'Data Engineer' }), Profile.parse({ ...base, seniorityLevels: ['staff'] })).fit.criteria.find((c) => c.key === 'seniority')!.score).toBeNull();
+  });
+
+  it('compares published pay only in the same currency and a known period', () => {
+    const p = Profile.parse({ ...base, salaryExpectation: { minimum: 70000, currency: 'EUR', period: 'year' } });
+    const pay = (salary: string | null) => run(job({ ...j, salary }), p).fit.criteria.find((c) => c.key === 'salary')!;
+    expect(pay(null)).toMatchObject({ score: null, missing: [] });
+    expect(pay('€75,000 - €90,000 per year').score).toBe(5);
+    expect(pay('EUR 60,000 – 75,000 per year').score).toBe(4);
+    expect(pay('€64K – €65K annually').score).toBe(2);
+    expect(pay('€40,000 per year').score).toBe(1);
+    expect(pay('€6,000 per month').score).toBe(5); // 72,000 a year
+    expect(pay('€5,500 – €6,000 per month').score).toBe(4);
+    expect(pay('$80,000 per year').rationale).toMatch(/does not convert currencies/);
+    expect(pay('€40 per hour').score).toBeNull();
+    expect(pay('Competitive').score).toBeNull();
+    expect(run(job({ ...j, salary: '€75,000 per year' }), base).fit.criteria.find((c) => c.key === 'salary')!.missing).toEqual(['Minimum pay you would accept']);
+  });
+
+  it('applies the person’s own weights, and a zero weight removes a criterion', () => {
+    const p = Profile.parse({ ...base, seniorityLevels: ['junior'] });
+    const normal = run(j, p);
+    const ignoreSeniority = assess({ applicationId: 'a1', job: j, profile: p, now: NOW, weights: { seniority: 0 } });
+    expect(ignoreSeniority.fit.criteria.find((c) => c.key === 'seniority')!.weight).toBe(0);
+    expect(ignoreSeniority.fit.overall!).toBeGreaterThan(normal.fit.overall!);
+    expect(ignoreSeniority.fit.totalCriteria).toBe(normal.fit.totalCriteria - 1);
+  });
+
+  it('reports confidence and uncertainty', () => {
+    const a = run(j, base);
+    expect(['high', 'medium', 'low']).toContain(a.fit.confidence);
+    expect(a.fit.uncertainty.join(' ')).toMatch(/Not scored for lack of information/);
+    const thin = run(j, Profile.parse({ targetRoles: ['Data Engineer'] }));
+    expect(thin.fit.confidence).toBe('low');
+  });
+
+  it('confirms a required certification only from the profile, and only when verified', () => {
+    const jj = job({ description: 'Requirements\n- Must hold a Certified Kubernetes Administrator certification' });
+    const none = run(jj, base).eligibility.checks.find((c) => c.key === 'credentials')!;
+    expect(none.status).toBe('unconfirmed');
+    expect(none.reason).toMatch(/missing information, not a disqualifier/);
+    const withCert = (verified: boolean) =>
+      run(jj, Profile.parse({ ...base, certifications: [{ id: 'c1', name: 'Certified Kubernetes Administrator', issuer: 'CNCF', year: 2023, verified }] })).eligibility.checks.find((c) => c.key === 'credentials')!;
+    expect(withCert(true).status).toBe('confirmed');
+    expect(withCert(false).status).toBe('unconfirmed');
   });
 });

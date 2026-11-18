@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, type Observable } from 'rxjs';
 import type {
   DeletedItem,
+  FitWeights,
   AiSettingsUpdate,
   AiSettingsView,
   ApplicationStatus,
@@ -202,6 +203,12 @@ export class ApiService {
   }
   restoreReminder(id: string, reminderId: string) {
     return this.call(this.http.post<Reminder>(`${this.app(id)}/reminders/${encodeURIComponent(reminderId)}/restore`, {}));
+  }
+  fitWeights() {
+    return this.call(this.http.get<FitWeights>(`${this.base}/assessment/weights`));
+  }
+  saveFitWeights(w: Partial<FitWeights>) {
+    return this.call(this.http.put<FitWeights>(`${this.base}/assessment/weights`, w));
   }
   followUp(id: string, kind: FollowUpKind, contactId?: string) {
     const params: Record<string, string> = { kind };

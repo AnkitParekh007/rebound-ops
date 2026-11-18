@@ -194,6 +194,9 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     workspace.removeAnswer(req.params.id, req.params.answerId),
   );
 
+  app.get('/api/assessment/weights', async () => workspace.getFitWeights());
+  app.put('/api/assessment/weights', async (req) => workspace.setFitWeights(req.body));
+
   // Discovery through official job-board interfaces (v0.2.0). Network access only after consent.
   app.get('/api/discovery/sources', async () => workspace.discovery.sources());
   app.put('/api/discovery/consent', async (req) => workspace.discovery.setConsent((req.body as { granted?: unknown } | null)?.granted === true));

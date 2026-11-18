@@ -115,6 +115,24 @@ export const SavedAnswer = z.object({
 });
 export type SavedAnswer = z.infer<typeof SavedAnswer>;
 
+export const SkillExperience = z.object({
+  skill: shortText(80).min(1),
+  years: z.number().min(0).max(60),
+  /** Most recent year used, if the person says. */
+  lastUsed: z.number().int().min(1960).max(2100).nullable().default(null),
+});
+export type SkillExperience = z.infer<typeof SkillExperience>;
+
+export const SeniorityLevel = z.enum(['intern', 'junior', 'mid', 'senior', 'staff', 'principal', 'manager', 'director', 'executive']);
+export type SeniorityLevel = z.infer<typeof SeniorityLevel>;
+
+export const SalaryExpectation = z.object({
+  minimum: z.number().positive().max(100_000_000),
+  currency: z.string().regex(/^[A-Z]{3}$/),
+  period: z.enum(['year', 'month', 'hour']),
+});
+export type SalaryExpectation = z.infer<typeof SalaryExpectation>;
+
 export const Profile = z.object({
   displayName: shortText(120).default(''),
   headline: shortText(200).default(''),
@@ -131,6 +149,12 @@ export const Profile = z.object({
   education: z.array(EducationEntry).max(30).default([]),
   certifications: z.array(CertificationEntry).max(50).default([]),
   answers: z.array(SavedAnswer).max(100).default([]),
+  /** v0.2.0: years per skill, entered by the person. Never inferred from a skill being listed. */
+  skillExperience: z.array(SkillExperience).max(200).default([]),
+  /** v0.2.0: seniority levels the person is targeting. */
+  seniorityLevels: z.array(SeniorityLevel).max(8).default([]),
+  /** v0.2.0: minimum acceptable pay, used only against pay a posting publishes. */
+  salaryExpectation: SalaryExpectation.nullable().default(null),
   updatedAt: isoDate.nullable().default(null),
 });
 export type Profile = z.infer<typeof Profile>;
@@ -497,7 +521,7 @@ export type EvidenceSource = z.infer<typeof EvidenceSource>;
 export const Evidence = z.object({ source: EvidenceSource, text: z.string() });
 export type Evidence = z.infer<typeof Evidence>;
 
-export const CriterionKey = z.enum(['role', 'skills', 'experience', 'location']);
+export const CriterionKey = z.enum(['role', 'skills', 'experience', 'location', 'seniority', 'salary']);
 export type CriterionKey = z.infer<typeof CriterionKey>;
 
 export const FitCriterion = z.object({
@@ -510,8 +534,36 @@ export const FitCriterion = z.object({
   evidence: z.array(Evidence),
   /** Profile information that would let this criterion be scored. */
   missing: z.array(z.string()),
+  /** How much the score can be trusted, given the information behind it. */
+  confidence: z.enum(['high', 'medium', 'low']).default('medium'),
 });
 export type FitCriterion = z.infer<typeof FitCriterion>;
+
+/** A qualification line from the posting, matched against the profile. */
+export const RequirementMatch = z.object({
+  text: z.string(),
+  kind: z.enum(['required', 'preferred']),
+  basis: z.string(),
+  /** Profile skills found in the line. */
+  matchedSkills: z.array(z.string()),
+  /** Recognised skills in the line that are not in the profile. */
+  missingSkills: z.array(z.string()),
+  /** "5+ years with TypeScript" style demands, compared only with years the person entered. */
+  years: z
+    .object({ skill: z.string().nullable(), required: z.number(), stated: z.number().nullable(), status: z.enum(['met', 'short', 'unknown']) })
+    .nullable(),
+});
+export type RequirementMatch = z.infer<typeof RequirementMatch>;
+
+export const FitWeights = z.object({
+  role: z.number().min(0).max(5),
+  skills: z.number().min(0).max(5),
+  experience: z.number().min(0).max(5),
+  location: z.number().min(0).max(5),
+  seniority: z.number().min(0).max(5),
+  salary: z.number().min(0).max(5),
+});
+export type FitWeights = z.infer<typeof FitWeights>;
 
 export const EligibilityStatus = z.enum(['confirmed', 'unconfirmed', 'ineligible']);
 export type EligibilityStatus = z.infer<typeof EligibilityStatus>;
@@ -537,7 +589,14 @@ export const Assessment = z.object({
     scoredCriteria: z.number().int(),
     totalCriteria: z.number().int(),
     criteria: z.array(FitCriterion),
+    /** v0.2.0: overall trust in the score (few scored criteria or unverified facts lower it). */
+    confidence: z.enum(['high', 'medium', 'low']).default('medium'),
+    uncertainty: z.array(z.string()).default([]),
   }),
+  /** v0.2.0: the posting's qualification lines, required vs preferred, matched against your profile. */
+  requirements: z.array(RequirementMatch).default([]),
+  /** Required qualifications the profile does not show (not a verdict; you may have them). */
+  missingQualifications: z.array(z.string()).default([]),
   eligibility: z.object({
     status: EligibilityStatus,
     checks: z.array(EligibilityCheck),
