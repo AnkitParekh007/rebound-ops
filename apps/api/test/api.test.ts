@@ -86,7 +86,7 @@ describe('request guards', () => {
 
 describe('health', () => {
   it('reports AI off by default', async () => {
-    expect((await send('GET', '/api/health')).json()).toMatchObject({ status: 'ok', schemaVersion: 1, aiMode: 'off' });
+    expect((await send('GET', '/api/health')).json()).toMatchObject({ status: 'ok', schemaVersion: 2, aiMode: 'off' });
   });
 });
 
@@ -241,5 +241,88 @@ describe('assessment', () => {
     const rubric = (await send('GET', '/api/rubric')).json();
     expect(rubric.criteria.map((c: { key: string }) => c.key)).toEqual(['role', 'skills', 'experience', 'location']);
     expect((await send('GET', '/api/applications/nope/assessment')).statusCode).toBe(404);
+  });
+});
+
+describe('resume import and documents (M3)', () => {
+  const resumeText = readFileSync(new URL('../../../tests/fixtures/resumes/jordan-fictional.txt', import.meta.url), 'utf8');
+
+  async function importAndVerify() {
+    const res = await send('POST', '/api/resume/import', { filename: 'jordan.txt', contentBase64: Buffer.from(resumeText).toString('base64') });
+    expect(res.statusCode).toBe(200);
+    const result = res.json();
+    expect(result.proposal.experience.every((e: { verified: boolean }) => !e.verified)).toBe(true);
+    // The person reviews the proposal and confirms it.
+    const p = result.proposal;
+    await send('PUT', '/api/profile', {
+      displayName: p.displayName,
+      headline: p.headline,
+      contact: p.contact,
+      skills: p.skills,
+      experience: p.experience.map((e: object) => ({ ...e, verified: true })),
+      education: p.education.map((e: object) => ({ ...e, verified: true })),
+      certifications: p.certifications,
+    });
+    return result;
+  }
+
+  it('imports a resume, keeps the original byte-for-byte, and deduplicates by hash', async () => {
+    const first = await importAndVerify();
+    const original = await send('GET', `/api/resume/files/${first.file.id}/original`);
+    expect(original.rawPayload.toString('utf8')).toBe(resumeText);
+    expect(original.headers['content-disposition']).toBe('attachment; filename="jordan.txt"');
+    const again = (await send('POST', '/api/resume/import', { filename: 'copy.txt', contentBase64: Buffer.from(resumeText).toString('base64') })).json();
+    expect(again.file.id).toBe(first.file.id);
+    expect((await send('GET', '/api/resume/files')).json()).toHaveLength(1);
+  });
+
+  it('rejects PDFs and oversized files with clear errors', async () => {
+    const pdf = await send('POST', '/api/resume/import', { filename: 'cv.pdf', contentBase64: Buffer.from('%PDF-1.7 ...').toString('base64') });
+    expect(pdf.statusCode).toBe(415);
+    const big = await send('POST', '/api/resume/import', { filename: 'cv.txt', contentBase64: Buffer.alloc(6 * 1024 * 1024, 65).toString('base64') });
+    expect([400, 413]).toContain(big.statusCode);
+  });
+
+  it('generates grounded drafts, protects edits, and exports verified PDF/DOCX', async () => {
+    await importAndVerify();
+    const { application } = await saveLabelledJob();
+    const base = `/api/applications/${application.id}/documents`;
+
+    const bundle = (await send('POST', `${base}/generate`, {})).json();
+    expect(bundle.resume.experience.map((e: { employer: string }) => e.employer)).toEqual(['Lumenfield Systems', 'Northgate Freight']);
+    expect(bundle.coverLetter.text).toContain('[[Add a sentence');
+
+    for (const format of ['pdf', 'docx']) {
+      const res = await send('GET', `${base}/resume/export?format=${format}`);
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['x-content-check']).toMatch(/^passed/);
+      expect(res.headers['content-disposition']).toContain(`Resume.${format}`);
+    }
+
+    const blocked = await send('GET', `${base}/cover_letter/export?format=pdf`);
+    expect(blocked.statusCode).toBe(422);
+    expect(blocked.json().error.code).toBe('export_check_failed');
+
+    const filled = bundle.coverLetter.text.replace(/\[\[[^\]]*\]\]/g, 'I admire your platform work.');
+    const edited = (await send('PUT', `${base}/cover_letter`, { text: filled })).json();
+    expect(edited.coverLetter.edited).toBe(true);
+    expect((await send('GET', `${base}/cover_letter/export?format=docx`)).statusCode).toBe(200);
+
+    const regen = await send('POST', `${base}/generate`, {});
+    expect(regen.statusCode).toBe(409);
+    expect((await send('POST', `${base}/generate`, { overwrite: true })).statusCode).toBe(200);
+
+    // Facts cannot be altered through the draft API.
+    const bad = await send('PUT', `${base}/resume`, { experience: [{ factId: 'invented', include: true, highlights: [] }] });
+    expect(bad.statusCode).toBe(422);
+  });
+
+  it('flags drafts as stale after the profile changes', async () => {
+    await importAndVerify();
+    const { application } = await saveLabelledJob();
+    await send('POST', `/api/applications/${application.id}/documents/generate`, {});
+    clock = new Date(clock.getTime() + 60_000);
+    await send('PUT', '/api/profile', { ...(await send('GET', '/api/profile')).json(), headline: 'Changed' });
+    expect((await send('GET', `/api/applications/${application.id}/documents`)).json().profileChangedSinceDraft).toBe(true);
   });
 });

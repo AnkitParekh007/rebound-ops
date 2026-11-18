@@ -5,9 +5,12 @@ import type { z } from 'zod';
 import {
   ActivityEntry,
   Application,
+  CoverLetterDraft,
   Job,
   OnboardingState,
   Profile,
+  ResumeDraft,
+  ResumeFile,
 } from '@reboundops/contracts';
 import { LATEST_SCHEMA_VERSION, migrate } from './migrations.ts';
 
@@ -187,6 +190,65 @@ export class Store {
       .prepare('INSERT INTO activity (id, application_id, at, data) VALUES (?, ?, ?, ?)')
       .run(valid.id, valid.applicationId, valid.at, JSON.stringify(valid));
     return valid;
+  }
+
+  /* ---------------- resume originals ---------------- */
+
+  insertResumeFile(meta: ResumeFile, data: Buffer): ResumeFile {
+    const valid = ResumeFile.parse(meta);
+    this.db
+      .prepare('INSERT INTO resume_files (id, filename, media_type, sha256, size, imported_at, data) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(valid.id, valid.filename, valid.mediaType, valid.sha256, valid.size, valid.importedAt, data);
+    return valid;
+  }
+
+  private static resumeMeta(r: Row): ResumeFile {
+    return ResumeFile.parse({
+      id: r['id'],
+      filename: r['filename'],
+      mediaType: r['media_type'],
+      sha256: r['sha256'],
+      size: Number(r['size']),
+      importedAt: r['imported_at'],
+    });
+  }
+
+  listResumeFiles(): ResumeFile[] {
+    return (
+      this.db.prepare('SELECT id, filename, media_type, sha256, size, imported_at FROM resume_files ORDER BY imported_at DESC').all() as Row[]
+    ).map(Store.resumeMeta);
+  }
+
+  findResumeFileBySha(sha256: string): ResumeFile | null {
+    const row = this.db.prepare('SELECT id, filename, media_type, sha256, size, imported_at FROM resume_files WHERE sha256 = ?').get(sha256) as Row | undefined;
+    return row ? Store.resumeMeta(row) : null;
+  }
+
+  getResumeFile(id: string): { meta: ResumeFile; data: Buffer } | null {
+    const row = this.db.prepare('SELECT * FROM resume_files WHERE id = ?').get(id) as Row | undefined;
+    return row ? { meta: Store.resumeMeta(row), data: Buffer.from(row['data'] as Uint8Array) } : null;
+  }
+
+  /* ---------------- tailored documents ---------------- */
+
+  getResumeDraft(applicationId: string): ResumeDraft | null {
+    const row = this.db.prepare("SELECT application_id AS id, data FROM documents WHERE application_id = ? AND kind = 'resume'").get(applicationId) as Row | undefined;
+    return row ? parseRow(ResumeDraft, 'documents', row) : null;
+  }
+
+  getCoverLetterDraft(applicationId: string): CoverLetterDraft | null {
+    const row = this.db.prepare("SELECT application_id AS id, data FROM documents WHERE application_id = ? AND kind = 'cover_letter'").get(applicationId) as Row | undefined;
+    return row ? parseRow(CoverLetterDraft, 'documents', row) : null;
+  }
+
+  putDocument(doc: ResumeDraft | CoverLetterDraft): void {
+    const valid = doc.kind === 'resume' ? ResumeDraft.parse(doc) : CoverLetterDraft.parse(doc);
+    this.db
+      .prepare(
+        `INSERT INTO documents (application_id, kind, updated_at, data) VALUES (?, ?, ?, ?)
+         ON CONFLICT (application_id, kind) DO UPDATE SET updated_at = excluded.updated_at, data = excluded.data`,
+      )
+      .run(valid.applicationId, valid.kind, valid.updatedAt, JSON.stringify(valid));
   }
 
   listActivity(applicationId?: string): ActivityEntry[] {

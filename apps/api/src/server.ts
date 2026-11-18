@@ -1,5 +1,6 @@
 import Fastify, { LogController, type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
+import { DocumentKind, ExportFormat } from '@reboundops/contracts';
 import { AppError } from './errors.ts';
 import type { Workspace } from './workspace.ts';
 
@@ -132,6 +133,35 @@ export function buildServer(options: ServerOptions): FastifyInstance {
   app.get<IdParams>('/api/applications/:id/assessment', async (req) => workspace.assessApplication(req.params.id));
   app.get('/api/assessments', async () => workspace.assessmentSummaries());
   app.get('/api/rubric', async () => workspace.rubric());
+
+  app.post('/api/resume/import', { bodyLimit: 8 * 1024 * 1024 }, async (req) => workspace.importResume(req.body));
+  app.get('/api/resume/files', async () => workspace.listResumeFiles());
+  app.get<IdParams>('/api/resume/files/:id/original', async (req, reply) => {
+    const { meta, data } = workspace.getResumeOriginal(req.params.id);
+    const name = meta.filename.replace(/[^A-Za-z0-9._ -]/g, '_');
+    return reply
+      .header('Content-Type', 'application/octet-stream')
+      .header('Content-Disposition', `attachment; filename="${name}"`)
+      .send(data);
+  });
+
+  app.get<IdParams>('/api/applications/:id/documents', async (req) => workspace.getDocuments(req.params.id));
+  app.post<IdParams>('/api/applications/:id/documents/generate', async (req) => workspace.generateDocuments(req.params.id, req.body));
+  app.put<IdParams>('/api/applications/:id/documents/resume', async (req) => workspace.updateResumeDraft(req.params.id, req.body));
+  app.put<IdParams>('/api/applications/:id/documents/cover_letter', async (req) => workspace.updateCoverLetter(req.params.id, req.body));
+  app.get<{ Params: { id: string; kind: string }; Querystring: { format?: string } }>(
+    '/api/applications/:id/documents/:kind/export',
+    async (req, reply) => {
+      const kind = DocumentKind.parse(req.params.kind);
+      const format = ExportFormat.parse(req.query.format ?? 'pdf');
+      const result = workspace.exportDocument(req.params.id, kind, format);
+      return reply
+        .header('Content-Type', result.mediaType)
+        .header('Content-Disposition', `attachment; filename="${result.filename}"`)
+        .header('X-Content-Check', `passed; ${result.check.checked.length} items verified`)
+        .send(result.data);
+    },
+  );
 
   app.get('/api/dashboard', async () => workspace.dashboard());
 

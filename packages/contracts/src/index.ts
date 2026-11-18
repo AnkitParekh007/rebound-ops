@@ -549,6 +549,11 @@ export const CoverLetterDraft = z.object({
 export type CoverLetterDraft = z.infer<typeof CoverLetterDraft>;
 
 export const CoverLetterUpdate = z.object({ text: z.string().max(20_000) });
+
+export const GenerateDocumentsRequest = z.object({
+  /** Required to replace drafts that the person has already edited. */
+  overwrite: z.boolean().default(false),
+});
 export type CoverLetterUpdate = z.infer<typeof CoverLetterUpdate>;
 
 export const DocumentKind = z.enum(['resume', 'cover_letter']);
@@ -560,6 +565,8 @@ export type ExportFormat = z.infer<typeof ExportFormat>;
 export const DocumentsBundle = z.object({
   resume: ResumeDraft.nullable(),
   coverLetter: CoverLetterDraft.nullable(),
+  /** True when the profile changed after the drafts were generated. */
+  profileChangedSinceDraft: z.boolean(),
 });
 export type DocumentsBundle = z.infer<typeof DocumentsBundle>;
 

@@ -46,6 +46,32 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX activity_application ON activity (application_id, at);
     `,
   },
+  {
+    version: 2,
+    name: 'resume_files_and_documents',
+    sql: `
+      -- Original resume files, byte-for-byte, kept inside the private database.
+      CREATE TABLE resume_files (
+        id          TEXT PRIMARY KEY,
+        filename    TEXT NOT NULL,
+        media_type  TEXT NOT NULL,
+        sha256      TEXT NOT NULL,
+        size        INTEGER NOT NULL,
+        imported_at TEXT NOT NULL,
+        data        BLOB NOT NULL
+      ) STRICT;
+      CREATE INDEX resume_files_sha ON resume_files (sha256);
+
+      -- Editable tailored drafts, one per application and kind.
+      CREATE TABLE documents (
+        application_id TEXT NOT NULL REFERENCES applications (id) ON DELETE CASCADE,
+        kind           TEXT NOT NULL,
+        updated_at     TEXT NOT NULL,
+        data           TEXT NOT NULL,
+        PRIMARY KEY (application_id, kind)
+      ) STRICT;
+    `,
+  },
 ];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS.at(-1)?.version ?? 0;

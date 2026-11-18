@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DATABASE_FILE, LATEST_SCHEMA_VERSION, SchemaTooNewError, CorruptRecordError, migrate, openStore } from '../src/index.ts';
+import { DATABASE_FILE, LATEST_SCHEMA_VERSION, MIGRATIONS, SchemaTooNewError, CorruptRecordError, migrate, openStore } from '../src/index.ts';
 
 const dirs: string[] = [];
 const tempDir = () => {
@@ -38,9 +38,31 @@ const sampleJob = {
 describe('migrations', () => {
   it('applies all migrations once and is idempotent', () => {
     const db = new DatabaseSync(':memory:');
-    expect(migrate(db)).toEqual([1]);
+    expect(migrate(db)).toEqual([1, 2]);
     expect(migrate(db)).toEqual([]);
     db.close();
+  });
+
+  it('upgrades an existing v1 database without losing data', () => {
+    const dir = tempDir();
+    const db = new DatabaseSync(join(dir, DATABASE_FILE));
+    migrate(db, MIGRATIONS.slice(0, 1));
+    db.prepare('INSERT INTO kv (key, value, updated_at) VALUES (?, ?, ?)').run('profile', JSON.stringify({ displayName: 'Kept Person' }), '2026-01-01T00:00:00.000Z');
+    db.close();
+    const s = openStore({ dataDir: dir });
+    expect(s.getProfile()?.displayName).toBe('Kept Person');
+    expect(s.getProfile()?.education).toEqual([]);
+    expect(s.listResumeFiles()).toEqual([]);
+    s.close();
+  });
+
+  it('stores resume originals byte-for-byte and drafts per application', () => {
+    const s = openStore({ memory: true });
+    const bytes = Buffer.from([0, 1, 2, 250, 255]);
+    s.insertResumeFile({ id: 'r1', filename: 'cv.docx', mediaType: 'x', sha256: 'abc', size: 5, importedAt: '2026-01-01T00:00:00.000Z' }, bytes);
+    expect(s.getResumeFile('r1')?.data.equals(bytes)).toBe(true);
+    expect(s.findResumeFileBySha('abc')?.id).toBe('r1');
+    s.close();
   });
 
   it('rolls back a failing migration', () => {

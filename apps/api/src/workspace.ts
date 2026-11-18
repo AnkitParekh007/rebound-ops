@@ -2,6 +2,13 @@ import { randomUUID } from 'node:crypto';
 import {
   type ActivityEntry,
   type Assessment,
+  type CoverLetterDraft,
+  type DocumentKind,
+  type DocumentsBundle,
+  type ExportFormat,
+  type ResumeDraft,
+  type ResumeFile,
+  type ResumeImportResult,
   type AssessmentSummary,
   type Application,
   type ApplicationView,
@@ -12,7 +19,12 @@ import {
   type JobExtraction,
   type OnboardingState,
   type Profile,
+  CoverLetterUpdate,
+  GenerateDocumentsRequest,
   JobCreate,
+  MAX_RESUME_BYTES,
+  ResumeDraftUpdate,
+  ResumeImportRequest,
   JobExtractRequest,
   NoteRequest,
   OnboardingUpdate,
@@ -30,6 +42,18 @@ import {
 } from '@reboundops/core';
 import { assess, checkGrounding, dedupeKey, extractJob, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
 import type { Store } from '@reboundops/storage';
+import {
+  applyResumeUpdate,
+  buildCoverLetter,
+  buildResumeDraft,
+  decodeResumeFile,
+  DraftUpdateError,
+  exportDocument,
+  parseResumeText,
+  type ExportResult,
+  UnsupportedResumeError,
+  ZipError,
+} from '@reboundops/documents';
 import { AppError, notFound } from './errors.ts';
 
 export interface WorkspaceOptions {
@@ -229,6 +253,124 @@ export class Workspace {
       this.store.addActivity(this.activity(id, 'note', null, null, note, at));
     });
     return this.getApplication(id);
+  }
+
+  /* ---------- resume import ---------- */
+
+  /** Stores the original (deduplicated by hash) and returns an unverified proposal for review. */
+  importResume(input: unknown): ResumeImportResult {
+    const req = ResumeImportRequest.parse(input);
+    let filename: string;
+    let bytes: Buffer;
+    if ('text' in req) {
+      filename = 'pasted-resume.txt';
+      bytes = Buffer.from(req.text, 'utf8');
+    } else {
+      filename = req.filename.replace(/[\\/]/g, '_');
+      bytes = Buffer.from(req.contentBase64, 'base64');
+    }
+    if (!bytes.length) throw new AppError(422, 'empty_file', 'The file is empty.');
+    if (bytes.length > MAX_RESUME_BYTES) throw new AppError(413, 'file_too_large', 'Resume files must be 5 MB or smaller.');
+
+    let decoded;
+    try {
+      decoded = decodeResumeFile(filename, bytes);
+    } catch (err) {
+      if (err instanceof UnsupportedResumeError) throw new AppError(415, 'unsupported_resume', err.message);
+      if (err instanceof ZipError) throw new AppError(422, 'invalid_document', `Could not read this document: ${err.message}`);
+      throw new AppError(422, 'invalid_document', 'Could not read this document.');
+    }
+    const existing = this.store.findResumeFileBySha(decoded.sha256);
+    const file: ResumeFile =
+      existing ??
+      this.store.insertResumeFile(
+        { id: this.newId(), filename, mediaType: decoded.mediaType, sha256: decoded.sha256, size: decoded.size, importedAt: this.now().toISOString() },
+        bytes,
+      );
+    const { proposal, warnings } = parseResumeText(decoded.text);
+    if (existing) warnings.unshift('This exact file was imported before; the stored original was reused.');
+    return { file, text: decoded.text, proposal, warnings };
+  }
+
+  listResumeFiles(): ResumeFile[] {
+    return this.store.listResumeFiles();
+  }
+
+  getResumeOriginal(id: string): { meta: ResumeFile; data: Buffer } {
+    return this.store.getResumeFile(id) ?? (() => { throw notFound('Resume file'); })();
+  }
+
+  /* ---------- tailored documents ---------- */
+
+  getDocuments(applicationId: string): DocumentsBundle {
+    this.getApplication(applicationId);
+    const resume = this.store.getResumeDraft(applicationId);
+    const coverLetter = this.store.getCoverLetterDraft(applicationId);
+    const profile = this.getProfile();
+    const changed = !!resume && !!profile.updatedAt && (!resume.profileUpdatedAt || profile.updatedAt > resume.profileUpdatedAt);
+    return { resume, coverLetter, profileChangedSinceDraft: changed };
+  }
+
+  generateDocuments(applicationId: string, input: unknown): DocumentsBundle {
+    const { overwrite } = GenerateDocumentsRequest.parse(input ?? {});
+    const app = this.getApplication(applicationId);
+    const existing = this.getDocuments(applicationId);
+    const edited = (existing.resume && existing.resume.updatedAt !== existing.resume.generatedAt) || existing.coverLetter?.edited;
+    if (edited && !overwrite) {
+      throw new AppError(409, 'drafts_edited', 'You have edited these drafts. Regenerating will replace your edits.');
+    }
+    const profile = this.getProfile();
+    const now = this.now();
+    const resume = buildResumeDraft({ applicationId, job: app.job, profile, now });
+    const coverLetter = buildCoverLetter({ applicationId, job: app.job, profile, now, resume });
+    this.store.transaction(() => {
+      this.store.putDocument(resume);
+      this.store.putDocument(coverLetter);
+      this.store.addActivity(this.activity(applicationId, 'note', null, null, 'Generated tailored resume and cover letter drafts.', now.toISOString()));
+    });
+    return this.getDocuments(applicationId);
+  }
+
+  private requireResume(applicationId: string): ResumeDraft {
+    const draft = this.store.getResumeDraft(applicationId);
+    if (!draft) throw new AppError(404, 'no_draft', 'Generate drafts first.');
+    return draft;
+  }
+
+  updateResumeDraft(applicationId: string, input: unknown): DocumentsBundle {
+    const update = ResumeDraftUpdate.parse(input);
+    try {
+      this.store.putDocument(applyResumeUpdate(this.requireResume(applicationId), update, this.now()));
+    } catch (err) {
+      if (err instanceof DraftUpdateError) throw new AppError(422, 'invalid_draft_update', err.message);
+      throw err;
+    }
+    return this.getDocuments(applicationId);
+  }
+
+  updateCoverLetter(applicationId: string, input: unknown): DocumentsBundle {
+    const { text } = CoverLetterUpdate.parse(input);
+    const current = this.store.getCoverLetterDraft(applicationId);
+    if (!current) throw new AppError(404, 'no_draft', 'Generate drafts first.');
+    const next: CoverLetterDraft = { ...current, text, edited: text !== current.text || current.edited, sources: text === current.text ? current.sources : [], updatedAt: this.now().toISOString() };
+    this.store.putDocument(next);
+    return this.getDocuments(applicationId);
+  }
+
+  exportDocument(applicationId: string, kind: DocumentKind, format: ExportFormat): ExportResult {
+    const app = this.getApplication(applicationId);
+    const result = exportDocument({
+      kind,
+      format,
+      resume: this.requireResume(applicationId),
+      coverLetter: this.store.getCoverLetterDraft(applicationId),
+      profile: this.getProfile(),
+      employer: app.job.employer,
+    });
+    if (!result.check.ok) {
+      throw new AppError(422, 'export_check_failed', [...result.check.problems, ...result.check.missing.map((m) => `Missing from export: ${m}`)].join(' '), result.check);
+    }
+    return result;
   }
 
   /* ---------- assessment ---------- */
