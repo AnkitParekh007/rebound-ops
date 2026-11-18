@@ -12,6 +12,8 @@ import type {
   ContactInput,
   DashboardSummary,
   FollowUpDraft,
+  ImportPreview,
+  ImportResult,
   FollowUpKind,
   Reminder,
   ReminderInput,
@@ -225,6 +227,12 @@ export class ApiService {
   }
   deleteApplication(id: string) {
     return this.call(this.http.delete<void>(`${this.base}/applications/${encodeURIComponent(id)}`));
+  }
+  previewImport(filename: string, content: string) {
+    return this.call(this.http.post<ImportPreview>(`${this.base}/import/preview`, { filename, content }));
+  }
+  commitImport(token: string) {
+    return this.call(this.http.post<ImportResult>(`${this.base}/import/commit`, { token, confirm: true }));
   }
   dashboard() {
     return this.call(this.http.get<DashboardSummary>(`${this.base}/dashboard`));

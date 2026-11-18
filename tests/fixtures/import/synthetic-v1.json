@@ -1,0 +1,42 @@
+{
+  "format": "reboundops-import",
+  "formatVersion": 1,
+  "source": "synthetic fixture (fictional data)",
+  "exportedAt": "2026-05-01T10:00:00.000Z",
+  "profile": {
+    "displayName": "Morgan Fictional",
+    "headline": "Operations analyst",
+    "email": "morgan.fictional@example.test",
+    "links": [{ "label": "Portfolio", "url": "https://morgan.example.test" }],
+    "targetRoles": ["Operations Analyst"],
+    "skills": ["Excel", "SQL", "Tableau"],
+    "experience": [
+      { "employer": "Fictional Logistics", "title": "Analyst", "start": "2021-02", "end": null, "highlights": ["Built weekly KPI reports"] }
+    ],
+    "education": [{ "institution": "Example University", "qualification": "BA Economics", "end": "2020-06" }],
+    "answers": [{ "question": "Why this field?", "answer": "I like making operations measurable." }]
+  },
+  "jobs": [
+    {
+      "externalId": "old-1",
+      "title": "Operations Analyst",
+      "employer": "Harbour Example Ltd",
+      "location": "Dublin, Ireland",
+      "sourceUrl": "https://jobs.example.test/harbour/1",
+      "description": "Operations Analyst at Harbour Example Ltd",
+      "capturedAt": "2026-04-01T09:00:00.000Z",
+      "status": "interviewing",
+      "history": [
+        { "at": "2026-04-01T09:00:00.000Z", "status": "discovered" },
+        { "at": "2026-04-03T09:00:00.000Z", "status": "applied", "note": "Submitted on company site" },
+        { "at": "2026-04-10T09:00:00.000Z", "status": "interviewing" }
+      ],
+      "notes": [{ "at": "2026-04-11T09:00:00.000Z", "text": "Phone screen went well." }]
+    },
+    { "title": "Duplicate In File", "employer": "Harbour Example Ltd", "sourceUrl": "https://jobs.example.test/harbour/1?utm_source=x" },
+    { "title": "Data Coordinator", "employer": "Northwind Example", "status": "discovered" },
+    { "title": "", "employer": "Broken Record" },
+    { "title": "Bad Status", "employer": "X", "status": "hired" },
+    { "title": "Extra Key", "employer": "Y", "runScript": "<script>alert(1)</script>" }
+  ]
+}

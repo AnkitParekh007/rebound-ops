@@ -199,6 +199,9 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     workspace.followUp(req.params.id, req.query.kind, req.query.contactId),
   );
 
+  app.post('/api/import/preview', { bodyLimit: 12 * 1024 * 1024 }, async (req) => workspace.previewImport(req.body));
+  app.post('/api/import/commit', async (req) => workspace.commitImport(req.body));
+
   app.get('/api/settings/ai', async () => workspace.getAiSettings());
   app.put('/api/settings/ai', async (req) => workspace.updateAiSettings(req.body));
   app.post('/api/settings/ai/test', async () => workspace.testAi());

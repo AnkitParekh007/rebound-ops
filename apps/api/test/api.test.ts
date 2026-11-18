@@ -514,3 +514,58 @@ describe('job edits and deletion (M7)', () => {
     expect((await send('DELETE', `/api/applications/${application.id}`)).statusCode).toBe(404);
   });
 });
+
+describe('data import (M8)', () => {
+  const content = readFileSync(new URL('../../../tests/fixtures/import/synthetic-v1.json', import.meta.url), 'utf8');
+
+  it('previews without writing, then commits once with confirmation', async () => {
+    await send('PUT', '/api/profile', { displayName: 'Existing Person' });
+    const preview = (await send('POST', '/api/import/preview', { filename: 'old.json', content })).json();
+    expect(preview.jobs.toAdd).toHaveLength(2);
+    expect((await send('GET', '/api/applications')).json()).toEqual([]);
+
+    expect((await send('POST', '/api/import/commit', { token: preview.token })).statusCode).toBe(400);
+    const result = (await send('POST', '/api/import/commit', { token: preview.token, confirm: true })).json();
+    expect(result).toEqual({ jobsAdded: 2, profileUpdated: true, skipped: 1, rejected: 3 });
+    expect((await send('POST', '/api/import/commit', { token: preview.token, confirm: true })).statusCode).toBe(410);
+
+    const profile = (await send('GET', '/api/profile')).json();
+    expect(profile.displayName).toBe('Existing Person');
+    expect(profile.skills).toEqual(['Excel', 'SQL', 'Tableau']);
+    expect(profile.experience[0]).toMatchObject({ employer: 'Fictional Logistics', verified: false });
+
+    const apps = (await send('GET', '/api/applications')).json();
+    const ops = apps.find((a: { job: { title: string } }) => a.job.title === 'Operations Analyst');
+    expect(ops).toMatchObject({ status: 'interviewing', appliedConfirmedAt: '2026-04-03T09:00:00.000Z' });
+    expect(ops.job.verification.status).toBe('unverified');
+    expect(ops.activity.map((a: { kind: string }) => a.kind).sort()).toEqual(['created', 'note', 'status_changed', 'status_changed']);
+    const dash = (await send('GET', '/api/dashboard')).json();
+    expect(dash.analytics).toMatchObject({ submittedTotal: 1, responded: 1, medianDaysToResponse: 7 });
+
+    // Re-importing the same file adds nothing.
+    const again = (await send('POST', '/api/import/preview', { content })).json();
+    expect(again.jobs.toAdd).toEqual([]);
+    expect(readFileSync(new URL('../../../tests/fixtures/import/synthetic-v1.json', import.meta.url), 'utf8')).toBe(content);
+  });
+
+  it('round-trips a ReboundOps export into an empty workspace', async () => {
+    await saveLabelledJob();
+    const exported = (await send('GET', '/api/export')).payload;
+    const fresh = openStore({ memory: true });
+    const app2 = buildServer({ workspace: new Workspace(fresh, { now: () => clock }), allowedOrigins: [ORIGIN], logLevel: 'silent' });
+    const h = { host: 'localhost', 'content-type': 'application/json' };
+    const preview = (await app2.inject({ method: 'POST', url: '/api/import/preview', headers: h, payload: JSON.stringify({ content: exported }) })).json();
+    expect(preview.sourceFormat).toBe('reboundops-export');
+    await app2.inject({ method: 'POST', url: '/api/import/commit', headers: h, payload: JSON.stringify({ token: preview.token, confirm: true }) });
+    const apps = (await app2.inject({ method: 'GET', url: '/api/applications', headers: { host: 'localhost' } })).json();
+    expect(apps.map((a: { job: { employer: string } }) => a.job.employer)).toEqual(['Brightwater Analytics']);
+    await app2.close();
+    fresh.close();
+  });
+
+  it('reports invalid files with a clear message', async () => {
+    const res = await send('POST', '/api/import/preview', { content: '{"format":"other"}' });
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error.message).toMatch(/Unrecognised file/);
+  });
+});

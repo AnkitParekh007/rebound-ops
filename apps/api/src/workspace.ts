@@ -4,6 +4,8 @@ import {
   type AiSettings,
   type AiSettingsView,
   type Assessment,
+  type ImportPreview,
+  type ImportResult,
   type RewriteResult,
   type Contact,
   type FollowUpDraft,
@@ -28,6 +30,8 @@ import {
   type OnboardingState,
   type Profile,
   AddQuestionsRequest,
+  ImportCommitRequest,
+  ImportPreviewRequest,
   AiSettingsUpdate,
   ProviderId,
   RewriteRequest,
@@ -62,6 +66,7 @@ import {
 } from '@reboundops/core';
 import { assess, checkGrounding, dedupeKey, extractJob, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
 import type { Store } from '@reboundops/storage';
+import { ImportFormatError, planImport, type ImportPlan } from '@reboundops/importer';
 import { checklist, draftAnswer, emptyPackage, followUpDraft } from '@reboundops/applications';
 import {
   AiConfigError,
@@ -108,6 +113,7 @@ export class Workspace {
   private readonly store: Store;
   private readonly env: Record<string, string | undefined>;
   private readonly aiFetch: FetchLike | undefined;
+  private readonly stagedImports = new Map<string, { plan: ImportPlan; expires: number }>();
 
   constructor(store: Store, options: WorkspaceOptions = {}) {
     this.store = store;
@@ -603,6 +609,93 @@ export class Workspace {
     const contact = typeof contactId === 'string' && contactId ? contacts.find((c) => c.id === contactId) ?? null : contacts[0] ?? null;
     if (typeof contactId === 'string' && contactId && !contact) throw notFound('Contact');
     return followUpDraft(kind, app, this.getProfile(), contact);
+  }
+
+  /* ---------- import (M8) ---------- */
+
+  /** Validates and stages an import. Nothing is written until commitImport. */
+  previewImport(input: unknown): ImportPreview {
+    const req = ImportPreviewRequest.parse(input);
+    const dedupeKeys = new Set(this.store.listJobs().map((j) => j.dedupeKey));
+    let plan: ImportPlan;
+    try {
+      plan = planImport(req.content, { profile: this.getProfile(), dedupeKeys });
+    } catch (err) {
+      if (err instanceof ImportFormatError) throw new AppError(422, 'invalid_import', err.message);
+      throw err;
+    }
+    const now = this.now().getTime();
+    for (const [k, v] of this.stagedImports) if (v.expires < now) this.stagedImports.delete(k);
+    const token = this.newId();
+    const expires = now + 15 * 60_000;
+    this.stagedImports.set(token, { plan, expires });
+    return { token, expiresAt: new Date(expires).toISOString(), ...plan.preview };
+  }
+
+  commitImport(input: unknown): ImportResult {
+    const { token } = ImportCommitRequest.parse(input);
+    const staged = this.stagedImports.get(token);
+    if (!staged || staged.expires < this.now().getTime()) throw new AppError(410, 'import_expired', 'This import preview expired. Preview the file again.');
+    this.stagedImports.delete(token);
+    const { plan } = staged;
+    const at = this.now().toISOString();
+    const source = plan.sourceFormat === 'reboundops-export' ? 'a ReboundOps export' : 'an earlier version';
+    let jobsAdded = 0;
+    let skipped = plan.preview.jobs.duplicates.length;
+
+    this.store.transaction(() => {
+      const profileChanged = Object.keys(plan.profilePatch).length > 0;
+      if (profileChanged) this.store.saveProfile({ ...this.getProfile(), ...plan.profilePatch, updatedAt: at });
+      const existingKeys = new Set(this.store.listJobs().map((j) => j.dedupeKey));
+      for (const { job: j, dedupeKey: key, status } of plan.jobs) {
+        if (existingKeys.has(key)) {
+          skipped++;
+          continue;
+        }
+        existingKeys.add(key);
+        const captured = j.capturedAt ?? j.history?.[0]?.at ?? at;
+        const user = { origin: 'user' as const, evidence: null };
+        const jobId = this.newId();
+        this.store.insertJob({
+          id: jobId,
+          title: j.title,
+          employer: j.employer,
+          location: j.location ?? null,
+          salary: j.salary ?? null,
+          workArrangement: null,
+          sourceUrl: j.sourceUrl ?? null,
+          description: j.description ?? '',
+          provenance: { title: user, employer: user, location: j.location ? user : null, salary: j.salary ? user : null },
+          verification: { status: 'unverified', checkedAt: null, note: `Imported from ${source}; not checked against the live posting.` },
+          dedupeKey: key,
+          capturedAt: captured,
+        });
+        const history = [...(j.history ?? [])].sort((a, b) => a.at.localeCompare(b.at));
+        const submitted = ['applied', 'interviewing', 'offer'].includes(status) || history.some((h) => h.status === 'applied');
+        const appliedAt = j.appliedAt ?? (submitted ? (history.find((h) => h.status === 'applied')?.at ?? captured) : null);
+        const appId = this.newId();
+        this.store.upsertApplication({
+          id: appId,
+          jobId,
+          status,
+          createdAt: captured,
+          updatedAt: at,
+          statusChangedAt: history.at(-1)?.at ?? captured,
+          appliedConfirmedAt: appliedAt,
+        });
+        this.store.addActivity(this.activity(appId, 'created', null, history[0]?.status ?? status, `Imported from ${source}.`, captured));
+        let prev = history[0]?.status ?? status;
+        for (const h of history.slice(1)) {
+          this.store.addActivity(this.activity(appId, 'status_changed', prev, h.status, h.note ?? '', h.at));
+          prev = h.status;
+        }
+        if (prev !== status) this.store.addActivity(this.activity(appId, 'status_changed', prev, status, 'Status at import.', at));
+        for (const n of j.notes ?? []) this.store.addActivity(this.activity(appId, 'note', null, null, n.text, n.at));
+        jobsAdded++;
+      }
+      return profileChanged;
+    });
+    return { jobsAdded, profileUpdated: Object.keys(plan.profilePatch).length > 0, skipped, rejected: plan.preview.jobs.rejected.length };
   }
 
   /* ---------- optional AI (M6) ---------- */

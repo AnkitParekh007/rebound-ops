@@ -19,6 +19,7 @@
     "zod": "4.6.7",
     "@reboundops/documents": "0.1.0",
     "@reboundops/applications": "0.1.0",
-    "@reboundops/ai-providers": "0.1.0"
+    "@reboundops/ai-providers": "0.1.0",
+    "@reboundops/importer": "0.1.0"
   }
 }

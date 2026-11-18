@@ -805,3 +805,113 @@ export const JobUpdate = z.object({
   sourceUrl: z.url({ protocol: /^https?$/ }).max(2048).nullable().optional(),
 });
 export type JobUpdate = z.infer<typeof JobUpdate>;
+
+/* ------------------------------------------------------------------ */
+/* Data import (M8)                                                    */
+/* ------------------------------------------------------------------ */
+
+const importText = (max: number) => z.string().max(max);
+
+export const ImportExperience = z
+  .object({
+    employer: shortText(160).min(1),
+    title: shortText(160).min(1),
+    start: YearMonth,
+    end: YearMonth.nullable().optional(),
+    summary: importText(4000).optional(),
+    highlights: z.array(importText(600)).max(30).optional(),
+  })
+  .strict();
+
+export const ImportEducation = z
+  .object({
+    institution: shortText(200).min(1),
+    qualification: shortText(200).optional(),
+    field: shortText(200).optional(),
+    start: YearMonth.nullable().optional(),
+    end: YearMonth.nullable().optional(),
+  })
+  .strict();
+
+export const ImportProfile = z
+  .object({
+    displayName: shortText(120).optional(),
+    headline: shortText(200).optional(),
+    email: z.union([z.literal(''), z.email().max(254)]).optional(),
+    phone: shortText(40).optional(),
+    location: shortText(120).optional(),
+    links: z.array(z.object({ label: shortText(60).optional(), url: z.url({ protocol: /^https?$/ }).max(2048) }).strict()).max(10).optional(),
+    targetRoles: z.array(tag).max(20).optional(),
+    preferredCountries: z.array(tag).max(30).optional(),
+    workArrangements: z.array(WorkArrangement).max(3).optional(),
+    openToRelocation: TriState.optional(),
+    workAuthorizedCountries: z.array(tag).max(30).optional(),
+    requiresSponsorship: TriState.optional(),
+    skills: z.array(tag).max(200).optional(),
+    experience: z.array(ImportExperience).max(60).optional(),
+    education: z.array(ImportEducation).max(30).optional(),
+    answers: z.array(z.object({ question: shortText(300).min(1), answer: importText(4000) }).strict()).max(100).optional(),
+  })
+  .strict();
+
+export const ImportJob = z
+  .object({
+    externalId: shortText(120).optional(),
+    title: shortText(300).min(1),
+    employer: shortText(300).min(1),
+    location: shortText(300).nullable().optional(),
+    salary: shortText(300).nullable().optional(),
+    sourceUrl: z.url({ protocol: /^https?$/ }).max(2048).nullable().optional(),
+    description: importText(100_000).optional(),
+    capturedAt: isoDate.optional(),
+    status: ApplicationStatus.optional(),
+    appliedAt: isoDate.nullable().optional(),
+    history: z.array(z.object({ at: isoDate, status: ApplicationStatus, note: importText(2000).optional() }).strict()).max(200).optional(),
+    notes: z.array(z.object({ at: isoDate, text: importText(4000).min(1) }).strict()).max(200).optional(),
+  })
+  .strict();
+export type ImportJob = z.infer<typeof ImportJob>;
+
+export const ImportFile = z
+  .object({
+    format: z.literal('reboundops-import'),
+    formatVersion: z.literal(1),
+    source: shortText(200).optional(),
+    exportedAt: isoDate.optional(),
+    profile: ImportProfile.optional(),
+    jobs: z.array(z.unknown()).max(5000).optional(),
+  })
+  .strict();
+export type ImportFile = z.infer<typeof ImportFile>;
+
+export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
+
+export const ImportPreviewRequest = z.object({ filename: shortText(255).default('import.json'), content: z.string().min(2).max(MAX_IMPORT_BYTES) });
+export type ImportPreviewRequest = z.input<typeof ImportPreviewRequest>;
+
+export const ImportPreview = z.object({
+  token: z.string(),
+  expiresAt: isoDate,
+  sourceFormat: z.enum(['reboundops-import', 'reboundops-export']),
+  sha256: z.string(),
+  profile: z.object({
+    fieldsToFill: z.array(z.string()),
+    skillsToAdd: z.array(z.string()),
+    experienceToAdd: z.number().int(),
+    educationToAdd: z.number().int(),
+    answersToAdd: z.number().int(),
+  }),
+  jobs: z.object({
+    toAdd: z.array(z.object({ index: z.number().int(), title: z.string(), employer: z.string(), status: ApplicationStatus })),
+    duplicates: z.array(z.object({ index: z.number().int(), title: z.string(), employer: z.string(), reason: z.string() })),
+    rejected: z.array(z.object({ index: z.number().int(), reason: z.string() })),
+  }),
+  warnings: z.array(z.string()),
+});
+export type ImportPreview = z.infer<typeof ImportPreview>;
+
+export const ImportCommitRequest = z.object({ token: z.string().min(1), confirm: z.literal(true) });
+export type ImportCommitRequest = z.infer<typeof ImportCommitRequest>;
+
+export const ImportResult = z.object({ jobsAdded: z.number().int(), profileUpdated: z.boolean(), skipped: z.number().int(), rejected: z.number().int() });
+export type ImportResult = z.infer<typeof ImportResult>;
