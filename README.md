@@ -26,7 +26,7 @@ A local-first, privacy-oriented workspace for running a job search. You can capt
 | Preparation | Screening answers drafted from saved answers and stated facts only (otherwise "needs your answer"), a checklist, and the official application link |
 | Tracking | Status workflow, activity trail, notes, contacts, reminders, follow-up drafts (copy or open in your own mail app) |
 | Overview | Pipeline, next actions, reminders, response rate and median days to response, derived from your records |
-| Data | Full JSON export; staged, previewed import of exports or the [neutral import format](docs/IMPORT_FORMAT.md) |
+| Data | Complete database backup with a verified restore; readable JSON export; staged, previewed import of exports or the [neutral import format](docs/IMPORT_FORMAT.md) ([moving from an earlier version](docs/LEGACY_EXPORT_PROCEDURE.md)) |
 
 ## Requirements
 
@@ -72,6 +72,8 @@ npm run dev:web     # UI on http://127.0.0.1:4174 (proxies /api to the API)
 | `npm run test:exports` | Reads generated PDF and DOCX back with independent macOS tools (skipped elsewhere) |
 | `npm run test:e2e` | Playwright browser journey (installed Chrome by default; `PW_CHANNEL=chromium` in CI) |
 | `npm run build` | Typecheck and production web build |
+| `npm run restore -- <file> [--yes]` | Checks a backup, or with `--yes` restores it while ReboundOps is stopped (the current database is kept, never deleted) |
+| `npm run import:check -- <file>` | Validates an import file and shows what it would add; writes nothing |
 | `npm run audit:release` | Path, secret and licence checks, SBOM (`reports/sbom.json`), `npm audit`, CSP check of the build |
 
 ## Layout

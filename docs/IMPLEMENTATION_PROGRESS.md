@@ -15,6 +15,7 @@ npm test                 # unit + storage + API + Angular component tests
 npm run test:smoke       # real API process, restart, persistence
 npm run build            # typecheck + production web build
 npm run audit:release    # paths/secrets/licences/SBOM/npm audit
+npm run test:exports     # independent PDF/DOCX read-back (macOS)
 npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 ```
 
@@ -29,18 +30,18 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 | M4 Application preparation | ✅ Done | Grounded screening answers (needs-input when ungrounded), checklist, official link, user-only posting verification, checklist summary on submit |
 | M5 Tracking & follow-ups | ✅ Done | Contacts, reminders (auto 7-day follow-up on submit), follow-up drafts (copy/mailto only), weekly + response analytics with caveats (schema v3) |
 | M6 AI providers (optional) | ✅ Done | Ollama (loopback only), Anthropic (official SDK, pinned base URL), OpenAI, Gemini, OpenRouter; env-only keys; per-provider consent + per-request confirmation; grounded rewrite gate. Live calls unverified (mocked transport) |
-| M7 UX completion | ✅ Done | Settings page, focus + live-region on navigation, job edit (provenance → user), delete with confirmation, tracker sort, axe a11y checks on 6 views (with negative control) | Settings page, AI/privacy controls, a11y pass, responsive, empty/loading/error states |
-| M8 Import from earlier version | ✅ Done (synthetic data only) | `reboundops-import` v1 + own export round-trip; strict validation, per-record rejection, staged preview token, confirmed single-transaction commit, no overwrites, unverified facts. Real legacy migration pending a separately authorised export | Neutral export schema, staged read-only import, preview/dedupe, confirm |
-| M9 Security & originality | ✅ Done | Security tests (body limits, CORS, error/log hygiene, header injection, traversal), CSP-safe build check, CI workflow (green on 4e8c14f), PROVENANCE.md | Loopback/Host/Origin/JSON guards, CSP, audit script, SBOM. Pending: security tests expansion |
-| M10 Comprehensive testing | ✅ Done | 131 backend + 16 Angular tests; 13-step journey AI off/on; migration, restart, failure recovery, a11y. Playwright journey passes in CI (not runnable in the sandbox) |
-| M11 Packaging & release | ✅ Done locally | `npm ci && npm run build && npm start` on one port; fresh-clone install validated; `docs/RELEASE_READINESS.md` |
+| M7 UX completion | ✅ Done | Settings page, focus + live-region on navigation, job edit (provenance → user), delete with confirmation, tracker sort, axe checks on 8 views (with negative control), contrast-safe tokens in both themes (audit) |
+| M8 Import from earlier version | ✅ Done (synthetic data only) | `reboundops-import` v1 + own export round-trip; strict validation, per-record rejection, staged preview token, confirmed single-transaction commit (rollback tested), no overwrites, unverified facts; `npm run import:check`; [LEGACY_EXPORT_PROCEDURE.md](LEGACY_EXPORT_PROCEDURE.md). Real legacy migration pending a separately authorised export |
+| M9 Security & originality | ✅ Done | Loopback/Host/Origin/JSON guards, cross-site request refusal (audit), body limits, error/log hygiene, header injection, traversal, CSP-safe build, data-folder lock, CI workflow, PROVENANCE.md |
+| M10 Comprehensive testing | ✅ Done (extended E2E pending CI) | 138 backend + 18 Angular tests; 13-step journey AI off/on; backup/restore, import rollback, AI timeouts/consent, a11y. Earlier Playwright journey green in CI; the extended journey has not run yet |
+| M11 Packaging & release | ✅ Done locally | `npm ci && npm run build && npm start` on one port; fresh-clone install and production start validated; lossless backup + `npm run restore`; `docs/RELEASE_READINESS.md` |
 
 ## Completed features (by package)
 
 - `packages/contracts` — zod schemas for every API payload (profile, jobs, applications, assessment, resume import, drafts, export check).
 - `packages/core` — status workflow (`applied` requires explicit confirmation), dashboard derivation, defaults.
 - `packages/job-intelligence` — evidence-based extraction, URL canonicalisation, dedupe, grounding check, country detection, fit/eligibility assessment.
-- `packages/storage` — SQLite, append-only migrations (schema v3: `resume_files` BLOBs, `documents` drafts/packages, `contacts`, `reminders`), corruption detection, 0700/0600 permissions.
+- `packages/storage` — SQLite, append-only migrations (schema v3: `resume_files` BLOBs, `documents` drafts/packages, `contacts`, `reminders`), corruption detection, 0700/0600 permissions, `VACUUM INTO` backups, validated restore, data-folder lock.
 - `packages/documents` — ZIP reader/writer with zip-bomb limits, DOCX read/write, text-only PDF writer (Helvetica/WinAnsi), resume parser, deterministic tailoring, cover letter with `[[placeholders]]`, export content verification.
 - `packages/applications` — screening-answer drafting (saved answers → stated facts → needs input), application checklist.
 - `packages/ai-providers` — optional provider adapters behind `AiProvider`; `suggestRewrite` withholds suggestions that add numbers/names/terms.
@@ -48,18 +49,17 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 - `apps/api` — Fastify on loopback; endpoints listed in `apps/api/src/server.ts`.
 - `apps/web` — Angular UI: welcome, profile (with resume import review), job intake, tracker, application detail (assessment + documents), overview.
 
-## Test results (latest run)
+## Test results (latest run, fresh clone of `ff979af`, 2026-11-18)
 
-- Backend/API (Vitest): 131 passed (incl. security suite and 2 end-to-end acceptance journeys).
-- Angular (Vitest/jsdom): 16 passed (incl. 7 axe accessibility checks).
-- Smoke restart: pass. Build: pass. Release audit: pass.
-- Independent export check: generated DOCX read by macOS `textutil`, generated PDF read by Apple PDFKit — all facts present (manual run, 2026-11-18).
-- E2E (Playwright): passes in GitHub Actions run 44278376925 (2026-11-18); cannot run in the development sandbox.
-- Fresh clone → `npm ci` → test → build → smoke → audit: all pass (2026-11-18).
+- Backend/API/integration (Vitest): 138 passed (incl. security suite, 2 acceptance journeys, backup/restore and import rollback).
+- Angular (Vitest/jsdom): 18 passed (incl. 9 axe accessibility checks, one of them a negative control).
+- Smoke restart, build, release audit, independent export read-back: pass. Production start from the clone: pass.
+- One real local inference through `/api/ai/rewrite` with an installed Ollama model: accepted.
+- E2E (Playwright): the earlier spec is green in GitHub Actions (run 44278913105 on `07821f8`). The extended spec (`ff979af`) has **not run** (sandbox has no browser; not pushed).
 
 ## Local commits (newest first)
 
-See `git log --oneline`. Milestone commits: M1 `4aeb082`, M2 `8ac4474`, M3 backend `2d653c8`, M3 UI (this update).
+See `git log --oneline`. Post-milestone audit commits: `f63419a` backup/restore + lock, `e291254` AI errors, `0401a20` import check, `58366be` cross-site guard, `4842e63` fixture, `ff979af` contrast + tests, plus this docs update.
 
 ## Known defects / limitations
 
@@ -67,6 +67,9 @@ See `git log --oneline`. Milestone commits: M1 `4aeb082`, M2 `8ac4474`, M3 backe
 - PDF export uses standard fonts with WinAnsi encoding; characters outside it (e.g. emoji, CJK) block PDF export with a clear message (DOCX works).
 - Resume parsing is heuristic; every imported fact is unverified until the person confirms it.
 - Country detection covers ~60 countries.
+- Backups are unencrypted SQLite files; restore is command-line only (the app must be stopped).
+- Reopening a rejected/withdrawn application goes back to Shortlisted only; re-marking Applied replaces the original submission date.
+- Contact and reminder deletion has no confirmation or undo.
 
 ## Security & licensing
 
@@ -76,17 +79,18 @@ See `git log --oneline`. Milestone commits: M1 `4aeb082`, M2 `8ac4474`, M3 backe
 
 ## External dependencies & blockers
 
-- **E2E browser tests** cannot launch Chrome inside the development sandbox; the owner runs `npm run test:e2e` locally.
+- **E2E browser tests** cannot launch Chrome inside the development sandbox; they run in GitHub Actions (needs an approved push) or via `npm run test:e2e` on the owner's machine.
 - **Real legacy-data migration** requires an export produced in a separate authorised session; the importer is built and tested on synthetic data only.
 - **Live AI providers** need owner-supplied keys and consent; implemented against documented APIs with mocked transports.
 - **Push / release** require owner approval.
 
 ## Next step
 
-All MVP milestones (M0–M11) are implemented and verified locally, except for the items under
-*External dependencies & blockers*. Remaining work requires owner action or decisions:
+All MVP milestones (M0–M11) are implemented, and the post-milestone audit is complete (see
+`docs/RELEASE_READINESS.md` for the defect backlog and verdict). Remaining work:
 
-1. Done (2026-11-18): pushed to `origin/main`; GitHub Actions CI green on 4e8c14f, including the browser E2E journey.
-2. Optional enhancements (P1/P2). `CLAUDE.md` does not enumerate them beyond "more ATS integrations and AI agents after the MVP passes". Candidates, all needing scope decisions: live posting fetch from official/permitted endpoints only (rate-limited, robots-aware); PDF resume import; an encrypted backup option; and per-skill experience tracking to answer "years with X" questions.
+1. Owner approves pushing the audit commits, then confirm CI is green on the latest commit, including the extended E2E. Fix anything it finds.
+2. Owner decides on tagging/release, live cloud AI testing, and a separate legacy-export session.
+3. Optional enhancements (P1/P2) only after 1: live posting fetch from official/permitted endpoints, PDF resume import, encrypted backups, in-app restore, per-skill experience.
 
-If a session resumes with no new instructions: run the verification commands, then pick up item 2 as directed.
+If a session resumes with no new instructions: run the verification commands, then pick up item 1.
