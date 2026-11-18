@@ -1,0 +1,25 @@
+Jordan Fictional
+Platform engineer focused on reliable developer tooling
+jordan.fictional@example.test | +351 912 345 678 | Lisbon, Portugal
+https://www.linkedin.com/in/jordan-fictional-example | https://github.com/jordan-fictional-example
+
+Experience
+Senior Platform Engineer at Lumenfield Systems
+Mar 2022 – Present
+• Built a self-service deployment platform in TypeScript used by 40 teams
+• Cut CI pipeline time by 35% by caching PostgreSQL test fixtures
+• Mentored four engineers
+
+Software Engineer, Northgate Freight
+Jun 2018 - Feb 2022
+• Migrated billing services to Kubernetes with zero downtime
+• Wrote on-call runbooks for distributed systems incidents
+
+Education
+BSc Computer Science, University of Porto, 2018
+
+Skills
+TypeScript, PostgreSQL, Kubernetes, Terraform, Go
+
+Certifications
+Certified Kubernetes Administrator - CNCF (2023)

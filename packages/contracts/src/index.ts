@@ -67,10 +67,46 @@ export const ExperienceEntry = z.object({
   start: YearMonth,
   end: YearMonth.nullable(),
   summary: shortText(4000).default(''),
+  /** Achievement bullets, written or confirmed by the person. */
+  highlights: z.array(shortText(600).min(1)).max(30).default([]),
   /** True only when the person has confirmed this entry is accurate. */
   verified: z.boolean().default(false),
 });
 export type ExperienceEntry = z.infer<typeof ExperienceEntry>;
+
+export const ProfileLink = z.object({
+  label: shortText(60).default(''),
+  url: z.url({ protocol: /^https?$/ }).max(2048),
+});
+export type ProfileLink = z.infer<typeof ProfileLink>;
+
+export const ContactDetails = z.object({
+  email: z.union([z.literal(''), z.email().max(254)]).default(''),
+  phone: shortText(40).default(''),
+  location: shortText(120).default(''),
+  links: z.array(ProfileLink).max(10).default([]),
+});
+export type ContactDetails = z.infer<typeof ContactDetails>;
+
+export const EducationEntry = z.object({
+  id: z.string().min(1).max(64),
+  institution: shortText(200).min(1),
+  qualification: shortText(200).default(''),
+  field: shortText(200).default(''),
+  start: YearMonth.nullable().default(null),
+  end: YearMonth.nullable().default(null),
+  verified: z.boolean().default(false),
+});
+export type EducationEntry = z.infer<typeof EducationEntry>;
+
+export const CertificationEntry = z.object({
+  id: z.string().min(1).max(64),
+  name: shortText(200).min(1),
+  issuer: shortText(200).default(''),
+  date: YearMonth.nullable().default(null),
+  verified: z.boolean().default(false),
+});
+export type CertificationEntry = z.infer<typeof CertificationEntry>;
 
 export const SavedAnswer = z.object({
   id: z.string().min(1).max(64),
@@ -91,6 +127,9 @@ export const Profile = z.object({
   requiresSponsorship: TriState.default('unknown'),
   skills: z.array(tag).max(200).default([]),
   experience: z.array(ExperienceEntry).max(60).default([]),
+  contact: ContactDetails.default({ email: '', phone: '', location: '', links: [] }),
+  education: z.array(EducationEntry).max(30).default([]),
+  certifications: z.array(CertificationEntry).max(50).default([]),
   answers: z.array(SavedAnswer).max(100).default([]),
   updatedAt: isoDate.nullable().default(null),
 });
@@ -384,3 +423,150 @@ export const AssessmentSummary = z.object({
   eligibility: EligibilityStatus,
 });
 export type AssessmentSummary = z.infer<typeof AssessmentSummary>;
+
+/* ------------------------------------------------------------------ */
+/* Resume import                                                       */
+/* ------------------------------------------------------------------ */
+
+export const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+
+export const ResumeImportRequest = z.union([
+  z.object({ filename: shortText(255).min(1), contentBase64: z.string().min(1).max(Math.ceil((MAX_RESUME_BYTES * 4) / 3) + 8) }),
+  z.object({ text: z.string().min(1).max(200_000) }),
+]);
+export type ResumeImportRequest = z.infer<typeof ResumeImportRequest>;
+
+export const ResumeFile = z.object({
+  id: z.string(),
+  filename: z.string(),
+  mediaType: z.string(),
+  sha256: z.string(),
+  size: z.number().int(),
+  importedAt: isoDate,
+});
+export type ResumeFile = z.infer<typeof ResumeFile>;
+
+export const ResumeProposal = z.object({
+  displayName: z.string(),
+  headline: z.string(),
+  contact: ContactDetails,
+  experience: z.array(ExperienceEntry),
+  education: z.array(EducationEntry),
+  certifications: z.array(CertificationEntry),
+  skills: z.array(z.string()),
+});
+export type ResumeProposal = z.infer<typeof ResumeProposal>;
+
+export const ResumeImportResult = z.object({
+  file: ResumeFile,
+  text: z.string(),
+  proposal: ResumeProposal,
+  warnings: z.array(z.string()),
+});
+export type ResumeImportResult = z.infer<typeof ResumeImportResult>;
+
+/* ------------------------------------------------------------------ */
+/* Tailored documents                                                  */
+/* ------------------------------------------------------------------ */
+
+export const DraftHighlight = z.object({
+  id: z.string(),
+  text: shortText(600),
+  /** The fact text this highlight came from; kept even after edits. */
+  originalText: z.string(),
+  origin: z.enum(['fact', 'edited']),
+  include: z.boolean(),
+  /** Number of posting terms the original highlight mentions (used for ordering). */
+  relevance: z.number().int(),
+});
+export type DraftHighlight = z.infer<typeof DraftHighlight>;
+
+export const DraftExperience = z.object({
+  factId: z.string(),
+  employer: z.string(),
+  title: z.string(),
+  start: YearMonth,
+  end: YearMonth.nullable(),
+  include: z.boolean(),
+  highlights: z.array(DraftHighlight),
+});
+export type DraftExperience = z.infer<typeof DraftExperience>;
+
+export const ResumeDraft = z.object({
+  kind: z.literal('resume'),
+  applicationId: z.string(),
+  generatedAt: isoDate,
+  updatedAt: isoDate,
+  profileUpdatedAt: isoDate.nullable(),
+  header: z.object({
+    name: z.string(),
+    headline: z.string(),
+    email: z.string(),
+    phone: z.string(),
+    location: z.string(),
+    links: z.array(ProfileLink),
+  }),
+  summary: z.object({ text: shortText(2000), origin: z.enum(['profile', 'edited']) }),
+  experience: z.array(DraftExperience),
+  skills: z.array(z.object({ name: z.string(), matched: z.boolean(), include: z.boolean() })),
+  education: z.array(EducationEntry.omit({ verified: true }).extend({ factId: z.string() }).omit({ id: true })),
+  certifications: z.array(CertificationEntry.omit({ verified: true }).extend({ factId: z.string() }).omit({ id: true })),
+  warnings: z.array(z.string()),
+});
+export type ResumeDraft = z.infer<typeof ResumeDraft>;
+
+export const ResumeDraftUpdate = z.object({
+  summary: shortText(2000).optional(),
+  experience: z
+    .array(
+      z.object({
+        factId: z.string(),
+        include: z.boolean(),
+        highlights: z.array(z.object({ id: z.string(), text: shortText(600), include: z.boolean() })),
+      }),
+    )
+    .optional(),
+  skills: z.array(z.object({ name: z.string(), include: z.boolean() })).optional(),
+});
+export type ResumeDraftUpdate = z.infer<typeof ResumeDraftUpdate>;
+
+export const SentenceSource = z.object({
+  kind: z.enum(['job', 'experience', 'skill', 'profile', 'template']),
+  refId: z.string().nullable(),
+});
+
+export const CoverLetterDraft = z.object({
+  kind: z.literal('cover_letter'),
+  applicationId: z.string(),
+  generatedAt: isoDate,
+  updatedAt: isoDate,
+  text: z.string().max(20_000),
+  /** Sources for each generated sentence (dropped once the person edits the letter). */
+  sources: z.array(z.object({ sentence: z.string(), source: SentenceSource })),
+  edited: z.boolean(),
+  warnings: z.array(z.string()),
+});
+export type CoverLetterDraft = z.infer<typeof CoverLetterDraft>;
+
+export const CoverLetterUpdate = z.object({ text: z.string().max(20_000) });
+export type CoverLetterUpdate = z.infer<typeof CoverLetterUpdate>;
+
+export const DocumentKind = z.enum(['resume', 'cover_letter']);
+export type DocumentKind = z.infer<typeof DocumentKind>;
+
+export const ExportFormat = z.enum(['pdf', 'docx']);
+export type ExportFormat = z.infer<typeof ExportFormat>;
+
+export const DocumentsBundle = z.object({
+  resume: ResumeDraft.nullable(),
+  coverLetter: CoverLetterDraft.nullable(),
+});
+export type DocumentsBundle = z.infer<typeof DocumentsBundle>;
+
+export const ExportCheck = z.object({
+  ok: z.boolean(),
+  checked: z.array(z.string()),
+  missing: z.array(z.string()),
+  problems: z.array(z.string()),
+});
+export type ExportCheck = z.infer<typeof ExportCheck>;
