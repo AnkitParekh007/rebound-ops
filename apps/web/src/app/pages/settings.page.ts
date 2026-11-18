@@ -72,8 +72,13 @@ import { ApiProblem, ApiService } from '../api.service';
         <section class="card stack" aria-labelledby="data-heading">
           <h2 id="data-heading">Your data</h2>
           <p>Everything is stored in a single private database on this computer. ReboundOps has no account and sends nothing anywhere unless you use a cloud AI provider and confirm each request.</p>
-          <p><a class="btn ghost" href="/api/export" download>Download a full export (JSON)</a></p>
-          <p class="hint">The export contains your profile, jobs, applications, notes, contacts and reminders. Keep it somewhere safe.</p>
+          <h3 class="sub">Backup</h3>
+          <p><a class="btn primary" href="/api/backup" download>Download a backup</a></p>
+          <p class="hint">A complete copy of your database: profile, jobs, applications, notes, drafts, screening answers, contacts, reminders and your original resume files. API keys are never included. It is not encrypted, so keep it somewhere private.</p>
+          <p class="hint">To restore, stop ReboundOps and run <code>npm run restore -- &lt;backup-file&gt;</code> to check the file, then add <code>--yes</code> to restore it. Your current data is kept alongside, never deleted.</p>
+          <h3 class="sub">Export</h3>
+          <p><a class="btn ghost" href="/api/export" download>Download a data export (JSON)</a></p>
+          <p class="hint">A readable export of your profile, jobs, applications, notes, contacts and reminders, for use in other tools or for importing. It does not include drafts, screening answers or resume files; use a backup to keep everything.</p>
         </section>
 
         <section class="card stack" aria-labelledby="import-heading">

@@ -3,7 +3,7 @@
 ReboundOps can import data from an earlier tool, or from another ReboundOps installation, through
 **Settings → Import data**. Two inputs are accepted:
 
-1. A **ReboundOps export** (`"format": "reboundops-export"`, produced by *Download a full export*).
+1. A **ReboundOps export** (`"format": "reboundops-export"`, produced by *Download a data export* in Settings).
 2. A **neutral import file** in the format below. A separate tool or script can produce it from any
    earlier system. ReboundOps itself never reads another application's files or database.
 

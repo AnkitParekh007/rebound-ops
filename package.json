@@ -27,7 +27,8 @@
     "audit:release": "node scripts/audit-release.ts",
     "check": "npm run lint && npm run typecheck && npm test && npm run test:smoke",
     "start": "node apps/api/src/main.ts",
-    "test:exports": "node scripts/verify-exports.ts"
+    "test:exports": "node scripts/verify-exports.ts",
+    "restore": "node scripts/restore-backup.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

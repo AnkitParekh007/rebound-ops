@@ -325,6 +325,35 @@ export class Store {
     return Number(this.db.prepare('DELETE FROM reminders WHERE id = ?').run(id).changes) === 1;
   }
 
+  /* ---------------- backup ---------------- */
+
+  /** Writes a consistent, compacted snapshot of the whole database to `file` (which must not exist). */
+  backupTo(file: string): void {
+    if (this.path === ':memory:') throw new Error('An in-memory store cannot be backed up.');
+    this.db.prepare('VACUUM INTO ?').run(file);
+  }
+
+  /** Reads and validates every stored record; throws CorruptRecordError on the first bad one. Returns counts. */
+  validateAll(): Record<string, number> {
+    this.getOnboarding();
+    this.getAiSettings();
+    this.getProfile();
+    const docs = this.db.prepare('SELECT application_id AS id, kind, data FROM documents').all() as Row[];
+    for (const r of docs) {
+      const schema = r['kind'] === 'resume' ? ResumeDraft : r['kind'] === 'cover_letter' ? CoverLetterDraft : ApplicationPackage;
+      parseRow(schema, 'documents', r);
+    }
+    return {
+      jobs: this.listJobs().length,
+      applications: this.listApplications().length,
+      activity: this.listActivity().length,
+      contacts: this.listContacts().length,
+      reminders: this.listReminders().length,
+      resumeFiles: this.listResumeFiles().length,
+      documents: docs.length,
+    };
+  }
+
   listActivity(applicationId?: string): ActivityEntry[] {
     const rows = applicationId
       ? this.db

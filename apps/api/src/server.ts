@@ -207,6 +207,11 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     workspace.followUp(req.params.id, req.query.kind, req.query.contactId),
   );
 
+  app.get('/api/backup', async (_req, reply) => {
+    const { data, filename } = workspace.backup();
+    return reply.header('Content-Type', 'application/vnd.sqlite3').header('Content-Disposition', `attachment; filename="${filename}"`).send(data);
+  });
+
   app.post('/api/import/preview', { bodyLimit: 12 * 1024 * 1024 }, async (req) => workspace.previewImport(req.body));
   app.post('/api/import/commit', async (req) => workspace.commitImport(req.body));
 

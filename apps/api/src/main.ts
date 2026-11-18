@@ -1,8 +1,18 @@
 import { startApi } from './index.ts';
 import { loadConfig } from './config.ts';
 
-const config = loadConfig();
-const api = await startApi(config);
+let config: ReturnType<typeof loadConfig>;
+let api: Awaited<ReturnType<typeof startApi>>;
+try {
+  config = loadConfig();
+  api = await startApi(config);
+} catch (err) {
+  const e = err as NodeJS.ErrnoException;
+  const reason =
+    e.code === 'EADDRINUSE' ? `Port ${process.env['REBOUND_API_PORT'] ?? 4175} is already in use. Set REBOUND_API_PORT to another port.` : e.message;
+  console.error(`ReboundOps could not start: ${reason}`);
+  process.exit(1);
+}
 // The data directory path is local and useful; personal data is never logged.
 console.log(`ReboundOps API listening on ${api.address} (data: ${config.dataDir})`);
 if (config.webDist) console.log(`Open ${api.address} in your browser.`);

@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync, rmSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
   type ActivityEntry,
   type AiSettings,
@@ -823,6 +825,18 @@ export class Workspace {
 
   dashboard(): DashboardSummary {
     return summarize(this.listApplications(), this.now(), 10, this.store.listReminders());
+  }
+
+  /** A consistent snapshot of the whole database (everything, including drafts and resume originals). */
+  backup(): { data: Buffer; filename: string } {
+    if (this.store.path === ':memory:') throw new AppError(409, 'backup_unavailable', 'This workspace is not stored on disk.');
+    const file = join(dirname(this.store.path), `.backup-${this.newId()}.sqlite`);
+    try {
+      this.store.backupTo(file);
+      return { data: readFileSync(file), filename: `reboundops-backup-${this.now().toISOString().slice(0, 10)}.sqlite` };
+    } finally {
+      rmSync(file, { force: true });
+    }
   }
 
   exportAll(): ExportBundle {
