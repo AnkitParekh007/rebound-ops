@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import {
   type ActivityEntry,
+  type Assessment,
+  type AssessmentSummary,
   type Application,
   type ApplicationView,
   type DashboardSummary,
@@ -26,7 +28,7 @@ import {
   normalizeList,
   summarize,
 } from '@reboundops/core';
-import { checkGrounding, dedupeKey, extractJob, normalizeDescription } from '@reboundops/job-intelligence';
+import { assess, checkGrounding, dedupeKey, extractJob, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
 import type { Store } from '@reboundops/storage';
 import { AppError, notFound } from './errors.ts';
 
@@ -227,6 +229,37 @@ export class Workspace {
       this.store.addActivity(this.activity(id, 'note', null, null, note, at));
     });
     return this.getApplication(id);
+  }
+
+  /* ---------- assessment ---------- */
+
+  /** Recomputed on demand from the saved job and the current profile (deterministic). */
+  assessApplication(id: string): Assessment {
+    const app = this.getApplication(id);
+    return assess({
+      applicationId: app.id,
+      job: app.job,
+      profile: this.getProfile(),
+      goalRoles: this.getOnboarding().goals.targetRoles,
+      now: this.now(),
+    });
+  }
+
+  assessmentSummaries(): AssessmentSummary[] {
+    const profile = this.getProfile();
+    const goalRoles = this.getOnboarding().goals.targetRoles;
+    const now = this.now();
+    return this.listApplications().map((app) => {
+      const a = assess({ applicationId: app.id, job: app.job, profile, goalRoles, now });
+      return { applicationId: app.id, overall: a.fit.overall, eligibility: a.eligibility.status };
+    });
+  }
+
+  rubric() {
+    return {
+      version: RUBRIC_VERSION,
+      criteria: Object.entries(RUBRIC).map(([key, r]) => ({ key, ...r })),
+    };
   }
 
   /* ---------- insight & export ---------- */

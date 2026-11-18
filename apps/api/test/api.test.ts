@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import type { ApplicationView, DashboardSummary, JobCreateResult, JobExtraction } from '@reboundops/contracts';
+import type { ApplicationView, Assessment, AssessmentSummary, DashboardSummary, JobCreateResult, JobExtraction } from '@reboundops/contracts';
 import { openStore, type Store } from '@reboundops/storage';
 import { buildServer, Workspace } from '../src/index.ts';
 
@@ -206,5 +206,40 @@ describe('tracker workflow', () => {
     const res = await send('GET', '/api/export');
     expect(res.headers['content-disposition']).toMatch(/attachment; filename="reboundops-export-2026-03-01.json"/);
     expect(res.json()).toMatchObject({ format: 'reboundops-export', formatVersion: 1, jobs: [{ employer: 'Brightwater Analytics' }] });
+  });
+});
+
+describe('assessment', () => {
+  it('assesses against the current profile and reflects profile changes', async () => {
+    const { application } = await saveLabelledJob();
+    const url = `/api/applications/${application.id}/assessment`;
+
+    const before = (await send('GET', url)).json<Assessment>();
+    expect(before.fit.overall).toBeNull();
+    expect(before.eligibility.status).toBe('unconfirmed');
+    expect(before.missingInfo).toContain('Countries where you are authorised to work');
+
+    await send('PUT', '/api/onboarding', { goals: { targetRoles: ['Platform Engineer'] } });
+    await send('PUT', '/api/profile', {
+      skills: ['TypeScript', 'PostgreSQL'],
+      preferredCountries: ['Portugal'],
+      workArrangements: ['hybrid'],
+      workAuthorizedCountries: ['Portugal'],
+      requiresSponsorship: 'no',
+    });
+    const after = (await send('GET', url)).json<Assessment>();
+    expect(after.eligibility.status).toBe('confirmed');
+    expect(after.fit.criteria.find((c) => c.key === 'role')?.score).toBe(5);
+    expect(after.fit.overall).not.toBeNull();
+    expect(after.rubricVersion).toBe('fit-2026.1');
+
+    const summaries = (await send('GET', '/api/assessments')).json<AssessmentSummary[]>();
+    expect(summaries).toEqual([{ applicationId: application.id, overall: after.fit.overall, eligibility: 'confirmed' }]);
+  });
+
+  it('exposes the rubric definition and 404s for unknown applications', async () => {
+    const rubric = (await send('GET', '/api/rubric')).json();
+    expect(rubric.criteria.map((c: { key: string }) => c.key)).toEqual(['role', 'skills', 'experience', 'location']);
+    expect((await send('GET', '/api/applications/nope/assessment')).statusCode).toBe(404);
   });
 });

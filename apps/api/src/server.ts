@@ -129,6 +129,10 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     workspace.addNote(req.params.id, req.body),
   );
 
+  app.get<IdParams>('/api/applications/:id/assessment', async (req) => workspace.assessApplication(req.params.id));
+  app.get('/api/assessments', async () => workspace.assessmentSummaries());
+  app.get('/api/rubric', async () => workspace.rubric());
+
   app.get('/api/dashboard', async () => workspace.dashboard());
 
   app.get('/api/export', async (_req, reply) => {
