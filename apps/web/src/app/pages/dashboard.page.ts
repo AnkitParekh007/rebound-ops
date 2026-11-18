@@ -1,0 +1,112 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import type { DashboardSummary } from '@reboundops/contracts';
+import { ApiProblem, ApiService } from '../api.service';
+import { STATUS_LABEL, STATUS_ORDER } from '../labels';
+
+@Component({
+  selector: 'app-dashboard-page',
+  imports: [RouterLink],
+  template: `
+    <section class="page" aria-labelledby="dash-heading">
+      <header class="page-head">
+        <div>
+          <p class="eyebrow">Overview</p>
+          <h1 id="dash-heading">Where things stand</h1>
+        </div>
+        <a class="btn primary" routerLink="/jobs/new">Add a job</a>
+      </header>
+
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      } @else if (!data()) {
+        <p class="muted" role="status">Loading…</p>
+      } @else if (data()!.total === 0) {
+        <div class="empty card">
+          <h2>Start with one job</h2>
+          <p>Paste a posting you're curious about. ReboundOps will pull out the key details, show where each came from, and start tracking it.</p>
+          <a class="btn primary" routerLink="/jobs/new">Add a job</a>
+        </div>
+      } @else {
+        @let d = data()!;
+        <dl class="metrics">
+          <div class="metric"><dt>Tracked</dt><dd>{{ d.total }}</dd></div>
+          <div class="metric"><dt>Active</dt><dd>{{ d.active }}</dd></div>
+          <div class="metric"><dt>Submitted (confirmed)</dt><dd>{{ d.submitted }}</dd></div>
+          <div class="metric"><dt>Interviewing</dt><dd>{{ d.byStatus.interviewing }}</dd></div>
+        </dl>
+
+        <div class="grid two">
+          <section class="card" aria-labelledby="pipeline-heading">
+            <h2 id="pipeline-heading">Pipeline</h2>
+            <ul class="bars">
+              @for (s of order; track s) {
+                <li>
+                  <span class="bar-label">{{ labels[s] }}</span>
+                  <span class="bar-track" aria-hidden="true"><span class="bar-fill" [attr.data-status]="s" [style.width.%]="pct(d.byStatus[s])"></span></span>
+                  <span class="bar-value">{{ d.byStatus[s] }}</span>
+                </li>
+              }
+            </ul>
+          </section>
+
+          <section class="card" aria-labelledby="next-heading">
+            <h2 id="next-heading">Next actions</h2>
+            <ul class="next-list">
+              @for (n of d.nextActions.slice(0, 8); track n.applicationId) {
+                <li>
+                  <a [routerLink]="['/tracker', n.applicationId]">{{ n.jobTitle }} <span class="muted">· {{ n.employer }}</span></a>
+                  <span>{{ n.label }}</span>
+                </li>
+              } @empty {
+                <li class="muted">Nothing pending right now.</li>
+              }
+            </ul>
+          </section>
+        </div>
+
+        <section class="card" aria-labelledby="recent-heading">
+          <h2 id="recent-heading">Recent activity</h2>
+          <ol class="timeline compact">
+            @for (e of d.recentActivity; track e.id) {
+              <li>
+                <time [attr.datetime]="e.at">{{ e.at.slice(0, 10) }}</time>
+                <span><a [routerLink]="['/tracker', e.applicationId]">{{ e.jobTitle }}</a> —
+                  @switch (e.kind) {
+                    @case ('status_changed') { moved to {{ labels[e.to!] }} }
+                    @case ('created') { saved }
+                    @default { note added }
+                  }
+                </span>
+              </li>
+            }
+          </ol>
+        </section>
+      }
+    </section>
+  `,
+})
+export class DashboardPage {
+  private readonly api = inject(ApiService);
+  readonly labels = STATUS_LABEL;
+  readonly order = STATUS_ORDER;
+  readonly data = signal<DashboardSummary | null>(null);
+  readonly error = signal<string | null>(null);
+  private readonly max = computed(() => Math.max(1, ...Object.values(this.data()?.byStatus ?? {})));
+
+  constructor() {
+    void this.load();
+  }
+
+  pct(n: number): number {
+    return Math.round((n / this.max()) * 100);
+  }
+
+  private async load() {
+    try {
+      this.data.set(await this.api.dashboard());
+    } catch (e) {
+      this.error.set(e instanceof ApiProblem ? e.message : 'Could not load the overview.');
+    }
+  }
+}
