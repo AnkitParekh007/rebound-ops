@@ -18,7 +18,7 @@ release; owner approval is required for any push, tag or publication.
 | Independent export read-back | `npm run test:exports` | ✅ DOCX via macOS `textutil`, PDF via Apple PDFKit |
 | Release audit | `npm run audit:release` | ✅ pass (notes below) |
 | Accessibility (automated) | axe-core on 6 views + negative control | ✅ no violations (colour contrast not machine-checked) |
-| **Browser E2E** | `npm run test:e2e` | ⚠️ **not run**: Chrome cannot launch inside the development sandbox. The spec is written; the owner should run it locally or in CI |
+| **Browser E2E** | `npm run test:e2e` | ✅ pass in GitHub Actions (run 44278376925, commit 4e8c14f, 1 passed). Not runnable inside the development sandbox, where Chrome cannot launch |
 
 ### Audit notes
 
@@ -48,7 +48,6 @@ earlier implementation has been made.
 
 ## Gate B / Gate C — outstanding owner actions
 
-1. Run `npm run test:e2e` locally, outside the sandbox, and review the result.
-2. Approve pushing the local commits.
-3. After the push, check that the GitHub Actions workflow (`.github/workflows/ci.yml`) actually runs green. **CI has not been run yet** and is not claimed as passing.
-4. Decide on tagging or a release, and on live AI provider testing with your own keys.
+1. Done: the owner approved the push and commits through 4e8c14f are on `origin/main`.
+2. Done: GitHub Actions CI ran green on 4e8c14f (run 44278376925: `verify` and `e2e` jobs passed). The first two runs failed in the E2E spec (a render race and an ambiguous `Name` locator); both were test fixes, not product changes.
+3. Decide on tagging or a release, and on live AI provider testing with your own keys.

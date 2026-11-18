@@ -31,8 +31,8 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 | M6 AI providers (optional) | ✅ Done | Ollama (loopback only), Anthropic (official SDK, pinned base URL), OpenAI, Gemini, OpenRouter; env-only keys; per-provider consent + per-request confirmation; grounded rewrite gate. Live calls unverified (mocked transport) |
 | M7 UX completion | ✅ Done | Settings page, focus + live-region on navigation, job edit (provenance → user), delete with confirmation, tracker sort, axe a11y checks on 6 views (with negative control) | Settings page, AI/privacy controls, a11y pass, responsive, empty/loading/error states |
 | M8 Import from earlier version | ✅ Done (synthetic data only) | `reboundops-import` v1 + own export round-trip; strict validation, per-record rejection, staged preview token, confirmed single-transaction commit, no overwrites, unverified facts. Real legacy migration pending a separately authorised export | Neutral export schema, staged read-only import, preview/dedupe, confirm |
-| M9 Security & originality | ✅ Done | Security tests (body limits, CORS, error/log hygiene, header injection, traversal), CSP-safe build check, CI workflow (not yet run), PROVENANCE.md | Loopback/Host/Origin/JSON guards, CSP, audit script, SBOM. Pending: CI workflow, security tests expansion |
-| M10 Comprehensive testing | ✅ Done (except browser E2E run) | 131 backend + 16 Angular tests; 13-step journey AI off/on; migration, restart, failure recovery, a11y. Playwright spec written, not run in sandbox |
+| M9 Security & originality | ✅ Done | Security tests (body limits, CORS, error/log hygiene, header injection, traversal), CSP-safe build check, CI workflow (green on 4e8c14f), PROVENANCE.md | Loopback/Host/Origin/JSON guards, CSP, audit script, SBOM. Pending: security tests expansion |
+| M10 Comprehensive testing | ✅ Done | 131 backend + 16 Angular tests; 13-step journey AI off/on; migration, restart, failure recovery, a11y. Playwright journey passes in CI (not runnable in the sandbox) |
 | M11 Packaging & release | ✅ Done locally | `npm ci && npm run build && npm start` on one port; fresh-clone install validated; `docs/RELEASE_READINESS.md` |
 
 ## Completed features (by package)
@@ -54,7 +54,7 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 - Angular (Vitest/jsdom): 16 passed (incl. 7 axe accessibility checks).
 - Smoke restart: pass. Build: pass. Release audit: pass.
 - Independent export check: generated DOCX read by macOS `textutil`, generated PDF read by Apple PDFKit — all facts present (manual run, 2026-11-18).
-- E2E (Playwright): **not run in the development sandbox** (see blockers).
+- E2E (Playwright): passes in GitHub Actions run 44278376925 (2026-11-18); cannot run in the development sandbox.
 - Fresh clone → `npm ci` → test → build → smoke → audit: all pass (2026-11-18).
 
 ## Local commits (newest first)
@@ -86,8 +86,7 @@ See `git log --oneline`. Milestone commits: M1 `4aeb082`, M2 `8ac4474`, M3 backe
 All MVP milestones (M0–M11) are implemented and verified locally, except for the items under
 *External dependencies & blockers*. Remaining work requires owner action or decisions:
 
-1. Owner runs `npm run test:e2e` outside the sandbox; fix anything it finds.
-2. Owner approves the push; then confirm GitHub Actions CI runs green (Gate C).
-3. Optional enhancements (P1/P2). `CLAUDE.md` does not enumerate them beyond "more ATS integrations and AI agents after the MVP passes". Candidates, all needing scope decisions: live posting fetch from official/permitted endpoints only (rate-limited, robots-aware); PDF resume import; an encrypted backup option; and per-skill experience tracking to answer "years with X" questions.
+1. Done (2026-11-18): pushed to `origin/main`; GitHub Actions CI green on 4e8c14f, including the browser E2E journey.
+2. Optional enhancements (P1/P2). `CLAUDE.md` does not enumerate them beyond "more ATS integrations and AI agents after the MVP passes". Candidates, all needing scope decisions: live posting fetch from official/permitted endpoints only (rate-limited, robots-aware); PDF resume import; an encrypted backup option; and per-skill experience tracking to answer "years with X" questions.
 
-If a session resumes with no new instructions: run the verification commands, then pick up item 1 or 3 as directed.
+If a session resumes with no new instructions: run the verification commands, then pick up item 2 as directed.
