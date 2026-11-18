@@ -13,6 +13,7 @@ import { SettingsPage } from './pages/settings.page';
 import { TrackerPage } from './pages/tracker.page';
 import { WelcomePage } from './pages/welcome.page';
 import { DiscoverPage } from './pages/discover.page';
+import { InterviewPanel } from './interview-panel';
 import { DISCOVERED_FIXTURE, SOURCES_FIXTURE } from './discover.fixtures';
 
 /**
@@ -35,7 +36,8 @@ const dashboard = {
   recentActivity: [{ id: 'x1', applicationId: 'a2', at, kind: 'status_changed', from: 'shortlisted', to: 'applied', note: '', jobTitle: 'SRE', employer: 'Example Ltd' }],
   generatedAt: at,
   analytics: { weekly: [{ weekStart: '2026-02-23', saved: 2, submitted: 1 }], submittedTotal: 1, responded: 0, responseRate: 0, medianDaysToResponse: null, caveat: 'Based on 1 submitted application.' },
-  reminders: [{ id: 'r1', applicationId: 'a2', dueOn: '2026-03-01', label: 'Follow up', done: false, doneAt: null, createdAt: at, jobTitle: 'SRE', employer: 'Example Ltd', overdue: true }],
+  reminders: [{ id: 'r1', applicationId: 'a2', dueOn: '2026-03-01', label: 'Follow up', done: false, doneAt: null, createdAt: at, jobTitle: 'SRE', employer: 'Example Ltd', overdue: true, priority: 'high', notes: '' }],
+  followUps: [{ applicationId: 'a2', jobTitle: 'SRE', employer: 'Example Ltd', priority: 'high', reason: 'Reminder overdue since 2026-03-01: Follow up', suggestedKind: null, days: 1 }],
 };
 const ai = { settings: { provider: null, model: '', baseUrl: '', consent: {} }, aiMode: 'cloud', active: false, reason: 'No provider chosen.', providers: [{ id: 'ollama', label: 'Ollama', local: true, keyConfigured: true, keyEnvVar: null, defaultModel: null }] };
 
@@ -63,19 +65,37 @@ describe('accessibility (axe)', () => {
   it('profile with experience and education rows', async () => expect(await audit(ProfilePage, { '/api/profile': profile })).toEqual([]));
   it('job intake', async () => expect(await audit(IntakePage, {})).toEqual([]));
   it('tracker (empty state)', async () => expect(await audit(TrackerPage, { '/api/applications': [], '/api/assessments': [] })).toEqual([]));
-  it('settings', async () => expect(await audit(SettingsPage, { '/api/settings/ai': ai, '/api/assessment/weights': { role: 1, skills: 1, experience: 1, location: 1, seniority: 1, salary: 1 } }, {}, 'What matters in a fit score')).toEqual([]));
+  it('settings', async () =>
+    expect(
+      await audit(
+        SettingsPage,
+        { '/api/settings/ai': ai, '/api/assessment/weights': { role: 1, skills: 1, experience: 1, location: 1, seniority: 1, salary: 1 }, '/api/follow-up/templates': [{ id: 't1', name: 'Check-in', subject: 'Re: {role}', body: 'Hello' }] },
+        {},
+        'Follow-up templates',
+      ),
+    ).toEqual([]));
+  it('interview notes panel', async () =>
+    expect(
+      await audit(
+        InterviewPanel,
+        { '/api/applications/a1/interviews': [{ id: 'i1', applicationId: 'a1', stage: 'Technical', scheduledFor: at, interviewers: 'Sam Example', preparation: 'Examples', questionsToAsk: 'Team size?', notes: '', outcome: 'pending', createdAt: at, updatedAt: at }] },
+        { applicationId: 'a1' },
+        'Technical',
+      ),
+    ).toEqual([]));
   it('discover with consent given and stored postings', async () =>
     expect(await audit(DiscoverPage, { '/api/discovery/sources': { sources: SOURCES_FIXTURE, consent: true }, '/api/discovery/recent': DISCOVERED_FIXTURE }, {}, 'Listed on the board when checked')).toEqual([]));
   it('discover before consent', async () =>
     expect(await audit(DiscoverPage, { '/api/discovery/sources': { sources: SOURCES_FIXTURE, consent: false }, '/api/discovery/recent': [] }, {}, 'Allow ReboundOps to contact job boards?')).toEqual([]));
-  it('overview with metrics, next actions and reminders', async () => expect(await audit(DashboardPage, { '/api/dashboard': dashboard }, {}, 'Prepare documents')).toEqual([]));
+  it('overview with metrics, next actions and reminders', async () => expect(await audit(DashboardPage, { '/api/dashboard': dashboard }, {}, 'Follow-ups to consider')).toEqual([]));
   it('contacts, reminders and follow-ups panel', async () =>
     expect(
       await audit(
         TrackingPanel,
         {
           '/api/applications/a1/contacts': [{ id: 'c1', applicationId: 'a1', name: 'Sam Example', role: 'Recruiter', email: 'sam@example.test', phone: '', notes: 'Met at a meetup', createdAt: at, updatedAt: at }],
-          '/api/applications/a1/reminders': [{ id: 'r1', applicationId: 'a1', dueOn: '2026-03-01', label: 'Follow up', done: false, doneAt: null, createdAt: at }],
+          '/api/applications/a1/reminders': [{ id: 'r1', applicationId: 'a1', dueOn: '2026-03-01', label: 'Follow up', done: false, doneAt: null, createdAt: at, priority: 'high', notes: '' }],
+          '/api/follow-up/templates': [{ id: 't1', name: 'Check-in', subject: 'Re: {role}', body: 'Hello' }],
         },
         { applicationId: 'a1' },
         'Sam Example',

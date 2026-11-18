@@ -1,6 +1,6 @@
 import { Component, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { Contact, DeletedItem, FollowUpDraft, FollowUpKind, Reminder, ReminderPriority } from '@reboundops/contracts';
+import type { Contact, DeletedItem, FollowUpDraft, FollowUpKind, FollowUpTemplate, Reminder, ReminderPriority } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from './api.service';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -27,7 +27,11 @@ const today = () => new Date().toISOString().slice(0, 10);
           <li [class.done]="r.done" [class.overdue]="!r.done && r.dueOn < todayIso">
             <label class="check"><input type="checkbox" [checked]="r.done" (change)="toggle(r)" [name]="'rd' + r.id" /> {{ r.label }}</label>
             @if (r.priority === 'high') { <span class="badge warn small">High priority</span> }
-            <span class="muted small">due {{ r.dueOn }}@if (!r.done && r.dueOn < todayIso) { · overdue }</span>
+            <span class="muted small">due {{ r.dueOn }}@if (!r.done && r.dueOn < todayIso) { · overdue }@if (r.dueOn === todayIso && !r.done) { · today }</span>
+            @if (!r.done) {
+              <button type="button" class="btn link" (click)="snooze(r, 1)" [attr.aria-label]="'Move ' + r.label + ' to tomorrow'">+1 day</button>
+              <button type="button" class="btn link" (click)="snooze(r, 7)" [attr.aria-label]="'Move ' + r.label + ' by a week'">+1 week</button>
+            }
             <button type="button" class="btn link danger" (click)="removeReminder(r)" [attr.aria-label]="'Delete reminder ' + r.label">Delete</button>
           </li>
         } @empty { <li class="muted">No reminders.</li> }
@@ -79,6 +83,16 @@ const today = () => new Date().toISOString().slice(0, 10);
         </select>
         <button type="button" class="btn ghost" (click)="draftFollowUp()">Draft</button>
       </div>
+      @if (templates().length) {
+        <div class="row">
+          <label class="sr-only" for="ftpl">Your templates</label>
+          <select id="ftpl" name="ftpl" [(ngModel)]="templateId" style="max-width: 16rem">
+            <option [ngValue]="''">Use one of your templates…</option>
+            @for (t of templates(); track t.id) { <option [ngValue]="t.id">{{ t.name }}</option> }
+          </select>
+          <button type="button" class="btn ghost" (click)="draftFromTemplate()" [disabled]="!templateId">Draft from template</button>
+        </div>
+      }
       @if (draft(); as d) {
         <div class="stack">
           <div class="field"><label for="fsub">Subject</label><input id="fsub" name="fsub" [(ngModel)]="d.subject" /></div>
@@ -111,15 +125,18 @@ export class TrackingPanel {
   /** The most recent deletion, offered for Undo (kept restorable on the server for 30 days). */
   readonly lastDeleted = signal<DeletedItem | null>(null);
   kind: FollowUpKind = 'after_applying';
+  templateId = '';
+  readonly templates = signal<FollowUpTemplate[]>([]);
   contact = { name: '', role: '', email: '', phone: '', notes: '' };
 
   constructor() {
     effect(() => {
       const id = this.applicationId();
       void this.safe(async () => {
-        const [c, r] = await Promise.all([this.api.contacts(id), this.api.reminders(id)]);
+        const [c, r, t] = await Promise.all([this.api.contacts(id), this.api.reminders(id), this.api.followUpTemplates().catch(() => [])]);
         this.contacts.set(c);
         this.reminders.set(r);
+        this.templates.set(t);
       });
     });
   }
@@ -183,6 +200,18 @@ export class TrackingPanel {
       }
       this.lastDeleted.set(null);
     });
+  }
+  /** Moves a reminder's due date forward from today (or from its due date if later). */
+  snooze(r: Reminder, days: number) {
+    const from = r.dueOn > this.todayIso ? new Date(`${r.dueOn}T00:00:00Z`) : new Date(`${this.todayIso}T00:00:00Z`);
+    const dueOn = new Date(from.getTime() + days * 86_400_000).toISOString().slice(0, 10);
+    return this.safe(async () => {
+      const next = await this.api.updateReminder(this.applicationId(), r.id, { dueOn });
+      this.reminders.update((l) => l.map((x) => (x.id === r.id ? next : x)).sort((a, b) => a.dueOn.localeCompare(b.dueOn)));
+    });
+  }
+  draftFromTemplate() {
+    return this.safe(async () => this.draft.set(structuredClone(await this.api.followUpWithTemplate(this.applicationId(), this.templateId))));
   }
   draftFollowUp() {
     return this.safe(async () => this.draft.set(structuredClone(await this.api.followUp(this.applicationId(), this.kind))));

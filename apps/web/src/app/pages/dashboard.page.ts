@@ -65,6 +65,21 @@ import { STATUS_LABEL, STATUS_ORDER } from '../labels';
           </section>
         </div>
 
+        @if (d.followUps.length) {
+          <section class="card" aria-labelledby="fu-heading">
+            <h2 id="fu-heading">Follow-ups to consider</h2>
+            <p class="hint">Ranked from your reminders and how long each submitted application has been quiet. ReboundOps never sends anything.</p>
+            <ul class="next-list">
+              @for (f of d.followUps; track f.applicationId + f.reason) {
+                <li [attr.data-priority]="f.priority">
+                  <a [routerLink]="['/tracker', f.applicationId]">{{ f.jobTitle }} · {{ f.employer }}</a>
+                  <span><span class="tag">{{ f.priority }}</span> {{ f.reason }}</span>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
         <div class="grid two">
           <section class="card" aria-labelledby="rem-heading">
             <h2 id="rem-heading">Reminders</h2>
@@ -72,7 +87,7 @@ import { STATUS_LABEL, STATUS_ORDER } from '../labels';
               @for (r of d.reminders.slice(0, 8); track r.id) {
                 <li [class.overdue]="r.overdue">
                   <a [routerLink]="['/tracker', r.applicationId]">{{ r.label }}</a>
-                  <span>{{ r.jobTitle }} · {{ r.employer }} — due {{ r.dueOn }}@if (r.overdue) { <strong class="overdue-tag"> (overdue)</strong> }</span>
+                  <span>{{ r.jobTitle }} · {{ r.employer }} — due {{ r.dueOn }}@if (r.overdue) { <strong class="overdue-tag"> (overdue)</strong> }@if (r.priority === 'high') { <span class="tag">high</span> }</span>
                 </li>
               } @empty { <li class="muted">No open reminders.</li> }
             </ul>

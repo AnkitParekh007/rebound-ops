@@ -1,3 +1,4 @@
+import { followUpPriorities } from './followups.ts';
 import type {
   ActivityEntry,
   ApplicationStatus,
@@ -86,5 +87,6 @@ export function summarize(
     generatedAt: now.toISOString(),
     analytics: analytics(apps, now),
     reminders: reminderViews(reminders, apps, now),
+    followUps: followUpPriorities(apps, reminders, now).slice(0, 10),
   };
 }

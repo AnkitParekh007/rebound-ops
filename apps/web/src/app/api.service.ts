@@ -3,6 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, throwError, type Observable } from 'rxjs';
 import type {
   DeletedItem,
+  FollowUpTemplate,
+  InterviewNote,
   DiscoveredPostingView,
   DiscoveryRequest,
   DiscoveryResult,
@@ -277,6 +279,31 @@ export class ApiService {
   }
   cancelRestore(stageId: string) {
     return this.call(this.http.delete<void>(`${this.base}/restore/${encodeURIComponent(stageId)}`));
+  }
+  interviews(id: string) {
+    return this.call(this.http.get<InterviewNote[]>(`${this.app(id)}/interviews`));
+  }
+  saveInterview(id: string, body: Partial<InterviewNote>, interviewId?: string) {
+    return interviewId
+      ? this.call(this.http.put<InterviewNote>(`${this.app(id)}/interviews/${encodeURIComponent(interviewId)}`, body))
+      : this.call(this.http.post<InterviewNote>(`${this.app(id)}/interviews`, body));
+  }
+  deleteInterview(id: string, interviewId: string) {
+    return this.call(this.http.delete<void>(`${this.app(id)}/interviews/${encodeURIComponent(interviewId)}`));
+  }
+  interviewPrep(id: string) {
+    return this.call(this.http.get<{ prompts: string[] }>(`${this.app(id)}/interview-prep`));
+  }
+  followUpTemplates() {
+    return this.call(this.http.get<FollowUpTemplate[]>(`${this.base}/follow-up/templates`));
+  }
+  saveFollowUpTemplates(list: Omit<FollowUpTemplate, 'id'>[] | FollowUpTemplate[]) {
+    return this.call(this.http.put<FollowUpTemplate[]>(`${this.base}/follow-up/templates`, list));
+  }
+  followUpWithTemplate(id: string, templateId: string, contactId?: string) {
+    const params: Record<string, string> = { templateId };
+    if (contactId) params['contactId'] = contactId;
+    return this.call(this.http.get<FollowUpDraft>(`${this.app(id)}/follow-up`, { params }));
   }
   fitWeights() {
     return this.call(this.http.get<FitWeights>(`${this.base}/assessment/weights`));

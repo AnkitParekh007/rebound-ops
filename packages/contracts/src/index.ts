@@ -935,6 +935,16 @@ export type InterviewNote = z.infer<typeof InterviewNote>;
 export const InterviewNoteInput = InterviewNote.pick({ stage: true, scheduledFor: true, interviewers: true, preparation: true, questionsToAsk: true, notes: true, outcome: true }).partial();
 export type InterviewNoteInput = z.input<typeof InterviewNoteInput>;
 
+/** A follow-up message template written by the person (v0.2.0). Placeholders are filled only from saved records. */
+export const FollowUpTemplate = z.object({
+  id: z.string().min(1).max(64),
+  name: shortText(80).min(1),
+  subject: shortText(200).min(1),
+  body: shortText(5000).min(1),
+});
+export type FollowUpTemplate = z.infer<typeof FollowUpTemplate>;
+export const FOLLOW_UP_PLACEHOLDERS = ['role', 'employer', 'contactFirstName', 'yourName', 'appliedDate'] as const;
+
 export const FollowUpKind = z.enum(['after_applying', 'after_interview', 'thank_you', 'withdraw']);
 export type FollowUpKind = z.infer<typeof FollowUpKind>;
 
@@ -963,9 +973,23 @@ export const Analytics = z.object({
 });
 export type Analytics = z.infer<typeof Analytics>;
 
+/** A suggested follow-up, ranked from saved records only (v0.2.0). Nothing is sent. */
+export const FollowUpSuggestion = z.object({
+  applicationId: z.string(),
+  jobTitle: z.string(),
+  employer: z.string(),
+  priority: z.enum(['high', 'normal', 'low']),
+  reason: z.string(),
+  suggestedKind: z.enum(['after_applying', 'after_interview', 'thank_you', 'withdraw']).nullable(),
+  /** Days since the record the suggestion is based on. */
+  days: z.number().int(),
+});
+export type FollowUpSuggestion = z.infer<typeof FollowUpSuggestion>;
+
 export const DashboardSummary = DashboardSummaryBase.extend({
   analytics: Analytics,
   reminders: z.array(ReminderView),
+  followUps: z.array(FollowUpSuggestion).default([]),
 });
 export type DashboardSummary = z.infer<typeof DashboardSummary>;
 

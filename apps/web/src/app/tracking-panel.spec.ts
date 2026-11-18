@@ -12,7 +12,9 @@ describe('TrackingPanel', () => {
     fixture.detectChanges();
     http.expectOne('/api/applications/a1/contacts').flush([]);
     http.expectOne('/api/applications/a1/reminders').flush([]);
+    http.expectOne('/api/follow-up/templates').flush([]);
     await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 0));
 
     const p = fixture.componentInstance.draftFollowUp();
     http.expectOne((r) => r.url === '/api/applications/a1/follow-up' && r.params.get('kind') === 'after_applying').flush({
@@ -38,7 +40,9 @@ describe('TrackingPanel', () => {
     const sam = { id: 'c1', applicationId: 'a1', name: 'Sam Example', role: '', email: '', phone: '', notes: '', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' };
     http.expectOne('/api/applications/a1/contacts').flush([sam]);
     http.expectOne('/api/applications/a1/reminders').flush([]);
+    http.expectOne('/api/follow-up/templates').flush([]);
     await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 0));
     const cmp = fixture.componentInstance;
 
     const del = cmp.removeContact(sam);

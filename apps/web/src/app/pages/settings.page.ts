@@ -4,10 +4,11 @@ import type { AiMode, AiSettingsView, ImportPreview, ImportResult, ProviderId } 
 import { ApiProblem, ApiService } from '../api.service';
 import { FitWeightsPanel } from '../fit-weights-panel';
 import { BackupPanel } from '../backup-panel';
+import { TemplatesPanel } from '../templates-panel';
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule, FitWeightsPanel, BackupPanel],
+  imports: [FormsModule, FitWeightsPanel, BackupPanel, TemplatesPanel],
   template: `
     <section class="page narrow" aria-labelledby="settings-heading">
       <header class="page-head">
@@ -72,6 +73,7 @@ import { BackupPanel } from '../backup-panel';
         </section>
 
         <app-fit-weights-panel />
+        <app-templates-panel />
         <app-backup-panel />
 
         <section class="card stack" aria-labelledby="data-heading">

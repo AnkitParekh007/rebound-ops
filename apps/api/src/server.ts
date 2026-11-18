@@ -220,9 +220,26 @@ export function buildServer(options: ServerOptions): FastifyInstance {
   app.put<ChildParams>('/api/applications/:id/reminders/:childId', async (req) => workspace.updateReminder(req.params.id, req.params.childId, req.body));
   app.delete<ChildParams>('/api/applications/:id/reminders/:childId', async (req) => workspace.deleteReminder(req.params.id, req.params.childId));
   app.post<ChildParams>('/api/applications/:id/reminders/:childId/restore', async (req) => workspace.restoreReminder(req.params.id, req.params.childId));
-  app.get<{ Params: { id: string }; Querystring: { kind?: string; contactId?: string } }>('/api/applications/:id/follow-up', async (req) =>
-    workspace.followUp(req.params.id, req.query.kind, req.query.contactId),
+  app.get<{ Params: { id: string }; Querystring: { kind?: string; contactId?: string; templateId?: string } }>('/api/applications/:id/follow-up', async (req) =>
+    workspace.followUp(req.params.id, req.query.kind, req.query.contactId, req.query.templateId),
   );
+  app.get('/api/follow-up/templates', async () => workspace.followUpTemplates());
+  app.put('/api/follow-up/templates', async (req) => workspace.saveFollowUpTemplates(req.body));
+  app.get('/api/follow-up/suggestions', async () => workspace.followUpSuggestions());
+  app.get<IdParams>('/api/applications/:id/interviews', async (req) => workspace.listInterviews(req.params.id));
+  app.post<IdParams>('/api/applications/:id/interviews', async (req, reply) => reply.code(201).send(workspace.saveInterview(req.params.id, null, req.body)));
+  app.put<ChildParams>('/api/applications/:id/interviews/:childId', async (req) => workspace.saveInterview(req.params.id, req.params.childId, req.body));
+  app.delete<ChildParams>('/api/applications/:id/interviews/:childId', async (req, reply) => {
+    workspace.deleteInterview(req.params.id, req.params.childId);
+    return reply.code(204).send();
+  });
+  app.get<IdParams>('/api/applications/:id/interview-prep', async (req) => workspace.interviewPrep(req.params.id));
+  for (const kind of ['applications', 'activity'] as const) {
+    app.get(`/api/export/${kind}.csv`, async (_req, reply) => {
+      const { data, filename } = workspace.exportCsv(kind);
+      return reply.header('Content-Type', 'text/csv; charset=utf-8').header('Content-Disposition', `attachment; filename="${filename}"`).send(data);
+    });
+  }
 
   app.get('/api/backup', async (_req, reply) => {
     const { data, filename } = workspace.backup();

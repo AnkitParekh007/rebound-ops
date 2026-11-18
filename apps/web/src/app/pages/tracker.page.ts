@@ -30,6 +30,7 @@ import { ELIGIBILITY_LABEL } from '../assessment-panel';
             <option ngValue="updated">Recently updated</option>
             <option ngValue="fit">Fit score</option>
             <option ngValue="employer">Employer</option>
+            <option ngValue="submitted">Submission date</option>
           </select>
         </div>
         <div class="field compact">
@@ -40,7 +41,18 @@ import { ELIGIBILITY_LABEL } from '../assessment-panel';
             @for (s of order; track s) { <option [ngValue]="s">{{ labels[s] }}</option> }
           </select>
         </div>
+        <div class="field compact">
+          <label for="since">Updated</label>
+          <select id="since" name="since" [ngModel]="since()" (ngModelChange)="since.set($event)">
+            <option [ngValue]="0">Any time</option>
+            <option [ngValue]="7">In the last 7 days</option>
+            <option [ngValue]="30">In the last 30 days</option>
+            <option [ngValue]="90">In the last 90 days</option>
+          </select>
+        </div>
+        <label class="check compact"><input type="checkbox" name="submittedOnly" [ngModel]="submittedOnly()" (ngModelChange)="submittedOnly.set($event)" /> Submitted only</label>
       </div>
+      <p class="small"><a href="/api/export/applications.csv" download>Export applications (CSV)</a> · <a href="/api/export/activity.csv" download>Export activity history (CSV)</a></p>
 
       @if (loading()) {
         <p class="muted" role="status">Loading applications…</p>
@@ -90,13 +102,20 @@ export class TrackerPage {
   readonly error = signal<string | null>(null);
   readonly query = signal('');
   readonly filter = signal<ApplicationStatus | 'all' | 'active'>('all');
-  readonly sort = signal<'updated' | 'fit' | 'employer'>('updated');
+  readonly sort = signal<'updated' | 'fit' | 'employer' | 'submitted'>('updated');
+  readonly since = signal(0);
+  readonly submittedOnly = signal(false);
 
   readonly visible = computed(() => {
     const q = this.query().trim().toLowerCase();
     const f = this.filter();
     const fit = this.fit();
+    const since = this.since();
+    const cutoff = since ? new Date(Date.now() - since * 86_400_000).toISOString() : '';
+    const submittedOnly = this.submittedOnly();
     const list = this.apps().filter((a) => {
+      if (cutoff && a.updatedAt < cutoff) return false;
+      if (submittedOnly && !a.appliedConfirmedAt) return false;
       if (f === 'active' && (a.status === 'rejected' || a.status === 'withdrawn')) return false;
       if (f !== 'all' && f !== 'active' && a.status !== f) return false;
       return !q || `${a.job.title} ${a.job.employer}`.toLowerCase().includes(q);
@@ -104,6 +123,7 @@ export class TrackerPage {
     const sort = this.sort();
     if (sort === 'fit') return [...list].sort((a, b) => (fit[b.id]?.overall ?? -1) - (fit[a.id]?.overall ?? -1));
     if (sort === 'employer') return [...list].sort((a, b) => a.job.employer.localeCompare(b.job.employer));
+    if (sort === 'submitted') return [...list].sort((a, b) => (b.appliedConfirmedAt ?? '').localeCompare(a.appliedConfirmedAt ?? ''));
     return list;
   });
 

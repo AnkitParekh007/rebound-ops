@@ -7,11 +7,12 @@ import { AssessmentPanel } from '../assessment-panel';
 import { DocumentsPanel } from '../documents-panel';
 import { PreparePanel } from '../prepare-panel';
 import { TrackingPanel } from '../tracking-panel';
+import { InterviewPanel } from '../interview-panel';
 import { STATUS_LABEL } from '../labels';
 
 @Component({
   selector: 'app-application-page',
-  imports: [FormsModule, RouterLink, AssessmentPanel, DocumentsPanel, PreparePanel, TrackingPanel],
+  imports: [FormsModule, RouterLink, AssessmentPanel, DocumentsPanel, PreparePanel, TrackingPanel, InterviewPanel],
   template: `
     <section class="page" aria-labelledby="app-heading">
       <p><a routerLink="/tracker" class="back-link">← All applications</a></p>
@@ -95,6 +96,7 @@ import { STATUS_LABEL } from '../labels';
 
           <div class="stack">
           <app-tracking-panel [applicationId]="a.id" />
+          <app-interview-panel [applicationId]="a.id" />
           <section class="card" aria-labelledby="activity-heading">
             <h2 id="activity-heading">Activity</h2>
             <form class="stack" (ngSubmit)="addNote()">
@@ -104,8 +106,18 @@ import { STATUS_LABEL } from '../labels';
               </div>
               <div class="actions"><span class="spacer"></span><button type="submit" class="btn ghost" [disabled]="busy() || !note.trim()">Add note</button></div>
             </form>
+            <div class="row">
+              <label for="tl-filter" class="small">Show</label>
+              <select id="tl-filter" name="tlFilter" [(ngModel)]="timelineFilter" style="max-width: 14rem">
+                <option ngValue="all">All activity</option>
+                <option ngValue="status">Status changes</option>
+                <option ngValue="note">Notes</option>
+                <option ngValue="contact">Contacts and reminders</option>
+                <option ngValue="interview">Interviews</option>
+              </select>
+            </div>
             <ol class="timeline">
-              @for (e of a.activity; track e.id) {
+              @for (e of timeline(a.activity); track e.id) {
                 <li>
                   <time [attr.datetime]="e.at">{{ e.at.slice(0, 16).replace('T', ' ') }}</time>
                   @switch (e.kind) {
@@ -234,6 +246,14 @@ export class ApplicationPage {
       await this.prepare()?.refresh();
       await this.tracking()?.refresh();
     }
+  }
+
+  timelineFilter: 'all' | 'status' | 'note' | 'contact' | 'interview' = 'all';
+  timeline(list: ApplicationView['activity']) {
+    const f = this.timelineFilter;
+    if (f === 'all') return list;
+    const kinds: Record<string, string[]> = { status: ['status_changed', 'reopened', 'created'], note: ['note', 'document'], contact: ['contact', 'reminder'], interview: ['interview'] };
+    return list.filter((e) => kinds[f]!.includes(e.kind));
   }
 
   /** Asks the job board whether the posting is still listed (needs Discover consent). */

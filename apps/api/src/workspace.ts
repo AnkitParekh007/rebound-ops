@@ -12,6 +12,10 @@ import {
   type RewriteResult,
   type Contact,
   type DeletedItem,
+  FollowUpTemplate,
+  type FollowUpSuggestion,
+  InterviewNote,
+  InterviewNoteInput,
   FitWeights,
   type FollowUpDraft,
   type Reminder,
@@ -61,6 +65,7 @@ import {
 } from '@reboundops/contracts';
 import {
   addDays,
+  followUpPriorities,
   allowedTransitions,
   checkTransition,
   isReopen,
@@ -74,7 +79,7 @@ import {
 import { assess, checkGrounding, DEFAULT_FIT_WEIGHTS, dedupeKey, extractJob, findDuplicates, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
 import { checkPasswordStrength, encryptBackupFile, type Store } from '@reboundops/storage';
 import { ImportFormatError, planImport, type ImportPlan } from '@reboundops/importer';
-import { checklist, draftAnswer, emptyPackage, followUpDraft } from '@reboundops/applications';
+import { checklist, draftAnswer, emptyPackage, followUpDraft, interviewPrepPrompts, renderTemplate } from '@reboundops/applications';
 import { ADAPTERS } from '@reboundops/job-sources';
 import {
   AiConfigError,
@@ -106,6 +111,16 @@ import { DiscoveryService } from './discovery.ts';
 import { RestoreService } from './restore.ts';
 import { API_VERSION } from './version.ts';
 import type { FetchLike as SourceFetch } from '@reboundops/job-sources';
+
+/** RFC 4180 CSV; cells that a spreadsheet would treat as a formula are prefixed with an apostrophe. */
+export function toCsv(header: string[], rows: (string | number)[][]): string {
+  const cell = (v: string | number) => {
+    let t = String(v);
+    if (/^[=+\-@\t\r]/.test(t)) t = `'${t}`;
+    return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  return [header, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
+}
 
 const SaveDiscoveredRequest = z.object({ employer: z.string().trim().min(1).max(300).optional(), allowDuplicate: z.boolean().default(false) });
 
@@ -747,13 +762,88 @@ export class Workspace {
     });
   }
 
-  followUp(applicationId: string, kindRaw: unknown, contactId: unknown): FollowUpDraft {
-    const kind = FollowUpKind.parse(kindRaw ?? 'after_applying');
+  followUp(applicationId: string, kindRaw: unknown, contactId: unknown, templateId?: unknown): FollowUpDraft {
     const app = this.getApplication(applicationId);
     const contacts = this.store.listContacts(applicationId);
     const contact = typeof contactId === 'string' && contactId ? contacts.find((c) => c.id === contactId) ?? null : contacts[0] ?? null;
     if (typeof contactId === 'string' && contactId && !contact) throw notFound('Contact');
+    if (typeof templateId === 'string' && templateId) {
+      const t = this.followUpTemplates().find((x) => x.id === templateId);
+      if (!t) throw notFound('Template');
+      return renderTemplate(t, app, this.getProfile(), contact);
+    }
+    const kind = FollowUpKind.parse(kindRaw ?? 'after_applying');
     return followUpDraft(kind, app, this.getProfile(), contact);
+  }
+
+  /* ---------- follow-up templates, interviews, prioritisation (v0.2.0) ---------- */
+
+  followUpTemplates(): FollowUpTemplate[] {
+    return this.store.getSetting('followup_templates', z.array(FollowUpTemplate)) ?? [];
+  }
+
+  saveFollowUpTemplates(input: unknown): FollowUpTemplate[] {
+    const list = z.array(FollowUpTemplate.omit({ id: true }).extend({ id: z.string().min(1).max(64).optional() })).max(30).parse(input);
+    const saved = list.map((t) => ({ ...t, id: t.id ?? this.newId() }));
+    this.store.putSetting('followup_templates', saved, this.now().toISOString());
+    return saved;
+  }
+
+  followUpSuggestions(): FollowUpSuggestion[] {
+    return followUpPriorities(this.listApplications(), this.store.listReminders(), this.now());
+  }
+
+  listInterviews(applicationId: string): InterviewNote[] {
+    this.getApplication(applicationId);
+    return this.store.listInterviewNotes(applicationId);
+  }
+
+  saveInterview(applicationId: string, interviewId: string | null, input: unknown): InterviewNote {
+    this.getApplication(applicationId);
+    const raw = (input ?? {}) as Record<string, unknown>;
+    // Only fields the person sent change; schema defaults must not wipe saved notes.
+    const u = Object.fromEntries(Object.entries(InterviewNoteInput.parse(raw)).filter(([k]) => k in raw));
+    const at = this.now().toISOString();
+    const existing = interviewId ? this.store.listInterviewNotes(applicationId).find((n) => n.id === interviewId) : undefined;
+    if (interviewId && !existing) throw notFound('Interview');
+    return this.store.transaction(() => {
+      const saved = this.store.upsertInterviewNote(
+        InterviewNote.parse({ ...(existing ?? {}), ...u, id: existing?.id ?? this.newId(), applicationId, createdAt: existing?.createdAt ?? at, updatedAt: at }),
+      );
+      const when = saved.scheduledFor ? ` on ${saved.scheduledFor.slice(0, 10)}` : '';
+      if (!existing) this.store.addActivity(this.activity(applicationId, 'interview', null, null, `Interview added: ${saved.stage}${when}.`, at));
+      else if (existing.outcome !== saved.outcome) this.store.addActivity(this.activity(applicationId, 'interview', null, null, `${saved.stage}: outcome recorded as ${saved.outcome.replace('_', ' ')}.`, at));
+      else if (existing.scheduledFor !== saved.scheduledFor) this.store.addActivity(this.activity(applicationId, 'interview', null, null, `${saved.stage} moved${when}.`, at));
+      return saved;
+    });
+  }
+
+  deleteInterview(applicationId: string, interviewId: string): void {
+    const n = this.store.listInterviewNotes(applicationId).find((x) => x.id === interviewId);
+    if (!n) throw notFound('Interview');
+    const at = this.now().toISOString();
+    this.store.transaction(() => {
+      this.store.deleteInterviewNote(interviewId);
+      this.store.addActivity(this.activity(applicationId, 'interview', null, null, `Removed interview notes: ${n.stage}.`, at));
+    });
+  }
+
+  /** Preparation prompts from the posting's qualifications and the assessment's gaps (deterministic). */
+  interviewPrep(applicationId: string): { prompts: string[] } {
+    return { prompts: interviewPrepPrompts(this.assessApplication(applicationId)) };
+  }
+
+  /** Tracking data as CSV (spreadsheet-safe). */
+  exportCsv(kind: 'applications' | 'activity'): { data: string; filename: string } {
+    const apps = this.listApplications();
+    const day = this.now().toISOString().slice(0, 10);
+    if (kind === 'applications') {
+      const rows = apps.map((a) => [a.id, a.job.title, a.job.employer, a.job.location ?? '', a.status, a.createdAt, a.statusChangedAt, a.appliedConfirmedAt ?? '', a.job.sourceUrl ?? '', a.job.source?.provider ?? '', a.job.source?.availability ?? '']);
+      return { data: toCsv(['application_id', 'title', 'employer', 'location', 'status', 'saved_at', 'status_changed_at', 'submitted_at', 'posting_url', 'source', 'listing'], rows), filename: `reboundops-applications-${day}.csv` };
+    }
+    const rows = apps.flatMap((a) => a.activity.map((e) => [e.at, a.id, a.job.title, a.job.employer, e.kind, e.from ?? '', e.to ?? '', e.note]));
+    rows.sort((x, y) => String(y[0]).localeCompare(String(x[0])));
+    return { data: toCsv(['at', 'application_id', 'title', 'employer', 'kind', 'from', 'to', 'note'], rows), filename: `reboundops-activity-${day}.csv` };
   }
 
   /* ---------- import (M8) ---------- */

@@ -4,6 +4,7 @@ const DAY = 86_400_000;
 const RESPONSE_STATUSES = new Set(['interviewing', 'offer', 'rejected']);
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+const PRIORITY = { high: 0, normal: 1, low: 2 } as const;
 
 /** Monday 00:00 UTC of the week containing `d`. */
 export function weekStart(d: Date): Date {
@@ -72,7 +73,8 @@ export function reminderViews(reminders: readonly Reminder[], apps: readonly App
   return reminders
     .filter((r) => !r.done && byId.has(r.applicationId))
     .map((r) => ({ ...r, jobTitle: byId.get(r.applicationId)!.job.title, employer: byId.get(r.applicationId)!.job.employer, overdue: r.dueOn < today }))
-    .sort((a, b) => a.dueOn.localeCompare(b.dueOn));
+    // Overdue first, then by due date; high priority ahead of others due the same day.
+    .sort((a, b) => Number(b.overdue) - Number(a.overdue) || a.dueOn.localeCompare(b.dueOn) || PRIORITY[a.priority] - PRIORITY[b.priority]);
 }
 
 export const addDays = (d: Date, n: number) => isoDay(new Date(d.getTime() + n * DAY));
