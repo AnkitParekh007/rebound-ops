@@ -10,14 +10,14 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           # Tags are needed for the upgrade-from-v0.1.0 check.
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -38,25 +38,25 @@ jobs:
       # Build the release archive (nothing is published) and verify a fresh install and the v0.1.0 upgrade.
       - run: npm run package:release -- --skip-build
       - run: npm run verify:release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-candidate
           path: release/
           if-no-files-found: error
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: sbom
           path: reports/sbom.json
           if-no-files-found: error
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: verify
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -74,7 +74,7 @@ jobs:
           PW_CHANNEL: chromium
           PW_PACKAGED: '1'
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: playwright-results
           path: test-results/
