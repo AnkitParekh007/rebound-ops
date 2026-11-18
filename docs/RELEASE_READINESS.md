@@ -6,10 +6,9 @@ approve a release. Any push, tag or publication needs the owner's approval.
 
 ## Verdict
 
-**Not yet a GO.** The code and local gates are ready. One condition is open: the extended browser
-E2E journey (added in this audit) has not run yet, because it runs only in GitHub Actions and the
-audit commits are not pushed. Pushing the audit commits and getting a green CI run on the latest
-commit gives a **GO for a 0.1.0 pre-release**. The limitations below stay as documented.
+**GO for a 0.1.0 pre-release.** The local gates pass, and GitHub Actions CI run 44298999802 on
+`f8b1f2d` is green (verify and e2e jobs), including the extended browser E2E journey. No tag or
+release has been created; that needs the owner's approval. The limitations below stay as documented.
 
 ## Gate A — local verification
 
@@ -51,12 +50,12 @@ Ordered by severity. "Fixed" means it was changed, tested and committed locally.
 | D3 | Medium | Two servers could open the same data folder. Startup failures (port in use) printed raw stack traces. | **Fixed** `f63419a`: data-folder lock and clear one-line messages |
 | D4 | Medium | Another website could link to `/api/export` or `/api/backup` and trigger a download of your data onto your own disk. It could not read the data. | **Fixed** `58366be`: API refuses `Sec-Fetch-Site: cross-site` requests |
 | D5 | Medium | AI timeouts and offline errors were reported vaguely ("Anthropic error.") and had no tests. | **Fixed** `e291254`, with tests for timeouts, consent withdrawal and AI off |
-| D6 | Medium (test gap) | The browser E2E did not cover draft edits, DOCX, screening answers, the official link, contacts, reminders, follow-ups, reload persistence or duplicate detection. axe did not cover the overview or the tracking panel. | **Fixed in code** `ff979af`. The axe checks pass. The E2E additions are **unverified until CI runs** |
+| D6 | Medium (test gap) | The browser E2E did not cover draft edits, DOCX, screening answers, the official link, contacts, reminders, follow-ups, reload persistence or duplicate detection. axe did not cover the overview or the tracking panel. | **Fixed in code** `ff979af`. The axe checks pass. The E2E additions passed in CI run 44298999802 |
 | D7 | Low | Docs and UI called the JSON export "full". | **Fixed** `f63419a` and this update |
 | D8 | Low | The fictional resume used a realistic-looking phone number. | **Fixed** `4842e63` |
 | D9 | Low | There was no way to check a legacy export file without a database, and no written procedure. | **Fixed** `0401a20`: `npm run import:check` and [LEGACY_EXPORT_PROCEDURE.md](LEGACY_EXPORT_PROCEDURE.md) |
 | D10 | High | Duplicate detection missed the same posting saved again **without its URL**, from a **different site**, or with the location typed differently (found by the extended E2E in CI run 44286231135). | **Fixed**: several signals (same posting URL, same employer and title, same description), each reported with its reason; "Save anyway" stays available |
-| O1 | Medium | The extended E2E has not run. | **Open**: needs an approved push and a CI run |
+| O1 | Medium | The extended E2E had not run. | **Closed**: green in CI run 44298999802 on `f8b1f2d` |
 | O2 | Low | Dev-tooling `picomatch` advisory. | **Open, accepted** (no upstream fix, not shipped) |
 | O3 | Low | Backups are not encrypted. | **Open**, documented in Settings ("keep it somewhere private") |
 | O4 | Low | Rejected or withdrawn can only reopen to Shortlisted. Marking Applied again replaces the original submission date. | **Open** |
@@ -69,13 +68,13 @@ Ordered by severity. "Fixed" means it was changed, tested and committed locally.
 | --- | --- | --- |
 | Onboarding, skip, back/next, AI mode | Integration journey, Angular tests, E2E (CI, earlier spec) | ✅ |
 | Resume import and fact verification | API tests, integration journey, E2E | ✅ |
-| Job intake, evidence, unverified label, duplicates | API tests (URL, missing URL, other URL, edited location, same description, save anyway), importer tests; E2E duplicate step | ✅ (E2E step pending CI) |
+| Job intake, evidence, unverified label, duplicates | API tests (URL, missing URL, other URL, edited location, same description, save anyway), importer tests; E2E duplicate step | ✅ |
 | Fit 0–5 rubric and eligibility statuses | Deterministic unit tests, integration journey, E2E | ✅ |
-| Tailored resume and cover letter, editing | API tests, integration journey; E2E edit step added | ✅ (E2E step pending CI) |
+| Tailored resume and cover letter, editing | API tests, integration journey; E2E edit step added | ✅ |
 | PDF and DOCX export with content checks | Unit tests, integration journey, independent macOS read-back, E2E PDF | ✅ |
-| Screening answers, official link, review | API and unit tests; E2E steps added | ✅ (E2E steps pending CI) |
+| Screening answers, official link, review | API and unit tests; E2E steps added | ✅ |
 | Tracker transitions and confirmed Applied | Unit, API, E2E | ✅ |
-| Contacts, reminders, follow-up drafts (never sent) | API and Angular tests; E2E steps added | ✅ (E2E steps pending CI) |
+| Contacts, reminders, follow-up drafts (never sent) | API and Angular tests; E2E steps added | ✅ |
 | Analytics and persistence after restart | Smoke restart, integration journey, E2E reload | ✅ |
 | Backup, restore, interrupted import, invalid files | New integration tests, manual CLI run against the packaged server | ✅ |
 | AI on and off | Both journeys; one real local Ollama inference; cloud adapters mocked | ✅ (cloud live pending) |

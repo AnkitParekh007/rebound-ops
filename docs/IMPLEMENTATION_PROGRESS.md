@@ -33,7 +33,7 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 | M7 UX completion | ✅ Done | Settings page, focus + live-region on navigation, job edit (provenance → user), delete with confirmation, tracker sort, axe checks on 8 views (with negative control), contrast-safe tokens in both themes (audit) |
 | M8 Import from earlier version | ✅ Done (synthetic data only) | `reboundops-import` v1 + own export round-trip; strict validation, per-record rejection, staged preview token, confirmed single-transaction commit (rollback tested), no overwrites, unverified facts; `npm run import:check`; [LEGACY_EXPORT_PROCEDURE.md](LEGACY_EXPORT_PROCEDURE.md). Real legacy migration pending a separately authorised export |
 | M9 Security & originality | ✅ Done | Loopback/Host/Origin/JSON guards, cross-site request refusal (audit), body limits, error/log hygiene, header injection, traversal, CSP-safe build, data-folder lock, CI workflow, PROVENANCE.md |
-| M10 Comprehensive testing | ✅ Done (extended E2E pending CI) | 139 backend + 18 Angular tests; 13-step journey AI off/on; backup/restore, import rollback, AI timeouts/consent, a11y. Earlier Playwright journey green in CI; the extended journey has not run yet |
+| M10 Comprehensive testing | ✅ Done | 139 backend + 18 Angular tests; 13-step journey AI off/on; backup/restore, import rollback, AI timeouts/consent, a11y. Extended Playwright journey green in CI run 44298999802 on `f8b1f2d` |
 | M11 Packaging & release | ✅ Done locally | `npm ci && npm run build && npm start` on one port; fresh-clone install and production start validated; lossless backup + `npm run restore`; `docs/RELEASE_READINESS.md` |
 
 ## Completed features (by package)
@@ -59,7 +59,7 @@ npm run test:e2e         # Playwright + installed Chrome (see Known blockers)
 
 ## Local commits (newest first)
 
-See `git log --oneline`. Post-milestone audit commits: `f63419a` backup/restore + lock, `e291254` AI errors, `0401a20` import check, `58366be` cross-site guard, `4842e63` fixture, `ff979af` contrast + tests, `29d575d` E2E locator, multi-signal duplicate detection (found by the extended E2E), plus docs updates.
+See `git log --oneline`. Post-milestone audit commits: `f63419a` backup/restore + lock, `e291254` AI errors, `0401a20` import check, `58366be` cross-site guard, `4842e63` fixture, `ff979af` contrast + tests, `29d575d` E2E locator, `f8b1f2d` multi-signal duplicate detection (found by the extended E2E), plus docs updates.
 
 ## Known defects / limitations
 
@@ -89,8 +89,8 @@ See `git log --oneline`. Post-milestone audit commits: `f63419a` backup/restore 
 All MVP milestones (M0–M11) are implemented, and the post-milestone audit is complete (see
 `docs/RELEASE_READINESS.md` for the defect backlog and verdict). Remaining work:
 
-1. Owner approves pushing the audit commits, then confirm CI is green on the latest commit, including the extended E2E. Fix anything it finds.
+1. ✅ Audit commits pushed; CI green on `f8b1f2d` (run 44298999802), including the extended E2E. Verdict: GO for a 0.1.0 pre-release.
 2. Owner decides on tagging/release, live cloud AI testing, and a separate legacy-export session.
 3. Optional enhancements (P1/P2) only after 1: live posting fetch from official/permitted endpoints, PDF resume import, encrypted backups, in-app restore, per-skill experience.
 
-If a session resumes with no new instructions: run the verification commands, then pick up item 1.
+If a session resumes with no new instructions: run the verification commands, then pick up item 2.
