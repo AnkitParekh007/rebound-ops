@@ -4,8 +4,10 @@ import { DocumentKind, ExportFormat } from '@reboundops/contracts';
 import { AppError } from './errors.ts';
 import type { Workspace } from './workspace.ts';
 import { registerStatic } from './static.ts';
+import { MAX_BACKUP_UPLOAD_BYTES } from './restore.ts';
 
-export const API_VERSION = '0.1.0';
+import { API_VERSION } from './version.ts';
+export { API_VERSION };
 const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -79,8 +81,9 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     // Forms can POST cross-site without preflight; JSON cannot. Require JSON.
     // DELETE carries no body and always needs a CORS preflight, so it is exempt.
     if (MUTATING.has(req.method) && !(req.method === 'DELETE' && !req.headers['content-length'])) {
-      const type = req.headers['content-type'] ?? '';
-      if (!type.toLowerCase().startsWith('application/json')) {
+      const type = (req.headers['content-type'] ?? '').toLowerCase();
+      const rawUpload = req.method === 'POST' && req.url === '/api/restore/stage' && type.startsWith('application/octet-stream');
+      if (!type.startsWith('application/json') && !rawUpload) {
         return sendError(reply, 415, 'unsupported_media_type', 'Send JSON (application/json).');
       }
     }
@@ -224,6 +227,21 @@ export function buildServer(options: ServerOptions): FastifyInstance {
   app.get('/api/backup', async (_req, reply) => {
     const { data, filename } = workspace.backup();
     return reply.header('Content-Type', 'application/vnd.sqlite3').header('Content-Disposition', `attachment; filename="${filename}"`).send(data);
+  });
+  // The password travels in the JSON body (never the URL) and is not logged.
+  app.post('/api/backup/encrypted', async (req, reply) => {
+    const { data, filename } = workspace.backupEncrypted(req.body);
+    return reply.header('Content-Type', 'application/octet-stream').header('Content-Disposition', `attachment; filename="${filename}"`).send(data);
+  });
+
+  // In-app restore (see restore.ts). The upload is raw bytes; browsers cannot send this content type cross-site without a CORS preflight.
+  app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer', bodyLimit: MAX_BACKUP_UPLOAD_BYTES }, (_req, body, done) => done(null, body));
+  app.post('/api/restore/stage', { bodyLimit: MAX_BACKUP_UPLOAD_BYTES }, async (req, reply) => reply.code(201).send(workspace.restore.stage(req.body as Buffer)));
+  app.post<IdParams>('/api/restore/:id/verify', async (req) => workspace.restore.verify(req.params.id, req.body));
+  app.post<IdParams>('/api/restore/:id/apply', async (req) => workspace.restore.apply(req.params.id, req.body));
+  app.delete<IdParams>('/api/restore/:id', async (req, reply) => {
+    workspace.restore.cancel(req.params.id);
+    return reply.code(204).send();
   });
 
   app.post('/api/import/preview', { bodyLimit: 12 * 1024 * 1024 }, async (req) => workspace.previewImport(req.body));

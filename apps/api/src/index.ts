@@ -23,8 +23,11 @@ export async function startApi(config: ApiConfig = loadConfig()) {
   }
   const workspace = new Workspace(store);
   workspace.purgeExpiredDeletes();
+  workspace.restore.cleanup();
   const app = buildServer({ workspace, allowedOrigins: config.allowedOrigins, logLevel: config.logLevel, webDist: config.webDist });
   app.addHook('onClose', async () => {
+    // After an in-app restore the workspace holds a newly opened store.
+    workspace.currentStore.close();
     store.close();
     release();
   });

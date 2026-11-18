@@ -3,10 +3,11 @@ import { FormsModule } from '@angular/forms';
 import type { AiMode, AiSettingsView, ImportPreview, ImportResult, ProviderId } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from '../api.service';
 import { FitWeightsPanel } from '../fit-weights-panel';
+import { BackupPanel } from '../backup-panel';
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule, FitWeightsPanel],
+  imports: [FormsModule, FitWeightsPanel, BackupPanel],
   template: `
     <section class="page narrow" aria-labelledby="settings-heading">
       <header class="page-head">
@@ -71,14 +72,11 @@ import { FitWeightsPanel } from '../fit-weights-panel';
         </section>
 
         <app-fit-weights-panel />
+        <app-backup-panel />
 
         <section class="card stack" aria-labelledby="data-heading">
           <h2 id="data-heading">Your data</h2>
-          <p>Everything is stored in a single private database on this computer. ReboundOps has no account and sends nothing anywhere unless you use a cloud AI provider and confirm each request.</p>
-          <h3 class="sub">Backup</h3>
-          <p><a class="btn primary" href="/api/backup" download>Download a backup</a></p>
-          <p class="hint">A complete copy of your database: profile, jobs, applications, notes, drafts, screening answers, contacts, reminders and your original resume files. API keys are never included. It is not encrypted, so keep it somewhere private.</p>
-          <p class="hint">To restore, stop ReboundOps and run <code>npm run restore -- &lt;backup-file&gt;</code> to check the file, then add <code>--yes</code> to restore it. Your current data is kept alongside, never deleted.</p>
+          <p>Everything is stored in a single private database on this computer. ReboundOps has no account and sends nothing anywhere unless you use a cloud AI provider (with consent) or allow Discover to request public job-board listings (only the board name is sent).</p>
           <h3 class="sub">Export</h3>
           <p><a class="btn ghost" href="/api/export" download>Download a data export (JSON)</a></p>
           <p class="hint">A readable export of your profile, jobs, applications, notes, contacts and reminders, for use in other tools or for importing. It does not include drafts, screening answers or resume files; use a backup to keep everything.</p>

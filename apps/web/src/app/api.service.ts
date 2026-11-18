@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom, type Observable } from 'rxjs';
+import { firstValueFrom, throwError, type Observable } from 'rxjs';
 import type {
   DeletedItem,
   DiscoveredPostingView,
@@ -47,6 +47,28 @@ import type {
 } from '@reboundops/contracts';
 
 /** A failed API call, normalised so pages can show a helpful message. */
+export interface RestoreStage {
+  stageId: string;
+  size: number;
+  encrypted: boolean;
+  meta: { createdAt: string; schemaVersion: number; appVersion: string } | null;
+  currentCounts: Record<string, number>;
+}
+export interface RestoreCheck {
+  schemaVersion: number;
+  counts: Record<string, number>;
+  encrypted: boolean;
+  compatible: boolean;
+  currentCounts: Record<string, number>;
+}
+export interface RestoreOutcome {
+  restored: boolean;
+  counts: Record<string, number>;
+  recoveryBackup: string;
+  previousDatabase: string | null;
+  instructions: string;
+}
+
 export class ApiProblem extends Error {
   constructor(
     readonly status: number,
@@ -225,6 +247,36 @@ export class ApiService {
   }
   checkPosting(jobId: string) {
     return this.call(this.http.post<Job>(`${this.base}/jobs/${encodeURIComponent(jobId)}/check-posting`, {}));
+  }
+  /** Password-protected backup as a file (the password is sent once in the body and not kept). */
+  async encryptedBackup(password: string): Promise<{ blob: Blob; filename: string }> {
+    try {
+      const res = await firstValueFrom(this.http.post(`${this.base}/backup/encrypted`, { password }, { responseType: 'blob', observe: 'response' }));
+      const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'reboundops-backup.rbobak';
+      return { blob: res.body!, filename: name };
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && err.error instanceof Blob) {
+        try {
+          const body = JSON.parse(await err.error.text()) as { error?: { code?: string; message?: string } };
+          if (body.error?.message) throw new ApiProblem(err.status, body.error.code ?? 'error', body.error.message);
+        } catch (inner) {
+          if (inner instanceof ApiProblem) throw inner;
+        }
+      }
+      return this.call(throwError(() => err));
+    }
+  }
+  stageRestore(file: ArrayBuffer) {
+    return this.call(this.http.post<RestoreStage>(`${this.base}/restore/stage`, file, { headers: { 'content-type': 'application/octet-stream' } }));
+  }
+  verifyRestore(stageId: string, password?: string) {
+    return this.call(this.http.post<RestoreCheck>(`${this.base}/restore/${encodeURIComponent(stageId)}/verify`, password ? { password } : {}));
+  }
+  applyRestore(stageId: string, password: string | undefined, confirm: string) {
+    return this.call(this.http.post<RestoreOutcome>(`${this.base}/restore/${encodeURIComponent(stageId)}/apply`, { ...(password ? { password } : {}), confirm }));
+  }
+  cancelRestore(stageId: string) {
+    return this.call(this.http.delete<void>(`${this.base}/restore/${encodeURIComponent(stageId)}`));
   }
   fitWeights() {
     return this.call(this.http.get<FitWeights>(`${this.base}/assessment/weights`));

@@ -72,7 +72,7 @@ import {
   summarize,
 } from '@reboundops/core';
 import { assess, checkGrounding, DEFAULT_FIT_WEIGHTS, dedupeKey, extractJob, findDuplicates, normalizeDescription, RUBRIC, RUBRIC_VERSION } from '@reboundops/job-intelligence';
-import type { Store } from '@reboundops/storage';
+import { checkPasswordStrength, encryptBackupFile, type Store } from '@reboundops/storage';
 import { ImportFormatError, planImport, type ImportPlan } from '@reboundops/importer';
 import { checklist, draftAnswer, emptyPackage, followUpDraft } from '@reboundops/applications';
 import { ADAPTERS } from '@reboundops/job-sources';
@@ -103,6 +103,8 @@ import {
 } from '@reboundops/documents';
 import { AppError, notFound } from './errors.ts';
 import { DiscoveryService } from './discovery.ts';
+import { RestoreService } from './restore.ts';
+import { API_VERSION } from './version.ts';
 import type { FetchLike as SourceFetch } from '@reboundops/job-sources';
 
 const SaveDiscoveredRequest = z.object({ employer: z.string().trim().min(1).max(300).optional(), allowDuplicate: z.boolean().default(false) });
@@ -129,27 +131,47 @@ export interface WorkspaceOptions {
 export class Workspace {
   private readonly now: () => Date;
   private readonly newId: () => string;
-  private readonly store: Store;
+  private store: Store;
   private readonly env: Record<string, string | undefined>;
   private readonly aiFetch: FetchLike | undefined;
-  readonly discovery: DiscoveryService;
+  discovery: DiscoveryService;
+  readonly restore: RestoreService;
+  private readonly sourceFetch: SourceFetch | undefined;
   private readonly stagedImports = new Map<string, { plan: ImportPlan; expires: number }>();
 
   constructor(store: Store, options: WorkspaceOptions = {}) {
     this.store = store;
     this.env = options.env ?? process.env;
     this.aiFetch = options.aiFetch;
-    this.discovery = new DiscoveryService({
-      store,
+    this.sourceFetch = options.sourceFetch;
+    this.discovery = this.makeDiscovery();
+    this.restore = new RestoreService({ getStore: () => this.store, replaceStore: (next) => this.replaceStore(next), now: () => this.now() });
+    this.now = options.now ?? (() => new Date());
+    this.newId = options.newId ?? randomUUID;
+  }
+
+  private makeDiscovery(): DiscoveryService {
+    return new DiscoveryService({
+      store: this.store,
       now: () => this.now(),
       newId: () => this.newId(),
-      fetch: options.sourceFetch,
+      fetch: this.sourceFetch,
       getProfile: () => this.getProfile(),
       getOnboarding: () => this.getOnboarding(),
       getWeights: () => this.getFitWeights(),
     });
-    this.now = options.now ?? (() => new Date());
-    this.newId = options.newId ?? randomUUID;
+  }
+
+  /** The open store (it changes after an in-app restore). */
+  get currentStore(): Store {
+    return this.store;
+  }
+
+  /** Used by the in-app restore after it has swapped the database file. */
+  private replaceStore(next: Store): void {
+    this.store = next;
+    this.discovery = this.makeDiscovery();
+    this.stagedImports.clear();
   }
 
   get schemaVersion(): number {
@@ -1024,6 +1046,28 @@ export class Workspace {
       return { data: readFileSync(file), filename: `reboundops-backup-${this.now().toISOString().slice(0, 10)}.sqlite` };
     } finally {
       rmSync(file, { force: true });
+    }
+  }
+
+  /** A password-protected backup (scrypt + AES-256-GCM). The password is used once and not kept. */
+  backupEncrypted(input: unknown): { data: Buffer; filename: string } {
+    const { password } = z.object({ password: z.string().max(1024) }).parse(input);
+    try {
+      checkPasswordStrength(password);
+    } catch (err) {
+      throw new AppError(400, 'weak_password', (err as Error).message);
+    }
+    if (this.store.path === ':memory:') throw new AppError(409, 'backup_unavailable', 'This workspace is not stored on disk.');
+    const dir = dirname(this.store.path);
+    const plain = join(dir, `.backup-${this.newId()}.sqlite`);
+    const enc = join(dir, `.backup-${this.newId()}.rbobak`);
+    try {
+      this.store.backupTo(plain);
+      encryptBackupFile(plain, enc, password, { schemaVersion: this.store.schemaVersion, appVersion: API_VERSION, createdAt: this.now().toISOString() });
+      return { data: readFileSync(enc), filename: `reboundops-backup-${this.now().toISOString().slice(0, 10)}.rbobak` };
+    } finally {
+      rmSync(plain, { force: true });
+      rmSync(enc, { force: true });
     }
   }
 

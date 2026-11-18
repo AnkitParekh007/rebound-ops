@@ -288,6 +288,11 @@ export interface RestoreOptions extends VerifyOptions {
   /** Free bytes available in the data directory; injectable for tests. */
   freeBytes?: (dir: string) => number;
   faults?: RestoreFaults;
+  /**
+   * The caller already holds the data-directory lock and has closed its own
+   * database handle (the in-app restore inside the running server).
+   */
+  lockHeld?: boolean;
 }
 
 function defaultFreeBytes(dir: string): number {
@@ -378,9 +383,9 @@ export function restoreBackup(backupFile: string, dataDir: string, nowOrOptions:
   const now = opts.now ?? (() => new Date());
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true, mode: 0o700 });
 
-  let release: () => void;
+  let release: () => void = () => {};
   try {
-    release = acquireLock(dataDir, 'restore');
+    if (!opts.lockHeld) release = acquireLock(dataDir, 'restore');
   } catch (err) {
     const pid = runningPid(dataDir);
     if (pid !== null) throw new BackupError(`ReboundOps is running (process ${pid}). Stop it before restoring.`, { cause: err });
