@@ -1,0 +1,77 @@
+import { readFileSync } from 'node:fs';
+import { expect, test } from '@playwright/test';
+
+const posting = readFileSync(new URL('../fixtures/jobs/labelled.txt', import.meta.url), 'utf8');
+
+test('M1 journey: first launch → onboarding → preferences → job intake → tracker → overview', async ({ page }) => {
+  // First launch lands on the welcome flow.
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/welcome$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('A calmer way to run your job search');
+
+  await page.getByRole('button', { name: 'Get started' }).click();
+  await expect(page.getByRole('radio', { name: /Local only/ })).toBeChecked();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByLabel('Target roles').fill('Platform Engineer, SRE');
+  await page.getByRole('button', { name: 'Back' }).click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByLabel('Target roles').fill('Platform Engineer, SRE');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText("You're set up");
+  await page.getByRole('button', { name: 'Fill in profile' }).click();
+
+  // Preferences.
+  await expect(page).toHaveURL(/\/profile$/);
+  await page.getByLabel('Name').fill('Alex Fictional');
+  await page.getByLabel('Preferred countries').fill('Portugal, Spain');
+  await page.getByRole('checkbox', { name: 'Hybrid' }).check();
+  await page.getByLabel('Skills you can evidence').fill('TypeScript, PostgreSQL, Kubernetes');
+  await page.getByRole('button', { name: 'Save profile' }).click();
+  await expect(page.getByText('Profile saved.')).toBeVisible();
+
+  // Job intake with evidence.
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Add a job' }).click();
+  await page.getByLabel('Job posting URL (optional)').fill('https://careers.example.test/brightwater/77');
+  await page.getByLabel('Job description').fill(posting);
+  await page.getByRole('button', { name: 'Read details' }).click();
+  await expect(page.getByLabel(/Job title/)).toHaveValue('Senior Platform Engineer');
+  await expect(page.getByLabel('Salary')).toHaveValue('€68,000 - €82,000 per year');
+  await expect(page.getByText('Unverified — not checked against the live posting')).toBeVisible();
+  await expect(page.locator('#p-salary')).toContainText('From the text');
+  await page.getByLabel('Location').fill('Lisbon (hybrid)');
+  await expect(page.locator('#p-location')).toContainText('Entered by you');
+  await page.getByRole('button', { name: 'Save to tracker' }).click();
+
+  // Application detail and status workflow.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Senior Platform Engineer');
+  await expect(page.locator('.status.large')).toHaveText('Discovered');
+  await expect(page.getByRole('link', { name: /official posting/ })).toHaveAttribute('href', 'https://careers.example.test/brightwater/77');
+  await page.getByRole('button', { name: 'Shortlisted' }).click();
+  await expect(page.locator('.status.large')).toHaveText('Shortlisted');
+
+  // Applied requires explicit confirmation; cancelling changes nothing.
+  await page.getByRole('button', { name: 'Applied' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Confirm you applied' });
+  await expect(dialog.getByRole('button', { name: 'Mark as applied' })).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.locator('.status.large')).toHaveText('Shortlisted');
+  await page.getByRole('button', { name: 'Applied' }).click();
+  await dialog.getByRole('checkbox', { name: 'I submitted this application myself' }).check();
+  await dialog.getByRole('button', { name: 'Mark as applied' }).click();
+  await expect(page.locator('.status.large')).toHaveText('Applied');
+
+  await page.getByLabel('Add a note').fill('Referred by a former colleague.');
+  await page.getByRole('button', { name: 'Add note' }).click();
+  await expect(page.locator('.timeline')).toContainText('Referred by a former colleague.');
+
+  // Tracker list and overview reflect stored data, and survive a reload.
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tracker' }).click();
+  await expect(page.locator('.app-row')).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator('.app-row .status')).toHaveText('Applied');
+
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Overview' }).click();
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+  await expect(page.locator('.metric').filter({ hasText: 'Submitted (confirmed)' }).locator('dd')).toHaveText('1');
+  await expect(page.locator('.metric').filter({ hasText: 'Tracked' }).locator('dd')).toHaveText('1');
+});
