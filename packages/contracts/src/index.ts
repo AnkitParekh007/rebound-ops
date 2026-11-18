@@ -316,3 +316,71 @@ export const ExportBundle = z.object({
   activity: z.array(ActivityEntry),
 });
 export type ExportBundle = z.infer<typeof ExportBundle>;
+
+/* ------------------------------------------------------------------ */
+/* Assessment (fit + eligibility)                                      */
+/* ------------------------------------------------------------------ */
+
+export const EvidenceSource = z.enum(['job', 'profile']);
+export type EvidenceSource = z.infer<typeof EvidenceSource>;
+
+export const Evidence = z.object({ source: EvidenceSource, text: z.string() });
+export type Evidence = z.infer<typeof Evidence>;
+
+export const CriterionKey = z.enum(['role', 'skills', 'experience', 'location']);
+export type CriterionKey = z.infer<typeof CriterionKey>;
+
+export const FitCriterion = z.object({
+  key: CriterionKey,
+  label: z.string(),
+  weight: z.number(),
+  /** 0–5, or null when there is not enough information to score honestly. */
+  score: z.number().min(0).max(5).nullable(),
+  rationale: z.string(),
+  evidence: z.array(Evidence),
+  /** Profile information that would let this criterion be scored. */
+  missing: z.array(z.string()),
+});
+export type FitCriterion = z.infer<typeof FitCriterion>;
+
+export const EligibilityStatus = z.enum(['confirmed', 'unconfirmed', 'ineligible']);
+export type EligibilityStatus = z.infer<typeof EligibilityStatus>;
+
+export const EligibilityCheck = z.object({
+  key: z.enum(['work_authorization', 'credentials']),
+  label: z.string(),
+  status: EligibilityStatus,
+  reason: z.string(),
+  evidence: z.array(Evidence),
+  /** Applicant information that is missing (as opposed to a disqualifier). */
+  missing: z.array(z.string()),
+});
+export type EligibilityCheck = z.infer<typeof EligibilityCheck>;
+
+export const Assessment = z.object({
+  applicationId: z.string(),
+  rubricVersion: z.string(),
+  assessedAt: isoDate,
+  fit: z.object({
+    /** Weighted 0–5 score rounded to 0.5, or null if fewer than two criteria could be scored. */
+    overall: z.number().min(0).max(5).nullable(),
+    scoredCriteria: z.number().int(),
+    totalCriteria: z.number().int(),
+    criteria: z.array(FitCriterion),
+  }),
+  eligibility: z.object({
+    status: EligibilityStatus,
+    checks: z.array(EligibilityCheck),
+  }),
+  /** Deduplicated list of profile details the person could add. */
+  missingInfo: z.array(z.string()),
+  disclaimer: z.string(),
+});
+export type Assessment = z.infer<typeof Assessment>;
+
+export const AssessmentSummary = z.object({
+  applicationId: z.string(),
+  overall: z.number().nullable(),
+  eligibility: EligibilityStatus,
+});
+export type AssessmentSummary = z.infer<typeof AssessmentSummary>;
