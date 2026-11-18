@@ -46,7 +46,7 @@ test('A scanned PDF offers manual entry and keeps the original', async ({ page }
   const scan = buildPdf(['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>', pdfPage('5 0 R'), font, stream('q 0.2 g 72 72 451 698 re f Q')]);
   await page.locator('#resume-file').setInputFiles({ name: 'scan.pdf', mimeType: 'application/pdf', buffer: scan });
   await expect(page.getByRole('alert')).toContainText('no selectable text');
-  await page.getByLabel('Resume text').fill(resumeLines.join('\n'));
+  await page.getByLabel('Resume text', { exact: true }).fill(resumeLines.join('\n'));
   await page.getByRole('button', { name: 'Read my text' }).click();
   await expect(page.locator('.extraction')).toContainText('text you entered');
 });

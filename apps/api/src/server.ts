@@ -79,8 +79,10 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     }
 
     // Forms can POST cross-site without preflight; JSON cannot. Require JSON.
-    // DELETE carries no body and always needs a CORS preflight, so it is exempt.
-    if (MUTATING.has(req.method) && !(req.method === 'DELETE' && !req.headers['content-length'])) {
+    // A body-less DELETE always needs a CORS preflight, so it is exempt. Browsers and
+    // proxies may send an explicit "Content-Length: 0", which still means no body.
+    const deleteWithoutBody = req.method === 'DELETE' && !req.headers['transfer-encoding'] && Number(req.headers['content-length'] ?? 0) === 0;
+    if (MUTATING.has(req.method) && !deleteWithoutBody) {
       const type = (req.headers['content-type'] ?? '').toLowerCase();
       const rawUpload = req.method === 'POST' && req.url === '/api/restore/stage' && type.startsWith('application/octet-stream');
       if (!type.startsWith('application/json') && !rawUpload) {

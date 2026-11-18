@@ -74,6 +74,14 @@ describe('request guards', () => {
     expect(res.statusCode).toBe(415);
   });
 
+  it('accepts a body-less DELETE even with Content-Length: 0, but not a DELETE with a non-JSON body', async () => {
+    // Browsers and dev proxies may send an explicit zero length on DELETE.
+    const empty = await app.inject({ method: 'DELETE', url: '/api/applications/none/contacts/none', headers: { host: 'localhost', origin: ORIGIN, 'content-length': '0' } });
+    expect(empty.statusCode).toBe(404);
+    const form = await app.inject({ method: 'DELETE', url: '/api/applications/none/contacts/none', headers: { host: 'localhost', 'content-type': 'application/x-www-form-urlencoded' }, payload: 'a=b' });
+    expect(form.statusCode).toBe(415);
+  });
+
   it('returns structured validation errors', async () => {
     const res = await send('PUT', '/api/onboarding', { aiMode: 'telepathy' });
     expect(res.statusCode).toBe(400);
