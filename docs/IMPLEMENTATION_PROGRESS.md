@@ -6,6 +6,24 @@ machine-specific paths (enforced by `npm run audit:release`).
 
 _Last updated: 2026-11-18_
 
+## v0.2.0 checkpoint (branch `feature/v0.2.0`, not pushed)
+
+| Phase | Status | Commit |
+| --- | --- | --- |
+| P0 reliability (crash-safe restore, O_EXCL lock, submission date kept, reopen with history, undoable deletes, strict audit, packaged-serving CI) | Done | c00b2c9 |
+| P1.1 PDF resume import (pdf.js, local) | Done | e46a674 |
+| P1.2 Official job sources (Greenhouse, Lever, Ashby, Workable; Workday unsupported) | Done | 550b3a7 |
+| P1.3 Job intelligence v2 (rubric fit-2026.2) | Done | bf6c3e0, 428ab6b |
+| P1.4 Discover page | Done | e5e5182 |
+| P2.1 Encrypted backups | Storage layer done in P0 (backup-crypto.ts); API/UI pending | — |
+| P2.2 In-app restore | Pending | — |
+| P2.3 Tracking and follow-ups | Soft delete/undo, priority done; interview notes storage done; templates, filters, export pending | — |
+| P2.4 Ollama assistance | Pending | — |
+| P3 Packaging | Pending | — |
+| P5/P6 Migration spec, provenance | Pending | — |
+
+Resume rule: run the verification commands, then continue with the first pending row.
+
 ## Verification commands
 
 ```bash
