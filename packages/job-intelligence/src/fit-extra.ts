@@ -116,7 +116,7 @@ export interface ParsedPay {
 /** Reads a pay range from published pay text. Returns null when it cannot be read unambiguously. */
 export function parsePay(text: string | null): ParsedPay | null {
   if (!text) return null;
-  const t = text.replace(/,(?=\d{3}\b)/g, '').replace(/ /g, ' ');
+  const t = text.replace(/,(?=\d{3}\b)/g, '').replace(/\u00a0/g, ' ');
   const nums = [...t.matchAll(/(\d+(?:\.\d+)?)\s*([kKmM])?(?![\d%])/g)]
     .map((m) => Number(m[1]) * (m[2] ? (m[2].toLowerCase() === 'k' ? 1000 : 1_000_000) : 1))
     .filter((n) => n >= 5); // drop stray small numbers such as "1 YEAR"
