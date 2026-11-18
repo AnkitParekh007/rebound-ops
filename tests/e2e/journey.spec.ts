@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 const posting = readFileSync(new URL('../fixtures/jobs/labelled.txt', import.meta.url), 'utf8');
+const resume = readFileSync(new URL('../fixtures/resumes/jordan-fictional.txt', import.meta.url), 'utf8');
 
 test('Journey: first launch → onboarding → preferences → job intake → assessment → tracker → overview', async ({ page }) => {
   // First launch lands on the welcome flow.
@@ -22,7 +23,13 @@ test('Journey: first launch → onboarding → preferences → job intake → as
 
   // Preferences.
   await expect(page).toHaveURL(/\/profile$/);
-  await page.getByLabel('Name').fill('Alex Fictional');
+  // M3: import a master resume, review, verify.
+  await page.getByLabel('…or paste resume text').fill(resume);
+  await page.getByRole('button', { name: 'Read pasted text' }).click();
+  await expect(page.getByRole('heading', { name: /Review what was found/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Add selected to profile' }).click();
+  for (const box of await page.getByRole('checkbox', { name: /I have checked this entry is accurate|^Verified$/ }).all()) await box.check();
+  await page.getByLabel('Name', { exact: true }).fill('Alex Fictional');
   await page.getByLabel('Preferred countries').fill('Portugal, Spain');
   await page.getByRole('checkbox', { name: 'Hybrid' }).check();
   await page.getByLabel('Skills you can evidence').fill('TypeScript, PostgreSQL, Kubernetes');
@@ -52,6 +59,14 @@ test('Journey: first launch → onboarding → preferences → job intake → as
   await expect(fit.locator('.score-value')).not.toHaveText('—');
   await expect(fit.locator('.eligibility').first()).toHaveText('Eligibility unconfirmed');
   await expect(fit).toContainText('Countries where you are authorised to work');
+
+  // M3: tailored drafts and verified exports.
+  await page.getByRole('button', { name: 'Generate drafts' }).click();
+  await expect(page.getByText('Senior Platform Engineer — Lumenfield Systems')).toBeVisible();
+  const download = page.waitForEvent('download');
+  await page.getByRole('region', { name: 'Tailored documents' }).getByRole('button', { name: 'Download PDF' }).first().click();
+  expect((await download).suggestedFilename()).toMatch(/Resume\.pdf$/);
+  await expect(page.getByText(/content check passed/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Shortlisted' }).click();
   await expect(page.locator('.status.large')).toHaveText('Shortlisted');

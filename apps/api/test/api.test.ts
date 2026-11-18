@@ -259,8 +259,8 @@ describe('resume import and documents (M3)', () => {
       headline: p.headline,
       contact: p.contact,
       skills: p.skills,
-      experience: p.experience.map((e: object) => ({ ...e, verified: true })),
-      education: p.education.map((e: object) => ({ ...e, verified: true })),
+      experience: p.experience.map((e: Record<string, unknown>) => ({ ...e, verified: true })),
+      education: p.education.map((e: Record<string, unknown>) => ({ ...e, verified: true })),
       certifications: p.certifications,
     });
     return result;
@@ -322,7 +322,7 @@ describe('resume import and documents (M3)', () => {
     const { application } = await saveLabelledJob();
     await send('POST', `/api/applications/${application.id}/documents/generate`, {});
     clock = new Date(clock.getTime() + 60_000);
-    await send('PUT', '/api/profile', { ...(await send('GET', '/api/profile')).json(), headline: 'Changed' });
+    await send('PUT', '/api/profile', { ...(await send('GET', '/api/profile')).json<Record<string, unknown>>(), headline: 'Changed' });
     expect((await send('GET', `/api/applications/${application.id}/documents`)).json().profileChangedSinceDraft).toBe(true);
   });
 });

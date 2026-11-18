@@ -7,6 +7,12 @@ import type {
   Assessment,
   AssessmentSummary,
   DashboardSummary,
+  DocumentKind,
+  DocumentsBundle,
+  ExportFormat,
+  ResumeDraftUpdate,
+  ResumeImportRequest,
+  ResumeImportResult,
   Health,
   JobCreate,
   JobCreateResult,
@@ -98,6 +104,45 @@ export class ApiService {
   }
   assessments() {
     return this.call(this.http.get<AssessmentSummary[]>(`${this.base}/assessments`));
+  }
+  importResume(req: ResumeImportRequest) {
+    return this.call(this.http.post<ResumeImportResult>(`${this.base}/resume/import`, req));
+  }
+  documents(id: string) {
+    return this.call(this.http.get<DocumentsBundle>(`${this.docs(id)}`));
+  }
+  generateDocuments(id: string, overwrite = false) {
+    return this.call(this.http.post<DocumentsBundle>(`${this.docs(id)}/generate`, { overwrite }));
+  }
+  updateResumeDraft(id: string, update: ResumeDraftUpdate) {
+    return this.call(this.http.put<DocumentsBundle>(`${this.docs(id)}/resume`, update));
+  }
+  updateCoverLetter(id: string, text: string) {
+    return this.call(this.http.put<DocumentsBundle>(`${this.docs(id)}/cover_letter`, { text }));
+  }
+  /** Downloads an export; a failed content check surfaces as an ApiProblem with the reasons. */
+  async exportDocument(id: string, kind: DocumentKind, format: ExportFormat): Promise<{ blob: Blob; filename: string }> {
+    try {
+      const res = await firstValueFrom(
+        this.http.get(`${this.docs(id)}/${kind}/export`, { params: { format }, responseType: 'blob', observe: 'response' }),
+      );
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? `document.${format}`;
+      return { blob: res.body!, filename };
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && err.error instanceof Blob) {
+        try {
+          const body = JSON.parse(await err.error.text()) as { error?: { code?: string; message?: string; details?: unknown } };
+          throw new ApiProblem(err.status, body.error?.code ?? 'error', body.error?.message ?? 'Export failed.', body.error?.details);
+        } catch (inner) {
+          if (inner instanceof ApiProblem) throw inner;
+        }
+      }
+      throw new ApiProblem(err instanceof HttpErrorResponse ? err.status : 0, 'export_failed', 'Export failed.');
+    }
+  }
+  private docs(id: string) {
+    return `${this.base}/applications/${encodeURIComponent(id)}/documents`;
   }
   dashboard() {
     return this.call(this.http.get<DashboardSummary>(`${this.base}/dashboard`));

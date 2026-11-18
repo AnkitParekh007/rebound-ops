@@ -266,3 +266,11 @@ details summary { cursor: pointer; font-weight: 600; margin-bottom: 0.5rem; }
 .notice ul { margin: 0 0 0.5rem; padding-left: 1.2rem; }
 .fit-cell { display: inline-flex; gap: 0.5rem; align-items: center; }
 .fit-pill { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- documents ---------- */
+.highlight-row { display: grid; grid-template-columns: auto 1fr auto; gap: 0.5rem; align-items: center; }
+.highlight-row .grow { min-width: 0; }
+.chip-check { border: 1px solid var(--line); border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.9rem; }
+.chip-check.matched { border-color: var(--accent); background: var(--accent-soft); }
+.review { border-top: 1px solid var(--line); padding-top: 1rem; }
+fieldset.subcard > legend { padding: 0 0.3rem; font-weight: 600; }

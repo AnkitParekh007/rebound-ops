@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import type { ApplicationStatus, ApplicationView } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from '../api.service';
 import { AssessmentPanel } from '../assessment-panel';
+import { DocumentsPanel } from '../documents-panel';
 import { STATUS_LABEL } from '../labels';
 
 @Component({
   selector: 'app-application-page',
-  imports: [FormsModule, RouterLink, AssessmentPanel],
+  imports: [FormsModule, RouterLink, AssessmentPanel, DocumentsPanel],
   template: `
     <section class="page" aria-labelledby="app-heading">
       <p><a routerLink="/tracker" class="back-link">← All applications</a></p>
@@ -47,6 +48,7 @@ import { STATUS_LABEL } from '../labels';
             </section>
 
             <app-assessment-panel [applicationId]="a.id" />
+            <app-documents-panel [applicationId]="a.id" />
 
             <section class="card" aria-labelledby="source-heading">
               <h2 id="source-heading">Posting</h2>
