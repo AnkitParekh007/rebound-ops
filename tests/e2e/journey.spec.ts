@@ -33,7 +33,7 @@ test('Journey: first launch → onboarding → preferences → job intake → as
   await expect(page.getByRole('checkbox', { name: 'I have checked this entry is accurate' }).first()).toBeVisible();
   for (const box of await verifyBoxes.all()) await box.check();
   for (const box of await verifyBoxes.all()) await expect(box).toBeChecked();
-  await page.getByLabel('Name', { exact: true }).fill('Alex Fictional');
+  await page.getByRole('group', { name: 'About you' }).getByLabel('Name', { exact: true }).fill('Alex Fictional');
   await page.getByLabel('Preferred countries').fill('Portugal, Spain');
   await page.getByRole('checkbox', { name: 'Hybrid' }).check();
   await page.getByLabel('Skills you can evidence').fill('TypeScript, PostgreSQL, Kubernetes');
