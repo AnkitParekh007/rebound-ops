@@ -7,7 +7,7 @@
   --surface: #fffdf9;
   --ink: #1e2430;
   --ink-2: #4b5363;
-  --ink-3: #6b7280;
+  --ink-3: #5b6270;
   --line: #d9d1c4;
   --accent: #1d6b52;
   --accent-ink: #ffffff;
@@ -18,15 +18,15 @@
   --danger-soft: #f8e1df;
   --focus: #2b59c3;
 
-  --s-discovered: #6b7280;
-  --s-shortlisted: #2b59c3;
-  --s-preparing: #7a4fb5;
-  --s-ready_for_review: #b0670a;
+  --s-discovered: #535a67;
+  --s-shortlisted: #2650b0;
+  --s-preparing: #6c43a6;
+  --s-ready_for_review: #8a4f00;
   --s-applied: #1d6b52;
-  --s-interviewing: #0f7a8a;
-  --s-offer: #2e7d32;
+  --s-interviewing: #0b6674;
+  --s-offer: #25692a;
   --s-rejected: #a3302a;
-  --s-withdrawn: #8a8f98;
+  --s-withdrawn: #555b65;
 
   --radius: 10px;
   --radius-sm: 6px;
@@ -53,6 +53,16 @@
     --danger: #f08a82;
     --danger-soft: #3d2221;
     --focus: #8fb0ff;
+    /* Status colours tuned for dark surfaces (all at least 4.5:1 on the tinted pill). */
+    --s-discovered: #aab0ba;
+    --s-shortlisted: #8fb0ff;
+    --s-preparing: #c6a8f0;
+    --s-ready_for_review: #f0b45a;
+    --s-applied: #5cc39c;
+    --s-interviewing: #62c9d7;
+    --s-offer: #82d08c;
+    --s-rejected: #f08a82;
+    --s-withdrawn: #a7acb5;
     --shadow: 0 1px 0 rgb(0 0 0 / 30%);
   }
 }

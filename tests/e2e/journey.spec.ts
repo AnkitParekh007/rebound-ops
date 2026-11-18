@@ -72,6 +72,29 @@ test('Journey: first launch → onboarding → preferences → job intake → as
   expect((await download).suggestedFilename()).toMatch(/Resume\.pdf$/);
   await expect(page.getByText(/content check passed/)).toBeVisible();
 
+  // Edit and save the draft, then export the edited resume as DOCX.
+  const docs = page.getByRole('region', { name: 'Tailored documents' });
+  await docs.getByLabel('Summary', { exact: true }).fill('Platform engineer focused on reliable delivery.');
+  await docs.getByRole('button', { name: 'Save resume edits' }).click();
+  await expect(page.getByText('Resume edits saved.')).toBeVisible();
+  const docx = page.waitForEvent('download');
+  await docs.getByRole('button', { name: 'Download DOCX' }).first().click();
+  expect((await docx).suggestedFilename()).toMatch(/Resume\.docx$/);
+  await expect(page.getByText(/Resume\.docx downloaded — content check passed/)).toBeVisible();
+
+  // Application prep: official link and a reviewed screening answer.
+  const prep = page.getByRole('region', { name: 'Prepare to apply' });
+  await prep.getByLabel('Official application URL').fill('https://careers.example.test/brightwater/77/apply');
+  await prep.getByRole('button', { name: 'Save link' }).click();
+  await expect(prep.getByRole('link', { name: /Open the official application/ })).toHaveAttribute('href', 'https://careers.example.test/brightwater/77/apply');
+  await prep.getByLabel(/Paste questions/).fill('Why do you want this role?');
+  await prep.getByRole('button', { name: 'Draft answers' }).click();
+  const answer = prep.getByLabel('Answer to: Why do you want this role?');
+  await expect(answer).toBeVisible();
+  await answer.fill('The platform focus matches my recent work.');
+  await prep.getByRole('button', { name: 'Mark reviewed' }).click();
+  await expect(prep.locator('.answer-status')).toHaveText('Reviewed');
+
   await page.getByRole('button', { name: 'Shortlisted' }).click();
   await expect(page.locator('.status.large')).toHaveText('Shortlisted');
 
@@ -89,6 +112,37 @@ test('Journey: first launch → onboarding → preferences → job intake → as
   await page.getByLabel('Add a note').fill('Referred by a former colleague.');
   await page.getByRole('button', { name: 'Add note' }).click();
   await expect(page.locator('.timeline')).toContainText('Referred by a former colleague.');
+
+  // Contacts, reminders and a follow-up draft (never sent).
+  const track = page.getByRole('region', { name: 'Contacts and follow-ups' });
+  await expect(track.getByText('Follow up if you have not heard back')).toBeVisible(); // added when marked applied
+  await track.getByLabel('Reminder', { exact: true }).fill('Prepare for phone screen');
+  await track.getByLabel('Due date').fill('2026-12-01');
+  await track.getByRole('button', { name: 'Add reminder' }).click();
+  await expect(track.getByText('Prepare for phone screen')).toBeVisible();
+  const contactForm = track.getByRole('form', { name: 'Add a contact' });
+  await contactForm.getByLabel('Name').fill('Sam Example');
+  await contactForm.getByLabel('Role').fill('Recruiter');
+  await contactForm.getByLabel('Email').fill('sam@example.test');
+  await contactForm.getByRole('button', { name: 'Save contact' }).click();
+  await expect(track.getByText('Sam Example')).toBeVisible();
+  await track.getByRole('button', { name: 'Draft', exact: true }).click();
+  await expect(track.getByLabel('Message')).toHaveValue(/Sam/);
+  await expect(track.getByText('ReboundOps does not send messages.')).toBeVisible();
+
+  // Everything above survives a reload.
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Tailored documents' }).getByLabel('Summary', { exact: true })).toHaveValue('Platform engineer focused on reliable delivery.');
+  await expect(page.getByRole('region', { name: 'Prepare to apply' }).locator('.answer-status')).toHaveText('Reviewed');
+  await expect(page.getByRole('region', { name: 'Contacts and follow-ups' }).getByText('Sam Example')).toBeVisible();
+
+  // The same posting again is caught as a duplicate.
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Add a job' }).click();
+  await page.getByLabel('Job description').fill(posting);
+  await page.getByRole('button', { name: 'Read details' }).click();
+  await page.getByRole('button', { name: 'Save to tracker' }).click();
+  await expect(page.getByText('This looks like a job you already saved. Save anyway to keep both.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save anyway' })).toBeVisible();
 
   // Tracker list and overview reflect stored data, and survive a reload.
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tracker' }).click();
