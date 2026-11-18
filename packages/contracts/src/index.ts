@@ -143,7 +143,12 @@ export type ProfileUpdate = z.input<typeof ProfileUpdate>;
 /* ------------------------------------------------------------------ */
 
 /** Where a stored job field came from. Extracted fields must carry their evidence. */
-export const FieldOrigin = z.enum(['extracted', 'user']);
+export const FieldOrigin = z.enum([
+  'extracted',
+  'user',
+  // v0.2.0: a structured field from an official job-board interface (evidence names the field).
+  'source',
+]);
 export type FieldOrigin = z.infer<typeof FieldOrigin>;
 
 export const FieldProvenance = z.object({
@@ -226,8 +231,122 @@ export const Job = z.object({
   verification: JobVerification,
   dedupeKey: z.string(),
   capturedAt: isoDate,
+  /** v0.2.0: present when the job was saved from an official job-board interface. */
+  source: z.lazy(() => JobSourceLink).nullable().optional(),
 });
 export type Job = z.infer<typeof Job>;
+
+/* ------------------------------------------------------------------ */
+/* Official job sources (v0.2.0)                                       */
+/* ------------------------------------------------------------------ */
+
+export const JobSourceId = z.enum(['greenhouse', 'lever', 'ashby', 'workable', 'workday']);
+export type JobSourceId = z.infer<typeof JobSourceId>;
+
+/**
+ * "listed": present in the provider's live feed when last fetched (a verified,
+ * timestamped fact). "not_listed": absent from a later successful fetch.
+ * "unknown": never checked, or the last check failed.
+ */
+export const PostingAvailability = z.enum(['listed', 'not_listed', 'unknown']);
+export type PostingAvailability = z.infer<typeof PostingAvailability>;
+
+export const JobSourceLink = z.object({
+  provider: JobSourceId,
+  board: z.string(),
+  postingId: z.string(),
+  retrievedAt: isoDate,
+  availability: PostingAvailability,
+  lastCheckedAt: isoDate.nullable(),
+});
+export type JobSourceLink = z.infer<typeof JobSourceLink>;
+
+export const SourceSalary = z.object({
+  min: z.number().nullable(),
+  max: z.number().nullable(),
+  currency: z.string().nullable(),
+  interval: z.string().nullable(),
+  /** Exactly as the provider published it, or built only from its numeric fields. */
+  text: z.string(),
+});
+export type SourceSalary = z.infer<typeof SourceSalary>;
+
+export const DiscoveredPosting = z.object({
+  id: z.string(),
+  source: JobSourceId,
+  board: z.string(),
+  postingId: z.string(),
+  title: z.string(),
+  employer: z.string(),
+  /** "provider": the company name came from the API; "board": only the board identifier was available. */
+  employerOrigin: z.enum(['provider', 'board']),
+  location: z.string().nullable(),
+  locations: z.array(z.string()),
+  countries: z.array(z.string()),
+  workArrangement: WorkArrangement.nullable(),
+  /** Where the work arrangement came from; null when not stated. */
+  workArrangementOrigin: z.enum(['provider_field', 'location_text']).nullable(),
+  postingUrl: httpUrl,
+  applyUrl: httpUrl.nullable(),
+  description: z.string(),
+  requirements: z.array(z.string()),
+  salary: SourceSalary.nullable(),
+  employmentType: z.string().nullable(),
+  department: z.string().nullable(),
+  postedAt: isoDate.nullable(),
+  updatedAt: isoDate.nullable(),
+  retrievedAt: isoDate,
+  availability: PostingAvailability,
+  lastSeenAt: isoDate.nullable(),
+  savedJobId: z.string().nullable(),
+});
+export type DiscoveredPosting = z.infer<typeof DiscoveredPosting>;
+
+export const JobSourceInfo = z.object({
+  id: JobSourceId,
+  label: z.string(),
+  supported: z.boolean(),
+  /** What the provider's public interface allows. None of them offers cross-company search. */
+  capabilities: z.object({ listBoard: z.boolean(), singlePosting: z.boolean(), salary: z.boolean(), keywordSearch: z.boolean() }),
+  boardHint: z.string(),
+  docsUrl: z.string(),
+  limitations: z.array(z.string()),
+});
+export type JobSourceInfo = z.infer<typeof JobSourceInfo>;
+
+export const DiscoveryRequest = z.object({
+  /** A board identifier, or the company's careers-page URL on the provider. */
+  board: shortText(300).min(1),
+  source: JobSourceId.optional(),
+  query: shortText(200).default(''),
+  country: shortText(80).default(''),
+  remoteOnly: z.boolean().default(false),
+  /** Bypass the response cache (still rate-limited). */
+  refresh: z.boolean().default(false),
+});
+export type DiscoveryRequest = z.input<typeof DiscoveryRequest>;
+
+export const DiscoveredPostingView = DiscoveredPosting.extend({
+  fit: z.object({ score: z.number(), label: z.string() }).nullable(),
+  eligibility: z.enum(['confirmed', 'unconfirmed', 'ineligible']).nullable(),
+  duplicates: z.array(z.object({ jobId: z.string(), title: z.string(), reason: z.string() })),
+  /** Hours since the provider feed was last fetched successfully. */
+  ageHours: z.number(),
+});
+export type DiscoveredPostingView = z.infer<typeof DiscoveredPostingView>;
+
+export const DiscoveryResult = z.object({
+  source: JobSourceId,
+  board: z.string(),
+  employer: z.string().nullable(),
+  fetchedAt: isoDate,
+  fromCache: z.boolean(),
+  totalListed: z.number().int(),
+  postings: z.array(DiscoveredPostingView),
+  notes: z.array(z.string()),
+});
+export type DiscoveryResult = z.infer<typeof DiscoveryResult>;
+
 
 /* ------------------------------------------------------------------ */
 /* Applications / tracker                                              */
@@ -738,6 +857,24 @@ export const ReminderUpdate = z.object({
   notes: shortText(2000).optional(),
 });
 export type ReminderUpdate = z.infer<typeof ReminderUpdate>;
+
+/** Interview notes and preparation (v0.2.0). Written by the person; never sent anywhere. */
+export const InterviewNote = z.object({
+  id: z.string(),
+  applicationId: z.string(),
+  stage: shortText(80).default('Interview'),
+  scheduledFor: isoDate.nullable().default(null),
+  interviewers: shortText(300).default(''),
+  preparation: shortText(8000).default(''),
+  questionsToAsk: shortText(4000).default(''),
+  notes: shortText(8000).default(''),
+  outcome: z.enum(['pending', 'went_well', 'mixed', 'went_poorly']).default('pending'),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+export type InterviewNote = z.infer<typeof InterviewNote>;
+export const InterviewNoteInput = InterviewNote.pick({ stage: true, scheduledFor: true, interviewers: true, preparation: true, questionsToAsk: true, notes: true, outcome: true }).partial();
+export type InterviewNoteInput = z.input<typeof InterviewNoteInput>;
 
 export const FollowUpKind = z.enum(['after_applying', 'after_interview', 'thank_you', 'withdraw']);
 export type FollowUpKind = z.infer<typeof FollowUpKind>;

@@ -1,0 +1,10 @@
+{
+  "id": 4001001,
+  "title": "Senior Platform Engineer",
+  "company_name": "Example Robotics",
+  "absolute_url": "https://job-boards.greenhouse.io/examplerobotics/jobs/4001001",
+  "location": { "name": "Remote - Portugal" },
+  "updated_at": "2026-11-10T09:00:00-05:00",
+  "content": "&lt;p&gt;Example Robotics builds warehouse robots.&lt;/p&gt;",
+  "pay_input_ranges": [{ "min_cents": 6000000, "max_cents": 7500000, "currency_type": "EUR", "title": "Portugal base salary", "blurb": "" }]
+}

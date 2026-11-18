@@ -9,6 +9,8 @@ import {
   ApplicationPackage,
   Contact,
   CoverLetterDraft,
+  DiscoveredPosting,
+  InterviewNote,
   Job,
   OnboardingState,
   Profile,
@@ -111,6 +113,15 @@ export class Store {
          ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       )
       .run(key, JSON.stringify(value), at);
+  }
+
+  /** A named setting validated by `schema`; null when unset. */
+  getSetting<S extends z.ZodType>(key: string, schema: S): z.infer<S> | null {
+    return this.getKv(`setting:${key}`, schema);
+  }
+
+  putSetting(key: string, value: unknown, at: string = new Date().toISOString()): void {
+    this.putKv(`setting:${key}`, value, at);
   }
 
   getOnboarding(): OnboardingState | null {
@@ -358,6 +369,110 @@ export class Store {
     return a + b;
   }
 
+  /* ---------------- discovered postings (v0.2.0) ---------------- */
+
+  /** Inserts or refreshes a posting, keeping its id and saved-job link stable across fetches. */
+  upsertDiscovered(p: DiscoveredPosting): DiscoveredPosting {
+    const existing = this.db
+      .prepare('SELECT id, data FROM discovered_jobs WHERE source = ? AND board = ? AND posting_id = ?')
+      .get(p.source, p.board, p.postingId) as Row | undefined;
+    const prev = existing ? parseRow(DiscoveredPosting, 'discovered_jobs', existing) : null;
+    const valid = DiscoveredPosting.parse({ ...p, id: prev?.id ?? p.id, savedJobId: p.savedJobId ?? prev?.savedJobId ?? null });
+    this.db
+      .prepare(
+        `INSERT INTO discovered_jobs (id, source, board, posting_id, fetched_at, data) VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT (source, board, posting_id) DO UPDATE SET fetched_at = excluded.fetched_at, data = excluded.data`,
+      )
+      .run(valid.id, valid.source, valid.board, valid.postingId, valid.retrievedAt, JSON.stringify(valid));
+    return valid;
+  }
+
+  getDiscovered(id: string): DiscoveredPosting | null {
+    const row = this.db.prepare('SELECT id, data FROM discovered_jobs WHERE id = ?').get(id) as Row | undefined;
+    return row ? parseRow(DiscoveredPosting, 'discovered_jobs', row) : null;
+  }
+
+  listDiscovered(filter: { source?: string; board?: string; limit?: number } = {}): DiscoveredPosting[] {
+    const where: string[] = [];
+    const args: string[] = [];
+    if (filter.source) {
+      where.push('source = ?');
+      args.push(filter.source);
+    }
+    if (filter.board) {
+      where.push('board = ?');
+      args.push(filter.board);
+    }
+    const sql = `SELECT id, data FROM discovered_jobs ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY fetched_at DESC, rowid DESC LIMIT ${Math.max(1, Math.min(filter.limit ?? 500, 2000))}`;
+    return (this.db.prepare(sql).all(...args) as Row[]).map((r) => parseRow(DiscoveredPosting, 'discovered_jobs', r));
+  }
+
+  /** Postings of a board absent from a fresh, successful fetch are marked "not listed". */
+  markNotListed(source: string, board: string, listedPostingIds: readonly string[]): number {
+    let n = 0;
+    for (const p of this.listDiscovered({ source, board, limit: 2000 })) {
+      if (listedPostingIds.includes(p.postingId) || p.availability === 'not_listed') continue;
+      this.db.prepare('UPDATE discovered_jobs SET data = ? WHERE id = ?').run(JSON.stringify({ ...p, availability: 'not_listed' }), p.id);
+      n++;
+    }
+    return n;
+  }
+
+  linkDiscoveredToJob(id: string, jobId: string): void {
+    const p = this.getDiscovered(id);
+    if (p) this.db.prepare('UPDATE discovered_jobs SET data = ? WHERE id = ?').run(JSON.stringify({ ...p, savedJobId: jobId }), id);
+  }
+
+  /** Removes postings not seen for `olderThan` (ISO) that were never saved. */
+  purgeDiscovered(olderThan: string): number {
+    let n = 0;
+    for (const p of this.listDiscovered({ limit: 2000 })) {
+      if (!p.savedJobId && p.retrievedAt < olderThan) n += Number(this.db.prepare('DELETE FROM discovered_jobs WHERE id = ?').run(p.id).changes);
+    }
+    return n;
+  }
+
+  /* ---------------- job-source response cache ---------------- */
+
+  getCachedResponse(key: string): { data: string; fetchedAt: string; expiresAt: string } | null {
+    const row = this.db.prepare('SELECT data, fetched_at, expires_at FROM source_cache WHERE key = ?').get(key) as Row | undefined;
+    return row ? { data: String(row['data']), fetchedAt: String(row['fetched_at']), expiresAt: String(row['expires_at']) } : null;
+  }
+
+  putCachedResponse(key: string, v: { data: string; fetchedAt: string; expiresAt: string }): void {
+    this.db
+      .prepare(
+        `INSERT INTO source_cache (key, fetched_at, expires_at, data) VALUES (?, ?, ?, ?)
+         ON CONFLICT (key) DO UPDATE SET fetched_at = excluded.fetched_at, expires_at = excluded.expires_at, data = excluded.data`,
+      )
+      .run(key, v.fetchedAt, v.expiresAt, v.data);
+  }
+
+  purgeCachedResponses(fetchedBefore: string): number {
+    return Number(this.db.prepare('DELETE FROM source_cache WHERE fetched_at < ?').run(fetchedBefore).changes);
+  }
+
+  /* ---------------- interview notes (v0.2.0) ---------------- */
+
+  upsertInterviewNote(n: InterviewNote): InterviewNote {
+    const valid = InterviewNote.parse(n);
+    this.db
+      .prepare('INSERT INTO interview_notes (id, application_id, at, data) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET at = excluded.at, data = excluded.data')
+      .run(valid.id, valid.applicationId, valid.scheduledFor ?? valid.createdAt, JSON.stringify(valid));
+    return valid;
+  }
+
+  listInterviewNotes(applicationId?: string): InterviewNote[] {
+    const rows = applicationId
+      ? this.db.prepare('SELECT id, data FROM interview_notes WHERE application_id = ? ORDER BY at DESC').all(applicationId)
+      : this.db.prepare('SELECT id, data FROM interview_notes ORDER BY at DESC').all();
+    return (rows as Row[]).map((r) => parseRow(InterviewNote, 'interview_notes', r));
+  }
+
+  deleteInterviewNote(id: string): boolean {
+    return Number(this.db.prepare('DELETE FROM interview_notes WHERE id = ?').run(id).changes) === 1;
+  }
+
   /* ---------------- backup ---------------- */
 
   /** Writes a consistent, compacted snapshot of the whole database to `file` (which must not exist). */
@@ -384,6 +499,8 @@ export class Store {
       reminders: this.listReminders().length,
       resumeFiles: this.listResumeFiles().length,
       documents: docs.length,
+      interviewNotes: this.listInterviewNotes().length,
+      discoveredJobs: this.listDiscovered({ limit: 2000 }).length,
     };
   }
 

@@ -194,6 +194,14 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     workspace.removeAnswer(req.params.id, req.params.answerId),
   );
 
+  // Discovery through official job-board interfaces (v0.2.0). Network access only after consent.
+  app.get('/api/discovery/sources', async () => workspace.discovery.sources());
+  app.put('/api/discovery/consent', async (req) => workspace.discovery.setConsent((req.body as { granted?: unknown } | null)?.granted === true));
+  app.post('/api/discovery/search', async (req) => workspace.discovery.discover(req.body));
+  app.get<{ Querystring: Record<string, string> }>('/api/discovery/recent', async (req) => workspace.discovery.recent(req.query));
+  app.post<IdParams>('/api/discovery/:id/save', async (req, reply) => reply.code(201).send(await workspace.saveDiscovered(req.params.id, req.body)));
+  app.post<IdParams>('/api/jobs/:id/check-posting', async (req) => workspace.checkPosting(req.params.id));
+
   type ChildParams = { Params: { id: string; childId: string } };
   app.get<IdParams>('/api/applications/:id/contacts', async (req) => workspace.listContacts(req.params.id));
   app.post<IdParams>('/api/applications/:id/contacts', async (req, reply) => reply.code(201).send(workspace.saveContact(req.params.id, null, req.body)));

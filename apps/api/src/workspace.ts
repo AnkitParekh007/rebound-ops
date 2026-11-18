@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { z } from 'zod';
 import { readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
@@ -73,6 +74,7 @@ import { assess, checkGrounding, dedupeKey, extractJob, findDuplicates, normaliz
 import type { Store } from '@reboundops/storage';
 import { ImportFormatError, planImport, type ImportPlan } from '@reboundops/importer';
 import { checklist, draftAnswer, emptyPackage, followUpDraft } from '@reboundops/applications';
+import { ADAPTERS } from '@reboundops/job-sources';
 import {
   AiConfigError,
   AiProviderError,
@@ -99,6 +101,10 @@ import {
   ZipError,
 } from '@reboundops/documents';
 import { AppError, notFound } from './errors.ts';
+import { DiscoveryService } from './discovery.ts';
+import type { FetchLike as SourceFetch } from '@reboundops/job-sources';
+
+const SaveDiscoveredRequest = z.object({ employer: z.string().trim().min(1).max(300).optional(), allowDuplicate: z.boolean().default(false) });
 
 /** How long deleted contacts and reminders stay restorable. */
 export const UNDO_DAYS = 30;
@@ -110,6 +116,8 @@ export interface WorkspaceOptions {
   env?: Record<string, string | undefined>;
   /** Transport for AI providers (tests inject a mock; nothing is sent otherwise). */
   aiFetch?: FetchLike;
+  /** Transport for official job-board requests (tests inject a mock). */
+  sourceFetch?: SourceFetch;
 }
 
 /**
@@ -123,12 +131,21 @@ export class Workspace {
   private readonly store: Store;
   private readonly env: Record<string, string | undefined>;
   private readonly aiFetch: FetchLike | undefined;
+  readonly discovery: DiscoveryService;
   private readonly stagedImports = new Map<string, { plan: ImportPlan; expires: number }>();
 
   constructor(store: Store, options: WorkspaceOptions = {}) {
     this.store = store;
     this.env = options.env ?? process.env;
     this.aiFetch = options.aiFetch;
+    this.discovery = new DiscoveryService({
+      store,
+      now: () => this.now(),
+      newId: () => this.newId(),
+      fetch: options.sourceFetch,
+      getProfile: () => this.getProfile(),
+      getOnboarding: () => this.getOnboarding(),
+    });
     this.now = options.now ?? (() => new Date());
     this.newId = options.newId ?? randomUUID;
   }
@@ -188,6 +205,9 @@ export class Workspace {
 
   createJob(input: unknown): JobCreateResult {
     const req = JobCreate.parse(input);
+    if (Object.values(req.provenance).some((p) => p?.origin === 'source')) {
+      throw new AppError(422, 'invalid_provenance', 'Only jobs saved through Discover can carry job-board provenance.');
+    }
     const description = normalizeDescription(req.description);
     const candidate = { ...req, description };
 
@@ -887,6 +907,59 @@ export class Workspace {
       if (err instanceof AiProviderError) throw new AppError(502, 'ai_failed', `${err.message} Your text was not changed.`);
       throw err;
     }
+  }
+
+  /* ---------- discovery through official job boards (v0.2.0) ---------- */
+
+  /** Saves a discovered posting to the tracker. Pay is read from the posting endpoint where the provider publishes it there. */
+  async saveDiscovered(id: string, input: unknown): Promise<JobCreateResult> {
+    const req = SaveDiscoveredRequest.parse(input ?? {});
+    const p = this.discovery.get(id);
+    if (p.savedJobId && this.store.getJob(p.savedJobId)) {
+      throw new AppError(409, 'already_saved', 'This posting is already in your tracker.', { existingJobIds: [p.savedJobId] });
+    }
+    let detail = null;
+    if (ADAPTERS[p.source].fetchPosting && this.discovery.consented()) {
+      try {
+        detail = (await this.discovery.recheck(p)).posting;
+      } catch {
+        detail = null; // keep the listing data; pay stays unknown
+      }
+    }
+    const at = this.now().toISOString();
+    const job = this.discovery.jobFrom(p, detail, req.employer ?? null, this.newId(), at);
+    const matches = findDuplicates(job, this.store.listJobs());
+    if (matches.length && !req.allowDuplicate) {
+      throw new AppError(409, 'duplicate_job', 'This job looks like one you already saved.', { existingJobIds: [...new Set(matches.map((m) => m.jobId))], matches });
+    }
+    const app: Application = { id: this.newId(), jobId: job.id, status: 'discovered', createdAt: at, updatedAt: at, statusChangedAt: at, appliedConfirmedAt: null };
+    this.store.transaction(() => {
+      this.store.insertJob(job);
+      this.store.upsertApplication(app);
+      this.store.addActivity(this.activity(app.id, 'created', null, 'discovered', `Saved from the official ${ADAPTERS[p.source].info.label} board (retrieved ${p.retrievedAt.slice(0, 10)}).`, at));
+      this.store.linkDiscoveredToJob(p.id, job.id);
+    });
+    return { job, application: this.getApplication(app.id) };
+  }
+
+  /** Re-checks whether a saved job's posting is still listed by its provider. */
+  async checkPosting(jobId: string): Promise<Job> {
+    const job = this.store.getJob(jobId);
+    if (!job) throw notFound('Job');
+    if (!job.source) throw new AppError(422, 'no_source', 'This job was not saved from a job board; open its link to check it yourself.');
+    const { posting, checkedAt } = await this.discovery.recheck({ source: job.source.provider, board: job.source.board, postingId: job.source.postingId });
+    const availability = posting ? 'listed' : 'not_listed';
+    const next: Job = { ...job, source: { ...job.source, availability, lastCheckedAt: checkedAt } };
+    const app = this.store.listApplications().find((a) => a.jobId === jobId);
+    this.store.transaction(() => {
+      this.store.updateJob(next);
+      if (app) {
+        this.store.addActivity(
+          this.activity(app.id, 'note', null, null, posting ? `Posting still listed on ${ADAPTERS[job.source!.provider].info.label} (${checkedAt.slice(0, 16).replace('T', ' ')} UTC).` : `Posting no longer listed on ${ADAPTERS[job.source!.provider].info.label} as of ${checkedAt.slice(0, 10)}.`, checkedAt),
+        );
+      }
+    });
+    return next;
   }
 
   /* ---------- assessment ---------- */

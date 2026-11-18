@@ -1,0 +1,30 @@
+[
+  {
+    "id": "0b6c7d2e-1111-4a2b-9c3d-000000000001",
+    "text": "Backend Engineer",
+    "categories": { "commitment": "Full-time", "department": "Engineering", "team": "Payments", "location": "Lisbon, Portugal", "allLocations": ["Lisbon, Portugal", "Porto, Portugal"] },
+    "workplaceType": "hybrid",
+    "country": "PT",
+    "createdAt": 1793500000000,
+    "descriptionPlain": "Fictional Payments Co moves money safely.",
+    "lists": [
+      { "text": "What you'll need", "content": "<li>Node.js and PostgreSQL</li><li>3+ years building APIs</li>" },
+      { "text": "Bonus points", "content": "<li>Kafka</li>" }
+    ],
+    "additionalPlain": "We sponsor visas for this role.",
+    "hostedUrl": "https://jobs.lever.co/fictionalpay/0b6c7d2e-1111-4a2b-9c3d-000000000001",
+    "applyUrl": "https://jobs.lever.co/fictionalpay/0b6c7d2e-1111-4a2b-9c3d-000000000001/apply",
+    "salaryRange": { "min": 55000, "max": 70000, "currency": "EUR", "interval": "per-year-salary" }
+  },
+  {
+    "id": "0b6c7d2e-1111-4a2b-9c3d-000000000002",
+    "text": "Support Specialist",
+    "categories": { "commitment": "Part-time", "location": "Madrid, Spain", "allLocations": ["Madrid, Spain"] },
+    "workplaceType": "unspecified",
+    "createdAt": 1793600000000,
+    "descriptionPlain": "Help our customers.",
+    "lists": [],
+    "hostedUrl": "https://jobs.lever.co/fictionalpay/0b6c7d2e-1111-4a2b-9c3d-000000000002",
+    "applyUrl": "https://jobs.lever.co/fictionalpay/0b6c7d2e-1111-4a2b-9c3d-000000000002/apply"
+  }
+]
