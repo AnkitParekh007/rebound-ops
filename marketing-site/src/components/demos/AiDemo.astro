@@ -1,8 +1,9 @@
 ---
 /** AI off vs optional local Ollama. Shows that the workflow is identical and AI only suggests. CSS-only. */
 import { AI_TASKS } from '../../data/product';
-interface Props { idPrefix?: string }
-const { idPrefix = 'ai' } = Astro.props;
+interface Props { idPrefix?: string; headingLevel?: 3 | 4 }
+const { idPrefix = 'ai', headingLevel = 4 } = Astro.props;
+const H = headingLevel === 3 ? 'h3' : 'h4';
 ---
 <div class="ai-demo">
   <fieldset class="mode">
@@ -14,7 +15,7 @@ const { idPrefix = 'ai' } = Astro.props;
 
   <div class="panes">
     <div class="pane same">
-      <h4>Works the same either way</h4>
+      <H class="pane-h">Works the same either way</H>
       <ul role="list">
         <li>Import, profile, intake and evidence</li>
         <li>Fit rubric and eligibility</li>
@@ -25,13 +26,13 @@ const { idPrefix = 'ai' } = Astro.props;
     </div>
 
     <div class="pane off">
-      <h4>Your verified highlight</h4>
+      <H class="pane-h">Your verified highlight</H>
       <p class="quote">Built a self-service Kubernetes platform used by 14 product teams.</p>
       <p class="small muted">With AI off, drafts select and order your verified highlights as written. You edit the wording yourself.</p>
     </div>
 
     <div class="pane local">
-      <h4>Suggestions from a model on your computer</h4>
+      <H class="pane-h">Suggestions from a model on your computer</H>
       <div class="sugg ok">
         <span class="chip" data-tone="ok"><span class="dot" aria-hidden="true"></span>Passed grounding check</span>
         <p class="quote">Created a self-service Kubernetes platform that 14 product teams use for their deployments.</p>
@@ -63,7 +64,7 @@ const { idPrefix = 'ai' } = Astro.props;
   .panes { display: grid; gap: var(--space-s); }
   @media (min-width: 860px) { .panes { grid-template-columns: 1fr 1.5fr; } }
   .pane { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--space-m); display: grid; gap: var(--space-xs); align-content: start; }
-  .pane h4 { font-size: var(--step-0); }
+  .pane-h { font-size: var(--step-0); }
   .same ul { list-style: none; padding: 0; display: grid; gap: 0.45rem; font-size: var(--step--1); }
   .same li { display: flex; gap: 0.5rem; align-items: baseline; }
   .same li::before { content: '✓'; color: var(--ok); font-weight: 700; }

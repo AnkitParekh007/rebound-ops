@@ -19,7 +19,8 @@
     "screenshots:app": "node scripts/capture-app-screenshots.mjs",
     "screenshots:site": "node scripts/capture-site-screenshots.mjs",
     "og": "node scripts/make-og-images.mjs",
-    "lighthouse": "node scripts/run-lighthouse.mjs"
+    "lighthouse": "node scripts/run-lighthouse.mjs",
+    "verify": "npm run build && npm test"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.6",
