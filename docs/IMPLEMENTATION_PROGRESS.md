@@ -15,14 +15,15 @@ _Last updated: 2026-11-18_
 | P1.2 Official job sources (Greenhouse, Lever, Ashby, Workable; Workday unsupported) | Done | 550b3a7 |
 | P1.3 Job intelligence v2 (rubric fit-2026.2) | Done | bf6c3e0, 428ab6b |
 | P1.4 Discover page | Done | e5e5182 |
-| P2.1 Encrypted backups | Storage layer done in P0 (backup-crypto.ts); API/UI pending | — |
-| P2.2 In-app restore | Pending | — |
-| P2.3 Tracking and follow-ups | Soft delete/undo, priority done; interview notes storage done; templates, filters, export pending | — |
-| P2.4 Ollama assistance | Pending | — |
-| P3 Packaging | Pending | — |
-| P5/P6 Migration spec, provenance | Pending | — |
+| P2.1/P2.2 Protected backups, in-app restore | Done | 27dfe93 |
+| P2.3 Tracking and follow-ups | Done | 7eee207 |
+| P2.4 Grounded AI assistance | Done | ac00c55 |
+| P3 Packaging and release verification | Done | 21b5f90 |
+| P5/P6 Migration spec, import additions, provenance | Done | 90125ee |
+| P4 Browser coverage for v0.2.0 | Written; runs in CI only (Chrome blocked in sandbox) | 7845367 |
 
-Resume rule: run the verification commands, then continue with the first pending row.
+Release-candidate report: [RELEASE_READINESS.md](RELEASE_READINESS.md). Next step: owner review, then an
+approved push so CI runs the browser tests and release verification. Do not push, tag or publish without approval.
 
 ## Verification commands
 

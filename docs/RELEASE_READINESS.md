@@ -1,4 +1,96 @@
-# Release readiness — ReboundOps 0.1.0 (pre-release)
+# Release readiness — ReboundOps 0.2.0 (release candidate, not published)
+
+_Branch `feature/v0.2.0`, built from commit 7845367 on 2026-11-18. Nothing pushed, tagged or published._
+
+## Verdict
+
+**Ready for owner review as a 0.2.0 release candidate.** Every phase is implemented and every
+local gate passes. Two things are still open. The new browser tests (`tests/e2e/v020-features.spec.ts`)
+have not run yet, because Chrome cannot start in the development sandbox; they need a CI run after
+an approved push. Live cloud-AI requests are still untested (mocked only). The v0.1.0 pre-release is untouched.
+
+## Local verification (actual results, 2026-11-18)
+
+| Command | Result |
+| --- | --- |
+| `npm ci` | pass |
+| `npm run lint` | pass (ESLint: no issues) |
+| `npm run typecheck` | pass |
+| `npm test` | pass — 215 backend/API/integration tests (24 files) and 33 Angular tests (10 files, including 12 axe accessibility checks and a negative control) |
+| `npm run test:smoke` | pass — data survives an API restart; packaged web app served |
+| `npm run build` | pass |
+| `npm run test:packaged` | pass — production build served with CSP/nosniff/frame headers; a second process is refused by the lock |
+| `npm run audit:release` | pass — runtime: 0 advisories; dev tooling: one reviewed, accepted advisory (picomatch GHSA-fc5q-39xc-vjpf, no fixed version exists) |
+| `npm run test:exports` | pass — DOCX via macOS textutil, PDF via Apple PDFKit |
+| `npm run test:e2e` | **not run locally**: Chrome cannot launch in the sandbox (`bootstrap_check_in … Permission denied`). Runs in CI in dev-server mode and against the packaged build |
+| `npm run package:release` | pass — 138 files, 414 KB; byte-identical when rebuilt from the same commit |
+| `npm run verify:release` | pass — checksums; fresh production install (no dev/optional packages) serves the app, imports a PDF, shuts down cleanly; the real v0.1.0 from its tag runs on schema 3, creates records and a backup, upgrades in place to schema 4 keeping applications, the original submission date, contacts, reminders and profile; this release restores the v0.1.0 backup |
+
+Also checked live, with a locally installed Ollama model (`llama3.2:3b`, nothing downloaded, no cost):
+the posting summary, missing-skills and interview-questions tasks ran in 2–8 s, and the grounding gate withheld a
+suggested question that named a tool not in the records.
+
+## Release artifact inventory (`release/`, git-ignored, not published)
+
+| File | SHA-256 |
+| --- | --- |
+| `reboundops-0.2.0.tar.gz` | `790ea1b143009ba4dcf2ecbf03767b69a1e9d5d721911404be55a59c640d54fa` |
+| `THIRD_PARTY_NOTICES.txt` | `833e81f79d1b6988042afaade43497f1e5a7303401ce17559db91bc5f28476ce` |
+| `reboundops-0.2.0.sbom.json` | `24cd212ab7b5eeb4913af09a9304e35d6a601a9e13fecc104431aa263155998e` |
+| `SHA256SUMS` | checksums of the three files above |
+
+The archive holds tracked source without tests or CI files, the prebuilt web app and `RELEASE-INFO.json`.
+It contains no `CLAUDE.md`, `.claude/`, databases, `.env` files, `graphify-out/` or `node_modules/`, and the
+packaging script refuses to build if it finds secrets or machine paths. CI rebuilds it and uploads it as a
+workflow artifact.
+
+## Backward compatibility
+
+- Schema 3 → 4 migration is additive (two nullable columns, three new tables). It was tested against the
+  real v0.1.0 binary and with hand-written schema-3 rows.
+- v0.1.0 plain backups restore (CLI and in-app); v0.1.0 lock files (bare PID) are understood.
+- Older records gain defaults on read (reminder priority/notes, profile seniority/pay/per-skill years). Nothing is rewritten.
+- The fit rubric changed from `fit-2026.1` to `fit-2026.2`. Assessments are recomputed on demand and never stored, so scores can change after the upgrade.
+- API: contact/reminder `DELETE` now returns `200` with an undo record instead of `204`.
+
+## Security and licensing
+
+- Restore stages and validates first, checks free space, journals the swap, and rolls back on failure;
+  startup recovers an interrupted restore. The data-folder lock is O_EXCL, with stale-lock takeover.
+- Protected backups use scrypt (N=2^17, r=8, p=1, random salt) with AES-256-GCM (random IV); the header is
+  authenticated; wrong passwords and tampering leave no plaintext behind; passwords are never stored or logged.
+- Job-board requests: https allowlisted hosts only, no credentials or cookies, a generic User-Agent, 15 s timeout,
+  25 MB cap, one request per second per host, Retry-After respected, 30-minute cache. No network use without consent.
+- AI tasks send only what each task needs (verified profile entries only) and withhold outputs that add facts.
+  Cloud providers need per-request consent.
+- New runtime dependency: `pdfjs-dist` 6.5.438 (Apache-2.0, pinned). Shipped packages: 71, all with declared
+  licences reproduced in `THIRD_PARTY_NOTICES.txt`. MPL-2.0 is limited to dev-only tools (`lightningcss`, `axe-core`) that are not shipped.
+
+## Known limitations
+
+- Discovery covers one company board at a time; none of the providers offers cross-company search.
+  Workday is not supported (no documented public API). Lever and Ashby do not return a company display name.
+- The Workable integration uses the public feed behind Workable-hosted careers pages, not Workable's
+  authenticated developer API. A change on Workable's side would surface as "board unavailable".
+- PDF import reads selectable text only. There is no OCR. Multi-column layouts trigger a warning and may merge lines.
+- Pay comparison needs the same currency and a stated period; hourly pay is never converted.
+- Undo for deleted contacts and reminders lasts 30 days. Deleting a whole application is still permanent and is confirmed first.
+- Cloud AI providers are tested with mocked transports only.
+- No real legacy data has been migrated. See `docs/MIGRATION_SPEC.md`.
+- Windows is untested. Intel macOS is expected to work but is not separately tested.
+
+## Recommendation
+
+1. Owner review of this branch. Then approve a push of `feature/v0.2.0`, or a merge to `main` and a push,
+   so CI runs the new browser tests, the packaged E2E and release verification.
+2. If CI is green, tag `v0.2.0` and publish a GitHub pre-release with the CI-built `release-candidate` artifact
+   files attached (each step needs your approval).
+3. Next release: OCR-free improvements to PDF layout handling, more official sources where documented
+   APIs exist, an optional per-provider discovery schedule, and a separate authorised legacy export session.
+
+---
+
+# Release readiness — ReboundOps 0.1.0 (pre-release, published)
 
 _Post-milestone audit, 2026-11-18, on a local development machine (macOS, Node 26, npm 11)._
 This report lists what was checked, how, what was fixed, and what is still open. It does **not**

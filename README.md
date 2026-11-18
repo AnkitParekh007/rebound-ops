@@ -2,16 +2,18 @@
 
 A local-first, privacy-oriented workspace for running a job search. You can capture postings, see where every detail came from, assess fit honestly, tailor documents from facts you have verified, prepare applications, and track follow-ups. Everything runs on your own computer.
 
-> **Status:** pre-release. All MVP milestones are implemented and tested locally; see
-> [docs/IMPLEMENTATION_PROGRESS.md](docs/IMPLEMENTATION_PROGRESS.md) for exact status and known gaps.
+> **Status:** v0.2.0 release candidate (not yet published). See
+> [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md) for verification results and known gaps, and
+> [docs/INSTALL.md](docs/INSTALL.md) to install a release archive.
 
 ## Principles
 
 - **Local-first.** One SQLite file in a private directory (`0700`/`0600`). No account, no cloud service.
-- **AI optional.** Every feature works with AI off. Local (Ollama) or cloud providers are opt-in, need your consent, and only ever *suggest rewording* of text you select. Suggestions that add facts are withheld.
+- **AI optional.** Every feature works with AI off. Local (Ollama) or cloud providers are opt-in and need your consent. AI only *suggests* (rewording, summaries, missing skills, interview questions, drafts); every suggestion is checked against your records and withheld if it adds facts, and nothing is saved automatically.
 - **Grounded.** Extracted job details carry the exact text they came from. Drafts use only facts you marked verified, and missing information stays blank or becomes a `[[placeholder]]`.
 - **You stay in control.** ReboundOps never submits applications or sends messages. *Applied* requires your explicit confirmation.
-- **Honest about verification.** Postings stay *unverified* until you confirm them on the official site.
+- **Honest about verification.** Postings stay *unverified* until you confirm them on the official site. Postings found through Discover show when the job board last listed them.
+- **Network only when you ask.** Discover contacts a job board's public interface only after you allow it, and sends only the board name you type.
 
 ## Features
 
@@ -19,14 +21,15 @@ A local-first, privacy-oriented workspace for running a job search. You can capt
 | --- | --- |
 | Onboarding | Welcome flow with skip/back/next, AI mode, search goals |
 | Profile | Preferences, eligibility facts, contact and links, skills, verified experience with highlights, education, certifications, saved answers |
-| Resume import | `.docx`, `.txt`, `.md` or pasted text. The original is stored privately; parsed facts are reviewed before being added (never overwriting) |
+| Resume import | `.pdf` (selectable text, read locally), `.docx`, `.txt`, `.md` or pasted text, with extraction confidence and warnings. Scanned, protected or damaged PDFs are detected and you can type the text while the original is kept. Facts are reviewed before being added (never overwriting) |
+| Discover | Look up a company's public job board on Greenhouse, Lever, Ashby or Workable (Workday has no documented public API and is not supported). Filters, freshness and availability, fit and eligibility, duplicate warnings, save to tracker, re-check whether a saved posting is still listed |
 | Job intake | Paste a description and URL. Title, employer, location, salary (only when stated) and arrangement are shown with their evidence. Duplicate detection |
-| Assessment | Explainable 0–5 fit rubric (role, skills, experience, location) and eligibility: confirmed, unconfirmed or ineligible. Missing information is kept separate from real disqualifiers |
+| Assessment | Explainable 0–5 fit rubric (role, required skills, experience incl. per-skill years you enter, location, seniority, published pay) with confidence and stated uncertainty, required vs preferred qualifications, missing qualifications, adjustable weights, and eligibility: confirmed, unconfirmed or ineligible. Missing information is kept separate from real disqualifiers |
 | Documents | Tailored resume (selects and orders your verified highlights) and cover letter. Editable, with provenance. ATS-friendly PDF and DOCX; every export is re-read to confirm employers, dates, education and links survived |
 | Preparation | Screening answers drafted from saved answers and stated facts only (otherwise "needs your answer"), a checklist, and the official application link |
-| Tracking | Status workflow, activity trail, notes, contacts, reminders, follow-up drafts (copy or open in your own mail app) |
-| Overview | Pipeline, next actions, reminders, response rate and median days to response, derived from your records |
-| Data | Complete database backup with a verified restore; readable JSON export; staged, previewed import of exports or the [neutral import format](docs/IMPORT_FORMAT.md) ([moving from an earlier version](docs/LEGACY_EXPORT_PROCEDURE.md)) |
+| Tracking | Status workflow (original submission date kept; closed applications reopen with history), full activity trail, notes, contacts and reminders with undo, priorities and snooze, interview notes and preparation, follow-up drafts and your own templates (copy or open in your own mail app), CSV export |
+| Overview | Pipeline, next actions, ranked follow-ups to consider, reminders, response rate and median days to response, derived from your records |
+| Data | Complete database backup, optionally password-protected (AES-256-GCM, scrypt); crash-safe restore in the app or from the command line, with a recovery copy; readable JSON and CSV exports; staged, previewed import of exports or the [neutral import format](docs/IMPORT_FORMAT.md) ([moving from an earlier version](docs/LEGACY_EXPORT_PROCEDURE.md), [migration specification](docs/MIGRATION_SPEC.md)) |
 
 ## Requirements
 
@@ -74,7 +77,10 @@ npm run dev:web     # UI on http://127.0.0.1:4174 (proxies /api to the API)
 | `npm run build` | Typecheck and production web build |
 | `npm run restore -- <file> [--yes]` | Checks a backup, or with `--yes` restores it while ReboundOps is stopped (the current database is kept, never deleted) |
 | `npm run import:check -- <file>` | Validates an import file and shows what it would add; writes nothing |
-| `npm run audit:release` | Path, secret and licence checks, SBOM (`reports/sbom.json`), `npm audit`, CSP check of the build |
+| `npm run test:packaged` | Serves the production build from the real server; checks headers and the single-instance lock |
+| `npm run audit:release` | Path, secret and licence checks, SBOM (`reports/sbom.json`), `npm audit` (an unreachable audit service is reported as UNAVAILABLE, and fails in CI), CSP check of the build |
+| `npm run package:release` | Builds the reproducible release archive, notices, SBOM and checksums in `release/` (publishes nothing) |
+| `npm run verify:release` | Fresh install of the archive and an upgrade from the real v0.1.0 |
 
 ## Layout
 
@@ -86,9 +92,10 @@ packages/core              Workflow rules, dashboard and analytics
 packages/job-intelligence  Extraction with evidence, dedupe, grounding, fit and eligibility
 packages/documents         Resume import, tailoring, cover letters, PDF/DOCX writers, export checks
 packages/applications      Screening answers, checklist, follow-up drafts
-packages/ai-providers      Optional Ollama / Anthropic / OpenAI / Gemini / OpenRouter adapters, grounded rewrite
+packages/ai-providers      Optional Ollama / Anthropic / OpenAI / Gemini / OpenRouter adapters, grounded assistance tasks
+packages/job-sources       Official job-board adapters (Greenhouse, Lever, Ashby, Workable) and a polite HTTP client
 packages/importer          Import planning (validation, dedupe, no-overwrite profile merge)
-packages/storage           SQLite persistence, append-only migrations
+packages/storage           SQLite persistence, append-only migrations, crash-safe restore, encrypted backups
 scripts/                   Smoke, export verification and release audit
 tests/                     Fictional fixtures and end-to-end tests
 ```
