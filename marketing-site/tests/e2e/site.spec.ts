@@ -82,7 +82,8 @@ test('hero: reduced motion means no autoplay and a static, readable stage', asyn
   await expect(page.locator('[data-caption="evaluate"]')).toBeVisible();
 });
 
-test('hero: autoplay advances and can be paused', async ({ page }) => {
+test('hero: autoplay advances and can be paused', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'the stage starts below the fold on phones, so autoplay waits until it is visible');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
   const stage = page.locator('.stage');

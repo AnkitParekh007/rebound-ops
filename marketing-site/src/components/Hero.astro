@@ -39,10 +39,14 @@ const nodes = [
 
     <div class="stage-wrap" data-hero>
       <div class="stage panel-dark" data-scene="discover">
-        <div class="chrome" aria-hidden="true">
-          <span class="lights"><i></i><i></i><i></i></span>
-          <span class="addr">127.0.0.1:4175</span>
+        <div class="chrome">
+          <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="addr" aria-hidden="true">127.0.0.1:4175</span>
           <span class="synth">synthetic data</span>
+          <button type="button" class="play" data-play aria-label="Pause the animation" hidden>
+            <svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h3v10H4zM9 3h3v10H9z" fill="currentColor"/></svg>
+            <svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>
+          </button>
         </div>
 
         <div class="viewport" aria-hidden="true">
@@ -110,10 +114,6 @@ const nodes = [
               </button>
             ))}
           </div>
-          <button type="button" class="play" data-play aria-label="Pause the animation" hidden>
-            <svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h3v10H4zM9 3h3v10H9z" fill="currentColor"/></svg>
-            <svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>
-          </button>
         </div>
       </div>
       <ol class="captions" role="list">
@@ -167,7 +167,7 @@ const nodes = [
     steps.forEach((b, i) => b.addEventListener('click', () => { show(i); userPaused = true; syncPlay(); stop(); }));
     play.addEventListener('click', () => { userPaused = !userPaused; syncPlay(); if (userPaused) stop(); else { show(index + 1); start(); } });
     root.addEventListener('focusin', stop);
-    root.addEventListener('focusout', () => { if (!root.contains(document.activeElement)) start(); });
+    root.addEventListener('focusout', (e) => { if (!root.contains(e.relatedTarget as Node | null)) start(); });
     root.addEventListener('pointerenter', stop);
     root.addEventListener('pointerleave', start);
     new IntersectionObserver(([e]) => { visible = !!e?.isIntersecting; if (visible) start(); else stop(); }, { threshold: 0.2 }).observe(stage);
@@ -212,7 +212,7 @@ const nodes = [
   .lights { display: inline-flex; gap: 6px; }
   .lights i { width: 10px; height: 10px; border-radius: 50%; background: var(--stage-line); }
   .addr { background: var(--stage-surface); padding: 0.25rem 0.7rem; border-radius: var(--r-pill); }
-  .synth { margin-left: auto; border: 1px dashed var(--stage-line); padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .synth { margin-left: auto; color: var(--stage-ink-2); border: 1px dashed var(--stage-line); padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
 
   .viewport { position: relative; aspect-ratio: 16 / 11; font-size: clamp(10px, 2.55cqi, 15.5px); }
   .scene { position: absolute; inset: 0; padding: 1.6em 1.8em; display: grid; gap: 0.8em; align-content: center; opacity: 0; visibility: hidden; transition: opacity var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-base); }
@@ -353,7 +353,7 @@ const nodes = [
   .step[aria-pressed='true'] .node { border-color: var(--stage-lime); }
   .step:focus-visible { outline-color: var(--stage-lime); }
   .play {
-    position: absolute; right: -0.4rem; top: -0.4rem; width: 36px; height: 36px; border-radius: 50%;
+    flex: none; width: 36px; height: 36px; border-radius: 50%;
     border: 1px solid var(--stage-line); background: var(--stage-surface); color: var(--stage-ink); display: grid; place-items: center;
   }
   .play[hidden] { display: none; }
@@ -376,6 +376,7 @@ const nodes = [
     .row { grid-template-columns: 7.5em 1fr; }
     .s-prepare .page { min-height: 12em; }
     .synth { display: none; }
+    .play { margin-left: auto; }
     .step-label { font-size: 0.8rem; }
   }
 </style>

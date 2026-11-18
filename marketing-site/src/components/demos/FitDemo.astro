@@ -48,7 +48,7 @@ const fmt = (n: number) => n.toFixed(1);
             <p class="small elig-why">{j.eligibilityReason}</p>
           </div>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap" tabindex="0" role="region" aria-label={`Fit criteria for ${j.title}`}>
           <table>
             <caption class="visually-hidden">Fit criteria with evidence for {j.title}</caption>
             <thead><tr><th scope="col">Criterion</th><th scope="col">Score</th><th scope="col">From the posting</th><th scope="col">From your profile</th></tr></thead>

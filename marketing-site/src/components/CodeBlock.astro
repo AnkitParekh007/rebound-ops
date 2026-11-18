@@ -6,7 +6,7 @@ const text = lines.filter((l) => !l.startsWith('#')).join('\n');
 ---
 <figure class="code" data-copy-root>
   <figcaption class="visually-hidden">{label}</figcaption>
-  <pre><code>{lines.map((l) => l.startsWith('#') ? <span class="comment">{l}{'\n'}</span> : <span><span class="prompt" aria-hidden="true">$ </span>{l}{'\n'}</span>)}</code></pre>
+  <pre tabindex="0"><code>{lines.map((l) => l.startsWith('#') ? <span class="comment">{l}{'\n'}</span> : <span><span class="prompt" aria-hidden="true">$ </span>{l}{'\n'}</span>)}</code></pre>
   <button type="button" class="copy" data-copy={text} aria-label={`Copy: ${label}`}>Copy</button>
 </figure>
 <script>

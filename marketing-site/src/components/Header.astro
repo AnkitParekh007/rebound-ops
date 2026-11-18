@@ -53,7 +53,7 @@ const nav = [
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && btn.getAttribute('aria-expanded') === 'true') { setOpen(false); btn.focus(); }
     });
-    window.matchMedia('(min-width: 980px)').addEventListener('change', () => setOpen(false));
+    window.matchMedia('(min-width: 1140px)').addEventListener('change', () => setOpen(false));
   }
 </script>
 
@@ -85,7 +85,7 @@ const nav = [
   .ver { font-family: var(--font-mono); font-size: 0.85em; opacity: 0.8; }
   .menu-btn, .menu-download { display: none; }
 
-  @media (max-width: 979.98px) {
+  @media (max-width: 1139.98px) {
     .primary { margin-left: auto; order: 2; }
     .actions { order: 1; margin-left: auto; }
     .dl { display: none; }
@@ -110,7 +110,7 @@ const nav = [
     .menu-download { display: block; margin-top: var(--space-s); }
     .menu-download .btn { width: 100%; }
   }
-  @media (max-width: 979.98px) {
+  @media (max-width: 1139.98px) {
     html:not(.js) .links { display: flex; position: static; box-shadow: none; flex-direction: row; flex-wrap: wrap; }
     html:not(.js) .menu-btn { display: none; }
     html:not(.js) .bar { flex-wrap: wrap; }
