@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/readme-banner-dark.svg">
-    <img src="docs/assets/brand/readme-banner-light.svg" alt="ReboundOps: your job search, on your own machine. Local-first, no account, AI optional." width="840">
+    <img src="docs/assets/brand/readme-banner-light.svg" alt="ReboundOps: run your job search on your own computer. Local-first, no account, AI optional." width="840">
   </picture>
 </p>
 

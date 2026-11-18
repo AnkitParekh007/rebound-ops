@@ -1,64 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="t d">
   <title id="t">ReboundOps</title>
-  <desc id="d">Your job search, on your own machine. Open-source, local-first job search assistant. Local-first, no account, AI optional, MIT licensed.</desc>
+  <desc id="d">Run your job search on your own computer. Open-source, local-first job search assistant: no account, AI optional, MIT licensed.</desc>
   <defs>
-    <pattern id="ruled" width="32" height="32" patternUnits="userSpaceOnUse">
-      <path d="M0 31.5H32" stroke="#e4ddd1" stroke-width="1"/>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#2b241f" stroke-width="1"/>
     </pattern>
   </defs>
-  <rect width="1280" height="640" fill="#f5f1ea"/>
-  <rect x="760" width="520" height="640" fill="url(#ruled)"/>
-  <rect x="760" width="520" height="640" fill="#ece6dc" opacity="0.55"/>
+  <rect width="1280" height="640" fill="#15110e"/>
+  <rect x="740" y="0" width="540" height="640" fill="url(#grid)"/>
 
   <!-- mark + wordmark -->
-  <g transform="translate(80 84)">
-    <rect width="64" height="64" rx="14" fill="#1d6b52"/>
-    <path d="M12 48c12-2 18-10 22-20s10-16 20-18" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
-    <circle cx="13" cy="48" r="6" fill="#fff"/>
-    <text x="88" y="47" font-family="Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif" font-size="44" font-weight="700" fill="#1e2430">ReboundOps</text>
+  <g transform="translate(80 80)">
+    <rect width="72" height="72" rx="20" fill="#201b17" stroke="#3d342d" stroke-width="2"/>
+    <g transform="scale(2.25)">
+      <path d="M6 23 C 9 9, 15 9, 17.5 23 C 19.5 14, 24 14, 26 23" fill="none" stroke="#ff7a4d" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="26" cy="11" r="3" fill="#d5f65e"/>
+      <path d="M5 25.5 H27" stroke="#f5eee4" stroke-opacity=".35" stroke-width="1.4" stroke-linecap="round"/>
+    </g>
+    <text x="96" y="51" font-family="Bricolage Grotesque 96pt ExtraBold, Bricolage Grotesque, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="46" font-weight="800" letter-spacing="-1" fill="#f5eee4">ReboundOps</text>
   </g>
 
   <!-- headline -->
-  <text x="80" y="282" font-family="Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif" font-weight="600" fill="#1e2430" font-size="64" letter-spacing="-1">Your job search,</text>
-  <text x="80" y="358" font-family="Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif" font-weight="600" fill="#1e2430" font-size="64" letter-spacing="-1">on your own machine.</text>
-  <text x="80" y="418" font-family="-apple-system, Helvetica Neue, Segoe UI, Roboto, Arial, sans-serif" font-size="25" fill="#4b5363">Open-source assistant to discover jobs, assess fit,</text>
-  <text x="80" y="452" font-family="-apple-system, Helvetica Neue, Segoe UI, Roboto, Arial, sans-serif" font-size="25" fill="#4b5363">tailor resumes and track applications.</text>
+  <text x="80" y="290" font-family="Bricolage Grotesque 96pt ExtraBold, Bricolage Grotesque, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="68" font-weight="800" letter-spacing="-2" fill="#f5eee4">Run your job search</text>
+  <text x="80" y="366" font-family="Bricolage Grotesque 96pt ExtraBold, Bricolage Grotesque, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="68" font-weight="800" letter-spacing="-2" fill="#ff7a4d">on your own computer.</text>
+  <text x="80" y="426" font-family="Instrument Sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="25" fill="#c7bbad">Open-source assistant to discover jobs, assess fit,</text>
+  <text x="80" y="460" font-family="Instrument Sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="25" fill="#c7bbad">tailor resumes and track applications.</text>
 
   <!-- principle chips -->
-  <g font-family="-apple-system, Helvetica Neue, Segoe UI, Roboto, Arial, sans-serif" font-size="21" font-weight="600" fill="#1d6b52">
-    <rect x="80" y="508" width="140" height="44" rx="22" fill="#dcefe6"/>
-    <text x="150" y="537" text-anchor="middle">Local-first</text>
-    <rect x="234" y="508" width="148" height="44" rx="22" fill="#dcefe6"/>
-    <text x="308" y="537" text-anchor="middle">No account</text>
-    <rect x="396" y="508" width="152" height="44" rx="22" fill="#dcefe6"/>
-    <text x="472" y="537" text-anchor="middle">AI optional</text>
-    <rect x="562" y="508" width="104" height="44" rx="22" fill="none" stroke="#1d6b52" stroke-width="2"/>
-    <text x="614" y="537" text-anchor="middle">MIT</text>
+  <g font-family="Instrument Sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="21" font-weight="600">
+    <rect x="80" y="510" width="142" height="44" rx="22" fill="#d5f65e"/>
+    <text x="151" y="539" text-anchor="middle" fill="#15110e">Local-first</text>
+    <rect x="236" y="510" width="150" height="44" rx="22" fill="none" stroke="#3d342d" stroke-width="2"/>
+    <text x="311" y="539" text-anchor="middle" fill="#f5eee4">No account</text>
+    <rect x="400" y="510" width="154" height="44" rx="22" fill="none" stroke="#3d342d" stroke-width="2"/>
+    <text x="477" y="539" text-anchor="middle" fill="#f5eee4">AI optional</text>
+    <rect x="568" y="510" width="96" height="44" rx="22" fill="none" stroke="#3d342d" stroke-width="2"/>
+    <text x="616" y="539" text-anchor="middle" fill="#f5eee4">MIT</text>
   </g>
 
-  <!-- pipeline illustration: the rising curve passing through tracker stages -->
-  <path d="M842 532C862 525 931 511 962 488C993 465 1010 425 1030 392C1050 359 1052 330 1080 290C1108 250 1177 173 1196 150" fill="none" stroke="#1d6b52" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
-  <g font-family="-apple-system, Helvetica Neue, Segoe UI, Roboto, Arial, sans-serif" font-size="20" font-weight="600">
-    <g transform="translate(842 532)">
-      <circle r="13" fill="#535a67"/><circle r="5" fill="#f5f1ea"/>
-      <text x="26" y="7" fill="#1e2430">Discovered</text>
-    </g>
-    <g transform="translate(962 488)">
-      <circle r="13" fill="#2650b0"/><circle r="5" fill="#f5f1ea"/>
-      <text x="26" y="7" fill="#1e2430">Shortlisted</text>
-    </g>
-    <g transform="translate(1030 392)">
-      <circle r="13" fill="#6c43a6"/><circle r="5" fill="#f5f1ea"/>
-      <text x="-26" y="7" fill="#1e2430" text-anchor="end">Preparing</text>
-    </g>
-    <g transform="translate(1080 290)">
-      <circle r="13" fill="#1d6b52"/><circle r="5" fill="#f5f1ea"/>
-      <text x="-26" y="7" fill="#1e2430" text-anchor="end">Applied by you</text>
-    </g>
-    <g transform="translate(1196 150)">
-      <circle r="13" fill="#0b6674"/><circle r="5" fill="#f5f1ea"/>
-      <text x="-26" y="7" fill="#1e2430" text-anchor="end">Interviewing</text>
-    </g>
+  <!-- rebound illustration: each stage is a higher bounce; the applicant makes the "Applied" step -->
+  <path d="M800 540 Q 845 440 890 470 Q 945 360 1000 390 Q 1055 270 1110 300 Q 1160 170 1196 200" fill="none" stroke="#ff7a4d" stroke-width="5" stroke-linecap="round"/>
+  <path d="M780 556 H1220" stroke="#f5eee4" stroke-opacity=".25" stroke-width="2" stroke-linecap="round"/>
+  <g font-family="Instrument Sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="19" font-weight="600" fill="#f5eee4">
+    <circle cx="800" cy="540" r="10" fill="#c7bbad"/>
+    <text x="820" y="590">Discovered</text>
+    <circle cx="890" cy="470" r="10" fill="#57d6c6"/>
+    <text x="910" y="508">Assessed</text>
+    <circle cx="1000" cy="390" r="10" fill="#f3b54d"/>
+    <text x="1020" y="428">Tailored</text>
+    <circle cx="1110" cy="300" r="10" fill="#ff8597"/>
+    <text x="1096" y="338" text-anchor="end">Applied by you</text>
+    <circle cx="1196" cy="200" r="14" fill="#d5f65e"/>
+    <text x="1196" y="160" text-anchor="end">Follow-ups</text>
   </g>
-  <text x="1200" y="596" text-anchor="end" font-family="ui-monospace, SF Mono, Menlo, monospace" font-size="18" fill="#5b6270">github.com/AnkitParekh007/rebound-ops</text>
+  <text x="1200" y="64" text-anchor="end" font-family="JetBrains Mono, ui-monospace, SF Mono, Menlo, monospace" font-size="17" fill="#c7bbad">github.com/AnkitParekh007/rebound-ops</text>
 </svg>
