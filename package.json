@@ -28,7 +28,8 @@
     "check": "npm run lint && npm run typecheck && npm test && npm run test:smoke",
     "start": "node apps/api/src/main.ts",
     "test:exports": "node scripts/verify-exports.ts",
-    "restore": "node scripts/restore-backup.ts"
+    "restore": "node scripts/restore-backup.ts",
+    "import:check": "node scripts/check-import.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
