@@ -1,11 +1,11 @@
-# Release readiness — ReboundOps 0.2.0 (release candidate, not published)
+# Release readiness — ReboundOps 0.2.0 (pre-release, published)
 
-_Branch `feature/v0.2.0`, built from commit 0e06154 on 2026-11-18. The branch is pushed to GitHub; nothing is merged to `main`, tagged or published._
+_Merged to `main` (fast-forward) and tagged `v0.2.0` at commit `4e930db` on 2026-11-18. Published as a GitHub pre-release on 2026-11-18 with the CI-built archive attached._
 
 ## Verdict
 
-**Ready for owner approval to merge, tag and publish 0.2.0 as a pre-release.** Every phase is implemented,
-every local gate passes, and GitHub Actions CI is green for the branch (see below). Live cloud-AI requests
+**Published as a 0.2.0 pre-release with owner approval.** Every phase is implemented, every local gate
+passes, and GitHub Actions CI is green on the branch and on `main` (see below). Live cloud-AI requests
 are still untested (mocked only). The v0.1.0 pre-release is untouched.
 
 ## CI verification (GitHub Actions, 2026-11-18)
@@ -22,6 +22,23 @@ The first CI run (44350531850 on `a5d179c`) failed two of the new browser tests.
 that matched two text boxes. The other was a real bug: the API rejected a body-less `DELETE` carrying
 `Content-Length: 0` with 415, so deleting (and undoing) contacts and reminders failed in the browser. Fixed in
 `0e06154` with an API regression test; no assertion was weakened.
+
+After the fast-forward merge, run [44354333918](https://github.com/AnkitParekh007/rebound-ops/actions/runs/44354333918)
+on `main` at `4e930db` was also green (both jobs). Its `release-candidate` artifact is what the pre-release ships.
+
+## Published release (checked 2026-11-18)
+
+[v0.2.0](https://github.com/AnkitParekh007/rebound-ops/releases/tag/v0.2.0): marked pre-release, not a draft, on the
+annotated tag `v0.2.0` → `4e930db`. The four attached files were downloaded from the public release URLs and pass
+`shasum -a 256 -c SHA256SUMS`. `RELEASE-INFO.json` inside the archive names commit `4e930db`, and the archive holds no
+`CLAUDE.md`, `.claude/`, `.env`, database, `graphify-out/` or `node_modules/` entries.
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `reboundops-0.2.0.tar.gz` | 428,601 B | `e8e3eb6ce513f308a0e439cbbe7b2eeed17242bd7b71426e01a6bad23eff3ee4` |
+| `THIRD_PARTY_NOTICES.txt` | 121,575 B | `833e81f79d1b6988042afaade43497f1e5a7303401ce17559db91bc5f28476ce` |
+| `reboundops-0.2.0.sbom.json` | 15,310 B | `05e9ad7dda907150784551d4e9ce4ea0d439abf885b1eac766a64f514ec85d59` |
+| `SHA256SUMS` | 273 B | checksums of the three files above |
 
 ## Local verification (actual results, 2026-11-18)
 
@@ -44,7 +61,7 @@ Also checked live, with a locally installed Ollama model (`llama3.2:3b`, nothing
 the posting summary, missing-skills and interview-questions tasks ran in 2–8 s, and the grounding gate withheld a
 suggested question that named a tool not in the records.
 
-## Release artifact inventory (`release/`, git-ignored, not published)
+## Local release build (`release/`, git-ignored; from `0e06154`, superseded by the published CI build above)
 
 | File | SHA-256 |
 | --- | --- |
@@ -95,11 +112,11 @@ workflow artifact.
 
 ## Recommendation
 
-1. Done: `feature/v0.2.0` pushed and CI green (run 44352872985).
-2. Merge `feature/v0.2.0` into `main` (fast-forward), push `main` and confirm CI on `main`.
-3. Tag `v0.2.0` on that commit, push the tag, and publish a GitHub pre-release with the CI-built
-   `release-candidate` artifact files attached (each step needs owner approval).
-4. Next release: OCR-free improvements to PDF layout handling, more official sources where documented
+1. Done: `feature/v0.2.0` pushed, CI green (run 44352872985), fast-forwarded into `main`, CI green on `main`
+   (run 44354333918), tagged `v0.2.0` and published as a pre-release with the CI-built files.
+2. Housekeeping: move CI actions off the deprecated Node 20 runtime (`checkout`, `setup-node`, `upload-artifact` v4)
+   and pin the runner image before `ubuntu-latest` moves to Ubuntu 26.
+3. Next release: OCR-free improvements to PDF layout handling, more official sources where documented
    APIs exist, an optional per-provider discovery schedule, and a separate authorised legacy export session.
 
 ---
