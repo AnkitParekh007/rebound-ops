@@ -1,0 +1,19 @@
+{
+  "name": "@reboundops/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "@reboundops/contracts": "0.1.0",
+    "@reboundops/core": "0.1.0",
+    "@reboundops/job-intelligence": "0.1.0",
+    "@reboundops/storage": "0.1.0",
+    "fastify": "5.12.8",
+    "zod": "4.6.7"
+  }
+}
