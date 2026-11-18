@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Title } from '@angular/platform-browser';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -26,10 +28,31 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         </nav>
         <p class="rail-note">Your data stays on this computer.</p>
       </header>
+      <p class="sr-only" aria-live="polite" aria-atomic="true">{{ announcement() }}</p>
       <main id="main" tabindex="-1">
         <router-outlet />
       </main>
     </div>
   `,
 })
-export class App {}
+export class App {
+  readonly announcement = signal('');
+
+  constructor() {
+    const router = inject(Router);
+    const title = inject(Title);
+    let first = true;
+    const sub = router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => {
+      // Skip the initial load; afterwards move focus to the new page and announce it.
+      if (first) {
+        first = false;
+        return;
+      }
+      setTimeout(() => {
+        document.getElementById('main')?.focus({ preventScroll: false });
+        this.announcement.set(title.getTitle());
+      });
+    });
+    inject(DestroyRef).onDestroy(() => sub.unsubscribe());
+  }
+}

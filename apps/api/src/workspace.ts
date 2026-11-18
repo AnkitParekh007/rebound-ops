@@ -40,6 +40,7 @@ import {
   PackageUpdate,
   GenerateDocumentsRequest,
   JobCreate,
+  JobUpdate,
   MAX_RESUME_BYTES,
   ResumeDraftUpdate,
   ResumeImportRequest,
@@ -222,6 +223,34 @@ export class Workspace {
       this.store.addActivity(this.activity(app.id, 'created', null, 'discovered', 'Saved from manual job intake.', at));
     });
     return { job, application: this.getApplication(app.id) };
+  }
+
+  /** Edits job details. Changed fields become the person's own claim (provenance "user"). */
+  updateJob(id: string, input: unknown): Job {
+    const u = JobUpdate.parse(input);
+    const job = this.getJob(id);
+    const next: Job = { ...job, provenance: { ...job.provenance } };
+    const userProv = { origin: 'user' as const, evidence: null };
+    if (u.title !== undefined && u.title !== job.title) { next.title = u.title; next.provenance.title = userProv; }
+    if (u.employer !== undefined && u.employer !== job.employer) { next.employer = u.employer; next.provenance.employer = userProv; }
+    if (u.location !== undefined && (u.location || null) !== job.location) { next.location = u.location || null; next.provenance.location = next.location ? userProv : null; }
+    if (u.salary !== undefined && (u.salary || null) !== job.salary) { next.salary = u.salary || null; next.provenance.salary = next.salary ? userProv : null; }
+    if (u.workArrangement !== undefined) next.workArrangement = u.workArrangement;
+    if (u.sourceUrl !== undefined) next.sourceUrl = u.sourceUrl;
+    next.dedupeKey = dedupeKey(next);
+    const app = this.store.listApplications().find((a) => a.jobId === id);
+    this.store.transaction(() => {
+      this.store.updateJob(next);
+      if (app) this.store.addActivity(this.activity(app.id, 'note', null, null, 'Job details edited by you.', this.now().toISOString()));
+    });
+    return next;
+  }
+
+  /** Permanently deletes an application and everything attached to it. The caller confirms first. */
+  deleteApplication(id: string): void {
+    const app = this.store.getApplication(id);
+    if (!app) throw notFound('Application');
+    this.store.deleteJob(app.jobId);
   }
 
   getJob(id: string): Job {

@@ -25,6 +25,14 @@ import { ELIGIBILITY_LABEL } from '../assessment-panel';
           <input id="q" name="q" type="search" [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Title or employer" />
         </div>
         <div class="field compact">
+          <label for="sort">Sort by</label>
+          <select id="sort" name="sort" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+            <option ngValue="updated">Recently updated</option>
+            <option ngValue="fit">Fit score</option>
+            <option ngValue="employer">Employer</option>
+          </select>
+        </div>
+        <div class="field compact">
           <label for="status">Status</label>
           <select id="status" name="status" [ngModel]="filter()" (ngModelChange)="filter.set($event)">
             <option ngValue="all">All statuses</option>
@@ -82,15 +90,21 @@ export class TrackerPage {
   readonly error = signal<string | null>(null);
   readonly query = signal('');
   readonly filter = signal<ApplicationStatus | 'all' | 'active'>('all');
+  readonly sort = signal<'updated' | 'fit' | 'employer'>('updated');
 
   readonly visible = computed(() => {
     const q = this.query().trim().toLowerCase();
     const f = this.filter();
-    return this.apps().filter((a) => {
+    const fit = this.fit();
+    const list = this.apps().filter((a) => {
       if (f === 'active' && (a.status === 'rejected' || a.status === 'withdrawn')) return false;
       if (f !== 'all' && f !== 'active' && a.status !== f) return false;
       return !q || `${a.job.title} ${a.job.employer}`.toLowerCase().includes(q);
     });
+    const sort = this.sort();
+    if (sort === 'fit') return [...list].sort((a, b) => (fit[b.id]?.overall ?? -1) - (fit[a.id]?.overall ?? -1));
+    if (sort === 'employer') return [...list].sort((a, b) => a.job.employer.localeCompare(b.job.employer));
+    return list;
   });
 
   constructor() {

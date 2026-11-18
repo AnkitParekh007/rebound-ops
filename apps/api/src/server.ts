@@ -121,6 +121,11 @@ export function buildServer(options: ServerOptions): FastifyInstance {
   app.post('/api/jobs/extract', async (req) => workspace.extractJob(req.body));
   app.post('/api/jobs', async (req, reply) => reply.code(201).send(workspace.createJob(req.body)));
   app.get<IdParams>('/api/jobs/:id', async (req) => workspace.getJob(req.params.id));
+  app.put<IdParams>('/api/jobs/:id', async (req) => workspace.updateJob(req.params.id, req.body));
+  app.delete<IdParams>('/api/applications/:id', async (req, reply) => {
+    workspace.deleteApplication(req.params.id);
+    return reply.code(204).send();
+  });
 
   app.get('/api/applications', async () => workspace.listApplications());
   app.get<IdParams>('/api/applications/:id', async (req) => workspace.getApplication(req.params.id));

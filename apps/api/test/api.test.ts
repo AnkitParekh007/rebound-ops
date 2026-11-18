@@ -491,3 +491,26 @@ describe('optional AI (M6)', () => {
     await failing.close();
   });
 });
+
+describe('job edits and deletion (M7)', () => {
+  it('marks edited fields as the person’s own and refreshes the dedupe identity', async () => {
+    const { job, application } = await saveLabelledJob();
+    const edited = (await send('PUT', `/api/jobs/${job.id}`, { salary: '€75,000', location: 'Lisbon (hybrid)' })).json();
+    expect(edited.provenance.salary).toEqual({ origin: 'user', evidence: null });
+    expect(edited.provenance.title.origin).toBe('extracted');
+    expect((await send('GET', `/api/applications/${application.id}`)).json().activity[0].note).toBe('Job details edited by you.');
+    expect((await send('PUT', `/api/jobs/${job.id}`, { sourceUrl: 'ftp://x' })).statusCode).toBe(400);
+  });
+
+  it('deletes an application with everything attached', async () => {
+    const { job, application } = await saveLabelledJob();
+    await send('POST', `/api/applications/${application.id}/contacts`, { name: 'Sam' });
+    await send('POST', `/api/applications/${application.id}/reminders`, { label: 'x', dueOn: '2026-04-01' });
+    expect((await send('DELETE', `/api/applications/${application.id}`)).statusCode).toBe(204);
+    expect((await send('GET', `/api/jobs/${job.id}`)).statusCode).toBe(404);
+    expect((await send('GET', '/api/applications')).json()).toEqual([]);
+    expect(store.listContacts()).toEqual([]);
+    expect(store.listReminders()).toEqual([]);
+    expect((await send('DELETE', `/api/applications/${application.id}`)).statusCode).toBe(404);
+  });
+});

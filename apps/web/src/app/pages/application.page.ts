@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, effect, inject, input, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import type { ApplicationStatus, ApplicationView, PackageView } from '@reboundops/contracts';
 import { ApiProblem, ApiService } from '../api.service';
 import { AssessmentPanel } from '../assessment-panel';
@@ -56,6 +56,21 @@ import { STATUS_LABEL } from '../labels';
             <section class="card" aria-labelledby="source-heading">
               <h2 id="source-heading">Posting</h2>
               <p class="badge warn"><span aria-hidden="true">●</span> {{ a.job.verification.status === 'verified' ? 'Verified' : 'Unverified' }} — {{ a.job.verification.note }}</p>
+              @if (editing()) {
+                <form class="stack subcard" (ngSubmit)="saveJob()" aria-label="Edit job details">
+                  <div class="grid two">
+                    <div class="field"><label for="ej-title">Job title</label><input id="ej-title" name="ejTitle" [(ngModel)]="jobEdit.title" required /></div>
+                    <div class="field"><label for="ej-emp">Employer</label><input id="ej-emp" name="ejEmp" [(ngModel)]="jobEdit.employer" required /></div>
+                    <div class="field"><label for="ej-loc">Location</label><input id="ej-loc" name="ejLoc" [(ngModel)]="jobEdit.location" /></div>
+                    <div class="field"><label for="ej-sal">Salary</label><input id="ej-sal" name="ejSal" [(ngModel)]="jobEdit.salary" /></div>
+                    <div class="field"><label for="ej-url">Posting URL</label><input id="ej-url" name="ejUrl" type="url" [(ngModel)]="jobEdit.sourceUrl" /></div>
+                  </div>
+                  <p class="hint">Edited fields are labelled as entered by you.</p>
+                  <div class="actions"><button type="button" class="btn ghost" (click)="editing.set(false)">Cancel</button><span class="spacer"></span><button type="submit" class="btn primary" [disabled]="busy()">Save details</button></div>
+                </form>
+              } @else {
+                <p><button type="button" class="btn link" (click)="startEdit(a)">Edit job details</button></p>
+              }
               @if (a.job.sourceUrl) {
                 <p><a [href]="a.job.sourceUrl" target="_blank" rel="noopener noreferrer external">Open the official posting ↗</a></p>
               } @else {
@@ -92,6 +107,11 @@ import { STATUS_LABEL } from '../labels';
                 </li>
               }
             </ol>
+          </section>
+          <section class="card stack" aria-labelledby="danger-heading">
+            <h2 id="danger-heading">Delete</h2>
+            <p class="muted small">Permanently removes this job, its application, drafts, notes, contacts and reminders. This cannot be undone; export your data first if you may need it.</p>
+            <div><button type="button" class="btn ghost danger" (click)="remove(a)" [disabled]="busy()">Delete this application</button></div>
           </section>
           </div>
         </div>
@@ -135,6 +155,38 @@ export class ApplicationPage {
   readonly error = signal<string | null>(null);
   note = '';
   acknowledged = false;
+  private readonly router = inject(Router);
+  readonly editing = signal(false);
+  jobEdit = { title: '', employer: '', location: '', salary: '', sourceUrl: '' };
+
+  startEdit(a: ApplicationView) {
+    this.jobEdit = { title: a.job.title, employer: a.job.employer, location: a.job.location ?? '', salary: a.job.salary ?? '', sourceUrl: a.job.sourceUrl ?? '' };
+    this.editing.set(true);
+  }
+
+  async saveJob() {
+    const a = this.app();
+    if (!a) return;
+    const e = this.jobEdit;
+    const ok = await this.run(async () => {
+      await this.api.updateJob(a.jobId, { title: e.title.trim(), employer: e.employer.trim(), location: e.location.trim() || null, salary: e.salary.trim() || null, sourceUrl: e.sourceUrl.trim() || null });
+      return this.api.application(a.id);
+    });
+    if (ok) this.editing.set(false);
+  }
+
+  async remove(a: ApplicationView) {
+    if (!globalThis.confirm(`Permanently delete "${a.job.title}" at ${a.job.employer} and everything attached to it? This cannot be undone.`)) return;
+    this.busy.set(true);
+    try {
+      await this.api.deleteApplication(a.id);
+      await this.router.navigateByUrl('/tracker');
+    } catch (err) {
+      this.error.set(err instanceof ApiProblem ? err.message : 'Could not delete.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
 
   constructor() {
     effect(() => {

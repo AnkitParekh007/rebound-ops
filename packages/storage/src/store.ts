@@ -159,6 +159,11 @@ export class Store {
     return valid;
   }
 
+  /** Deletes a job and, by cascade, its application, activity, drafts, contacts and reminders. */
+  deleteJob(id: string): boolean {
+    return Number(this.db.prepare('DELETE FROM jobs WHERE id = ?').run(id).changes) === 1;
+  }
+
   getJob(id: string): Job | null {
     const row = this.db.prepare('SELECT id, data FROM jobs WHERE id = ?').get(id) as Row | undefined;
     return row ? parseRow(Job, 'jobs', row) : null;

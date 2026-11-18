@@ -30,6 +30,8 @@ import type {
   JobCreate,
   JobCreateResult,
   JobExtraction,
+  JobUpdate,
+  Job,
   OnboardingState,
   OnboardingUpdate,
   Profile,
@@ -217,6 +219,12 @@ export class ApiService {
   }
   rewrite(req: RewriteRequest) {
     return this.call(this.http.post<RewriteResult>(`${this.base}/ai/rewrite`, req));
+  }
+  updateJob(jobId: string, u: JobUpdate) {
+    return this.call(this.http.put<Job>(`${this.base}/jobs/${encodeURIComponent(jobId)}`, u));
+  }
+  deleteApplication(id: string) {
+    return this.call(this.http.delete<void>(`${this.base}/applications/${encodeURIComponent(id)}`));
   }
   dashboard() {
     return this.call(this.http.get<DashboardSummary>(`${this.base}/dashboard`));

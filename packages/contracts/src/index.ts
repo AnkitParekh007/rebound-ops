@@ -791,3 +791,17 @@ export const RewriteResult = z.object({
   local: z.boolean(),
 });
 export type RewriteResult = z.infer<typeof RewriteResult>;
+
+/* ------------------------------------------------------------------ */
+/* Job edits (M7)                                                      */
+/* ------------------------------------------------------------------ */
+
+export const JobUpdate = z.object({
+  title: shortText(300).min(1).optional(),
+  employer: shortText(300).min(1).optional(),
+  location: shortText(300).nullable().optional(),
+  salary: shortText(300).nullable().optional(),
+  workArrangement: WorkArrangement.nullable().optional(),
+  sourceUrl: z.url({ protocol: /^https?$/ }).max(2048).nullable().optional(),
+});
+export type JobUpdate = z.infer<typeof JobUpdate>;
