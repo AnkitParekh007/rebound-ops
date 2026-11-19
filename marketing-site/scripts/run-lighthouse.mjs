@@ -5,11 +5,12 @@
  * version so it is not a project dependency. Writes reports/lighthouse/summary.json and .md.
  * Prints the real scores; it never fills in numbers it could not measure.
  */
-import { spawn, execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { startPreview } from './preview-server.mjs';
 
 const site = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(site, 'reports/lighthouse');
@@ -19,12 +20,7 @@ const PORT = 4329;
 const pages = ['/', '/features/', '/how-it-works/', '/preview/', '/download/', '/privacy/', '/docs/', '/faq/', '/changelog/'];
 const chrome = process.env.CHROME_PATH || chromium.executablePath();
 
-const server = spawn('npx', ['astro', 'preview', '--port', String(PORT), '--host', '127.0.0.1'], { cwd: site, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1' }, stdio: 'ignore' });
-process.on('exit', () => server.kill());
-for (let i = 0; i < 100; i++) {
-  try { if ((await fetch(`http://127.0.0.1:${PORT}/`)).ok) break; } catch { /* starting */ }
-  await new Promise((r) => setTimeout(r, 200));
-}
+const server = await startPreview({ cwd: site, port: PORT });
 
 const rows = [];
 for (const preset of ['mobile', 'desktop']) {
@@ -50,4 +46,5 @@ const md = ['| Preset | Page | Perf | A11y | Best pr. | SEO | LCP ms | CLS | TBT
   ...rows.map((r) => r.error ? `| ${r.preset} | ${r.page} | error: ${r.error} |||||||` : `| ${r.preset} | ${r.page} | ${r.performance} | ${r.accessibility} | ${r.bestPractices} | ${r.seo} | ${r.lcpMs} | ${r.cls?.toFixed(3)} | ${r.tbtMs} |`)];
 writeFileSync(join(out, 'summary.md'), md.join('\n') + '\n');
 console.log(md.join('\n'));
+server.stop();
 process.exit(rows.some((r) => r.error) ? 1 : 0);

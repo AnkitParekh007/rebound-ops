@@ -17,8 +17,11 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: `npx astro preview --port ${PORT} --host localhost`,
+    // --ignore-lock keeps the server in the foreground (Astro backgrounds `preview` when it detects
+    // an AI agent, which would detach it from Playwright) and tolerates another preview server.
+    command: `npx astro preview --port ${PORT} --host localhost --ignore-lock`,
     url: `http://localhost:${PORT}/`,
+    timeout: 120_000,
     reuseExistingServer: !process.env.CI,
     env: { ASTRO_TELEMETRY_DISABLED: '1' },
   },
