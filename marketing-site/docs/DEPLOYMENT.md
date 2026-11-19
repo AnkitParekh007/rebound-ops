@@ -1,7 +1,9 @@
 # Deploying the marketing site
 
-Nothing here has been run. The site is not deployed, no DNS has changed, and no deploy workflow is
-active. Every step below needs the owner's go-ahead.
+The owner approved deploying to GitHub Pages on 2026-11-20. GitHub Pages is enabled with source
+*GitHub Actions* and the custom domain `rebound-ops.org`, and the deploy workflow below is in place.
+Deployments are started by hand. The DNS records and domain verification are done by the owner
+in Cloudflare and the GitHub account settings.
 
 ## Domain
 
@@ -38,57 +40,29 @@ Pages instead if per-pull-request previews or custom security headers become imp
 Always run `npm test` after the build with the same environment variables; the tests check that
 canonicals, the sitemap and robots match `SITE_URL` and `SITE_ENV`.
 
-## Deploying to GitHub Pages (when approved)
+## Deploying to GitHub Pages
 
 1. Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Add a workflow such as the one below as `.github/workflows/marketing-site-deploy.yml`. It runs only
-   when started by hand, so nothing deploys on push.
-
-   ```yaml
-   name: Deploy marketing site
-   on:
-     workflow_dispatch:
-   permissions:
-     contents: read
-     pages: write
-     id-token: write
-   concurrency: { group: pages, cancel-in-progress: false }
-   jobs:
-     build:
-       runs-on: ubuntu-24.04
-       defaults: { run: { working-directory: marketing-site } }
-       env:
-         ASTRO_TELEMETRY_DISABLED: '1'
-         SITE_ENV: production
-         SITE_URL: https://rebound-ops.org
-       steps:
-         - uses: actions/checkout@v7.0.1
-         - uses: actions/setup-node@v7.1.0
-           with: { node-version: 24, cache: npm, cache-dependency-path: marketing-site/package-lock.json }
-         - run: npm ci
-         - run: npm run build && npm test
-         - uses: actions/upload-pages-artifact@v4
-           with: { path: marketing-site/dist }
-     deploy:
-       needs: build
-       runs-on: ubuntu-24.04
-       environment: { name: github-pages, url: '${{ steps.deployment.outputs.page_url }}' }
-       steps:
-         - id: deployment
-           uses: actions/deploy-pages@v4
-   ```
-
-   Check the current major versions of `upload-pages-artifact` and `deploy-pages` before adding it.
-3. Run it from the **Actions** tab and check the deployed URL.
+2. The workflow is [`.github/workflows/marketing-site-deploy.yml`](../../.github/workflows/marketing-site-deploy.yml).
+   It runs only when started by hand and only from `main`, so nothing deploys on push. It does a
+   production build (`SITE_ENV=production`), runs `npm test` against it, and publishes
+   `marketing-site/dist` with `actions/upload-pages-artifact` and `actions/deploy-pages`.
+3. To publish: **Actions → Deploy marketing site → Run workflow** (branch `main`), then check
+   https://rebound-ops.org/.
 
 ## Custom domain and HTTPS for rebound-ops.org
 
 1. Settings → Pages → Custom domain: enter `rebound-ops.org`. Verify the domain for the account
    (Settings → Pages → *Verified domains*) to prevent takeovers.
-2. DNS at the registrar:
-   - apex: `A` records to GitHub Pages' published IPs (and `AAAA` for IPv6), as listed in GitHub's
-     documentation at the time;
-   - `www`: `CNAME` to `<owner>.github.io` (GitHub Pages then redirects `www` to the apex).
+2. DNS (the zone is on Cloudflare):
+   - apex `rebound-ops.org`: `A` records `185.199.108.153`, `185.199.109.153`, `185.199.110.153`,
+     `185.199.111.153` and `AAAA` records `2606:50c0:8000::153`, `2606:50c0:8001::153`,
+     `2606:50c0:8002::153`, `2606:50c0:8003::153` (GitHub Pages' addresses, checked 2026-11-20;
+     confirm against GitHub's documentation if they ever change);
+   - `www`: `CNAME` to `ankitparekh007.github.io` (GitHub Pages then redirects `www` to the apex);
+   - set the records to **DNS only** (grey cloud) until GitHub has issued the certificate: the
+     Cloudflare proxy hides the records from GitHub's checks. If the proxy is turned back on
+     afterwards, use SSL/TLS mode **Full (strict)** to avoid redirect loops.
 3. Wait for the certificate, then tick **Enforce HTTPS**.
 4. Production builds already use `https://rebound-ops.org`; submit
    `https://rebound-ops.org/sitemap-index.xml` to search consoles if wanted.

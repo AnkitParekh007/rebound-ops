@@ -1,6 +1,8 @@
 # Marketing site v1 — status (2026-11-18)
 
-Branch `feature/marketing-site-v1`, cut from `main` at `fc049c1`. Not pushed, not deployed.
+Branch `feature/marketing-site-v1`, cut from `main` at `fc049c1`. Merged to `main` in PR #19 on
+2026-11-19. Deployment to GitHub Pages is set up by hand-run workflow; see [DEPLOYMENT.md](DEPLOYMENT.md).
+The results below are from 2026-11-18.
 
 ## Results that were actually run
 
