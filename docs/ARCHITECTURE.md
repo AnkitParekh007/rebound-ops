@@ -28,6 +28,17 @@ flowchart LR
 
 Dotted lines are optional, and each one needs the user's action or consent. With AI off and Discover unused, no request leaves the machine after installation.
 
+### Desktop apps (`apps/desktop`)
+
+The desktop apps run the same server. A small Tauri shell (Rust, using the operating system's own web view: WKWebView on macOS, WebView2 on Windows) replaces the browser tab:
+
+1. It shows a bundled splash page, picks a free port on `127.0.0.1` and starts the bundled Node.js runtime with `server/main.mjs`. That file is the API and every `@reboundops` package bundled by `scripts/build-desktop-server.ts`; pdf.js is copied next to it because it loads its worker from its own folder.
+2. It sets `REBOUND_PARENT_WATCH=stdin`, `REBOUND_API_PORT` and `REBOUND_WEB_DIST`. The data folder is the usual `~/.reboundops` unless `REBOUND_DATA_DIR` is set, so the desktop app and `npm start` share data, and the existing data-folder lock stops both running at once.
+3. When `/api/health` answers, the window navigates to `http://127.0.0.1:<port>/`. The window may only show that origin and its own splash page. Other links, such as an employer's application page, open in the default browser, and only `http`, `https` and `mailto` links are passed on. Downloads go to the Downloads folder without overwriting.
+4. On quit the shell closes the server's stdin, so the server closes the database and releases the lock. It forces the process to stop only if it is still running after 5 seconds.
+
+The web content gets no access to Tauri APIs: there are no capabilities or commands. `REBOUND_DESKTOP_SMOKE=1` runs start, checks and a clean stop without a window; CI uses it to test the real app on each platform (`.github/workflows/desktop.yml`).
+
 ## Package dependencies
 
 ```mermaid

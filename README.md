@@ -105,7 +105,7 @@ npm start
 | Linux (x64) | Tested in CI on Ubuntu 24.04, including the browser journey |
 | Windows 11 | **Not tested.** It may work because it is Node-only; file-permission hardening is best effort |
 
-The interface is a browser tab on `127.0.0.1`; there is no desktop wrapper. It needs about 100 MB of disk space and about 105 MB of memory (measured on Apple Silicon). The network is used to install the runtime libraries, and afterwards only if you use Discover or a cloud AI provider. Full details are in [docs/INSTALL.md](docs/INSTALL.md).
+From the release archive, the interface is a browser tab on `127.0.0.1`. Desktop apps for macOS (Apple Silicon and Intel) and Windows x64 are being added; they bundle their own Node.js runtime and wrap the same local server in a native window (see [docs/INSTALL.md](docs/INSTALL.md#desktop-apps)). The archive install needs about 100 MB of disk space and about 105 MB of memory (measured on Apple Silicon). The network is used to install the runtime libraries, and afterwards only if you use Discover or a cloud AI provider. Full details are in [docs/INSTALL.md](docs/INSTALL.md).
 
 ## Privacy and AI choices
 

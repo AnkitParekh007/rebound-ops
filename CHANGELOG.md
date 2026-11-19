@@ -4,7 +4,14 @@ All notable changes to ReboundOps are recorded here. The format follows [Keep a 
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **Desktop apps** for macOS (Apple Silicon and Intel) and Windows x64: a native window (Tauri) around the same local server, with the Node.js runtime bundled, so nothing else needs installing. The apps use the same data folder as `npm start`. They are built and smoke-tested in CI and are not yet signed with a developer certificate (see [docs/INSTALL.md](docs/INSTALL.md#desktop-apps)).
+- `REBOUND_PARENT_WATCH=stdin`: the server shuts down cleanly when its stdin closes, so a parent process (the desktop app) can stop it on every platform, including Windows.
+
+### Changed
+
+- The project's earlier "no desktop wrapper" decision is reversed at the owner's request; the browser-tab install from the release archive stays available.
 
 ## [0.2.0] - 2026-11-18
 

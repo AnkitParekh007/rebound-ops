@@ -16,3 +16,6 @@ reports/
 *.log
 .e2e-tmp/
 release/
+apps/desktop/stage/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/

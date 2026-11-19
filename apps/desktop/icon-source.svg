@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- ReboundOps app icon: the comeback mark on an 824 px tile (macOS icon grid), transparent margin. -->
+  <g transform="translate(100 100) scale(25.75)">
+    <rect width="32" height="32" rx="7.2" fill="#090d16"/>
+    <path d="M5 25.5 H16" stroke="#eef2f8" stroke-opacity=".3" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M5.5 24 Q 8.5 17 11.5 24" fill="none" stroke="#6f93ff" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M11.5 24 C 13.5 15, 17.5 9.5, 23 8.2" fill="none" stroke="#3ff0a6" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="25.4" cy="7.8" r="3.1" fill="#3ff0a6"/>
+  </g>
+</svg>
