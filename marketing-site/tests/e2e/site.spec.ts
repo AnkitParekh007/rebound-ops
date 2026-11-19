@@ -34,8 +34,23 @@ test('no horizontal overflow from 320 px to 1920 px', async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     for (const path of PAGES) {
       await page.goto(path);
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      expect(overflow, `${path} at ${width}px`).toBeLessThanOrEqual(0);
+      const { overflow, culprits } = await page.evaluate(() => {
+        const root = document.documentElement;
+        const limit = root.clientWidth + 0.5;
+        // Elements sticking out past the viewport whose overflow no ancestor clips: the deepest
+        // ones name the cause when this fails.
+        const clipped = (el: Element) => {
+          for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+            if (getComputedStyle(a).overflowX !== 'visible') return true;
+          }
+          return false;
+        };
+        const out = [...document.body.querySelectorAll('*')].filter((el) => el.getBoundingClientRect().right > limit && !clipped(el));
+        const deepest = out.filter((el) => !out.some((o) => o !== el && el.contains(o)));
+        const describe = (el: Element) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}${[...el.classList].filter((c) => !c.startsWith('astro-')).map((c) => `.${c}`).join('')} (right ${Math.round(el.getBoundingClientRect().right)})`;
+        return { overflow: root.scrollWidth - root.clientWidth, culprits: deepest.slice(0, 5).map(describe) };
+      });
+      expect(overflow, `${path} at ${width}px; sticking out: ${culprits.join(', ') || 'none found'}`).toBeLessThanOrEqual(0);
     }
   }
 });

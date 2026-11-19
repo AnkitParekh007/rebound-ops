@@ -150,6 +150,10 @@ tr:last-child > * { border-bottom: 0; }
 th { font-weight: 650; color: var(--ink); background: var(--surface-2); }
 caption { text-align: left; padding: 0.8rem 1rem; font-weight: 600; caption-side: top; }
 
+/* Browsers default fieldsets to min-inline-size: min-content, so they never shrink below their
+   widest child and can widen the page on small screens. */
+fieldset { min-inline-size: 0; }
+
 /* ---------- code blocks ---------- */
 .code {
   position: relative; background: var(--stage-bg); color: var(--stage-ink); border-radius: var(--r-md);
