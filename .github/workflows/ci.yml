@@ -19,7 +19,8 @@ env:
   NPM_CONFIG_AUDIT: 'false'
   NPM_CONFIG_FUND: 'false'
 
-# The three jobs run in parallel; wall time is the slowest job, not the sum.
+# The three work jobs run in parallel (wall time is the slowest one); two gate jobs at the end report
+# the check names the branch ruleset requires.
 jobs:
   quality:
     runs-on: ubuntu-24.04
@@ -109,3 +110,29 @@ jobs:
           name: playwright-results-${{ matrix.mode }}
           path: test-results/
           retention-days: 7
+
+  # Stable names for the checks the main-branch ruleset requires ("verify" and "e2e"). The work
+  # runs in the parallel jobs above; these pass only if every job they cover succeeded. `always()`
+  # matters: a skipped required check counts as passing, so a failed dependency must fail here.
+  verify:
+    needs: [quality, release]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Quality and release jobs succeeded
+        run: |
+          echo "quality=${{ needs.quality.result }} release=${{ needs.release.result }}"
+          test "${{ needs.quality.result }}" = success && test "${{ needs.release.result }}" = success
+
+  e2e-gate:
+    name: e2e
+    needs: [e2e]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Both e2e modes succeeded
+        run: |
+          echo "e2e=${{ needs.e2e.result }}"
+          test "${{ needs.e2e.result }}" = success
