@@ -1,7 +1,7 @@
 /*
  * ReboundOps marketing design tokens.
- * Palette: warm paper neutrals, deep char surfaces, an ember accent, a lime signal and a tide teal
- * for verified evidence. Contrast pairs used for text are checked in tests/unit/contrast.test.mjs.
+ * Palette ("night court"): cool paper neutrals, blue-black surfaces, a mint signal for the main
+ * call to action, an electric-blue accent and a teal for verified evidence. Contrast pairs used for text are checked in tests/unit/contrast.test.mjs.
  */
 :root {
   /* ---- type ---- */
@@ -59,78 +59,78 @@
   --stagger: 70ms;
 
   /* ---- fixed stage palette (dark in both themes) ---- */
-  --stage-bg: #15110e;
-  --stage-surface: #201b17;
-  --stage-surface-2: #2b241f;
-  --stage-line: #3d342d;
-  --stage-ink: #f5eee4;
-  --stage-ink-2: #c7bbad;
-  --stage-ember: #ff7a4d;
-  --stage-lime: #d5f65e;
-  --stage-tide: #57d6c6;
-  --stage-amber: #f3b54d;
-  --stage-rose: #ff8597;
+  --stage-bg: #090d16;
+  --stage-surface: #111725;
+  --stage-surface-2: #1a2234;
+  --stage-line: #2b3549;
+  --stage-ink: #eef2f8;
+  --stage-ink-2: #b5c0d2;
+  --stage-ember: #6f93ff;
+  --stage-lime: #3ff0a6;
+  --stage-tide: #6fd6dc;
+  --stage-amber: #f6c35b;
+  --stage-rose: #ff8fb8;
 
   color-scheme: light;
-  --bg: #f4efe7;
-  --bg-sunk: #ebe4d8;
-  --surface: #fffcf7;
-  --surface-2: #f8f2e9;
-  --ink: #1c1714;
-  --ink-2: #463d36;
-  --ink-3: #685d54;
-  --line: #ddd2c3;
-  --line-strong: #bfb1a0;
-  --accent: #e2531f;
-  --accent-ink: #a8380f;
-  --accent-soft: #fbe1d4;
-  --signal: #c9ef4b;
-  --signal-ink: #1c1714;
-  --tide: #0d7068;
-  --tide-soft: #d4efe9;
-  --ok: #17694a;
-  --ok-soft: #d8f0e1;
+  --bg: #f3f5f8;
+  --bg-sunk: #e8ecf2;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --ink: #0d1320;
+  --ink-2: #39445a;
+  --ink-3: #56627a;
+  --line: #d6dce6;
+  --line-strong: #b2bccb;
+  --accent: #2448d8;
+  --accent-ink: #1f3fbf;
+  --accent-soft: #e0e7fd;
+  --signal: #7ef2c0;
+  --signal-ink: #0d1320;
+  --tide: #0a6b70;
+  --tide-soft: #d2eff0;
+  --ok: #13704a;
+  --ok-soft: #d6f2e2;
   --warn: #8a5300;
   --warn-soft: #fbecc9;
   --bad: #b0213a;
   --bad-soft: #fadbe0;
-  --focus: #1f5fd6;
-  --btn-bg: #1c1714;
-  --btn-ink: #fffcf7;
-  --shadow-1: 0 1px 2px rgb(60 40 20 / 0.06), 0 1px 1px rgb(60 40 20 / 0.04);
-  --shadow-2: 0 6px 18px -6px rgb(60 40 20 / 0.16), 0 2px 4px rgb(60 40 20 / 0.06);
-  --shadow-3: 0 24px 60px -18px rgb(50 30 10 / 0.3), 0 8px 18px -10px rgb(50 30 10 / 0.18);
+  --focus: #2448d8;
+  --btn-bg: #0d1320;
+  --btn-ink: #ffffff;
+  --shadow-1: 0 1px 2px rgb(15 25 45 / 0.06), 0 1px 1px rgb(15 25 45 / 0.04);
+  --shadow-2: 0 6px 18px -6px rgb(15 25 45 / 0.16), 0 2px 4px rgb(15 25 45 / 0.06);
+  --shadow-3: 0 24px 60px -18px rgb(10 20 40 / 0.3), 0 8px 18px -10px rgb(10 20 40 / 0.18);
   --grain-opacity: 0.35;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --bg: #110e0c;
-    --bg-sunk: #0b0908;
-    --surface: #1b1714;
-    --surface-2: #231e1a;
-    --ink: #f4ede3;
-    --ink-2: #cdc1b3;
-    --ink-3: #a39689;
-    --line: #342d27;
-    --line-strong: #4d433a;
-    --accent: #ff7a4d;
-    --accent-ink: #ff9670;
-    --accent-soft: #3a1f14;
-    --signal: #d5f65e;
-    --signal-ink: #15110e;
-    --tide: #5fd8c8;
-    --tide-soft: #11302c;
-    --ok: #6fdba5;
-    --ok-soft: #12301f;
+    --bg: #080c14;
+    --bg-sunk: #05080e;
+    --surface: #10151f;
+    --surface-2: #171d2a;
+    --ink: #eef2f8;
+    --ink-2: #b9c3d3;
+    --ink-3: #8f9bb0;
+    --line: #263042;
+    --line-strong: #3a465c;
+    --accent: #6f93ff;
+    --accent-ink: #9db4ff;
+    --accent-soft: #16224a;
+    --signal: #3ff0a6;
+    --signal-ink: #05080e;
+    --tide: #6fd6dc;
+    --tide-soft: #0f2b30;
+    --ok: #6fe0a0;
+    --ok-soft: #10291c;
     --warn: #f3b54d;
     --warn-soft: #34260d;
     --bad: #ff8597;
     --bad-soft: #3a1720;
-    --focus: #8db4ff;
-    --btn-bg: #f4ede3;
-    --btn-ink: #15110e;
+    --focus: #8fb0ff;
+    --btn-bg: #3ff0a6;
+    --btn-ink: #05080e;
     --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-2: 0 8px 22px -8px rgb(0 0 0 / 0.6);
     --shadow-3: 0 30px 70px -20px rgb(0 0 0 / 0.75);
@@ -140,31 +140,31 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #110e0c;
-  --bg-sunk: #0b0908;
-  --surface: #1b1714;
-  --surface-2: #231e1a;
-  --ink: #f4ede3;
-  --ink-2: #cdc1b3;
-  --ink-3: #a39689;
-  --line: #342d27;
-  --line-strong: #4d433a;
-  --accent: #ff7a4d;
-  --accent-ink: #ff9670;
-  --accent-soft: #3a1f14;
-  --signal: #d5f65e;
-  --signal-ink: #15110e;
-  --tide: #5fd8c8;
-  --tide-soft: #11302c;
-  --ok: #6fdba5;
-  --ok-soft: #12301f;
+  --bg: #080c14;
+  --bg-sunk: #05080e;
+  --surface: #10151f;
+  --surface-2: #171d2a;
+  --ink: #eef2f8;
+  --ink-2: #b9c3d3;
+  --ink-3: #8f9bb0;
+  --line: #263042;
+  --line-strong: #3a465c;
+  --accent: #6f93ff;
+  --accent-ink: #9db4ff;
+  --accent-soft: #16224a;
+  --signal: #3ff0a6;
+  --signal-ink: #05080e;
+  --tide: #6fd6dc;
+  --tide-soft: #0f2b30;
+  --ok: #6fe0a0;
+  --ok-soft: #10291c;
   --warn: #f3b54d;
   --warn-soft: #34260d;
   --bad: #ff8597;
   --bad-soft: #3a1720;
-  --focus: #8db4ff;
-  --btn-bg: #f4ede3;
-  --btn-ink: #15110e;
+  --focus: #8fb0ff;
+  --btn-bg: #3ff0a6;
+  --btn-ink: #05080e;
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-2: 0 8px 22px -8px rgb(0 0 0 / 0.6);
   --shadow-3: 0 30px 70px -20px rgb(0 0 0 / 0.75);

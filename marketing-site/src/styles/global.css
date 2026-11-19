@@ -164,7 +164,7 @@ fieldset { min-inline-size: 0; }
 }
 .code pre { margin: 0; padding: var(--space-s) var(--space-m); overflow-x: auto; line-height: 1.7; }
 .code .prompt { color: var(--stage-ink-2); user-select: none; }
-.code .comment { color: #a89c8f; }
+.code .comment { color: #8e9ab0; }
 
 /* ---------- reveal on scroll (JS adds .motion-ok to <html>) ---------- */
 .motion-ok [data-reveal] {

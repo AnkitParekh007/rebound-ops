@@ -59,12 +59,12 @@ test('fixed colours (stage, document previews) meet 4.5:1', () => {
     ...['stage-ink', 'stage-ink-2', 'stage-lime', 'stage-tide', 'stage-amber', 'stage-rose', 'stage-ember'].flatMap((fg) => ['stage-bg', 'stage-surface'].map((bg) => [s[fg], s[bg], `${fg} on ${bg}`])),
     [s['stage-ink'], s['stage-surface-2'], 'stage-ink on stage-surface-2'],
     [s['stage-ink-2'], s['stage-surface-2'], 'stage-ink-2 on stage-surface-2'],
-    ['#15110e', s['stage-lime'], 'dark text on lime'],
-    ['#a89c8f', s['stage-bg'], 'code comment'],
-    ['#1c1714', '#fbf8f2', 'document text'], ['#4a413a', '#fbf8f2', 'document meta'], ['#a8380f', '#fbf8f2', 'document heading'],
-    ['#0b5f58', '#fbf8f2', 'provenance note'], ['#0b5f58', '#f1e9dc', 'provenance on hover'], ['#6e4200', '#fbecc9', 'placeholder'],
-    ['#8a5300', '#fbecc9', 'hero placeholder'], ['#1c1714', '#f8f3ea', 'hero page text'], ['#a8380f', '#f8f3ea', 'hero section label'],
-    ['#3a3a1c', '#c9ef4b', 'muted on signal (light)'], ['#3a3a1c', '#d5f65e', 'muted on signal (dark)'],
+    ['#090d16', s['stage-lime'], 'dark text on lime'],
+    ['#8e9ab0', s['stage-bg'], 'code comment'],
+    ['#0d1320', '#fbfcfe', 'document text'], ['#3e475a', '#fbfcfe', 'document meta'], ['#1f3fbf', '#fbfcfe', 'document heading'],
+    ['#085a5e', '#fbfcfe', 'provenance note'], ['#085a5e', '#eef1f7', 'provenance on hover'], ['#6e4200', '#fbecc9', 'placeholder'],
+    ['#8a5300', '#fbecc9', 'hero placeholder'], ['#0d1320', '#f7f8fb', 'hero page text'], ['#1f3fbf', '#f7f8fb', 'hero section label'],
+    ['#173a2c', '#7ef2c0', 'muted on signal (light)'], ['#173a2c', '#3ff0a6', 'muted on signal (dark)'],
   ];
   const fails = pairs.filter(([a, b]) => ratio(a, b) < 4.5).map(([a, b, n]) => `${n}: ${ratio(a, b).toFixed(2)}`);
   assert.deepEqual(fails, []);

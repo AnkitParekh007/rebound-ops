@@ -63,8 +63,8 @@ const docs = [
 
   .sheets { position: relative; }
   .sheet {
-    display: none; background: #fbf8f2; color: #1c1714; border-radius: var(--r-md); padding: clamp(1rem, 3vw, 2rem);
-    box-shadow: var(--shadow-3); border: 1px solid #e3d9cb; gap: 0.35rem; font-size: var(--step--1);
+    display: none; background: #fbfcfe; color: #0d1320; border-radius: var(--r-md); padding: clamp(1rem, 3vw, 2rem);
+    box-shadow: var(--shadow-3); border: 1px solid #dfe4ec; gap: 0.35rem; font-size: var(--step--1);
   }
   .doc-demo:has(input[value='resume']:checked) .sheet[data-doc='resume'],
   .doc-demo:has(input[value='letter']:checked) .sheet[data-doc='letter'] { display: grid; animation: sheet var(--dur-slow) var(--ease-out); }
@@ -72,15 +72,15 @@ const docs = [
   @keyframes sheet { from { opacity: 0; transform: translateY(12px) rotate(-0.4deg); } }
 
   .line { display: grid; grid-template-columns: 1fr; gap: 0.1rem 1rem; padding: 0.25rem 0.4rem; border-radius: 6px; transition: background-color var(--dur-quick) var(--ease-out); }
-  .line:hover { background: #f1e9dc; }
+  .line:hover { background: #eef1f7; }
   .k-h .txt { font-family: var(--font-display); font-size: 1.6em; font-weight: 700; letter-spacing: -0.02em; }
-  .k-meta .txt { color: #4a413a; }
-  .k-sh .txt { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78em; font-weight: 700; color: #a8380f; margin-top: 0.6rem; }
+  .k-meta .txt { color: #3e475a; }
+  .k-sh .txt { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78em; font-weight: 700; color: #1f3fbf; margin-top: 0.6rem; }
   .k-role .txt { font-weight: 650; }
-  .k-li .txt::before { content: '•'; margin-right: 0.5rem; color: #685d54; }
+  .k-li .txt::before { content: '•'; margin-right: 0.5rem; color: #5a6478; }
   .k-p .txt { line-height: 1.6; }
   .ph { background: #fbecc9; color: #6e4200; font-family: var(--font-mono); font-size: 0.9em; padding: 0 0.3em; border-radius: 4px; }
-  .from { display: none; font-family: var(--font-mono); font-size: 0.72rem; color: #0b5f58; }
+  .from { display: none; font-family: var(--font-mono); font-size: 0.72rem; color: #085a5e; }
   .doc-demo:has(.prov-toggle:checked) .from { display: block; animation: fadeIn var(--dur-base) var(--ease-out); }
   @media (min-width: 760px) {
     .doc-demo:has(.prov-toggle:checked) .line { grid-template-columns: 1fr 16rem; }
