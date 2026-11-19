@@ -32,7 +32,8 @@ git commit --quiet -m "Sync generated pages from rebound-ops@$REF"
 git show --stat HEAD
 read -r -p "Push these Wiki changes to GitHub? [y/N] " answer
 if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
-  git push origin HEAD
+  # The Wiki has no LFS objects; skip Git LFS's lock check, which fails against wiki remotes.
+  git -c lfs.locksverify=false push origin HEAD
 else
   echo "Not pushed. Nothing was changed on GitHub."
 fi

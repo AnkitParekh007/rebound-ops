@@ -1,6 +1,6 @@
 # GitHub Discussions: review draft
 
-**Status: draft. Discussions is off on the repository (checked 2026-11-18). Nothing has been enabled or posted.**
+**Status: applied by the owner on 2026-11-18.** Discussions is enabled, the "Platform reports" category exists and all six posts below are live (checked 2026-11-19). This file stays as the record of what was posted.
 
 ## Why enable it
 

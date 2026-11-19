@@ -1,6 +1,6 @@
 # GitHub settings: review draft
 
-**Status: draft for owner review. None of these settings has been changed.** Every command below changes the live repository, so run it only after approval. The `gh` commands assume `gh auth login` as the repository owner, run from any directory.
+**Status: applied by the owner on 2026-11-18, except the homepage (no domain yet) and turning off Projects.** See [READINESS.md](READINESS.md#status-after-the-owner-run-2026-11-19) for what was confirmed afterwards. Every command below changes the live repository. The `gh` commands assume `gh auth login` as the repository owner, run from any directory.
 
 The live state was checked on 2026-11-18 with unauthenticated read-only API calls. See [READINESS.md](READINESS.md#live-github-state-checked-2026-11-18).
 

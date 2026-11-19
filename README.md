@@ -194,9 +194,11 @@ npm run lint && npm run typecheck && npm test
 
 The full script reference is in [CONTRIBUTING.md](CONTRIBUTING.md#scripts).
 
+The [Wiki](https://github.com/AnkitParekh007/rebound-ops/wiki) has the same guides, generated from these files, plus an [FAQ](https://github.com/AnkitParekh007/rebound-ops/wiki/FAQ) and a [Privacy and AI](https://github.com/AnkitParekh007/rebound-ops/wiki/Privacy-and-AI) overview.
+
 ## Support
 
-Questions, bug reports and ideas go through the channels in [SUPPORT.md](SUPPORT.md). ReboundOps is maintained by one person in their own time, and there is no paid support.
+Ask questions and share ideas in [Discussions](https://github.com/AnkitParekh007/rebound-ops/discussions), and report bugs through the [issue forms](https://github.com/AnkitParekh007/rebound-ops/issues/new/choose). [SUPPORT.md](SUPPORT.md) lists every channel. ReboundOps is maintained by one person in their own time, and there is no paid support.
 
 ## Licence
 

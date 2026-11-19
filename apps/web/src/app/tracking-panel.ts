@@ -29,8 +29,8 @@ const today = () => new Date().toISOString().slice(0, 10);
             @if (r.priority === 'high') { <span class="badge warn small">High priority</span> }
             <span class="muted small">due {{ r.dueOn }}@if (!r.done && r.dueOn < todayIso) { · overdue }@if (r.dueOn === todayIso && !r.done) { · today }</span>
             @if (!r.done) {
-              <button type="button" class="btn link" (click)="snooze(r, 1)" [attr.aria-label]="'Move ' + r.label + ' to tomorrow'">+1 day</button>
-              <button type="button" class="btn link" (click)="snooze(r, 7)" [attr.aria-label]="'Move ' + r.label + ' by a week'">+1 week</button>
+              <button type="button" class="btn link" (click)="snooze(r, 1)" [attr.aria-label]="'+1 day: move ' + r.label + ' to tomorrow'">+1 day</button>
+              <button type="button" class="btn link" (click)="snooze(r, 7)" [attr.aria-label]="'+1 week: move ' + r.label + ' by a week'">+1 week</button>
             }
             <button type="button" class="btn link danger" (click)="removeReminder(r)" [attr.aria-label]="'Delete reminder ' + r.label">Delete</button>
           </li>

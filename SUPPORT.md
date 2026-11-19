@@ -12,13 +12,14 @@ ReboundOps is free, open-source software maintained by one person in their own t
 
 | You want to… | Go to |
 | --- | --- |
+| Ask a question | [Discussions → Q&A](https://github.com/AnkitParekh007/rebound-ops/discussions/categories/q-a) |
+| Share an idea, or a platform report | [Discussions → Ideas](https://github.com/AnkitParekh007/rebound-ops/discussions/categories/ideas) or [Platform reports](https://github.com/AnkitParekh007/rebound-ops/discussions/categories/platform-reports) |
+| Read the guides and FAQ | [Wiki](https://github.com/AnkitParekh007/rebound-ops/wiki) |
 | Report a bug | [Open a bug report](https://github.com/AnkitParekh007/rebound-ops/issues/new?template=bug_report.yml) |
 | Suggest a feature | [Open a feature request](https://github.com/AnkitParekh007/rebound-ops/issues/new?template=feature_request.yml) |
 | Report a documentation problem | [Open a documentation issue](https://github.com/AnkitParekh007/rebound-ops/issues/new?template=documentation.yml) |
 | Report a security vulnerability | Privately, as described in [SECURITY.md](SECURITY.md). Never in a public issue |
 | Report a conduct problem | As described in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md#reporting) |
-
-<!-- When GitHub Discussions is enabled, add: "Ask a question or share an idea → Discussions". -->
 
 ## Protect your privacy when asking
 
