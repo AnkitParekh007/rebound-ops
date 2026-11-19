@@ -75,7 +75,8 @@ const tabs = [
 </script>
 
 <style>
-  .playground { display: grid; gap: var(--space-m); }
+  /* minmax(0, 1fr): the unwrapped tab row must scroll inside the column, not widen the page. */
+  .playground { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-m); min-width: 0; }
   .tablist { position: relative; display: flex; gap: 0.25rem; overflow-x: auto; scrollbar-width: none; padding: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-pill); justify-self: start; max-width: 100%; }
   .tablist::-webkit-scrollbar { display: none; }
   [role='tab'] {
@@ -85,11 +86,12 @@ const tabs = [
   }
   [role='tab']:hover { color: var(--ink); }
   [role='tab'][aria-selected='true'] { color: var(--btn-ink); }
-  .n { font-size: 0.72em; opacity: 0.7; }
+  /* Full tab colour, no opacity: faded small text fell below 4.5:1 in the light theme. */
+  .n { font-size: 0.72em; }
   .ink { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 0; width: var(--w, 0); transform: translateX(var(--x, 0)); background: var(--btn-bg); border-radius: var(--r-pill); transition: transform var(--dur-slow) var(--ease-out), width var(--dur-slow) var(--ease-out); }
   html:not(.js) .ink { display: none; }
   html:not(.js) [role='tab'] { color: var(--ink-2); }
-  .panel { display: grid; gap: var(--space-m); padding: clamp(1rem, 3vw, 2.25rem); background: var(--bg-sunk); border: 1px solid var(--line); border-radius: var(--r-xl); }
+  .panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-m); padding: clamp(1rem, 3vw, 2.25rem); background: var(--bg-sunk); border: 1px solid var(--line); border-radius: var(--r-xl); }
   .panel:focus-visible { outline-offset: 4px; }
   :global(.js) .panel[data-active='false'] { display: none; }
   .panel-title { font-size: var(--step-3); }
