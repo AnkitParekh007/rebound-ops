@@ -18,13 +18,22 @@ console.log(`ReboundOps API listening on ${api.address} (data: ${config.dataDir}
 if (config.webDist) console.log(`Open ${api.address} in your browser.`);
 
 let closing = false;
-for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-  process.on(signal, () => {
-    if (closing) return;
-    closing = true;
-    api.close().then(
-      () => process.exit(0),
-      () => process.exit(1),
-    );
-  });
+const shutdown = () => {
+  if (closing) return;
+  closing = true;
+  api.close().then(
+    () => process.exit(0),
+    () => process.exit(1),
+  );
+};
+for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, shutdown);
+
+// Desktop app: the shell keeps our stdin open and closes it (or exits) when it quits. Watching
+// stdin is the portable "parent has gone" signal, since Windows has no SIGTERM. Opt-in only.
+if (process.env['REBOUND_PARENT_WATCH'] === 'stdin') {
+  process.stdin.on('data', () => {});
+  process.stdin.on('end', shutdown);
+  process.stdin.on('close', shutdown);
+  process.stdin.on('error', shutdown);
+  process.stdin.resume();
 }

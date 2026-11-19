@@ -41,7 +41,7 @@ if (!existsSync(join(webDist, 'index.html'))) fail('no web build at apps/web/dis
 
 /* ---------- collect files ---------- */
 
-const EXCLUDE = [/^marketing-site\//, /^tests\//, /(^|\/)test\//, /^\.github\//, /^reports\//, /^playwright\.config\.ts$/, /^vitest\.config\.ts$/, /^eslint\.config\.js$/, /^apps\/web\/src\/.*\.spec\.ts$/];
+const EXCLUDE = [/^marketing-site\//, /^apps\/desktop\//, /^scripts\/(build|package|smoke)-desktop[^/]*\.ts$/, /^tests\//, /(^|\/)test\//, /^\.github\//, /^reports\//, /^playwright\.config\.ts$/, /^vitest\.config\.ts$/, /^eslint\.config\.js$/, /^apps\/web\/src\/.*\.spec\.ts$/];
 const FORBIDDEN = [/(^|\/)CLAUDE\.md$/, /(^|\/)\.claude\//, /\.sqlite(-|$)/, /(^|\/)\.env(\.|$)/, /(^|\/)graphify-out\//, /(^|\/)node_modules\//, /\.rbobak$/];
 const tracked = git('ls-files', '-z').split('\0').filter(Boolean);
 const files = new Map<string, Buffer>();

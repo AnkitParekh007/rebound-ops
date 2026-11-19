@@ -1,0 +1,104 @@
+# ReboundOps desktop apps: macOS Apple Silicon, macOS Intel and Windows x64.
+# Each job stages the bundled server, smoke-tests it, builds the app with Tauri, runs the built app in
+# smoke mode on that runner and uploads the zip. Nothing is published; attaching zips to a release
+# needs the owner's approval.
+name: Desktop apps
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'scripts/build-desktop-server.ts'
+      - 'scripts/smoke-desktop-server.ts'
+      - 'scripts/package-desktop.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/desktop.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'scripts/build-desktop-server.ts'
+      - 'scripts/smoke-desktop-server.ts'
+      - 'scripts/package-desktop.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  NG_CLI_ANALYTICS: 'false'
+  NPM_CONFIG_AUDIT: 'false'
+  NPM_CONFIG_FUND: 'false'
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: desktop (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: macos-arm64
+            runner: macos-15
+          - target: macos-x64
+            runner: macos-15-intel
+          - target: windows-x64
+            runner: windows-2025
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --prefer-offline
+      # Installs the toolchain pinned in apps/desktop/src-tauri/rust-toolchain.toml.
+      - name: Rust toolchain
+        working-directory: apps/desktop/src-tauri
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            apps/desktop/src-tauri/target
+          key: cargo-${{ matrix.target }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock', 'apps/desktop/src-tauri/rust-toolchain.toml') }}
+          restore-keys: cargo-${{ matrix.target }}-
+      - name: Stage the bundled server and web app
+        run: node scripts/build-desktop-server.ts
+      - name: Smoke test the bundled server (runner's Node)
+        run: node scripts/smoke-desktop-server.ts
+      - name: Build, check licences and smoke test the desktop app
+        run: node scripts/package-desktop.ts --target ${{ matrix.target }} --skip-stage
+      - name: Shell unit tests (incl. start/stop against the staged server with the bundled Node)
+        working-directory: apps/desktop/src-tauri
+        run: cargo test --lib --locked
+        env:
+          REBOUND_TEST_STAGE: ${{ github.workspace }}/apps/desktop/stage
+      - name: Clippy
+        working-directory: apps/desktop/src-tauri
+        run: cargo clippy --lib --locked -- -D warnings
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: desktop-${{ matrix.target }}
+          path: |
+            release/desktop/*.zip
+            release/desktop/*.sbom.json
+            release/desktop/SHA256SUMS-*.txt
+          if-no-files-found: error
+          retention-days: 14

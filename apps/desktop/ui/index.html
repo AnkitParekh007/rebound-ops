@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReboundOps</title>
+  <link rel="stylesheet" href="splash.css">
+  <script src="splash.js" defer></script>
+</head>
+<body>
+  <main class="splash" aria-live="polite">
+    <svg class="mark" width="72" height="72" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <rect width="32" height="32" rx="9" fill="#111725"/>
+      <path d="M5 25.5 H16" stroke="#eef2f8" stroke-opacity=".3" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M5.5 24 Q 8.5 17 11.5 24" fill="none" stroke="#6f93ff" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M11.5 24 C 13.5 15, 17.5 9.5, 23 8.2" fill="none" stroke="#3ff0a6" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="25.4" cy="7.8" r="3.1" fill="#3ff0a6"/>
+    </svg>
+    <h1>Rebound<span>Ops</span></h1>
+    <p id="status" class="status"><span class="dot" aria-hidden="true"></span>Starting ReboundOps on this computer…</p>
+    <section id="error" class="error" hidden>
+      <h2>ReboundOps could not start</h2>
+      <p id="error-text"></p>
+      <p class="hint">Your data has not been changed. Quit ReboundOps and open it again. If the message says ReboundOps is already running, close the other copy first (including a terminal running <code>npm start</code>).</p>
+    </section>
+  </main>
+</body>
+</html>

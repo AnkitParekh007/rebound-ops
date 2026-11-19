@@ -3,7 +3,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/dist/**', '**/.angular/**', 'coverage/**', 'reports/**', '.local-data/**', 'marketing-site/**'] },
+  { ignores: ['**/node_modules/**', '**/dist/**', '**/.angular/**', 'coverage/**', 'reports/**', '.local-data/**', 'marketing-site/**', 'release/**', 'apps/desktop/stage/**', 'apps/desktop/src-tauri/target/**', 'apps/desktop/src-tauri/gen/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

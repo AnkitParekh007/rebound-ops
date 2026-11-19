@@ -19,12 +19,38 @@ and it stores everything in one private database folder.
 | Platform | Status |
 | --- | --- |
 | macOS on Apple Silicon | Primary target; verified on a current macOS release on the development machine (older versions not tested). Fresh install, upgrade from v0.1.0, PDF import and restore are verified by `npm run verify:release`. |
-| macOS on Intel | Expected to work (no native code is required); not separately tested. |
-| Linux (x64) | Tested in CI (Ubuntu): unit, API, packaged-serving, release verification and browser journey. |
-| Windows 11 | Not tested. Node-only, so it may work; file-permission hardening (0600/0700) is best effort on Windows. |
+| macOS on Intel | The desktop app is built and smoke-tested in CI on an Intel runner: start, health, web app served, clean stop. The full browser journey is not run there. |
+| Linux (x64) | Tested in CI (Ubuntu): unit, API, packaged-serving, release verification and browser journey. No desktop app; use the release archive. |
+| Windows 11 | The desktop app is built and smoke-tested in CI on Windows Server 2025 (same checks as Intel macOS). Not yet tested by hand on Windows 11. File-permission hardening (0600/0700) is best effort on Windows. |
 
-ReboundOps has no desktop wrapper. A browser tab on `http://127.0.0.1:4175` is the interface; an
-Electron or Tauri shell would add size and update work without changing what the app can do.
+There are two ways to run ReboundOps: the **desktop app** (below), or the **release archive** with
+your own Node.js, used in a browser tab. Both run the same local server and use the same data folder.
+
+## Desktop apps
+
+Builds are available for **macOS on Apple Silicon**, **macOS on Intel** and **Windows 11 (x64)**:
+`ReboundOps-<version>-macos-arm64.zip`, `…-macos-x64.zip` and `…-windows-x64.zip`. Each one contains
+its own Node.js runtime, so you don't need to install anything else. Linux users can use the release archive.
+
+1. Check the download against `SHA256SUMS-<target>.txt` (`shasum -a 256 <zip>` on macOS,
+   `Get-FileHash <zip>` in PowerShell).
+2. **macOS:** unzip, move `ReboundOps.app` to Applications and open it.
+3. **Windows:** unzip the whole folder and open `ReboundOps.exe`. Windows 10 and 11 already include
+   the WebView2 runtime it uses.
+
+The apps are not yet signed with a paid Apple or Microsoft developer certificate, so the first launch
+needs one extra step:
+
+- **macOS** says it cannot verify the developer. Open **System Settings → Privacy & Security**, scroll
+  down and click **Open Anyway** next to ReboundOps, then confirm. Later launches open normally.
+- **Windows SmartScreen** may say it protected your PC. Click **More info**, then **Run anyway**.
+
+The app keeps your data in `~/.reboundops`, the same folder as `npm start`. Only one copy can use it at
+a time; if another copy is running, the app says so instead of starting. Opening the app again while it
+is running brings the existing window to the front. Links to job postings and application pages open
+in your default browser, and exported PDF, DOCX and backup files are saved to your Downloads folder.
+
+Not included yet: code signing and notarisation, automatic updates, a Linux desktop build, Windows on Arm.
 
 ## Install from a release archive
 
