@@ -1,0 +1,91 @@
+---
+import Base from '../layouts/Base.astro';
+import { SCREENSHOTS, REQUIRED_VIEWS } from '../data/screenshots';
+import { href } from '../lib/site';
+import { REPO_URL } from '../data/product';
+import { breadcrumbLd } from '../lib/structured-data';
+
+const captured = SCREENSHOTS.status === 'captured' && SCREENSHOTS.shots.length > 0;
+const src = (p: string) => href(`/screenshots/${p}`);
+---
+<Base
+  title="Product preview"
+  description="Screenshots of the real ReboundOps app, captured from the released version with fictional data: onboarding, overview, Discover, fit assessment, documents, tracker, AI assist and backups."
+  path="/preview/"
+  og="preview"
+  jsonLd={[breadcrumbLd(Astro.site, [{ name: 'Home', path: '/' }, { name: 'Product preview', path: '/preview/' }])]}
+>
+  <header class="page-hero wrap-wide">
+    <p class="eyebrow">Product preview</p>
+    <h1>The real app, with made-up data</h1>
+    <p class="lede">Every screenshot here comes from a script that runs the released ReboundOps against a throwaway data folder filled with fictional fixtures. Nothing is mocked up.</p>
+  </header>
+
+  {captured ? (
+    <div class="wrap-wide gallery-wrap" data-gallery>
+      <p class="provenance small muted">
+        Captured from <a href={`${REPO_URL}/releases/tag/${SCREENSHOTS.source!.tag}`}>{SCREENSHOTS.source!.tag}</a>
+        (commit <code>{SCREENSHOTS.source!.commit}</code>) on {SCREENSHOTS.source!.capturedAt.slice(0, 10)} with {SCREENSHOTS.source!.browser}. Data: {SCREENSHOTS.source!.dataset}.
+      </p>
+      <fieldset class="seg">
+        <legend class="visually-hidden">Screen size</legend>
+        <label><input type="radio" name="vp" value="desktop" checked /><span>Desktop</span></label>
+        <label><input type="radio" name="vp" value="mobile" /><span>Mobile</span></label>
+      </fieldset>
+      <ul class="gallery" role="list">
+        {SCREENSHOTS.shots.map((s, i) => (
+          <li class="shot" data-reveal style={`--i:${i % 3}`}>
+            <figure>
+              {(['desktop', 'mobile'] as const).map((vp) => (
+                <a class={`frame vp-${vp}`} href={src(s[vp].webp)}>
+                  <picture>
+                    <source srcset={src(s[vp].avif)} type="image/avif" />
+                    <img src={src(s[vp].webp)} alt={`${s.alt} (${vp} layout)`} width={s[vp].width} height={s[vp].height} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" />
+                  </picture>
+                </a>
+              ))}
+              <figcaption><b>{s.title}.</b> {s.caption}</figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : (
+    <div class="wrap-wide">
+      <section class="pending" aria-labelledby="pending-h" data-screenshots-pending>
+        <span class="chip" data-tone="warn"><span class="dot" aria-hidden="true"></span>Screenshots not published yet</span>
+        <h2 id="pending-h">We haven’t captured the app for this page yet</h2>
+        <p>Screenshots on this site only come from an automated capture of the released app with fictional data. That capture has not run for this build, so instead of showing old or mocked-up images, this page lists what it will contain.</p>
+        <ol class="views" role="list">
+          {REQUIRED_VIEWS.map((v) => <li><span class="mono">{v.id}</span>{v.title}</li>)}
+        </ol>
+        <p class="small muted">Meanwhile, the <a href={href('/#try-title')}>interactive examples</a> show the main ideas with clearly labelled synthetic data, and the source is on <a href={REPO_URL}>GitHub</a>.</p>
+      </section>
+    </div>
+  )}
+</Base>
+
+<style>
+  .provenance { margin-bottom: var(--space-s); }
+  .seg { display: inline-flex; border: 1px solid var(--line); padding: 4px; background: var(--surface-2); border-radius: var(--r-pill); margin-bottom: var(--space-l); }
+  .seg label { position: relative; }
+  .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .seg span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 1.1rem; border-radius: var(--r-pill); font-weight: 600; color: var(--ink-2); }
+  .seg input:checked + span { background: var(--btn-bg); color: var(--btn-ink); }
+  .seg input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .gallery { list-style: none; padding: 0; display: grid; gap: var(--space-xl) var(--space-l); }
+  @media (min-width: 900px) { .gallery { grid-template-columns: 1fr 1fr; } .shot:nth-child(3n + 1) { grid-column: 1 / -1; } }
+  figure { display: grid; gap: var(--space-s); }
+  .frame { display: block; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow-2); background: var(--surface-2); transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
+  .frame:hover { transform: translateY(-3px); box-shadow: var(--shadow-3); }
+  .vp-mobile { display: none; max-width: 22rem; justify-self: center; border-radius: var(--r-lg); }
+  [data-gallery]:has(input[value='mobile']:checked) .vp-mobile { display: block; }
+  [data-gallery]:has(input[value='mobile']:checked) .vp-desktop { display: none; }
+  figcaption { color: var(--ink-2); max-width: 60ch; }
+  figcaption b { color: var(--ink); }
+  .pending { display: grid; gap: var(--space-m); justify-items: start; max-width: 52rem; padding: clamp(1.25rem, 4vw, 3rem); border: 1.5px dashed var(--line-strong); border-radius: var(--r-xl); background: var(--surface); margin-bottom: var(--space-xl); }
+  .pending h2 { font-size: var(--step-3); }
+  .views { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: 0.5rem; width: 100%; }
+  .views li { display: grid; gap: 0.1rem; padding: 0.7rem 0.9rem; border-radius: var(--r-sm); background: var(--surface-2); font-weight: 600; }
+  .views .mono { font-size: var(--step--2); color: var(--ink-2); font-weight: 400; }
+</style>

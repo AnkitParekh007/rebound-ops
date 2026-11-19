@@ -1,0 +1,183 @@
+/*
+ * ReboundOps marketing design tokens.
+ * Palette: warm paper neutrals, deep char surfaces, an ember accent, a lime signal and a tide teal
+ * for verified evidence. Contrast pairs used for text are checked in tests/unit/contrast.test.mjs.
+ */
+:root {
+  /* ---- type ---- */
+  --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Instrument Sans Variable', 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --step--2: 0.75rem;
+  --step--1: 0.875rem;
+  --step-0: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
+  --step-1: clamp(1.15rem, 1.08rem + 0.35vw, 1.3rem);
+  --step-2: clamp(1.4rem, 1.25rem + 0.7vw, 1.75rem);
+  --step-3: clamp(1.75rem, 1.45rem + 1.4vw, 2.5rem);
+  --step-4: clamp(2.2rem, 1.6rem + 2.8vw, 3.75rem);
+  --step-5: clamp(2.6rem, 1.6rem + 4.6vw, 5.25rem);
+
+  --leading-tight: 1.05;
+  --leading-snug: 1.25;
+  --leading-body: 1.6;
+  --tracking-display: -0.025em;
+  --tracking-caps: 0.08em;
+
+  /* ---- space (4px base, fluid at the large end) ---- */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-s: 1rem;
+  --space-m: 1.5rem;
+  --space-l: 2rem;
+  --space-xl: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+  --space-2xl: clamp(3.5rem, 2.6rem + 4vw, 6rem);
+  --space-3xl: clamp(5rem, 3.5rem + 6vw, 9rem);
+  --gutter: clamp(1rem, 0.5rem + 2.5vw, 2.5rem);
+  --measure: 66ch;
+  --page-max: 1240px;
+  --page-wide: 1440px;
+
+  /* ---- radii ---- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 36px;
+  --r-pill: 999px;
+
+  /* ---- motion ---- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --dur-instant: 90ms;
+  --dur-quick: 160ms;
+  --dur-base: 260ms;
+  --dur-slow: 480ms;
+  --dur-story: 900ms;
+  --stagger: 70ms;
+
+  /* ---- fixed stage palette (dark in both themes) ---- */
+  --stage-bg: #15110e;
+  --stage-surface: #201b17;
+  --stage-surface-2: #2b241f;
+  --stage-line: #3d342d;
+  --stage-ink: #f5eee4;
+  --stage-ink-2: #c7bbad;
+  --stage-ember: #ff7a4d;
+  --stage-lime: #d5f65e;
+  --stage-tide: #57d6c6;
+  --stage-amber: #f3b54d;
+  --stage-rose: #ff8597;
+
+  color-scheme: light;
+  --bg: #f4efe7;
+  --bg-sunk: #ebe4d8;
+  --surface: #fffcf7;
+  --surface-2: #f8f2e9;
+  --ink: #1c1714;
+  --ink-2: #463d36;
+  --ink-3: #685d54;
+  --line: #ddd2c3;
+  --line-strong: #bfb1a0;
+  --accent: #e2531f;
+  --accent-ink: #a8380f;
+  --accent-soft: #fbe1d4;
+  --signal: #c9ef4b;
+  --signal-ink: #1c1714;
+  --tide: #0d7068;
+  --tide-soft: #d4efe9;
+  --ok: #17694a;
+  --ok-soft: #d8f0e1;
+  --warn: #8a5300;
+  --warn-soft: #fbecc9;
+  --bad: #b0213a;
+  --bad-soft: #fadbe0;
+  --focus: #1f5fd6;
+  --btn-bg: #1c1714;
+  --btn-ink: #fffcf7;
+  --shadow-1: 0 1px 2px rgb(60 40 20 / 0.06), 0 1px 1px rgb(60 40 20 / 0.04);
+  --shadow-2: 0 6px 18px -6px rgb(60 40 20 / 0.16), 0 2px 4px rgb(60 40 20 / 0.06);
+  --shadow-3: 0 24px 60px -18px rgb(50 30 10 / 0.3), 0 8px 18px -10px rgb(50 30 10 / 0.18);
+  --grain-opacity: 0.35;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #110e0c;
+    --bg-sunk: #0b0908;
+    --surface: #1b1714;
+    --surface-2: #231e1a;
+    --ink: #f4ede3;
+    --ink-2: #cdc1b3;
+    --ink-3: #a39689;
+    --line: #342d27;
+    --line-strong: #4d433a;
+    --accent: #ff7a4d;
+    --accent-ink: #ff9670;
+    --accent-soft: #3a1f14;
+    --signal: #d5f65e;
+    --signal-ink: #15110e;
+    --tide: #5fd8c8;
+    --tide-soft: #11302c;
+    --ok: #6fdba5;
+    --ok-soft: #12301f;
+    --warn: #f3b54d;
+    --warn-soft: #34260d;
+    --bad: #ff8597;
+    --bad-soft: #3a1720;
+    --focus: #8db4ff;
+    --btn-bg: #f4ede3;
+    --btn-ink: #15110e;
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 8px 22px -8px rgb(0 0 0 / 0.6);
+    --shadow-3: 0 30px 70px -20px rgb(0 0 0 / 0.75);
+    --grain-opacity: 0.2;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #110e0c;
+  --bg-sunk: #0b0908;
+  --surface: #1b1714;
+  --surface-2: #231e1a;
+  --ink: #f4ede3;
+  --ink-2: #cdc1b3;
+  --ink-3: #a39689;
+  --line: #342d27;
+  --line-strong: #4d433a;
+  --accent: #ff7a4d;
+  --accent-ink: #ff9670;
+  --accent-soft: #3a1f14;
+  --signal: #d5f65e;
+  --signal-ink: #15110e;
+  --tide: #5fd8c8;
+  --tide-soft: #11302c;
+  --ok: #6fdba5;
+  --ok-soft: #12301f;
+  --warn: #f3b54d;
+  --warn-soft: #34260d;
+  --bad: #ff8597;
+  --bad-soft: #3a1720;
+  --focus: #8db4ff;
+  --btn-bg: #f4ede3;
+  --btn-ink: #15110e;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 8px 22px -8px rgb(0 0 0 / 0.6);
+  --shadow-3: 0 30px 70px -20px rgb(0 0 0 / 0.75);
+  --grain-opacity: 0.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 1ms;
+    --dur-quick: 1ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+    --dur-story: 1ms;
+    --stagger: 0ms;
+  }
+}

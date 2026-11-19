@@ -1,0 +1,121 @@
+---
+import Logo from './Logo.astro';
+import ThemeToggle from './ThemeToggle.astro';
+import { href } from '../lib/site';
+import { CURRENT } from '../data/product';
+
+interface Props { current: string }
+const { current } = Astro.props;
+
+const nav = [
+  { path: '/features/', label: 'Features' },
+  { path: '/how-it-works/', label: 'How it works' },
+  { path: '/preview/', label: 'Preview' },
+  { path: '/privacy/', label: 'Privacy' },
+  { path: '/docs/', label: 'Docs' },
+  { path: '/faq/', label: 'FAQ' },
+  { path: '/changelog/', label: 'Changelog' },
+];
+---
+<header class="site-header">
+  <div class="bar wrap-wide">
+    <a class="brand" href={href('/')} aria-label="ReboundOps home"><Logo /></a>
+    <nav class="primary" aria-label="Main">
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="site-menu">
+        <span class="menu-icon" aria-hidden="true"><span></span><span></span></span>
+        <span class="menu-label">Menu</span>
+      </button>
+      <ul id="site-menu" class="links" role="list">
+        {nav.map((item) => (
+          <li><a href={href(item.path)} aria-current={current === item.path ? 'page' : undefined}>{item.label}</a></li>
+        ))}
+        <li class="menu-download"><a class="btn btn-primary" href={href('/download/')}>Download v{CURRENT.version}</a></li>
+      </ul>
+    </nav>
+    <div class="actions">
+      <ThemeToggle />
+      <a class="btn btn-primary dl" href={href('/download/')} aria-current={current === '/download/' ? 'page' : undefined}>
+        Download <span class="ver">v{CURRENT.version}</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<script>
+  const btn = document.querySelector<HTMLButtonElement>('.menu-btn');
+  const menu = document.getElementById('site-menu');
+  if (btn && menu) {
+    const setOpen = (open: boolean) => {
+      btn.setAttribute('aria-expanded', String(open));
+      document.documentElement.classList.toggle('menu-open', open);
+    };
+    btn.addEventListener('click', () => setOpen(btn.getAttribute('aria-expanded') !== 'true'));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && btn.getAttribute('aria-expanded') === 'true') { setOpen(false); btn.focus(); }
+    });
+    window.matchMedia('(min-width: 1140px)').addEventListener('change', () => setOpen(false));
+  }
+</script>
+
+<style>
+  .site-header {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    -webkit-backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  }
+  .bar { display: flex; align-items: center; gap: var(--space-m); min-height: 4.25rem; }
+  .brand { text-decoration: none; display: inline-flex; min-height: 44px; align-items: center; }
+  .primary { margin-left: auto; }
+  .links { display: flex; gap: 0.15rem; list-style: none; padding: 0; align-items: center; }
+  .links a:not(.btn) {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 0.7rem;
+    text-decoration: none; font-weight: 550; color: var(--ink-2); border-radius: var(--r-pill);
+    position: relative; transition: color var(--dur-quick) var(--ease-out), background-color var(--dur-quick) var(--ease-out);
+  }
+  .links a:not(.btn):hover { color: var(--ink); background: var(--surface-2); }
+  .links a[aria-current='page'] { color: var(--ink); }
+  .links a[aria-current='page']::after {
+    content: ''; position: absolute; left: 0.7rem; right: 0.7rem; bottom: 6px; height: 2px;
+    background: var(--accent); border-radius: 2px;
+  }
+  .actions { display: flex; align-items: center; gap: var(--space-2xs); }
+  .dl { --btn-pad-x: 1.05rem; min-height: 44px; font-size: var(--step--1); }
+  .ver { font-family: var(--font-mono); font-size: 0.85em; opacity: 0.8; }
+  .menu-btn, .menu-download { display: none; }
+
+  @media (max-width: 1139.98px) {
+    .primary { margin-left: auto; order: 2; }
+    .actions { order: 1; margin-left: auto; }
+    .dl { display: none; }
+    .menu-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px; padding: 0 0.9rem;
+      border: 1.5px solid var(--line-strong); border-radius: var(--r-pill); background: var(--surface); font-weight: 600;
+    }
+    .menu-icon { display: grid; gap: 5px; width: 16px; }
+    .menu-icon span { height: 2px; background: currentColor; border-radius: 2px; transition: transform var(--dur-base) var(--ease-out); }
+    :global(.menu-open) .menu-icon span:first-child { transform: translateY(3.5px) rotate(45deg); }
+    :global(.menu-open) .menu-icon span:last-child { transform: translateY(-3.5px) rotate(-45deg); }
+    .links {
+      position: absolute; left: 0; right: 0; top: 100%;
+      flex-direction: column; align-items: stretch; gap: 0;
+      padding: var(--space-xs) var(--gutter) var(--space-m);
+      background: var(--bg); border-bottom: 1px solid var(--line); box-shadow: var(--shadow-3);
+      display: none;
+    }
+    :global(.menu-open) .links { display: flex; animation: drop var(--dur-base) var(--ease-out); }
+    .links a:not(.btn) { min-height: 48px; font-size: var(--step-1); padding: 0 0.25rem; border-radius: 0; border-bottom: 1px solid var(--line); }
+    .links a[aria-current='page']::after { left: 0.25rem; right: auto; width: 2rem; bottom: 8px; }
+    .menu-download { display: block; margin-top: var(--space-s); }
+    .menu-download .btn { width: 100%; }
+  }
+  @media (max-width: 1139.98px) {
+    html:not(.js) .links { display: flex; position: static; box-shadow: none; flex-direction: row; flex-wrap: wrap; }
+    html:not(.js) .menu-btn { display: none; }
+    html:not(.js) .bar { flex-wrap: wrap; }
+  }
+  /* Logo, theme toggle and Menu button with full gaps overflowed a 320 px screen by 5 px. */
+  @media (max-width: 399.98px) { .bar { gap: var(--space-xs); } }
+  @keyframes drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+</style>

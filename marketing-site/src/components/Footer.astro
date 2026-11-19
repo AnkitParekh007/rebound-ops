@@ -1,0 +1,70 @@
+---
+import Logo from './Logo.astro';
+import { href } from '../lib/site';
+import { CURRENT, REPO_URL, RELEASES_URL, LICENCE, docUrl } from '../data/product';
+
+const groups = [
+  {
+    title: 'Product',
+    links: [
+      { label: 'Features', url: href('/features/') },
+      { label: 'How it works', url: href('/how-it-works/') },
+      { label: 'Product preview', url: href('/preview/') },
+      { label: 'Download', url: href('/download/') },
+    ],
+  },
+  {
+    title: 'Learn',
+    links: [
+      { label: 'Documentation', url: href('/docs/') },
+      { label: 'FAQ', url: href('/faq/') },
+      { label: 'Changelog', url: href('/changelog/') },
+      { label: 'Privacy and open source', url: href('/privacy/') },
+    ],
+  },
+  {
+    title: 'Source',
+    links: [
+      { label: 'GitHub repository', url: REPO_URL },
+      { label: 'Releases', url: RELEASES_URL },
+      { label: 'Licence (MIT)', url: docUrl('LICENSE') },
+      { label: 'Provenance notes', url: docUrl('docs/PROVENANCE.md') },
+    ],
+  },
+];
+---
+<footer class="site-footer">
+  <div class="wrap-wide inner">
+    <div class="about">
+      <Logo />
+      <p class="muted">A local-first job-search workspace. Your data stays on your computer, AI is optional, and you apply yourself.</p>
+      <p class="small status"><span class="chip" data-tone="accent"><span class="dot" aria-hidden="true"></span>v{CURRENT.version} pre-release</span> <span class="muted">Released {CURRENT.date}</span></p>
+    </div>
+    {groups.map((g) => (
+      <nav class="group" aria-label={g.title}>
+        <h2 class="group-title">{g.title}</h2>
+        <ul role="list">
+          {g.links.map((l) => <li><a href={l.url}>{l.label}</a></li>)}
+        </ul>
+      </nav>
+    ))}
+  </div>
+  <div class="wrap-wide legal small muted">
+    <p>© {LICENCE.year} {LICENCE.holder}. ReboundOps is open source under the {LICENCE.id} licence; third-party components keep their own licences.</p>
+    <p>Fonts under the SIL Open Font License: <a href={href('/licenses/bricolage-grotesque-OFL.txt')}>Bricolage Grotesque</a>, <a href={href('/licenses/instrument-sans-OFL.txt')}>Instrument Sans</a> and <a href={href('/licenses/jetbrains-mono-OFL.txt')}>JetBrains Mono</a>.</p>
+    <p>Not affiliated with Greenhouse, Lever, Ashby, Workable, Ollama or any AI provider. Example data on this site is fictional.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer { border-top: 1px solid var(--line); background: var(--bg-sunk); margin-top: var(--space-2xl); padding-block: var(--space-xl) var(--space-l); }
+  .inner { display: grid; gap: var(--space-l); grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .inner { grid-template-columns: 1.6fr repeat(3, 1fr); } }
+  .about { display: grid; gap: var(--space-s); align-content: start; max-width: 34ch; }
+  .status { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .group-title { font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--ink-2); font-weight: 600; margin-bottom: var(--space-2xs); }
+  ul { list-style: none; padding: 0; }
+  li a { display: inline-flex; align-items: center; min-height: 40px; text-decoration: none; color: var(--ink); }
+  li a:hover { color: var(--accent-ink); text-decoration: underline; }
+  .legal { display: grid; gap: var(--space-2xs); border-top: 1px solid var(--line); margin-top: var(--space-xl); padding-top: var(--space-m); }
+</style>

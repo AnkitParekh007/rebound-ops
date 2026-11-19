@@ -1,0 +1,29 @@
+---
+import type { Faq } from '../data/product';
+interface Props { items: Faq[] }
+const { items } = Astro.props;
+---
+<div class="faq">
+  {items.map((f) => (
+    <details>
+      <summary><span class="q">{f.q}</span><span class="plus" aria-hidden="true"></span></summary>
+      <div class="a"><p>{f.a}</p></div>
+    </details>
+  ))}
+</div>
+<style>
+  .faq { border-top: 1px solid var(--line); }
+  details { border-bottom: 1px solid var(--line); }
+  summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: var(--space-s); padding: var(--space-s) 0; min-height: 56px; cursor: pointer; }
+  summary::-webkit-details-marker { display: none; }
+  .q { font-family: var(--font-body); font-size: var(--step-1); font-weight: 600; letter-spacing: -0.005em; line-height: 1.35; }
+  summary:hover .q { color: var(--accent-ink); }
+  .plus { position: relative; width: 28px; height: 28px; flex: none; border-radius: 50%; border: 1.5px solid var(--line-strong); transition: transform var(--dur-base) var(--ease-out), background-color var(--dur-quick) var(--ease-out); }
+  .plus::before, .plus::after { content: ''; position: absolute; left: 50%; top: 50%; width: 11px; height: 2px; background: currentColor; transform: translate(-50%, -50%); border-radius: 2px; }
+  .plus::after { transform: translate(-50%, -50%) rotate(90deg); transition: transform var(--dur-base) var(--ease-out); }
+  details[open] .plus { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); transform: rotate(180deg); }
+  details[open] .plus::after { transform: translate(-50%, -50%) rotate(0deg); }
+  .a { padding: 0 0 var(--space-m); max-width: 68ch; color: var(--ink-2); }
+  details[open] .a { animation: open var(--dur-base) var(--ease-out); }
+  @keyframes open { from { opacity: 0; transform: translateY(-6px); } }
+</style>

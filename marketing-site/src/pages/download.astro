@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+import CodeBlock from '../components/CodeBlock.astro';
+import { CURRENT, REQUIREMENTS, PLATFORMS, assetUrl, REPO_URL, docUrl } from '../data/product';
+import { href } from '../lib/site';
+import { softwareApplication, breadcrumbLd } from '../lib/structured-data';
+
+const kb = (n: number) => (n >= 1024 ? `${(n / 1024).toFixed(n >= 102_400 ? 0 : 1)} KB` : `${n} bytes`);
+const tone: Record<string, string> = { verified: 'ok', ci: 'tide', expected: 'warn', untested: 'bad' };
+const toneLabel: Record<string, string> = { verified: 'Verified', ci: 'Tested in CI', expected: 'Expected, not tested', untested: 'Not tested' };
+const archive = `reboundops-${CURRENT.version}.tar.gz`;
+---
+<Base
+  title="Download and install"
+  description={`Download ReboundOps ${CURRENT.version}: a Node.js release archive with a prebuilt web app. Verify the checksum, install with npm and open it in your browser. Requires Node.js 24.`}
+  path="/download/"
+  og="download"
+  jsonLd={[softwareApplication(Astro.site), breadcrumbLd(Astro.site, [{ name: 'Home', path: '/' }, { name: 'Download', path: '/download/' }])]}
+>
+  <header class="page-hero wrap-wide dl-hero">
+    <div>
+      <p class="eyebrow">Download · {CURRENT.channel}</p>
+      <h1>ReboundOps {CURRENT.version}</h1>
+      <p class="lede">A source archive with the web app already built. You install its libraries with npm, start it, and use it in your browser at <code>127.0.0.1</code>. There is no native installer or desktop app.</p>
+    </div>
+    <div class="dl-card">
+      <a class="btn btn-primary big" href={assetUrl(archive)}>
+        <span class="dl-ico" aria-hidden="true">↓</span> Download {archive}
+      </a>
+      <p class="small muted">{kb(CURRENT.assets[0].bytes)} · released {CURRENT.date} · <a href={CURRENT.releaseUrl}>release notes</a></p>
+      <ul class="assets" role="list">
+        {CURRENT.assets.slice(1).map((a) => (
+          <li><a href={assetUrl(a.name)}><code>{a.name}</code></a> <span class="muted small">{a.what} · {kb(a.bytes)}</span></li>
+        ))}
+      </ul>
+    </div>
+  </header>
+
+  <div class="wrap-wide cols">
+    <section aria-labelledby="req-h" class="block" data-reveal>
+      <h2 id="req-h">Requirements</h2>
+      <dl class="reqs">
+        {REQUIREMENTS.map((r) => <div><dt>{r.label}</dt><dd><b>{r.value}</b><span class="small muted">{r.note}</span></dd></div>)}
+      </dl>
+      <p class="small muted">Optional: <a href="https://ollama.com">Ollama</a> with a model you have already pulled, for local AI help.</p>
+    </section>
+
+    <section aria-labelledby="plat-h" class="block" data-reveal style="--i:1">
+      <h2 id="plat-h">Platforms</h2>
+      <ul class="plats" role="list">
+        {PLATFORMS.map((p) => (
+          <li>
+            <div class="plat-top"><b>{p.name}</b><span class="chip" data-tone={tone[p.status]}><span class="dot" aria-hidden="true"></span>{toneLabel[p.status]}</span></div>
+            <p class="small muted">{p.note}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
+
+  <section class="wrap steps-sec" aria-labelledby="steps-h">
+    <h2 id="steps-h">Install in four steps</h2>
+    <ol class="steps" role="list">
+      <li data-reveal>
+        <h3>Download the files</h3>
+        <p>Get all four files from the <a href={CURRENT.releaseUrl}>v{CURRENT.version} release</a> into one folder: <code>{archive}</code>, <code>SHA256SUMS</code>, <code>THIRD_PARTY_NOTICES.txt</code> and the <code>.sbom.json</code>.</p>
+      </li>
+      <li data-reveal>
+        <h3>Check the archive</h3>
+        <p>In the folder where you saved both files:</p>
+        <CodeBlock label="Verify the checksum" lines={['shasum -a 256 -c SHA256SUMS']} />
+        <p class="small muted">On Linux, <code>sha256sum -c SHA256SUMS</code> does the same. Every line must say OK.</p>
+      </li>
+      <li data-reveal>
+        <h3>Unpack and install the runtime libraries</h3>
+        <CodeBlock label="Unpack and install" lines={[`tar -xzf ${archive}`, `cd reboundops-${CURRENT.version}`, 'npm ci --omit=dev --omit=optional --ignore-scripts']} />
+        <p class="small muted">No build tools and no install scripts are needed. This is the only step that needs the network.</p>
+      </li>
+      <li data-reveal>
+        <h3>Start it and open your browser</h3>
+        <CodeBlock label="Start ReboundOps" lines={['npm start']} />
+        <p>Open the address it prints, normally <code>http://127.0.0.1:4175</code>. Stop with <kbd>Ctrl</kbd>+<kbd>C</kbd>; the database closes cleanly. Your data lives in <code>~/.reboundops</code> unless you set <code>REBOUND_DATA_DIR</code>.</p>
+      </li>
+    </ol>
+  </section>
+
+  <div class="wrap-wide cols">
+    <section class="block" aria-labelledby="up-h" data-reveal>
+      <h2 id="up-h">Upgrading from 0.1.0</h2>
+      <p>Stop 0.1.0, install {CURRENT.version} as above and start it with the same data folder. The database migrates from schema 3 to 4 on first start; the migration only adds columns and tables. Downloading a backup first is recommended. Fit scores can change because assessments use the new rubric.</p>
+    </section>
+    <section class="block" aria-labelledby="src-h" data-reveal style="--i:1">
+      <h2 id="src-h">Build from source instead</h2>
+      <CodeBlock label="Build from a clone" lines={[`git clone ${REPO_URL}.git`, 'cd rebound-ops', 'npm ci', 'npm run build', 'npm start']} />
+      <p class="small muted">See <a href={docUrl('docs/INSTALL.md')}>INSTALL.md</a> and the <a href={href('/docs/')}>documentation</a>.</p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .dl-hero { display: grid; gap: var(--space-l); align-items: end; }
+  @media (min-width: 980px) { .dl-hero { grid-template-columns: 1.3fr 1fr; } }
+  .dl-card { background: var(--stage-bg); color: var(--stage-ink); border-radius: var(--r-xl); padding: clamp(1.25rem, 3vw, 2rem); display: grid; gap: var(--space-s); border: 1px solid var(--stage-line); }
+  .dl-card .muted { color: var(--stage-ink-2); }
+  .dl-card a:not(.btn) { color: var(--stage-ink); }
+  .dl-card code { background: var(--stage-surface); border-color: var(--stage-line); color: var(--stage-ink); }
+  .big { background: var(--stage-lime); color: #15110e; min-height: 56px; font-size: var(--step-0); word-break: break-word; text-align: left; }
+  .dl-ico { display: inline-grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: 50%; background: rgb(0 0 0 / 0.1); flex: none; }
+  .assets { list-style: none; padding: 0; display: grid; gap: 0.4rem; border-top: 1px solid var(--stage-line); padding-top: var(--space-s); }
+  .cols { display: grid; gap: var(--space-l); padding-block: var(--space-l); }
+  @media (min-width: 900px) { .cols { grid-template-columns: 1fr 1fr; } }
+  .block { display: grid; gap: var(--space-s); align-content: start; }
+  .block h2, .steps-sec > h2 { font-size: var(--step-3); }
+  .reqs { display: grid; border-top: 1px solid var(--line); }
+  .reqs > div { display: grid; grid-template-columns: 7rem 1fr; gap: var(--space-s); padding: 0.75rem 0; border-bottom: 1px solid var(--line); }
+  .reqs dt { font-weight: 600; color: var(--ink-2); }
+  .reqs dd { display: grid; }
+  .plats { list-style: none; padding: 0; display: grid; gap: 0.6rem; }
+  .plats li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 0.9rem 1rem; display: grid; gap: 0.3rem; }
+  .plat-top { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center; }
+  .steps-sec { padding-block: var(--space-xl); display: grid; gap: var(--space-l); }
+  .steps { list-style: none; padding: 0; counter-reset: s; display: grid; gap: var(--space-l); }
+  .steps li { counter-increment: s; display: grid; gap: var(--space-s); padding-left: 3.75rem; position: relative; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: -0.2rem; width: 2.6rem; height: 2.6rem; border-radius: 50%; display: grid; place-items: center; background: var(--signal); color: var(--signal-ink); font-family: var(--font-display); font-weight: 700; font-size: var(--step-1); }
+  .steps h3 { font-size: var(--step-2); }
+  kbd { border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 0.3em; background: var(--surface); }
+</style>

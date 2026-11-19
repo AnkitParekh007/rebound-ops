@@ -1,0 +1,19 @@
+---
+/** ReboundOps mark: a ball's rebound arc ending on a baseline. Original artwork for this site. */
+interface Props { size?: number; withWord?: boolean }
+const { size = 28, withWord = true } = Astro.props;
+---
+<span class="logo">
+  <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <rect width="32" height="32" rx="9" fill="var(--logo-bg, #15110e)" />
+    <path d="M6 23 C 9 9, 15 9, 17.5 23 C 19.5 14, 24 14, 26 23" fill="none" stroke="#ff7a4d" stroke-width="2.6" stroke-linecap="round" />
+    <circle cx="26" cy="11" r="3" fill="#d5f65e" />
+    <path d="M5 25.5 H27" stroke="#f5eee4" stroke-opacity=".35" stroke-width="1.4" stroke-linecap="round" />
+  </svg>
+  {withWord && <span class="word">Rebound<span>Ops</span></span>}
+</span>
+<style>
+  .logo { display: inline-flex; align-items: center; gap: 0.55rem; }
+  .word { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; letter-spacing: -0.03em; }
+  .word span { color: var(--accent-ink); }
+</style>

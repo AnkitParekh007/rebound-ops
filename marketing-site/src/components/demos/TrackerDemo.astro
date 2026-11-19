@@ -1,0 +1,205 @@
+---
+/** Move a synthetic application through tracker states. "Applied" needs an explicit confirmation, as in the app. */
+const flow = [
+  { id: 'discovered', label: 'Discovered' },
+  { id: 'shortlisted', label: 'Shortlisted' },
+  { id: 'preparing', label: 'Preparing' },
+  { id: 'ready_for_review', label: 'Ready for review' },
+  { id: 'applied', label: 'Applied' },
+  { id: 'interviewing', label: 'Interviewing' },
+  { id: 'offer', label: 'Offer' },
+];
+---
+<div class="tracker-demo" data-tracker>
+  <span class="synthetic-label">Synthetic example · Platform Engineer, Northwind Labs (fictional)</span>
+  <ol class="rail" role="list" aria-label="Application status">
+    {flow.map((s, i) => (
+      <li data-state={s.id} class={i === 0 ? 'is-current' : ''}>
+        <span class="pip" aria-hidden="true"></span><span class="lbl">{s.label}</span>
+      </li>
+    ))}
+  </ol>
+  <p class="closed-note small" hidden data-closed></p>
+
+  <div class="body">
+    <div class="app-card">
+      <p class="eyebrow">Current status</p>
+      <p class="status-text" data-status>Discovered</p>
+      <div class="confirm" data-confirm hidden>
+        <label>
+          <input type="checkbox" data-confirm-box />
+          <span>I submitted this application on the employer’s site</span>
+        </label>
+        <p class="small muted">ReboundOps never submits for you, so it only records Applied when you confirm.</p>
+      </div>
+      <div class="cluster actions">
+        <button type="button" class="btn btn-primary" data-next>Move to Shortlisted</button>
+        <button type="button" class="btn btn-ghost" data-close="rejected">Rejected</button>
+        <button type="button" class="btn btn-ghost" data-close="withdrawn">Withdraw</button>
+        <button type="button" class="btn btn-ghost" data-reopen hidden>Reopen</button>
+        <button type="button" class="linkish" data-reset>Reset demo</button>
+      </div>
+      <p class="nojs small muted">This demo needs JavaScript. In the app, the statuses are: Discovered, Shortlisted, Preparing, Ready for review, Applied (only after you confirm), Interviewing, Offer, Rejected and Withdrawn.</p>
+    </div>
+    <div class="trail-card">
+      <h4>Activity trail</h4>
+      <ol class="trail" data-trail role="list" tabindex="0" aria-label="Activity trail entries">
+        <li><span class="when mono">May 4</span> Saved from a pasted posting (unverified)</li>
+      </ol>
+    </div>
+  </div>
+  <p class="visually-hidden" role="status" aria-live="polite" data-live></p>
+</div>
+
+<script>
+  type State = 'discovered' | 'shortlisted' | 'preparing' | 'ready_for_review' | 'applied' | 'interviewing' | 'offer' | 'rejected' | 'withdrawn';
+  const FLOW: State[] = ['discovered', 'shortlisted', 'preparing', 'ready_for_review', 'applied', 'interviewing', 'offer'];
+  const LABEL: Record<State, string> = {
+    discovered: 'Discovered', shortlisted: 'Shortlisted', preparing: 'Preparing', ready_for_review: 'Ready for review',
+    applied: 'Applied', interviewing: 'Interviewing', offer: 'Offer', rejected: 'Rejected', withdrawn: 'Withdrawn',
+  };
+  const NOTE: Partial<Record<State, string>> = {
+    shortlisted: 'Shortlisted after reading the fit assessment',
+    preparing: 'Tailored resume and cover letter drafted',
+    ready_for_review: 'Screening answers reviewed · checklist complete',
+    applied: 'Applied — you confirmed you submitted it',
+    interviewing: 'Interview scheduled · notes added',
+    offer: 'Offer received',
+    rejected: 'Closed as rejected',
+    withdrawn: 'Closed: you withdrew',
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-tracker]').forEach((root) => {
+    const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+    const next = $<HTMLButtonElement>('[data-next]');
+    const reopen = $<HTMLButtonElement>('[data-reopen]');
+    const closeBtns = [...root.querySelectorAll<HTMLButtonElement>('[data-close]')];
+    const confirm = $<HTMLElement>('[data-confirm]');
+    const box = $<HTMLInputElement>('[data-confirm-box]');
+    const status = $<HTMLElement>('[data-status]');
+    const trail = $<HTMLOListElement>('[data-trail]');
+    const live = $<HTMLElement>('[data-live]');
+    const closedNote = $<HTMLElement>('[data-closed]');
+    const items = [...root.querySelectorAll<HTMLElement>('.rail li')];
+    let state: State = 'discovered';
+    let lastOpen: State = 'discovered';
+    let day = 4;
+
+    const log = (text: string) => {
+      day += 1;
+      const li = document.createElement('li');
+      li.className = 'is-new';
+      const when = document.createElement('span');
+      when.className = 'when mono';
+      when.textContent = `May ${day}`;
+      li.append(when, ` ${text}`);
+      trail.prepend(li);
+    };
+
+    const render = () => {
+      const closed = state === 'rejected' || state === 'withdrawn';
+      const idx = FLOW.indexOf(closed ? lastOpen : state);
+      items.forEach((li, i) => {
+        li.classList.toggle('is-done', i < idx);
+        li.classList.toggle('is-current', i === idx && !closed);
+        li.classList.toggle('is-paused', i === idx && closed);
+      });
+      status.textContent = LABEL[state];
+      root.dataset.state = state;
+      const nxt = FLOW[idx + 1];
+      next.hidden = closed || !nxt;
+      if (nxt) next.textContent = `Move to ${LABEL[nxt]}`;
+      const needsConfirm = nxt === 'applied' && !closed;
+      confirm.hidden = !needsConfirm;
+      next.disabled = needsConfirm && !box.checked;
+      closeBtns.forEach((b) => (b.hidden = closed || state === 'offer'));
+      reopen.hidden = !closed;
+      closedNote.hidden = !closed;
+      closedNote.textContent = closed ? `${LABEL[state]}. History is kept; reopening returns it to ${LABEL[lastOpen]}.` : '';
+    };
+
+    next.addEventListener('click', () => {
+      const idx = FLOW.indexOf(state);
+      const to = FLOW[idx + 1];
+      if (!to) return;
+      if (to === 'applied' && !box.checked) return;
+      state = to;
+      log(NOTE[to] ?? LABEL[to]);
+      live.textContent = `Status changed to ${LABEL[to]}`;
+      box.checked = false;
+      render();
+    });
+    box.addEventListener('change', render);
+    closeBtns.forEach((b) => b.addEventListener('click', () => {
+      lastOpen = state;
+      state = b.dataset.close as State;
+      log(NOTE[state] ?? LABEL[state]);
+      live.textContent = `Status changed to ${LABEL[state]}`;
+      render();
+      reopen.focus();
+    }));
+    reopen.addEventListener('click', () => {
+      state = lastOpen;
+      log(`Reopened as ${LABEL[state]} · history kept`);
+      live.textContent = `Reopened as ${LABEL[state]}`;
+      render();
+      next.focus();
+    });
+    $<HTMLButtonElement>('[data-reset]').addEventListener('click', () => {
+      state = 'discovered'; lastOpen = 'discovered'; day = 4; box.checked = false;
+      trail.replaceChildren();
+      const li = document.createElement('li');
+      const when = document.createElement('span');
+      when.className = 'when mono'; when.textContent = 'May 4';
+      li.append(when, ' Saved from a pasted posting (unverified)');
+      trail.append(li);
+      live.textContent = 'Demo reset';
+      render();
+    });
+    render();
+  });
+</script>
+
+<style>
+  .tracker-demo { display: grid; gap: var(--space-m); }
+  .rail { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; position: relative; }
+  .rail li { display: grid; justify-items: center; gap: 0.4rem; text-align: center; position: relative; font-size: var(--step--2); color: var(--ink-2); font-weight: 600; }
+  .rail li::before { content: ''; position: absolute; top: 9px; left: -50%; right: 50%; height: 2px; background: var(--line); z-index: 0; }
+  .rail li:first-child::before { display: none; }
+  .rail li.is-done::before, .rail li.is-current::before, .rail li.is-paused::before { background: var(--accent); }
+  .pip { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); position: relative; z-index: 1; transition: background-color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-bounce); }
+  .is-done .pip { background: var(--accent); border-color: var(--accent); }
+  .is-current .pip { border-color: var(--accent); background: var(--signal); transform: scale(1.25); box-shadow: 0 0 0 5px color-mix(in srgb, var(--signal) 35%, transparent); }
+  .is-paused .pip { border-color: var(--ink-3); background: var(--surface-2); }
+  .is-current .lbl { color: var(--ink); }
+  @media (max-width: 640px) {
+    .rail { grid-template-columns: 1fr; gap: 0.35rem; padding-left: 0.2rem; }
+    .rail li { grid-template-columns: 20px 1fr; justify-items: start; text-align: left; gap: 0.7rem; align-items: center; font-size: var(--step--1); }
+    .rail li::before { top: -50%; bottom: 50%; left: 9px; right: auto; width: 2px; height: auto; }
+  }
+  .closed-note { background: var(--surface-2); border: 1px solid var(--line); padding: 0.6rem 0.9rem; border-radius: var(--r-sm); }
+  .body { display: grid; gap: var(--space-m); }
+  @media (min-width: 820px) { .body { grid-template-columns: 1.2fr 1fr; } }
+  .app-card, .trail-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--space-m); display: grid; gap: var(--space-s); align-content: start; }
+  .status-text { font-family: var(--font-display); font-size: var(--step-3); font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
+  [data-state='applied'] .status-text, [data-state='interviewing'] .status-text, [data-state='offer'] .status-text { color: var(--ok); }
+  [data-state='rejected'] .status-text, [data-state='withdrawn'] .status-text { color: var(--ink-3); }
+  .confirm { background: var(--accent-soft); border-radius: var(--r-md); padding: var(--space-s); display: grid; gap: 0.3rem; animation: pulseIn var(--dur-slow) var(--ease-out); }
+  .confirm label { display: flex; gap: 0.6rem; align-items: center; font-weight: 600; min-height: 44px; cursor: pointer; }
+  .confirm input { width: 22px; height: 22px; accent-color: var(--accent-ink); flex: none; }
+  @keyframes pulseIn { from { opacity: 0; transform: scale(0.97); } }
+  .actions { --cluster: var(--space-2xs); }
+  .actions .btn { min-height: 44px; font-size: var(--step--1); --btn-pad-x: 1rem; }
+  .actions .btn[hidden] { display: none; }
+  .actions .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+  .linkish { background: none; border: 0; text-decoration: underline; color: var(--ink-2); min-height: 44px; padding: 0 0.4rem; font-size: var(--step--1); }
+  .nojs { display: none; }
+  html:not(.js) .nojs { display: block; }
+  html:not(.js) .actions { display: none; }
+  .trail-card h4 { font-size: var(--step-0); }
+  .trail { list-style: none; padding: 0; display: grid; gap: 0.5rem; font-size: var(--step--1); max-height: 16rem; overflow: auto; }
+  .trail li { display: grid; grid-template-columns: 4rem 1fr; gap: 0.6rem; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--line); }
+  .trail :global(.when) { color: var(--ink-2); }
+  .trail :global(li.is-new) { animation: slideIn var(--dur-slow) var(--ease-out); }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); background: var(--accent-soft); } }
+</style>

@@ -1,0 +1,91 @@
+---
+/** Local vs network-access explorer. Pick an action to see whether anything leaves your computer. CSS-only. */
+import { NETWORK_ACTIONS } from '../../data/demo';
+interface Props { idPrefix?: string }
+const { idPrefix = 'net' } = Astro.props;
+---
+<div class="net-demo">
+  <fieldset class="acts">
+    <legend class="lg">Pick something you might do</legend>
+    {NETWORK_ACTIONS.map((a, i) => (
+      <label class="act" data-local={a.local ? 'yes' : 'no'}>
+        <input type="radio" name={`${idPrefix}-act`} value={a.id} checked={i === 0} />
+        <span class="act-body"><span class="ico" aria-hidden="true"></span>{a.label}<span class="tag small">{a.local ? 'local' : 'network'}</span></span>
+      </label>
+    ))}
+  </fieldset>
+
+  <div class="diagram">
+    <div class="machine">
+      <p class="m-title">Your computer</p>
+      <div class="m-row"><span class="node">Browser tab</span><span class="pipe"></span><span class="node">ReboundOps service<br /><code>127.0.0.1:4175</code></span><span class="pipe"></span><span class="node">SQLite file<br /><code>~/.reboundops</code></span></div>
+    </div>
+    <div class="outside">
+      <span class="beam" aria-hidden="true"></span>
+      <p class="o-title">Internet</p>
+    </div>
+
+    {NETWORK_ACTIONS.map((a) => (
+      <section class="detail" data-for={a.id} aria-label={`${a.label}: details`}>
+        <p class="verdict" data-local={a.local ? 'yes' : 'no'}>
+          {a.local ? 'Stays on your computer' : 'Makes a network request — only when you choose to'}
+        </p>
+        <dl>
+          {!a.local && 'to' in a && <><dt>Goes to</dt><dd>{a.to}</dd></>}
+          {!a.local && 'sends' in a && <><dt>Sends</dt><dd>{a.sends}</dd></>}
+          {!a.local && 'consent' in a && <><dt>Consent</dt><dd>{a.consent}</dd></>}
+          <dt>Details</dt><dd>{a.detail}</dd>
+        </dl>
+      </section>
+    ))}
+  </div>
+</div>
+
+<style>
+  .net-demo { display: grid; gap: var(--space-m); }
+  @media (min-width: 900px) { .net-demo { grid-template-columns: 19rem 1fr; align-items: start; } }
+  .acts { border: 0; padding: 0; display: grid; gap: 0.4rem; }
+  .lg { font-weight: 650; margin-bottom: 0.5rem; font-size: var(--step--1); color: var(--ink-2); }
+  .act { position: relative; cursor: pointer; }
+  .act input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .act-body { display: flex; align-items: center; gap: 0.7rem; min-height: 48px; padding: 0.55rem 0.85rem; border-radius: var(--r-sm); border: 1.5px solid var(--line); background: var(--surface); font-weight: 550; transition: border-color var(--dur-quick) var(--ease-out), background-color var(--dur-quick) var(--ease-out); }
+  .act:hover .act-body { border-color: var(--line-strong); }
+  .act input:checked + .act-body { border-color: var(--ink); background: var(--surface-2); }
+  .act input:focus-visible + .act-body { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .ico { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--tide); }
+  [data-local='no'] .ico { background: var(--accent); }
+  .tag { margin-left: auto; font-family: var(--font-mono); font-size: var(--step--2); color: var(--ink-2); }
+
+  .diagram { background: var(--stage-bg); color: var(--stage-ink); border-radius: var(--r-lg); padding: var(--space-m); display: grid; gap: var(--space-m); border: 1px solid var(--stage-line); position: relative; overflow: hidden; }
+  .machine { border: 1.5px solid var(--stage-tide); border-radius: var(--r-md); padding: var(--space-s); }
+  .m-title, .o-title { font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: 0.08em; color: var(--stage-ink-2); margin-bottom: 0.6rem; }
+  .m-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .node { background: var(--stage-surface); border: 1px solid var(--stage-line); padding: 0.5rem 0.7rem; border-radius: var(--r-sm); font-size: var(--step--1); line-height: 1.35; }
+  .node code { background: none; border: 0; padding: 0; color: var(--stage-tide); font-size: 0.85em; }
+  .pipe { flex: 1 1 1.5rem; min-width: 1.5rem; height: 2px; background: repeating-linear-gradient(90deg, var(--stage-tide) 0 6px, transparent 6px 10px); background-size: 20px 2px; animation: flow 1.2s linear infinite; }
+  @keyframes flow { to { background-position: 20px 0; } }
+  @media (prefers-reduced-motion: reduce) { .pipe, .beam { animation: none !important; } }
+  .outside { border: 1.5px dashed var(--stage-line); border-radius: var(--r-md); padding: var(--space-s); position: relative; transition: border-color var(--dur-base) var(--ease-out); }
+  .beam { position: absolute; left: 50%; top: calc(-1 * var(--space-m) - 2px); width: 2px; height: calc(var(--space-m) + 2px); background: var(--stage-line); transition: background-color var(--dur-base) var(--ease-out); }
+  .net-demo:has([data-local='no'] input:checked) .outside { border-color: var(--stage-ember); border-style: solid; }
+  .net-demo:has([data-local='no'] input:checked) .beam { background: repeating-linear-gradient(180deg, var(--stage-ember) 0 6px, transparent 6px 10px); background-size: 2px 20px; animation: up 0.9s linear infinite; }
+  @keyframes up { to { background-position: 0 -20px; } }
+
+  .detail { display: none; gap: 0.6rem; }
+  .net-demo:has(input[value='open']:checked) .detail[data-for='open'],
+  .net-demo:has(input[value='import']:checked) .detail[data-for='import'],
+  .net-demo:has(input[value='assess']:checked) .detail[data-for='assess'],
+  .net-demo:has(input[value='export']:checked) .detail[data-for='export'],
+  .net-demo:has(input[value='backup']:checked) .detail[data-for='backup'],
+  .net-demo:has(input[value='ollama']:checked) .detail[data-for='ollama'],
+  .net-demo:has(input[value='discover']:checked) .detail[data-for='discover'],
+  .net-demo:has(input[value='cloud']:checked) .detail[data-for='cloud'] { display: grid; animation: fade var(--dur-base) var(--ease-out); }
+  @supports not selector(:has(*)) { .detail { display: grid; border-top: 1px solid var(--stage-line); padding-top: 1rem; } }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
+  .verdict { font-family: var(--font-display); font-size: var(--step-2); font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; }
+  .verdict[data-local='yes'] { color: var(--stage-tide); }
+  .verdict[data-local='no'] { color: var(--stage-ember); }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1rem; font-size: var(--step--1); }
+  dt { color: var(--stage-ink-2); font-weight: 600; }
+  @media (max-width: 480px) { dl { grid-template-columns: 1fr; } dd { margin-bottom: 0.4rem; } }
+</style>

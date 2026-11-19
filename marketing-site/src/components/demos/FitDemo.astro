@@ -1,0 +1,132 @@
+---
+/**
+ * Pick a job → explainable fit score with evidence and missing qualifications.
+ * Native radio inputs + CSS :has(), so it works without JavaScript and with the keyboard (arrow keys).
+ */
+import { DEMO_JOBS, ELIGIBILITY_COPY, CANDIDATE } from '../../data/demo';
+interface Props { idPrefix?: string }
+const { idPrefix = 'fit' } = Astro.props;
+const fmt = (n: number) => n.toFixed(1);
+---
+<div class="fit-demo" data-demo="fit">
+  <div class="top">
+    <span class="synthetic-label">Synthetic example · fictional people and employers</span>
+    <p class="small muted">Profile: <b>{CANDIDATE.name}</b>, {CANDIDATE.headline.toLowerCase()}, authorised to work in {CANDIDATE.authorised}.</p>
+  </div>
+  <fieldset class="jobs">
+    <legend class="visually-hidden">Choose a job posting to assess</legend>
+    {DEMO_JOBS.map((j, i) => (
+      <label class="job-opt">
+        <input type="radio" name={`${idPrefix}-job`} value={j.id} id={`${idPrefix}-${j.id}`} checked={i === 0} />
+        <span class="opt-body">
+          <b>{j.title}</b>
+          <span class="muted small">{j.employer} · {j.location}</span>
+          <span class="opt-score mono" aria-hidden="true">{fmt(j.fit)}</span>
+        </span>
+      </label>
+    ))}
+  </fieldset>
+
+  {DEMO_JOBS.map((j) => {
+    const e = ELIGIBILITY_COPY[j.eligibility];
+    return (
+      <section class="result" data-for={j.id} aria-label={`Assessment: ${j.title} at ${j.employer}`}>
+        <div class="summary">
+          <div class="gauge" role="img" aria-label={`Fit ${fmt(j.fit)} out of 5`}>
+            <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="g-track" cx="60" cy="60" r="50" /><circle class="g-fill" cx="60" cy="60" r="50" pathLength="100" style={`--p:${(j.fit / 5) * 100}`} /></svg>
+            <span class="g-num"><b>{fmt(j.fit)}</b><small>/ 5</small></span>
+          </div>
+          <div class="sum-text">
+            <h3>{j.title} <span class="muted">· {j.employer}</span></h3>
+            <p class="small muted">{j.location} · Pay: {j.pay}</p>
+            <p class="small muted">Source: {j.source}</p>
+            <div class="cluster badges">
+              <span class="chip" data-tone={e.tone}><span class="dot" aria-hidden="true"></span>{e.label}</span>
+              <span class="chip">Confidence: {j.confidence}</span>
+              <span class="chip">Rubric fit-2026.2 (illustrative)</span>
+            </div>
+            <p class="small elig-why">{j.eligibilityReason}</p>
+          </div>
+        </div>
+        <div class="table-wrap" tabindex="0" role="region" aria-label={`Fit criteria for ${j.title}`}>
+          <table>
+            <caption class="visually-hidden">Fit criteria with evidence for {j.title}</caption>
+            <thead><tr><th scope="col">Criterion</th><th scope="col">Score</th><th scope="col">From the posting</th><th scope="col">From your profile</th></tr></thead>
+            <tbody>
+              {j.criteria.map((c) => (
+                <tr>
+                  <th scope="row">{c.name}<span class="w small muted">weight {c.weight}</span></th>
+                  <td>
+                    {c.score === null ? <span class="chip">Not scored</span> : (
+                      <span class="bar" role="img" aria-label={`${c.score} out of 5`}><i style={`--s:${c.score / 5}`}></i><b>{c.score}</b></span>
+                    )}
+                  </td>
+                  <td><q class="ev">{c.posting.replace(/[“”]/g, '')}</q><span class="note small muted">{c.note}</span></td>
+                  <td class="small">{c.profile}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div class="missing">
+          <h4>Missing or unconfirmed</h4>
+          <ul>{j.missing.map((m) => <li>{m}</li>)}</ul>
+        </div>
+      </section>
+    );
+  })}
+</div>
+
+<style>
+  .fit-demo { display: grid; gap: var(--space-m); }
+  .top { display: grid; gap: var(--space-2xs); }
+  .jobs { border: 0; padding: 0; display: grid; gap: var(--space-xs); grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+  .job-opt { position: relative; cursor: pointer; }
+  .job-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .opt-body {
+    display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 0.75rem; padding: var(--space-s); min-height: 64px;
+    border: 1.5px solid var(--line); border-radius: var(--r-md); background: var(--surface);
+    transition: border-color var(--dur-quick) var(--ease-out), transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  }
+  .opt-body > b, .opt-body > span:not(.opt-score) { grid-column: 1; }
+  .opt-score { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: var(--step-2); font-weight: 700; color: var(--ink-3); }
+  .job-opt:hover .opt-body { border-color: var(--line-strong); transform: translateY(-2px); box-shadow: var(--shadow-2); }
+  .job-opt input:checked + .opt-body { border-color: var(--ink); box-shadow: var(--shadow-2); background: var(--surface); }
+  .job-opt input:checked + .opt-body .opt-score { color: var(--accent-ink); }
+  .job-opt input:focus-visible + .opt-body { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+  .result { display: none; gap: var(--space-m); }
+  .fit-demo:has(input[value='northwind']:checked) .result[data-for='northwind'],
+  .fit-demo:has(input[value='harbor']:checked) .result[data-for='harbor'],
+  .fit-demo:has(input[value='quarry']:checked) .result[data-for='quarry'] { display: grid; animation: fade var(--dur-slow) var(--ease-out); }
+  /* Browsers without :has() show every assessment. */
+  @supports not selector(:has(*)) { .result { display: grid; } }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px); } }
+
+  .summary { display: grid; grid-template-columns: auto 1fr; gap: var(--space-m); align-items: center; }
+  @media (max-width: 520px) { .summary { grid-template-columns: 1fr; } }
+  .gauge { position: relative; width: 7.5rem; }
+  .gauge svg { transform: rotate(-90deg); }
+  .gauge circle { fill: none; stroke-width: 11; }
+  .g-track { stroke: var(--surface-2); }
+  .g-fill { stroke: var(--accent); stroke-linecap: round; stroke-dasharray: calc(var(--p) * 1) 100; animation: g var(--dur-story) var(--ease-out); }
+  @keyframes g { from { stroke-dasharray: 0 100; } }
+  .g-num { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1; }
+  .g-num b { font-family: var(--font-display); font-size: var(--step-3); letter-spacing: -0.04em; }
+  .g-num small { color: var(--ink-2); }
+  .sum-text { display: grid; gap: var(--space-3xs); }
+  .sum-text h3 { font-size: var(--step-2); }
+  .badges { --cluster: var(--space-2xs); margin-top: var(--space-2xs); }
+  .elig-why { color: var(--ink-2); max-width: 60ch; }
+
+  th .w { display: block; font-weight: 400; }
+  .bar { display: inline-flex; align-items: center; gap: 0.5rem; }
+  .bar i { width: 4.5rem; height: 0.5rem; border-radius: 999px; background: var(--surface-2); position: relative; overflow: hidden; border: 1px solid var(--line); }
+  .bar i::after { content: ''; position: absolute; inset: 0; background: var(--tide); transform-origin: left; transform: scaleX(var(--s)); animation: grow var(--dur-slow) var(--ease-out); }
+  @keyframes grow { from { transform: scaleX(0); } }
+  .ev { display: block; font-family: var(--font-mono); font-size: 0.85em; border-left: 2px solid var(--tide); padding-left: 0.6rem; }
+  .note { display: block; margin-top: 0.3rem; }
+  .missing { background: var(--warn-soft); border-radius: var(--r-md); padding: var(--space-s) var(--space-m); color: var(--ink); }
+  .missing h4 { color: var(--warn); font-size: var(--step-0); }
+  .missing ul { padding-left: 1.2em; margin-top: var(--space-3xs); }
+</style>

@@ -1,0 +1,37 @@
+---
+/** Shell commands with a copy button. Lines starting with # are comments. */
+interface Props { lines: string[]; label: string }
+const { lines, label } = Astro.props;
+const text = lines.filter((l) => !l.startsWith('#')).join('\n');
+---
+<figure class="code" data-copy-root>
+  <figcaption class="visually-hidden">{label}</figcaption>
+  <pre tabindex="0"><code>{lines.map((l) => l.startsWith('#') ? <span class="comment">{l}{'\n'}</span> : <span><span class="prompt" aria-hidden="true">$ </span>{l}{'\n'}</span>)}</code></pre>
+  <button type="button" class="copy" data-copy={text} aria-label={`Copy: ${label}`}>Copy</button>
+</figure>
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((b) => {
+    b.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(b.dataset.copy ?? '');
+        b.textContent = 'Copied';
+      } catch {
+        b.textContent = 'Select and copy';
+      }
+      window.setTimeout(() => (b.textContent = 'Copy'), 1800);
+    });
+  });
+</script>
+<style>
+  .code { margin: 0; }
+  .copy {
+    position: absolute; top: 0.5rem; right: 0.5rem; min-height: 36px; min-width: 64px; padding: 0 0.8rem;
+    border-radius: var(--r-pill); border: 1px solid var(--stage-line); background: var(--stage-surface); color: var(--stage-ink);
+    font-family: var(--font-body); font-size: var(--step--2); font-weight: 600;
+    transition: background-color var(--dur-quick) var(--ease-out);
+  }
+  .copy:hover { background: var(--stage-surface-2); }
+  .copy:focus-visible { outline-color: var(--stage-lime); }
+  html:not(.js) .copy { display: none; }
+  pre { padding-right: 5.5rem !important; }
+</style>

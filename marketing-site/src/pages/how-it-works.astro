@@ -1,0 +1,161 @@
+---
+import Base from '../layouts/Base.astro';
+import { href } from '../lib/site';
+import { breadcrumbLd } from '../lib/structured-data';
+
+const steps = [
+  {
+    title: 'Set up in a minute',
+    body: 'Start ReboundOps and open it in your browser. A short welcome flow asks about your search goals and whether to use AI. You can skip, go back, or finish later.',
+    you: 'You choose AI off (the default) or a local model.',
+    art: 'setup',
+  },
+  {
+    title: 'Turn your resume into facts',
+    body: 'Import a PDF, DOCX, TXT or Markdown resume, or paste text. ReboundOps proposes structured facts — roles, dates, highlights, education — with confidence and warnings. Review them, then mark what is verified.',
+    you: 'Nothing is added until you review it, and existing facts are never overwritten.',
+    art: 'resume',
+  },
+  {
+    title: 'Collect postings with evidence',
+    body: 'Paste a posting and its link, or look up a company’s public board on Greenhouse, Lever, Ashby or Workable. Extracted details show the exact text behind them, and duplicates are flagged.',
+    you: 'Discover only runs after you allow it. Postings stay unverified until you check them.',
+    art: 'collect',
+  },
+  {
+    title: 'Evaluate fit and eligibility',
+    body: 'Each posting gets an explainable 0–5 fit score across role, skills, experience, location, seniority and pay, plus an eligibility status: confirmed, unconfirmed or ineligible.',
+    you: 'Adjust the weights, and fill in missing information instead of guessing.',
+    art: 'evaluate',
+  },
+  {
+    title: 'Prepare, then apply yourself',
+    body: 'Generate a tailored resume and cover letter from verified facts, edit them, and export PDF or DOCX. Screening answers are drafted from your saved answers. A checklist and the official link get you to the employer’s site.',
+    you: 'You submit the application. Then you confirm it, and only then is it marked Applied.',
+    art: 'prepare',
+  },
+  {
+    title: 'Track and follow up',
+    body: 'Every status change goes into an activity trail. Add contacts, reminders and interview notes; draft follow-ups from your templates; see your pipeline and response rate on the overview.',
+    you: 'Follow-ups are copied or opened in your own mail app. ReboundOps never sends them.',
+    art: 'track',
+  },
+];
+---
+<Base
+  title="How it works"
+  description="Six steps from setup to follow-up: import your resume as facts, collect postings with evidence, evaluate fit, prepare grounded documents, apply yourself and track it all locally."
+  path="/how-it-works/"
+  og="how-it-works"
+  jsonLd={[
+    breadcrumbLd(Astro.site, [{ name: 'Home', path: '/' }, { name: 'How it works', path: '/how-it-works/' }]),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      name: 'Run a job search with ReboundOps',
+      step: steps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.title, text: s.body })),
+    },
+  ]}
+>
+  <header class="page-hero wrap">
+    <p class="eyebrow">How it works</p>
+    <h1>Six steps, all on your computer</h1>
+    <p class="lede">ReboundOps follows the way a careful job search already works. It keeps the evidence, does the bookkeeping and leaves every decision to you.</p>
+  </header>
+
+  <ol class="timeline wrap" role="list">
+    {steps.map((s, i) => (
+      <li class="step" data-step-reveal>
+        <div class="marker" aria-hidden="true"><span class="num">{i + 1}</span><span class="seg"></span></div>
+        <div class="content">
+          <h2>{s.title}</h2>
+          <p class="body">{s.body}</p>
+          <p class="you"><span class="you-label">Your call</span>{s.you}</p>
+        </div>
+        <div class={`art art-${s.art}`} aria-hidden="true">
+          {s.art === 'setup' && (<><span class="w-btn">Skip</span><span class="w-btn">Back</span><span class="w-btn on">Next →</span><span class="w-opt on">AI off</span><span class="w-opt">Local AI</span></>)}
+          {s.art === 'resume' && (<><span class="file">resume.pdf</span><span class="arrow-d"></span><span class="fact v">Senior Engineer · 2022–now ✓</span><span class="fact v">Kubernetes ✓</span><span class="fact">Go ?</span></>)}
+          {s.art === 'collect' && (<><span class="post"><mark>Platform Engineer</mark> · <mark>Lisbon</mark> · <mark>€62–75k</mark></span><span class="tagline">unverified · source kept</span></>)}
+          {s.art === 'evaluate' && (<><span class="ring"><b>4.2</b></span><span class="bars"><i style="--w:100%"></i><i style="--w:80%"></i><i style="--w:80%"></i><i style="--w:60%"></i></span></>)}
+          {s.art === 'prepare' && (<><span class="sheet"></span><span class="sheet s2"></span><span class="tagline">PDF · DOCX · read back ✓</span></>)}
+          {s.art === 'track' && (<><span class="trk">Ready</span><span class="trk on">Applied ✓</span><span class="trk">Interview</span><span class="tagline">Reminder · May 14</span></>)}
+        </div>
+      </li>
+    ))}
+  </ol>
+
+  <section class="wrap end" aria-labelledby="next-h">
+    <h2 id="next-h">Try the pieces, then install</h2>
+    <div class="cluster">
+      <a class="btn btn-primary" href={href('/download/')}>Download <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn-ghost" href={href('/#try-title')}>Interactive examples</a>
+      <a class="btn btn-ghost" href={href('/features/')}>All features</a>
+    </div>
+  </section>
+</Base>
+
+<script>
+  const steps = document.querySelectorAll<HTMLElement>('[data-step-reveal]');
+  if (document.documentElement.classList.contains('motion-ok')) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+    }, { rootMargin: '0px 0px -20% 0px' });
+    steps.forEach((s) => io.observe(s));
+  }
+</script>
+
+<style>
+  .timeline { list-style: none; padding: 0; display: grid; gap: 0; }
+  .step { display: grid; grid-template-columns: 3.5rem 1fr; gap: var(--space-s) var(--space-m); padding-bottom: var(--space-xl); }
+  @media (min-width: 900px) { .step { grid-template-columns: 4.5rem minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--space-xl); align-items: start; } }
+  .marker { display: grid; justify-items: center; grid-template-rows: auto 1fr; height: 100%; grid-row: span 2; }
+  @media (min-width: 900px) { .marker { grid-row: auto; } }
+  .num { width: 3rem; height: 3rem; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: var(--step-1); background: var(--btn-bg); color: var(--btn-ink); position: relative; z-index: 1; }
+  .seg { width: 2px; background: var(--line); margin-top: 0.5rem; margin-bottom: calc(-1 * var(--space-xl)); position: relative; overflow: hidden; }
+  .seg::after { content: ''; position: absolute; inset: 0; background: var(--accent); transform-origin: top; transform: scaleY(1); }
+  .step:last-child .seg { display: none; }
+  .content { display: grid; gap: var(--space-s); }
+  .content h2 { font-size: var(--step-3); }
+  .body { color: var(--ink-2); font-size: var(--step-1); line-height: 1.55; }
+  .you { display: grid; gap: 0.2rem; border-left: 3px solid var(--tide); padding: 0.3rem 0 0.3rem 0.9rem; }
+  .you-label { font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: 0.08em; color: var(--tide); font-weight: 700; }
+
+  .art { grid-column: 2; background: var(--stage-bg); color: var(--stage-ink); border-radius: var(--r-lg); padding: var(--space-m); min-height: 10rem; display: flex; flex-wrap: wrap; gap: 0.6rem; align-content: center; justify-content: center; border: 1px solid var(--stage-line); font-size: var(--step--1); }
+  @media (min-width: 900px) { .art { grid-column: auto; min-height: 12rem; } }
+  .w-btn, .w-opt, .fact, .trk { padding: 0.45rem 0.8rem; border-radius: 999px; border: 1px solid var(--stage-line); color: var(--stage-ink-2); }
+  .w-btn.on, .w-opt.on, .trk.on { background: var(--stage-lime); color: #15110e; border-color: transparent; font-weight: 600; }
+  .file { font-family: var(--font-mono); background: #f8f3ea; color: #1c1714; padding: 0.5rem 0.8rem; border-radius: 0.5rem; }
+  .arrow-d { width: 100%; height: 0; }
+  .fact.v { border-color: var(--stage-tide); color: var(--stage-tide); }
+  .post { font-family: var(--font-mono); background: var(--stage-surface); padding: 0.7rem 0.9rem; border-radius: 0.6rem; line-height: 1.8; }
+  .post mark { background: rgb(87 214 198 / 0.22); color: var(--stage-ink); padding: 0 0.2em; border-radius: 3px; }
+  .tagline { width: 100%; text-align: center; font-family: var(--font-mono); font-size: var(--step--2); color: var(--stage-ink-2); }
+  .ring { width: 5.5rem; height: 5.5rem; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--stage-lime) 0 84%, var(--stage-surface-2) 84% 100%); position: relative; }
+  .ring::before { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: var(--stage-bg); }
+  .ring b { position: relative; font-family: var(--font-display); font-size: 1.6rem; }
+  .bars { display: grid; gap: 0.5rem; width: 9rem; }
+  .bars i { height: 0.5rem; border-radius: 999px; background: var(--stage-surface-2); position: relative; overflow: hidden; }
+  .bars i::after { content: ''; position: absolute; inset: 0; width: var(--w); background: var(--stage-tide); border-radius: inherit; transform-origin: left; }
+  .sheet { width: 5.5rem; height: 7rem; background: #f8f3ea; border-radius: 0.4rem; transform: rotate(-4deg); box-shadow: 0 10px 20px rgb(0 0 0 / 0.5); background-image: repeating-linear-gradient(transparent 0 12px, #ddd2c3 12px 15px); background-size: 70% 100%; background-repeat: no-repeat; background-position: 12px 14px; }
+  .sheet.s2 { transform: rotate(5deg) translateY(6px); }
+
+  /* motion: elements arrive as each step enters */
+  :global(.motion-ok) .step .seg::after { transform: scaleY(0); transition: transform var(--dur-story) var(--ease-in-out) var(--dur-base); }
+  :global(.motion-ok) .step.is-in .seg::after { transform: scaleY(1); }
+  :global(.motion-ok) .step .content, :global(.motion-ok) .step .art { opacity: 0; transform: translateY(20px); transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out); }
+  :global(.motion-ok) .step .art { transition-delay: var(--stagger); }
+  :global(.motion-ok) .step.is-in .content, :global(.motion-ok) .step.is-in .art { opacity: 1; transform: none; }
+  :global(.motion-ok) .step .num { transform: scale(0.6); transition: transform var(--dur-slow) var(--ease-bounce); }
+  :global(.motion-ok) .step.is-in .num { transform: none; }
+  :global(.motion-ok) .step .art > * { opacity: 0; transform: translateY(10px) scale(0.96); transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-bounce); }
+  :global(.motion-ok) .step.is-in .art > * { opacity: 1; transform: none; }
+  :global(.motion-ok) .step.is-in .art > :nth-child(2) { transition-delay: calc(var(--stagger) * 3); }
+  :global(.motion-ok) .step.is-in .art > :nth-child(3) { transition-delay: calc(var(--stagger) * 5); }
+  :global(.motion-ok) .step.is-in .art > :nth-child(4) { transition-delay: calc(var(--stagger) * 7); }
+  :global(.motion-ok) .step.is-in .art > :nth-child(5) { transition-delay: calc(var(--stagger) * 9); }
+  :global(.motion-ok) .step .bars i::after { transform: scaleX(0); transition: transform var(--dur-slow) var(--ease-out) calc(var(--dur-base) * 2); }
+  :global(.motion-ok) .step.is-in .bars i::after { transform: scaleX(1); }
+
+  .end { display: grid; gap: var(--space-m); padding-block: var(--space-xl); border-top: 1px solid var(--line); }
+  .end h2 { font-size: var(--step-3); }
+</style>

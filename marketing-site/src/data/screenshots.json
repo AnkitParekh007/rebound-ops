@@ -1,0 +1,6 @@
+{
+  "status": "pending",
+  "note": "Not captured yet. Run `npm run screenshots:app` (see docs/SCREENSHOTS.md). Never commit images from any source other than that script.",
+  "source": null,
+  "shots": []
+}

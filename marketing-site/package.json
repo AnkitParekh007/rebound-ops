@@ -1,0 +1,41 @@
+{
+  "name": "reboundops-marketing-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static marketing website for ReboundOps. Independent of the app workspace.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev --port 4321",
+    "build": "ASTRO_TELEMETRY_DISABLED=1 astro check && ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "build:preview": "ASTRO_TELEMETRY_DISABLED=1 SITE_ENV=preview astro build",
+    "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview --port 4321",
+    "check": "ASTRO_TELEMETRY_DISABLED=1 astro check",
+    "test": "node --test tests/unit/*.test.mjs",
+    "test:e2e": "playwright test",
+    "screenshots:app": "node scripts/capture-app-screenshots.mjs",
+    "screenshots:site": "node scripts/capture-site-screenshots.mjs",
+    "og": "node scripts/make-og-images.mjs",
+    "lighthouse": "node scripts/run-lighthouse.mjs",
+    "verify": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "3.7.6",
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/instrument-sans": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "astro": "7.4.13"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.12",
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.65.1",
+    "axe-core": "4.14.1",
+    "jsdom": "31.0.1",
+    "sharp": "0.35.5",
+    "typescript": "6.0.3"
+  }
+}

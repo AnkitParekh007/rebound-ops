@@ -1,0 +1,149 @@
+---
+/**
+ * Scroll-triggered story: one posting, start to finish. On wide screens a sticky card changes as each
+ * chapter reaches the middle of the viewport (IntersectionObserver, no scroll listeners). The chapter
+ * text carries all the content; the card is decorative.
+ */
+const chapters = [
+  {
+    id: 'capture',
+    kicker: '01 · Capture',
+    title: 'Every detail keeps its receipt',
+    body: 'Paste a posting and its link, or save one from Discover. Title, employer, location and pay are pulled out only when the text states them, and each one shows the sentence it came from. The posting stays marked unverified until you check it on the official site.',
+  },
+  {
+    id: 'judge',
+    kicker: '02 · Judge',
+    title: 'A score that shows its working',
+    body: 'The fit rubric scores role, skills, experience, location, seniority and published pay from 0 to 5, with confidence for each. Eligibility is separate: missing information is “unconfirmed”, never quietly treated as a no.',
+  },
+  {
+    id: 'prepare',
+    kicker: '03 · Prepare',
+    title: 'Documents built from what is true',
+    body: 'Tailored resume and cover letter drafts use only facts you have verified. Screening answers come from your saved answers or say “needs your answer”. Export to PDF or DOCX, then apply yourself through the official link.',
+  },
+  {
+    id: 'follow',
+    kicker: '04 · Follow through',
+    title: 'Nothing slips, nothing is sent for you',
+    body: 'Confirm you applied and the tracker records it. Reminders, contacts, interview notes and follow-up drafts live with the application. Drafts are copied or opened in your own mail app — ReboundOps never sends them.',
+  },
+];
+---
+<section class="story section-lg" aria-labelledby="story-title" data-story>
+  <div class="wrap-wide">
+    <div class="section-head">
+      <p class="eyebrow">One posting, start to finish</p>
+      <h2 id="story-title">From a pasted link to a follow-up you send yourself</h2>
+    </div>
+    <div class="grid">
+      <div class="sticky" aria-hidden="true">
+        <div class="card-v" data-step="capture">
+          <div class="cv-head">
+            <span class="badge b-unv">unverified</span>
+            <span class="badge b-status">Discovered</span>
+          </div>
+          <p class="cv-title">Platform Engineer</p>
+          <p class="cv-sub">Northwind Labs · Lisbon · hybrid</p>
+          <div class="layer l-capture">
+            <p class="ev"><mark>Platform Engineer</mark> to own our internal developer platform…</p>
+            <p class="ev">Based in our <mark>Lisbon</mark> office two days a week…</p>
+            <p class="ev">Salary <mark>€62,000–€75,000</mark>…</p>
+          </div>
+          <div class="layer l-judge">
+            <div class="meter"><span style="--v:0.84"></span></div>
+            <p class="big">4.2 <small>/ 5</small></p>
+            <p class="chips"><span class="c c-ok">Eligibility confirmed</span><span class="c c-warn">Missing: Go</span></p>
+          </div>
+          <div class="layer l-prepare">
+            <p class="files"><span class="f">resume.pdf</span><span class="f">resume.docx</span><span class="f">cover-letter.pdf</span></p>
+            <p class="ans"><span class="c c-ok">drafted</span> Authorised to work in Portugal?</p>
+            <p class="ans"><span class="c c-warn">needs your answer</span> Salary expectations?</p>
+          </div>
+          <div class="layer l-follow">
+            <p class="ans"><span class="c c-ok">Applied</span> you confirmed · May 7</p>
+            <p class="ans"><span class="c">Reminder</span> Follow up · May 14</p>
+            <p class="ans"><span class="c">Draft</span> not sent — copy or open in your mail app</p>
+          </div>
+        </div>
+      </div>
+      <ol class="chapters" role="list">
+        {chapters.map((c) => (
+          <li class="chapter" data-chapter={c.id}>
+            <p class="kicker mono">{c.kicker}</p>
+            <h3>{c.title}</h3>
+            <p class="muted">{c.body}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
+</section>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-story]');
+  if (root) {
+    const card = root.querySelector<HTMLElement>('.card-v')!;
+    const chapters = [...root.querySelectorAll<HTMLElement>('[data-chapter]')];
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            const id = (e.target as HTMLElement).dataset.chapter!;
+            card.dataset.step = id;
+            chapters.forEach((c) => c.classList.toggle('is-current', c === e.target));
+          }
+        }
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    );
+    chapters.forEach((c) => io.observe(c));
+  }
+</script>
+
+<style>
+  .story { background: var(--stage-bg); color: var(--stage-ink); }
+  .story .eyebrow { color: var(--stage-ember); }
+  .grid { display: grid; gap: var(--space-xl); }
+  .sticky { display: none; }
+  @media (min-width: 960px) {
+    .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+    .sticky { display: block; position: sticky; top: 7rem; }
+  }
+  .chapters { list-style: none; padding: 0; display: grid; gap: var(--space-xl); }
+  @media (min-width: 960px) { .chapters { gap: 40vh; padding-block: 8vh 30vh; } }
+  .chapter { display: grid; gap: var(--space-s); max-width: 34rem; transition: opacity var(--dur-slow) var(--ease-out); }
+  .chapter h3 { font-size: var(--step-3); }
+  .chapter .muted { color: var(--stage-ink-2); font-size: var(--step-1); line-height: 1.55; }
+  .kicker { color: var(--stage-lime); font-size: var(--step--1); letter-spacing: 0.06em; }
+  @media (min-width: 960px) {
+    :global(.motion-ok) .chapter:not(.is-current) { opacity: 0.38; }
+  }
+
+  .card-v { background: var(--stage-surface); border: 1px solid var(--stage-line); border-radius: var(--r-xl); padding: var(--space-l); display: grid; gap: 0.6rem; min-height: 25rem; align-content: start; box-shadow: 0 40px 80px -30px rgb(0 0 0 / 0.8); position: relative; overflow: hidden; }
+  .cv-head { display: flex; gap: 0.5rem; }
+  .badge { font-family: var(--font-mono); font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid var(--stage-line); color: var(--stage-ink-2); transition: all var(--dur-base) var(--ease-out); }
+  .cv-title { font-family: var(--font-display); font-size: var(--step-3); font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; margin-top: 0.4rem; }
+  .cv-sub { color: var(--stage-ink-2); }
+  .layer { display: grid; gap: 0.6rem; margin-top: 1rem; grid-area: auto; opacity: 0; transform: translateY(14px); transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out); position: absolute; left: var(--space-l); right: var(--space-l); top: 11rem; pointer-events: none; }
+  .card-v[data-step='capture'] .l-capture,
+  .card-v[data-step='judge'] .l-judge,
+  .card-v[data-step='prepare'] .l-prepare,
+  .card-v[data-step='follow'] .l-follow { opacity: 1; transform: none; }
+  .card-v[data-step='follow'] .b-status { color: var(--stage-lime); border-color: var(--stage-lime); }
+  .card-v[data-step='follow'] .b-status::after { content: ' → Applied'; }
+  .ev { font-family: var(--font-mono); font-size: 0.85rem; color: var(--stage-ink-2); border-left: 2px solid var(--stage-tide); padding-left: 0.75rem; }
+  .ev mark { background: rgb(87 214 198 / 0.2); color: var(--stage-ink); padding: 0 0.2em; border-radius: 3px; }
+  .meter { height: 10px; border-radius: 999px; background: var(--stage-surface-2); overflow: hidden; }
+  .meter span { display: block; height: 100%; width: calc(var(--v) * 100%); background: linear-gradient(90deg, var(--stage-tide), var(--stage-lime)); transform-origin: left; transition: transform var(--dur-story) var(--ease-out); transform: scaleX(0); }
+  .card-v[data-step='judge'] .meter span { transform: scaleX(1); }
+  .big { font-family: var(--font-display); font-size: 4rem; line-height: 1; letter-spacing: -0.05em; }
+  .big small { font-size: 1.2rem; color: var(--stage-ink-2); letter-spacing: 0; }
+  .chips, .files { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .c { display: inline-flex; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 999px; background: var(--stage-surface-2); color: var(--stage-ink); white-space: nowrap; }
+  .c-ok { background: rgb(87 214 198 / 0.16); color: var(--stage-tide); }
+  .c-warn { background: rgb(243 181 77 / 0.16); color: var(--stage-amber); }
+  .f { font-family: var(--font-mono); font-size: 0.8rem; padding: 0.5rem 0.75rem; border-radius: 0.6rem; background: #f8f3ea; color: #1c1714; }
+  .ans { display: flex; gap: 0.6rem; align-items: center; font-size: 0.9rem; color: var(--stage-ink-2); flex-wrap: wrap; }
+</style>
