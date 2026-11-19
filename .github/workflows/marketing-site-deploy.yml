@@ -1,0 +1,57 @@
+# Publishes marketing-site/ to GitHub Pages at https://rebound-ops.org/.
+# Started by hand only (Actions → Deploy marketing site → Run workflow), from main; nothing deploys on push.
+# See marketing-site/docs/DEPLOYMENT.md for the domain, DNS and rollback steps.
+name: Deploy marketing site
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; never cancel one that is already publishing.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: marketing-site
+    env:
+      ASTRO_TELEMETRY_DISABLED: '1'
+      SITE_ENV: production
+      SITE_URL: https://rebound-ops.org
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: marketing-site/package-lock.json
+      - run: npm ci
+      - name: Production build
+        run: npm run build
+      - name: Static checks against the production build (canonicals, sitemap, robots, links, axe)
+        run: npm test
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: marketing-site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.1
