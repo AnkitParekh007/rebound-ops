@@ -115,5 +115,7 @@ const nav = [
     html:not(.js) .menu-btn { display: none; }
     html:not(.js) .bar { flex-wrap: wrap; }
   }
+  /* Logo, theme toggle and Menu button with full gaps overflowed a 320 px screen by 5 px. */
+  @media (max-width: 399.98px) { .bar { gap: var(--space-xs); } }
   @keyframes drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 </style>
