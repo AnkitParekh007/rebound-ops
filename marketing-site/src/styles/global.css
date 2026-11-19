@@ -154,6 +154,9 @@ caption { text-align: left; padding: 0.8rem 1rem; font-weight: 600; caption-side
 .code {
   position: relative; background: var(--stage-bg); color: var(--stage-ink); border-radius: var(--r-md);
   border: 1px solid var(--stage-line); font-family: var(--font-mono); font-size: var(--step--1);
+  /* Long commands scroll inside the <pre>; containment keeps them from setting the minimum width
+     of the surrounding grid column (which widened the page by ~300 px at 320-390 px). */
+  width: 100%; min-width: 0; contain: inline-size;
 }
 .code pre { margin: 0; padding: var(--space-s) var(--space-m); overflow-x: auto; line-height: 1.7; }
 .code .prompt { color: var(--stage-ink-2); user-select: none; }

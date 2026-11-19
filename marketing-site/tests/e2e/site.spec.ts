@@ -126,7 +126,9 @@ test('fit demo: choosing a job shows its own assessment', async ({ page }) => {
   await page.goto('/features/');
   const demo = page.locator('.fit-demo').first();
   await expect(demo.locator('.result[data-for="northwind"]')).toBeVisible();
-  await demo.getByRole('radio', { name: /Site Reliability Lead/ }).check();
+  // Click the visible card, as a user does: the transparent radio sits underneath its text.
+  await demo.locator('label.job-opt', { hasText: 'Site Reliability Lead' }).click();
+  await expect(demo.getByRole('radio', { name: /Site Reliability Lead/ })).toBeChecked();
   await expect(demo.locator('.result[data-for="quarry"]')).toBeVisible();
   await expect(demo.locator('.result[data-for="northwind"]')).toBeHidden();
   await expect(demo.locator('.result[data-for="quarry"]').getByText('Ineligible')).toBeVisible();
