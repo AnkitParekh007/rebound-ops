@@ -8,28 +8,48 @@ on:
 permissions:
   contents: read
 
+# One run per branch/PR: a newer push cancels the older run, and a push + pull_request pair for the
+# same branch share a group so only one of them keeps running.
+concurrency:
+  group: ci-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  NG_CLI_ANALYTICS: 'false'
+  NPM_CONFIG_AUDIT: 'false'
+  NPM_CONFIG_FUND: 'false'
+
+# The three jobs run in parallel; wall time is the slowest job, not the sum.
 jobs:
-  verify:
+  quality:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
-        with:
-          # Tags are needed for the upgrade-from-v0.1.0 check.
-          fetch-depth: 0
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
-        env:
-          NG_CLI_ANALYTICS: 'false'
+      - run: npm ci --prefer-offline
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:smoke
-      # Build the production web app before anything that serves or inspects it.
-      - run: npm run build
+
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      # Only the v0.1.0 tag is needed (upgrade check); fetch it shallowly instead of the full history.
+      - run: git fetch --no-tags --depth=1 origin +refs/tags/v0.1.0:refs/tags/v0.1.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --prefer-offline
+      # Production web build only; type checking runs in the quality job.
+      - run: npm run build -w @reboundops/web
       - run: npm run test:packaged
       - run: npm run test:exports
       - run: npm run audit:release
@@ -53,29 +73,39 @@ jobs:
   e2e:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        # dev: Angular dev server proxying to the API. packaged: the production build served by the API.
+        mode: [dev, packaged]
+    name: e2e (${{ matrix.mode }})
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
-        env:
-          NG_CLI_ANALYTICS: 'false'
-      - run: npx playwright install --with-deps chromium
+      - run: npm ci --prefer-offline
+      - id: pw
+        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - id: pw-cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium
+      - if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - if: matrix.mode == 'packaged'
+        run: npm run build -w @reboundops/web
       - run: npm run test:e2e
         env:
           PW_CHANNEL: chromium
-      # The same journey against the production build served by the API.
-      - run: npm run build
-      - run: npm run test:e2e
-        env:
-          PW_CHANNEL: chromium
-          PW_PACKAGED: '1'
+          PW_PACKAGED: ${{ matrix.mode == 'packaged' && '1' || '' }}
       - if: failure()
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: playwright-results
+          name: playwright-results-${{ matrix.mode }}
           path: test-results/
           retention-days: 7
