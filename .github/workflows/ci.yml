@@ -1,15 +1,17 @@
 name: CI
 
+# Pushes to main, plus every pull request. Feature branches get CI through their PR only: with a
+# push trigger as well, each PR commit started two runs in one concurrency group, the cancelled one
+# reported failing "verify"/"e2e" gates, and those stale failures blocked the merge.
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
-# One run per branch/PR: a newer push cancels the older run, and a push + pull_request pair for the
-# same branch share a group so only one of them keeps running.
+# One run per branch/PR: a newer push cancels the older run.
 concurrency:
   group: ci-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
