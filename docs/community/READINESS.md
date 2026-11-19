@@ -2,6 +2,25 @@
 
 _Prepared 2026-11-18 on branch `chore/github-community-launch`, cut from `main` at `fc049c1`. Local commits only: nothing has been pushed, and no GitHub setting, label, issue, Discussion or Wiki page has been changed._
 
+## Status after the owner run (2026-11-19)
+
+The owner ran the checklist. A follow-up check used 9 unauthenticated read-only API calls and the public pages.
+
+| Step | Confirmed |
+| --- | --- |
+| PR #1 merged; branch deleted | yes. `main` is at `88ca275`, and `verify` and `e2e` are green there |
+| Labels, About and topics | yes |
+| Rulesets | yes: "Protect main branch" (deletion, force-push, PR required, `verify` and `e2e` required) and "Protect release tags", both active |
+| Contributor issues | yes: #4–#11 |
+| Discussions | yes: enabled, with the Platform reports category and six posts |
+| Wiki | yes: nine generated pages. Home is the owner's hand-made page. The first sync's push failed on the Git LFS lock check, which `sync-wiki.sh` now skips |
+| Private vulnerability reporting | yes: the button is visible |
+| CodeQL default setup | yes: `javascript-typescript` and `actions` analyses passed on `main` |
+| Dependabot version updates | yes: PRs #2 and #3 opened. Two Dependabot runs on `main` failed; their logs need sign-in |
+| Social preview | **no**: the page still serves GitHub's auto-generated card |
+| Secret scanning, push protection, Dependabot alerts and fixes, Actions permissions, merge settings | not visible without signing in |
+| Homepage | pending a domain |
+
 ## Verdict
 
 **Ready for owner review.** The repository files (README, community health files, issue forms, PR template, Dependabot config, architecture guide, Wiki generator) are complete and pass the local gates below. Every remote change is written as an exact command in the [owner-approval checklist](#owner-approval-checklist). None has been run.

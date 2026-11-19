@@ -2,7 +2,7 @@
 
 Thank you for helping. ReboundOps is a small, local-first project, and focused contributions are easiest to review: a fix, a test, a platform report or a documentation improvement.
 
-By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security problem, follow [SECURITY.md](SECURITY.md) and do not open a public issue.
+Not sure where to start, or want to talk an idea through first? Ask in [Discussions](https://github.com/AnkitParekh007/rebound-ops/discussions). By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security problem, follow [SECURITY.md](SECURITY.md) and do not open a public issue.
 
 ## Ground rules
 

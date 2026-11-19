@@ -1,6 +1,6 @@
 # Contributor issues and labels: review draft
 
-**Status: draft. No labels or issues have been created.** The repository had no issues, and 10 labels: the nine GitHub defaults plus `accessibility` (checked 2026-11-18).
+**Status: applied by the owner on 2026-11-18.** All nine labels exist and the eight issues are open as #4–#11 (checked 2026-11-19). Before that, the repository had no issues and 10 labels: the nine GitHub defaults plus `accessibility`.
 
 Every issue below comes from a limitation or plan documented in `docs/RELEASE_READINESS.md`, `docs/INSTALL.md`, the README or the code. None describes an invented defect.
 
