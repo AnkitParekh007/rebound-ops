@@ -5,5 +5,5 @@
   "type": "module",
   "license": "MIT",
   "exports": { ".": "./src/index.ts" },
-  "dependencies": { "@reboundops/contracts": "0.1.0", "@anthropic-ai/sdk": "1.10.0" }
+  "dependencies": { "@reboundops/contracts": "0.1.0", "@anthropic-ai/sdk": "1.11.0" }
 }
